@@ -1,0 +1,2774 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   sales.css — AiMY Sales v2, product chrome only
+   ───────────────────────────────────────────────────────────────────────
+   Layout and shell. NO COMPONENTS: every component on this surface comes
+   from aimy-ds.css, which is extracted from the design system and must not
+   be edited here. If something is missing, it is a gap in the system and
+   belongs in ../GAPS.md, not in a local re-implementation.
+
+   The ecosystem chrome — topnav, sidebar metrics, canvas stacking, the
+   notification panel, the theme toggle — is shared with AiMY QA and AiMY
+   Knowledge v2 and is carried across deliberately so the three agents read
+   as one product. Where a value differs from Knowledge's, it is because
+   Knowledge's is off the spacing scale: its own css-audit reports thirteen
+   violations in this exact region, all introduced after the last audit run.
+   They are on the scale here.
+
+   Three sections Knowledge carries are NOT here, and their absence is the
+   point: BUTTON HEIGHTS, COPY BUTTON and AIMY TOAST were local patches for
+   design-system gaps 1.10-1.12, and the system closed all three upstream.
+   Sales extracts from a commit that has them, so it forks nothing.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   FORM-CONTROL RESET
+
+   The design system's base has no reset for form controls, and most of its
+   specimens are <div>s, so the omissions never surface on the documentation
+   page. On the correct interactive elements they do: <button> does not
+   inherit font-family, and .tab declares no background at all — so on a
+   <button> the UA's buttonface shows through as a light chip on a dark
+   shell, which reads as the navbar rendering in light mode.
+
+   Nothing here sets a colour, size or spacing. It is a reset, not a
+   restyle. Element-selector specificity (0,0,1), so any component class
+   still wins.
+═══════════════════════════════════════════════ */
+input, select, textarea { font-family: inherit; }
+
+/* ── Typography baseline ──
+   Kerning on, always: there is no case for turning it off, and the library
+   does not set it. Ligatures where the face has them. */
+body {
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Figures that sit in a column must be comparable down that column.
+   Proportional digits make 1,000 narrower than 8,888 and the eye has to
+   re-find the decimal on every row. */
+.s-result-count, .s-talk-count, .s-crit-count, .s-merge-n,
+.ntf-count, .s-td-num, .s-table td, .ss-num, .s-folder-n {
+  font-variant-numeric: tabular-nums;
+}
+
+/* All-caps runs are letterspaced. Caps are homogeneous rectangles rather
+   than varied contours, so they read slower; the tracking is what makes a
+   short one legible at all. Anything under 5% is uppercase without the fix. */
+.s-rec-kind, .s-sheet-kind, .s-effects-title, .s-camp-state, .proto-h,
+.overlay-context-label {
+  letter-spacing: 0.08em;
+}
+
+/* Prose caps at a readable measure. 45–90 characters is the single biggest
+   readability factor, and every one of these inherits a 1160px column. */
+.s-brief-text, .s-sheet-brief, .s-block-sub, .s-none,
+.s-talk-empty, .aiu-body, .empty-state-desc, .s-turn-body {
+  max-width: 65ch;
+}
+
+/* <strong> pinned to a weight we actually load. The UA gives it
+   `font-weight: bolder`, which is RELATIVE: inside a 600 parent it computes
+   to 900 — a face the webfont request never included. */
+strong, b { font-weight: var(--fw-extrabold); }
+
+/* Bare <code> falls back to the UA's generic monospace. The library styles
+   .copy-field code and .ds-code but never the element itself. */
+code { font-family: var(--font-mono); }
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ═══════════════════════════════════════════════
+   POINTER TARGETS — WCAG 2.2 SC 2.5.8 (24×24 minimum)
+
+   The hit area is extended without changing how anything looks: growing the
+   visible control would break the density these surfaces depend on, and the
+   success criterion is about the target, not the ink.
+═══════════════════════════════════════════════ */
+.audit-revert, .filter-chip { position: relative; }
+.audit-revert::after, .filter-chip::after {
+  content: ""; position: absolute;
+  left: 0; right: 0; top: 50%; height: 24px;
+  transform: translateY(-50%);
+}
+.btn-sm, .bcard-ack-btn, .ss-clear, .agg-more, .td-action, .cite-action,
+.mem-foot .btn, .aimy-toast-undo, .v2-dropdown-btn { min-height: 24px; }
+
+/* The text inputs draw ~20px inside a 54px bar, so most of the pill was dead
+   to the pointer — you could click the thing that looks like a text field
+   and have nothing happen. min-height only: align-self:stretch made a
+   one-line field 36px tall against a 20px line-height, which reads as a
+   textarea waiting for a second line. */
+.aimy-float-input, .overlay-input { min-height: 24px; }
+.aimy-float-bar, .overlay-input-bar { cursor: text; }
+.aimy-float-bar > *:not(.aimy-float-input),
+.overlay-input-bar > *:not(.overlay-input) { cursor: default; }
+
+/* A staged prompt is AiMY-composed and waiting on you, so the bar says so
+   rather than looking like text you typed and abandoned. */
+.overlay-input-bar.is-staged {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12);
+}
+
+/* ═══════════════════════════════════════════════
+   PRESS FEEDBACK
+
+   Nothing in this product acknowledged being pressed. Every control changed
+   state only after its work completed, which on a surface where actions
+   carry consequence reads as the click not landing — so people press again.
+   That matters more here than in Knowledge: the commonest action on this
+   surface writes a touchpoint, and a rep who presses twice logs twice.
+
+   90ms is deliberately below the motion scale's smallest step (--t-fast,
+   150ms). Press-release is the one interaction where 150ms is perceptible
+   as lag: the finger is already up before the surface answers. The scale
+   has no press step; noted in ../GAPS.md.
+═══════════════════════════════════════════════ */
+:root { --t-press: 90ms; }
+
+/* ═══════════════════════════════════════════════
+   TEXT-SAFE SIGNAL COLOURS
+
+   `--ok`, `--warn`, `--err` and `--accent` are calibrated as FILLS — badge
+   grounds, dot markers, borders. Set as small text on a card they fail
+   WCAG AA: measured against the real card and rail backgrounds, the status
+   word read 4.37:1 in dark and 3.82:1 in light, and the briefing's CTA
+   3.77 / 4.29. That is the product's own thesis — the computed status —
+   printed below the legibility floor.
+
+   The library already made this exact distinction once, for `--ai-text`
+   ("AI-blue text — darkened in light"). It has no siblings for the other
+   three, so they are declared here. Filed in ../GAPS.md.
+
+   Every value below is measured, not picked: each clears 4.5:1 against both
+   the card (#141b24 / #ffffff) and the briefing rail (#171a1c / #f4f6f9),
+   and keeps its hue so the signal still reads as the same signal.
+═══════════════════════════════════════════════ */
+:root {
+  --ok-text:     #2ecc84;   /* 8.32:1 on card */
+  --warn-text:   #ffa726;   /* 8.92:1 */
+  --err-text:    #ff6a5c;   /* 6.16:1 */
+  --accent-text: #a06ff7;   /* 5.04:1 */
+}
+:root[data-theme="light"] {
+  /* Darkened a step from the first solve. Those values cleared 4.5 on the
+     plain card, but the status pill put them on a 12% tint of their own
+     hue — a lighter ground — and they landed at 4.52, 4.56, 5.12. Passing
+     by four hundredths is not passing, it is the next small change away
+     from failing silently. These clear on both grounds with room. */
+  --ok-text:     #06703f;
+  --warn-text:   #7a4406;
+  --err-text:    #b42318;
+  --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .entry-action, .filter-chip, .seg-btn, .bcard-ack-btn, .overlay-sugg-chip,
+  .audit-revert, .cite-action, .td-action, .icon-btn,
+  .topnav-bell, .ds-theme-toggle, .aimy-float-send, .overlay-send, .overlay-close,
+  .agg-more, .ss-clear, .tab, .nav-item, .bcard-dismiss-reason {
+    transition: transform var(--t-press) var(--ease-out),
+                background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  }
+  .btn:active, .entry-action:active, .filter-chip:active, .seg-btn:active,
+  .bcard-ack-btn:active, .overlay-sugg-chip:active,
+  .audit-revert:active, .cite-action:active, .td-action:active,
+  .icon-btn:active, .topnav-bell:active, .ds-theme-toggle:active,
+  .aimy-float-send:active, .overlay-send:active, .overlay-close:active,
+  .agg-more:active, .ss-clear:active, .tab:active,
+  .nav-item:active, .bcard-dismiss-reason:active { transform: scale(0.97); }
+
+  /* Large surfaces move less — the same 3% reads as a lurch at card scale. */
+  .type-card, .list-row {
+    transition: transform var(--t-press) var(--ease-out), background-color var(--t-fast);
+  }
+  .type-card:active, .list-row:active { transform: scale(0.995); }
+}
+
+/* ═══════════════════════════════════════════════
+   ENTRY STAGGER
+
+   The briefing arrives as one block, which reads as a page repaint rather
+   than a set of findings. A short cascade gives the eye an order to follow —
+   and the order is the priority order composition already computed, so the
+   motion carries the same information the ranking does.
+
+   40ms per item, capped: past ~8 the delay would outlast the reading.
+   Decorative, so it never gates interaction and vanishes under reduced
+   motion.
+═══════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .s-stagger > * {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: sEnter 240ms var(--ease-out) forwards;
+    animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+  }
+  /* Single entry — a block replacing its own skeleton. No delay: the
+     resolution order already supplies the cascade. */
+  .s-enter {
+    opacity: 0; transform: translateY(6px);
+    animation: sEnter 240ms var(--ease-out) forwards;
+  }
+  @keyframes sEnter { to { opacity: 1; transform: translateY(0); } }
+}
+
+/* ═══════════════════════════════════════════════
+   SHELL — topnav → sidebar → scrollable main
+═══════════════════════════════════════════════ */
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Ambient background layer. Sits on the body bg, below every surface.
+   Not decoration hung on a component — no component may depend on it. */
+#appEllipse {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0; overflow: hidden;
+}
+:root {
+  /* QA's dark body is #171a1c; the design system's token is #0f1215. The
+     ellipse alphas below are calibrated against QA's, and the darker DS body
+     makes the same wash read as a visible blue bloom. */
+  --body-bg: #171a1c;
+  --grad-ellipse-1: radial-gradient(ellipse at center,
+    rgba(0, 102, 255, 0.18) 0%, rgba(97, 173, 241, 0.1) 28%, transparent 60%);
+  --grad-ellipse-2: radial-gradient(ellipse at center,
+    rgba(111, 223, 226, 0.1) 0%, rgba(139, 79, 244, 0.07) 38%, transparent 60%);
+}
+/* Light gets its own alphas rather than an opacity multiplier on the layer —
+   at dark alphas these read as haze on a white body. */
+:root[data-theme="light"] {
+  --grad-ellipse-1: radial-gradient(ellipse at center,
+    rgba(0, 102, 255, 0.07) 0%, rgba(97, 173, 241, 0.04) 28%, transparent 60%);
+  --grad-ellipse-2: radial-gradient(ellipse at center,
+    rgba(111, 223, 226, 0.05) 0%, rgba(139, 79, 244, 0.035) 38%, transparent 60%);
+}
+#appEllipse::before {
+  content: ""; position: absolute;
+  top: 42%; left: 50%; transform: translate(-50%, -50%);
+  width: 1300px; height: 1050px;
+  background: var(--grad-ellipse-1);
+}
+#appEllipse::after {
+  content: ""; position: absolute;
+  bottom: -8%; right: -4%;
+  width: 750px; height: 650px;
+  background: var(--grad-ellipse-2);
+}
+
+/* ═══════════════════════════════════════════════
+   TOPNAV — shared ecosystem chrome
+
+   Ported from AiMY QA and Knowledge v2 so the three agents share one
+   masthead. Their local classes are used (.topnav-tabs-inner, .topnav-tab,
+   .topnav-user) rather than the design system's .tabs-strip / .tab /
+   .user-pill, because the library states the shared topnav is "maintained
+   centrally, outside this system" — matching the siblings is the point.
+
+   Two departures, each stated rather than smuggled:
+
+     · Tabs stay <button>, not QA's <div>. A div is not focusable and
+       announces as nothing, so QA's product tabs cannot be reached from the
+       keyboard. The visual is identical.
+     · V1's dialer is not here. A call changes one contact and the record of
+       it belongs on that contact — and the contact is the only thing that
+       knows which number to ring.
+═══════════════════════════════════════════════ */
+.app-topnav {
+  height: var(--topbar-height);
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  padding: 0 20px 0 24px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+}
+:root[data-theme="light"] .app-topnav { border-bottom-color: var(--card-border); }
+
+.topnav-logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.topnav-logo-mark { display: flex; align-items: center; flex-shrink: 0; }
+.topnav-logo svg { display: block; height: 32px; width: auto; }
+
+.topnav-tabs { display: flex; align-items: center; justify-content: center; }
+.topnav-tabs-inner {
+  display: flex;
+  align-items: center;
+  border: 0.75px solid #5b6771;
+  border-radius: 24px;
+  padding: 4px;
+  gap: 2px;
+}
+/* Some entries are <button> (agents this prototype does not contain) and the
+   Knowledge and QA entries are real <a>s to deployed products, so the class
+   has to render identically on both. */
+.topnav-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d400);
+  cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast),
+              transform var(--t-press) var(--ease-out);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  background: none;
+  font-family: inherit;
+}
+.topnav-tab:hover { background: rgba(255, 255, 255, 0.05); color: var(--d200); }
+.topnav-tab.active { color: var(--accent); }
+.topnav-tab svg { width: 13px; height: 14px; flex-shrink: 0; }
+.topnav-tab:active { transform: scale(0.97); }
+.topnav-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .topnav-tabs-inner { border-color: rgba(16, 24, 40, 0.22); }
+:root[data-theme="light"] .topnav-tab:hover { background: rgba(16, 24, 40, 0.05); color: var(--d100); }
+
+/* Equal flanks so the strip centres on the WINDOW, not on the space left
+   between the logo and the user pill. */
+.topnav-logo, .topnav-right { flex: 1 1 0; min-width: 0; }
+.topnav-tabs { flex: 0 1 auto; min-width: 0; }
+
+.topnav-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topnav-right > * { flex-shrink: 0; }
+
+.topnav-bell {
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--d400); cursor: pointer; position: relative;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.topnav-bell:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.topnav-bell:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.topnav-bell svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.bell-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--err); border: 1.5px solid var(--body-bg);
+}
+.bell-dot[hidden] { display: none; }
+:root[data-theme="light"] .topnav-bell { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .topnav-bell:hover { background: rgba(16,24,40,0.07); }
+
+.topnav-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: border-color var(--t-fast), background-color var(--t-fast), transform var(--t-press) var(--ease-out);
+}
+.topnav-user:hover { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.07); }
+.topnav-user:active { transform: scale(0.97); }
+.topnav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #3369ff);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+/* A `<button>` centres its text; Knowledge's `<div role="button">` did not.
+   The CSS here is byte-identical to Knowledge's — the element changed when
+   this pill gained the Looking-as panel, and it took the UA default with it,
+   so the name floated to the middle of a role line that had grown longer
+   than it. Both lines share one left edge again. */
+.topnav-user { text-align: left; }
+.topnav-user-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.topnav-user-name { font-size: 12px; font-weight: 700; color: var(--d50); line-height: 1; }
+.topnav-user-role { font-size: 10px; color: var(--d400); line-height: 1; }
+.topnav-user svg { width: 12px; height: 12px; color: var(--d400); }
+:root[data-theme="light"] .topnav-user { background: rgba(16, 24, 40, 0.04); border-color: rgba(16, 24, 40, 0.10); }
+
+/* Below this the six ecosystem tabs and a full user pill cannot both fit.
+   The avatar survives; the name is the thing that can be dropped. */
+@media (max-width: 1120px) {
+  .topnav-user-info { display: none; }
+  .topnav-user { padding: 4px; }
+}
+
+/* ── Version link ──────────────────────────────────────────────────
+   A destination, not a state you toggle, so it is quieter than a product tab
+   and reads as chrome. One link rather than a segmented pair: you are on V2,
+   so the only thing worth offering is the way out. */
+.ver-link {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); line-height: var(--lh-snug);
+  color: var(--d500); text-decoration: none;
+  border: 1px solid var(--glass-border);
+  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.ver-link:hover { background: rgba(255,255,255,0.08); color: var(--d100); border-color: var(--card-border); }
+:root[data-theme="light"] .ver-link:hover { background: rgba(16,24,40,0.07); }
+.ver-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ver-link-ico { width: 10px; height: 10px; opacity: 0.75; }
+/* The flanks split what the six tabs leave, and the right one runs out first.
+   V1 is the only thing in the topnav that goes somewhere else rather than
+   carrying state, so it is the one that drops. */
+@media (max-width: 1000px) {
+  .ver-link { display: none; }
+}
+
+/* ── The notifications panel ───────────────────────────────────────
+   What is still waiting on a person, derived from the same model the
+   briefing rail and the Status filter read — so the three cannot disagree.
+
+   Panel chrome follows .peek rather than inlined literals: a second dropdown
+   language on one page is one too many.
+═══════════════════════════════════════════════ */
+.ntf-anchor { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+
+.ntf-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 940;
+  width: 360px; max-width: calc(100vw - 32px);
+  max-height: min(70vh, 520px); overflow-y: auto;
+  padding: 6px; text-align: left;
+  background: var(--panel-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.06) transparent;
+}
+.ntf-panel[hidden] { display: none; }
+.ntf-panel::-webkit-scrollbar { width: 4px; }
+.ntf-panel::-webkit-scrollbar-track { background: transparent; }
+.ntf-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+:root[data-theme="light"] .ntf-panel { scrollbar-color: rgba(16,24,40,0.12) transparent; }
+:root[data-theme="light"] .ntf-panel::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
+
+.ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; }
+.ntf-head b {
+  font-family: var(--font-display); font-size: var(--fs-sm);
+  font-weight: var(--fw-bold); color: var(--d50);
+}
+.ntf-count {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  padding: 2px 8px; border-radius: var(--r-pill);
+  background: var(--accent-dim); color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.ntf-count[hidden] { display: none; }
+.ntf-clear {
+  margin-left: auto; background: none; border: 0; padding: 2px 4px; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--d500); border-radius: var(--r-xs);
+  transition: color var(--t-fast);
+}
+.ntf-clear:hover { color: var(--d100); }
+.ntf-clear:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.ntf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ntf-row {
+  display: flex; gap: 8px; padding: 12px; border-radius: var(--r-md);
+  transition: background-color var(--t-fast), opacity var(--t-fast);
+}
+.ntf-row:hover { background: rgba(255,255,255,0.04); }
+:root[data-theme="light"] .ntf-row:hover { background: rgba(16,24,40,0.04); }
+/* Read, not gone. What is outstanding stays outstanding until the corpus
+   changes; the count under the bell is the thing marking clears. */
+.ntf-row.is-read { opacity: 0.45; }
+/* Tone on one leading dot, same as .brief-text — the rail and the bell are
+   two views of one model and should not look like two components. */
+.ntf-sev {
+  width: 5px; height: 5px; border-radius: 50%;
+  margin-top: 6px; flex-shrink: 0; background: var(--d500);
+}
+.ntf-sev.p1 { background: var(--err); }
+.ntf-sev.p2 { background: var(--warn); }
+.ntf-sev.p3 { background: var(--brand); }
+.ntf-row-main { flex: 1; min-width: 0; }
+.ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.ntf-row-type { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
+.ntf-row-when { margin-left: auto; font-size: var(--fs-2xs); color: var(--d500); flex-shrink: 0; }
+.ntf-row-body { margin: 0 0 8px; font-size: var(--fs-xs); line-height: var(--lh-base); color: var(--d300); }
+.ntf-row-cta {
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold); cursor: pointer;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.26);
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.ntf-row-cta:hover { background: rgba(var(--accent-rgb), 0.22); border-color: rgba(var(--accent-rgb), 0.40); }
+.ntf-row-cta:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.ntf-foot { padding: 8px 4px 4px; margin-top: 6px; border-top: 1px solid var(--hairline); }
+.ntf-foot-btn {
+  width: 100%; padding: 8px; cursor: pointer; font-family: inherit;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  border-radius: var(--r-md); color: var(--d300);
+  background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.ntf-foot-btn:hover { background: rgba(255,255,255,0.08); color: var(--d50); }
+.ntf-foot-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root[data-theme="light"] .ntf-foot-btn { background: rgba(16,24,40,0.04); }
+:root[data-theme="light"] .ntf-foot-btn:hover { background: rgba(16,24,40,0.07); }
+/* Nothing waiting is a real state and the best one this panel can report. */
+.ntf-empty { padding: 24px 12px; text-align: center; font-size: var(--fs-xs); color: var(--d500); }
+
+/* The bell sits ~90px in from the window edge, so a 360px card anchored to
+   it runs off the LEFT of the screen before the viewport is narrow enough
+   for max-width to catch it — the constraint is measured from the wrong
+   side. Below that width, pin the panel to the window instead. */
+@media (max-width: 520px) {
+  .ntf-panel {
+    position: fixed;
+    top: calc(var(--topbar-height) + 4px);
+    right: 12px; left: 12px;
+    width: auto; max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
+}
+
+/* ── Theme toggle ──────────────────────────────────────────────────
+   Lifted out of the design system's documentation TOPBAR by the extractor,
+   which keeps its rules; these are the product's sizing on top. */
+.ds-theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.ds-theme-toggle:hover { border-color: var(--card-border-hover); color: var(--d50); }
+.ds-theme-toggle svg { width: 16px; height: 16px; display: block; }
+:root[data-theme="light"] .ds-theme-toggle {
+  background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
+}
+
+/* ═══════════════════════════════════════════════
+   BODY — sidebar → scrollable main
+═══════════════════════════════════════════════ */
+.app-body { display: flex; flex: 1; min-height: 0; position: relative; z-index: 1; background: transparent; }
+
+/* SIDEBAR METRICS — QA's, not the design system's. The DS ships
+   --sidebar-width: 240px; QA's 220px rail with roomier rows reads as
+   better-managed space than a wider rail holding tighter ones. Overridden
+   here rather than in aimy-ds.css so the extracted stylesheet stays a
+   faithful copy of the library and this divergence stays visible. */
+:root { --sidebar-width: 220px; }
+
+/* No border and no background. The sidebar sits directly on the ambient
+   layer — a rule here draws a hard seam down the page and makes the rail
+   read as a separate surface from the canvas it belongs to. */
+.app-sidebar {
+  width: var(--sidebar-width); flex-shrink: 0;
+  display: flex; flex-direction: column;
+  background: transparent;
+}
+
+.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; background: transparent; }
+
+/* The scroll container. The float bar is fixed, so it must not live inside
+   this element or it scrolls away. */
+.page-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 24px 32px 96px;
+}
+
+/* THE MEASURE CAP BELONGS TO PROSE, NOT TO THE WHOLE COLUMN.
+
+   This was `max-width: 1160px` with no auto margin, so the entire workbench
+   was capped AND pinned to the left of the stage: measured at 1920, the
+   column ran 32→1192 with **768px of dead space on the right**, on every
+   view. It is the "everything is left aligned, what is this?" and the white
+   space on the right, and it defeated `.s-rec`'s own centring — that resolved
+   to 40px gutters inside the 1160 box rather than inside the room available.
+
+   The reasoning behind the cap was sound and is kept where it applies: a line
+   of 13px text should not run 120 characters. But a CARD GRID is not a line
+   of text — `repeat(auto-fill, minmax(320px, 1fr))` answers a wider viewport
+   with more columns, which is the whole point of it. So the column takes the
+   room, and the cap moves to the things that are actually read: the record
+   page and the campaign page's prose. */
+.page-inner { max-width: none; }
+
+/* ═══════════════════════════════════════════════
+   CANVAS STACKING
+
+   The design system ships .aimy-float-wrap and .aimy-overlay BOTH at
+   z-index 10, so which one wins is decided by DOM order alone. That is not
+   a stacking order, it is a coincidence. QA resolves it at 200 / 500;
+   Knowledge adopted the same numbers and so does this, so the three agents
+   stack identically. Filed in ../GAPS.md.
+═══════════════════════════════════════════════ */
+.aimy-float-wrap { z-index: 200; }
+
+/* THE CANVAS IS ANCHORED TO THE VIEWPORT, NOT TO THE PAGE.
+
+   The library ships `.aimy-overlay { position: absolute; inset: 0 }`, which
+   makes it a child of the very surface it is supposed to sit above: anything
+   that scrolls or grows `.app-main` carries the canvas with it — and takes
+   its badge, close button, thread and input along.
+
+   Reported four times as "the scroll bug", with a screenshot of an empty
+   blurred field and nothing in it. It could not be reproduced here at the
+   reporter's own viewport, URL and click path, and instrumenting the click
+   that triggers it recorded **zero DOM mutations and zero scroll events**.
+
+   So instead of hunting further for what moves the page, the canvas stops
+   being movable. `fixed` at exactly the box it already occupied — under the
+   top bar, right of the rail — so whatever the surface underneath does, the
+   canvas cannot be carried anywhere. The offsets are the layout's own tokens
+   rather than numbers, so they cannot drift from the shell they clear. */
+.aimy-overlay {
+  z-index: 500;
+  position: fixed;
+  top: var(--topbar-height); right: 0; bottom: 0;
+  left: var(--sidebar-width);
+}
+/* The rail steps aside for a record or a campaign page. The canvas takes the
+   room with it, the same way the filter row and the sidebar already do. */
+body.is-record .aimy-overlay { left: 0; }
+
+/* Fixed and centred on the WINDOW, not on the main column. Centring inside
+   .app-main puts it half the rail's width right of the page's true centre —
+   110px, and visible the moment you look for it. */
+.aimy-float-wrap {
+  position: fixed; bottom: 20px; top: auto;
+  left: 50%; right: auto; transform: translateX(-50%);
+  width: min(760px, calc(100vw - 48px));
+}
+
+/* The scope tray belongs TO the float bar — it is the bar's scope, not a
+   floating pill above it. The design system's .filter-tray-inner has no
+   width contract, so it shrink-wraps and its centring wrapper drops it in
+   the middle of the canvas, detached from the input it modifies. */
+.filter-tray-inner { width: 100%; max-width: 760px; }
+/* Anchored to the bar, not to a fixed offset that assumes a bar height. */
+.filter-tray { bottom: calc(100% + 6px); }
+
+/* The thread's bottom sits flush against the input bar, so a message caught
+   mid-scroll is cut by a hard horizontal edge — which next to the input
+   pill's own top border reads as a stray rule across the canvas rather than
+   as content continuing below. The fade is inset so the final 16px of
+   padding stays solid: when you ARE at the end, nothing looks faded. */
+.overlay-thread {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+}
+.overlay-thread.is-at-end {
+  -webkit-mask-image: none;
+          mask-image: none;
+}
+
+/* The canvas basis — "Based on …". Absolutely positioned below the badge so
+   it cannot disturb the thread's flex layout. Not in the design system; QA
+   and Knowledge both had to build it locally, which is the argument for the
+   system owning it (../GAPS.md). */
+.overlay-context-bar {
+  position: absolute; top: 66px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap; max-width: calc(100% - 140px);
+  overflow: hidden; pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-base) 150ms ease;
+}
+.aimy-overlay.open .overlay-context-bar { opacity: 1; }
+/* .overlay-thread's top padding clears the badge alone. With the basis bar
+   below it the first message lands underneath — so make room, but only when
+   there is a basis to show. */
+.aimy-overlay:has(.overlay-context-tag) .overlay-thread { padding-top: 104px; }
+.overlay-context-label {
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--d500); flex-shrink: 0;
+}
+.overlay-context-tags { display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.overlay-context-tag {
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--d400);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--r-pill);
+  padding: 2px 8px; white-space: nowrap; flex-shrink: 0;
+}
+:root[data-theme="light"] .overlay-context-tag {
+  background: rgba(16,24,40,0.05); border-color: rgba(16,24,40,0.10);
+}
+
+/* ═══════════════════════════════════════════════
+   DROP LAYER
+
+   Covers the whole window, because asking someone to aim at a target is the
+   thing drag and drop exists to avoid.
+═══════════════════════════════════════════════ */
+.drop-layer {
+  position: fixed; inset: 0; z-index: 900;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 11, 16, 0.72);
+  backdrop-filter: blur(6px);
+}
+.drop-layer[hidden] { display: none; }
+:root[data-theme="light"] .drop-layer { background: rgba(238, 242, 246, 0.78); }
+.drop-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 40px 48px; text-align: center;
+  border: 2px dashed rgba(var(--accent-rgb), 0.45);
+  border-radius: var(--r-2xl);
+  background: var(--panel-bg);
+  color: var(--accent);
+}
+.drop-title { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); }
+.drop-sub { font-size: var(--fs-xs); color: var(--d400); max-width: 40ch; line-height: var(--lh-base); }
+
+/* ═══════════════════════════════════════════════
+   PROTOTYPE CONTROLS — not product UI.
+
+   Deliberately styled as a dev tool, never as product chrome: mono type,
+   dashed border, no accent. Fixed, so it can never push anything, and
+   anchored above the input band because the bottom-centre belongs to the
+   input and the toast.
+═══════════════════════════════════════════════ */
+.proto {
+  position: fixed; right: 16px; bottom: 16px; z-index: 950;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+}
+.proto-toggle {
+  width: 32px; height: 32px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--d600);
+  background: var(--panel-bg);
+  color: var(--d500); cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.proto-toggle:hover { color: var(--d200); border-color: var(--d500); }
+.proto-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.proto-toggle svg { width: 16px; height: 16px; }
+.proto-panel {
+  order: -1;
+  width: 320px; max-height: min(70vh, 560px); overflow-y: auto;
+  padding: 12px;
+  font-family: var(--font-mono); font-size: var(--fs-2xs);
+  border: 1px dashed var(--d600); border-radius: var(--r-lg);
+  background: var(--panel-bg); box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+}
+.proto-panel[hidden] { display: none; }
+/* Below this the panel and the input band fight for the same corner. */
+@media (max-width: 900px) {
+  .proto { bottom: 76px; }
+}
+
+/* ═══════════════════════════════════════════════
+   THE FILTER ROW
+
+   Layout only. Every control is the design system's `.v2-dropdown`, which
+   is the one select control in this system and carries the whole keyboard
+   model — rebuilding it by hand is the thing the library says not to do.
+
+   The row wraps rather than scrolls. A horizontally scrolling filter row
+   hides filters behind a gesture, and a filter you cannot see is a filter
+   you do not know is on — which is the defect V1's twelve-column table has
+   in its own way.
+═══════════════════════════════════════════════ */
+.s-filters {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-bottom: 12px;
+}
+/* ── Search inside a filter ──
+   The library's dropdown ships letter typeahead, which finds a value you can
+   already spell. A list of fourteen lists is the case where you cannot.
+   See ../GAPS.md. */
+.dd-search {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px; margin: -2px -2px 4px;
+  border-bottom: 1px solid var(--hairline);
+  position: sticky; top: -2px; z-index: 1;
+  background: var(--panel-bg, var(--card-bg));
+}
+.dd-search svg { color: var(--d500); flex-shrink: 0; }
+.dd-search input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
+}
+.dd-search input::placeholder { color: var(--d600); }
+/* DETACHED, not hidden: `display:none` would still leave it in the
+   library's `.v2-dropdown-option` query, and arrow keys would walk through
+   rows nobody can see. */
+.v2-dropdown-option.dd-off { display: none; }
+.dd-none {
+  padding: 12px;
+  font-size: var(--fs-xs); color: var(--d500); font-style: italic;
+}
+.dd-none[hidden] { display: none; }
+
+/* The count beside an option. Tabular, so the column of numbers down an
+   open panel lines up and can be compared at a glance. */
+.s-dd-n {
+  margin-left: auto; padding-left: 12px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d500);
+  font-variant-numeric: tabular-nums;
+}
+.v2-dropdown-option.selected .s-dd-n { color: inherit; opacity: 0.7; }
+
+/* ── The date range ──
+   The panel holds the design system's `.cal` unchanged. Three states are
+   ADDED, because `.cal` is a single-date picker and a range has ends —
+   built to sit on top of `.selected` rather than replace it, so a one-day
+   range still looks like the library's selected day. (../GAPS.md) */
+.s-cal-wrap { position: relative; }
+.s-cal-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px;
+  padding: 0 12px; border-radius: var(--r-md); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--d400); background: none; border: 1px solid var(--card-border);
+  white-space: nowrap;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-cal-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.s-cal-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-cal-btn.active-filter { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); background: var(--accent-dim); }
+.s-cal-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 940;
+  width: 280px; padding: 12px;
+  background: var(--panel-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+}
+.s-cal-panel[hidden] { display: none; }
+.s-cal-field { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--hairline); }
+.s-cal-field-label {
+  font-size: 10px; font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d500);
+}
+.s-cal-field .seg { width: 100%; }
+.s-cal-field .seg-btn { flex: 1; }
+/* `.cal` bakes `width: 260px` — the width its specimen was drawn at, not a
+   property of the component. Third instance of this in the library, after
+   `.timeline` and `.type-card.is-compact`. Released. (../GAPS.md) */
+.s-cal { width: 100%; box-shadow: none; border: 0; padding: 0; background: none; }
+/* The three range states, layered over `.selected`. */
+.cal-day.in-range { background: rgba(var(--accent-rgb), 0.12); border-radius: 0; }
+.cal-day.range-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.cal-day.range-end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.s-cal-hint { font-size: var(--fs-2xs); color: var(--d500); margin-top: 8px; line-height: var(--lh-base); }
+.s-cal-clear {
+  margin-top: 8px; padding: 4px 8px; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--accent); border-radius: var(--r-xs);
+}
+.s-cal-clear:hover { background: var(--accent-dim); }
+.s-cal-clear:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.s-filter-search {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: var(--r-md); cursor: pointer;
+  color: var(--d400);
+  background: var(--card-bg-raised);
+  border: 1px solid var(--card-border);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-filter-search:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.s-filter-search:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-filter-search.is-on { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); }
+.s-filter-search svg { width: 15px; height: 15px; }
+
+/* ═══════════════════════════════════════════════
+   THE CHIP BAR — only what a dropdown cannot say
+═══════════════════════════════════════════════ */
+.s-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 16px; }
+.s-chip { cursor: pointer; }
+.s-chip svg { width: 11px; height: 11px; margin-left: 4px; opacity: 0.7; }
+.s-chip:hover svg { opacity: 1; }
+.s-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-chip-clear {
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--d400); cursor: pointer; padding: 4px 8px; border-radius: var(--r-xs);
+  transition: color var(--t-fast);
+}
+.s-chip-clear:hover { color: var(--d100); }
+.s-chip-clear:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ═══════════════════════════════════════════════
+   THE RESULT LINE — count, scope, and the two shape controls
+═══════════════════════════════════════════════ */
+/* Two rows. The record-type switcher sits with the count because it says
+   what is being counted; the view switcher sits on the second row with the
+   other display controls. Side by side they read as one four-option thing. */
+.s-result { margin-bottom: 20px; }
+.s-result-row {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.s-result-row.is-under { margin-top: 8px; justify-content: space-between; }
+.s-result-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.s-result-count {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl); font-weight: var(--fw-extrabold); color: var(--d50);
+  letter-spacing: var(--ls-tighter); line-height: var(--lh-tight);
+}
+.s-result-scope { font-size: var(--fs-sm); color: var(--d400); }
+.s-build { margin-left: auto; flex-shrink: 0; }
+.s-build svg { width: 13px; height: 13px; }
+/* A pointer, not an alarm. The card borders already carry the alarm, and a
+   red pill beside the count competes with the number it is qualifying. */
+.s-result-need {
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--d400); cursor: pointer; padding: 2px 0;
+  border-bottom: 1px solid var(--d700);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-result-need:hover { color: var(--err); border-color: var(--err); }
+.s-result-need:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Whose leads. It sits with the waiting figure rather than with the view
+   switcher, because it changes WHAT is counted and the view switcher changes
+   only how it is drawn — the same split the two rows above are built on. */
+.s-result-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-width: 0; }
+
+/* ── Permission is never silent ──
+   A count that quietly shrinks is a lie about the size of the world. This is
+   the line that stops it being one, so it is quiet but never faint: it must
+   survive being skimmed past, and it must not read as an error. */
+.s-disclosure {
+  display: flex; align-items: baseline; gap: 6px;
+  margin-top: 12px; padding: 8px 12px;
+  border: 1px solid var(--d700); border-radius: var(--r-md);
+  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+}
+.s-disc-ico { flex: none; transform: translateY(2px); color: var(--d500); }
+.s-disc-text strong { color: var(--d200); font-weight: var(--fw-bold); }
+/* A client is not in a degraded state, they are in a bounded one — so the
+   engagement is named in the accent rather than warned about in amber. */
+.s-disclosure[data-client="1"] { border-color: rgba(var(--accent-rgb), 0.3); }
+.s-disclosure[data-client="1"] .s-disc-ico { color: var(--accent); }
+.s-disc-eng { color: var(--accent); font-weight: var(--fw-bold); }
+
+/* ═══════════════════════════════════════════════
+   TASKS — AiMY's work while it is still happening
+═══════════════════════════════════════════════ */
+.s-task-card .tc-type { display: inline-flex; align-items: center; gap: 4px; color: var(--ai-text); }
+
+/* Progress, under the sentence that already said it in words. The bar is the
+   glance; the sentence is the fact. A bar on its own is a shape you have to
+   guess at, and a task list read at a glance is exactly where a guess costs. */
+.s-prog {
+  display: flex; height: 4px; margin: 8px 16px 0;
+  border-radius: 2px; overflow: hidden; background: var(--d800);
+}
+.s-prog-done { background: var(--ok); }
+.s-prog-fail { background: var(--err); }
+
+/* A campaign's shape, at card scale. The sheet draws the same distribution as
+   labelled rows; on a card there is no room for eight rows and no need — the
+   question a list answers is "which of these is in trouble", and a band of
+   status tone answers it without reading a number. */
+/* Space BELOW as well as above. It carried `margin: 8px 16px 0`, so the bar
+   sat hard against the meta line under it and the two read as one object —
+   the bar looked like an underline for the status word rather than a
+   summary of the whole campaign. */
+.s-camp-dist {
+  display: flex; height: 4px; margin: 8px 16px 12px;
+  border-radius: 2px; overflow: hidden; background: var(--d800);
+}
+/* Same for the task card's progress bar, which has the same shape and the
+   same neighbour. */
+.s-task-card .s-prog { margin-bottom: 12px; }
+/* Segments abut; a box-shadow inset draws the seam, so the separation
+   costs no space and stays on the spacing scale. */
+/* The person card is a campaign card with a different subject, so it reuses
+   the whole anatomy — the distribution band included. The only thing it adds
+   is an avatar in the type row, because a name needs a face beside it in a
+   way a campaign name does not. */
+.s-person-card .tc-type { display: flex; align-items: center; gap: 6px; }
+.s-person-card .tc-type .avatar { flex: none; }
+
+.s-camp-seg { display: block; height: 100%; box-shadow: inset -1px 0 0 var(--card-bg); }
+.s-camp-seg:last-child { box-shadow: none; }
+.s-camp-seg.tone-err  { background: var(--err-text); }
+.s-camp-seg.tone-warn { background: var(--warn-text); }
+.s-camp-seg.tone-ok   { background: var(--ok-text); }
+.s-camp-seg.tone-neutral { background: var(--d600); }
+
+/* What is running on THIS record, at the top of it. Same shape as the
+   Knowledge line — a sentence with the objects set into it — because it is
+   the same kind of statement: something exists elsewhere that bears on what
+   you are reading. It takes the accent border, not the neutral one, because
+   unlike the Knowledge line this is news. */
+.s-runline {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  padding: 12px 16px; margin-bottom: 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
+}
+.s-run-st { font-weight: var(--fw-semibold); }
+
+.s-task-nums { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
+.s-task-num { font-size: var(--fs-xs); color: var(--d400); }
+.s-task-num b {
+  display: block; font-family: var(--font-display);
+  font-size: var(--fs-lg); font-weight: var(--fw-extrabold); color: var(--d100);
+  line-height: var(--lh-tight);
+}
+.s-task-num.is-fail b { color: var(--err); }
+.s-task-num.is-left b { color: var(--d400); }
+.s-task-next { margin-top: 8px; font-size: var(--fs-xs); color: var(--d400); }
+.s-task-block { margin-bottom: 16px; }
+.s-task-choice { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.s-work-p { font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base); }
+.s-work-note { margin-bottom: 12px; }
+
+/* The count on the Running tab. Work that has stopped and is waiting on
+   somebody is the one thing here that gets worse while nobody looks. */
+.s-seg-n {
+  display: inline-block; margin-left: 6px; padding: 0 6px;
+  border-radius: var(--r-pill); background: var(--err); color: #fff;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+}
+/* In flight, not stopped. Same number, a quarter of the volume — it is
+   telling you something is happening, not that something is wrong. */
+.s-seg-n.is-quiet { background: var(--d700); color: var(--d300); }
+
+/* ═══════════════════════════════════════════════
+   WHAT AiMY DOES — the draft's sources, and the enrichment decision
+═══════════════════════════════════════════════ */
+
+/* Above the draft, never below it. A person reads the paragraph first and
+   decides whether to trust it second; putting the provenance underneath
+   means the decision is made before the evidence is seen. */
+.s-basis {
+  padding: 12px; margin-bottom: 16px;
+  border: 1px solid var(--d700); border-radius: var(--r-md);
+  background: var(--d900);
+}
+.s-basis-title {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d500);
+  text-transform: uppercase; letter-spacing: var(--ls-wide); margin-bottom: 8px;
+}
+.s-basis-row {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-size: var(--fs-xs); line-height: var(--lh-base);
+}
+.s-basis-row + .s-basis-row { margin-top: 6px; }
+.s-basis-what { flex: none; width: 160px; color: var(--d500); }
+.s-basis-val { color: var(--d300); }
+
+.s-draft {
+  width: 100%; resize: vertical; margin-top: 6px;
+  font-family: inherit; line-height: var(--lh-base);
+}
+
+/* Enrichment, per field. The library's `.decision-zone` holds it, and each
+   row is its own accept — a single "take all of this" over four values of
+   differing confidence is one decision standing in for four. */
+.s-enrich { display: flex; flex-direction: column; gap: 12px; }
+.s-enrich-row {
+  display: grid; gap: 4px;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "head head" "val take" "src src";
+  padding: 8px; border: 1px solid var(--d700); border-radius: var(--r-md);
+}
+.s-enrich-head { grid-area: head; display: flex; align-items: center; gap: 8px; }
+.s-enrich-what { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200); }
+.s-enrich-val { grid-area: val; width: 100%; }
+.s-enrich-take { grid-area: take; align-self: center; }
+.s-enrich-src { grid-area: src; font-size: var(--fs-2xs); color: var(--d500); }
+
+.s-slots { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* The read-only note where a record's actions would be. It occupies the same
+   row so the page does not reflow into a shape nobody recognises. */
+.s-readonly {
+  display: flex; align-items: baseline; gap: 6px; margin-top: 16px;
+  font-size: var(--fs-xs); color: var(--d500);
+}
+.s-readonly .s-disc-ico { transform: translateY(2px); }
+
+/* A record that would not open. It is not an error — nothing went wrong —
+   so it takes the empty state's shape rather than the error screen's, with
+   the lock as the one signal that this is a boundary and not an absence. */
+.s-denied .s-disc-ico { width: 20px; height: 20px; color: var(--d500); margin-bottom: 12px; }
+.s-denied .btn { margin-top: 16px; }
+
+/* ── Looking as ──
+   Reuses the notification panel's shell, because it is the same object: a
+   panel hung off a control in the top bar. */
+.as-panel { width: 340px; }
+.as-item {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 8px 12px; text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--d200);
+  border-bottom: 1px solid var(--d800);
+}
+.as-item:hover { background: rgba(255,255,255,0.03); }
+:root[data-theme="light"] .as-item:hover { background: rgba(16,24,40,0.03); }
+.as-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.as-item.is-current { background: var(--accent-dim); }
+.as-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.as-name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); }
+/* The rule, not the label. Which tier somebody is in tells you nothing;
+   what that tier can see is the whole content of the choice. */
+.as-rule { font-size: var(--fs-2xs); color: var(--d500); line-height: var(--lh-base); }
+.as-you {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--accent);
+  text-transform: uppercase; letter-spacing: var(--ls-wide);
+}
+.as-tier {
+  flex: none; font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d500);
+  text-transform: uppercase; letter-spacing: var(--ls-wide);
+  padding: 2px 6px; border-radius: var(--r-sm); border: 1px solid var(--d700);
+}
+.as-note { font-size: var(--fs-2xs); color: var(--d500); line-height: var(--lh-base); }
+/* The scope switch is a filter wearing a segmented control, so it sits at the
+   weight of the chips beside it rather than the weight of the view switcher. */
+
+/* ── More ──
+   Five controls on the row, the rest behind one. Eleven dropdowns is not a
+   filter row, it is a wall: nothing in it is findable because everything in
+   it is the same size and weight. */
+.s-more-wrap { position: relative; }
+.s-more-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px;
+  padding: 0 12px; border-radius: var(--r-md); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--d400); background: none; border: 1px solid var(--card-border);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-more-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.s-more-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-more-btn.active-filter { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); background: var(--accent-dim); }
+.s-more-n {
+  font-variant-numeric: tabular-nums; font-size: var(--fs-2xs);
+  background: var(--accent); color: #fff;
+  border-radius: var(--r-pill); padding: 0 6px; min-width: 16px; text-align: center;
+}
+.s-more-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 940;
+  width: 460px; max-width: calc(100vw - 32px); padding: 16px;
+  background: var(--panel-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+}
+.s-more-panel[hidden] { display: none; }
+.s-more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.s-more-grid .v2-dropdown { min-width: 0; }
+.s-more-clear {
+  margin-top: 12px; padding: 4px 8px; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--accent); border-radius: var(--r-xs);
+}
+.s-more-clear:hover { background: var(--accent-dim); }
+.s-more-clear:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Include widens, exclude narrows, and the colour says which way a term
+   cuts before you have read it — as V1's chips do. */
+.s-kw { cursor: pointer; }
+.s-kw-inc { background: var(--ok-bg); border-color: rgba(23,178,106,0.3); color: var(--ok); }
+.s-kw-exc { background: var(--err-bg); border-color: rgba(240,68,56,0.3); color: var(--err); }
+
+/* The derived axis, on the control's face. A derived value is fine; one
+   that will not say what it derived is not. */
+.s-cal-axis {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75;
+}
+.s-cal-dates { font-variant-numeric: tabular-nums; }
+.s-cal-axis-said { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--d50); }
+.s-cal-why { font-size: var(--fs-2xs); color: var(--d500); margin-top: 2px; line-height: var(--lh-base); }
+/* The campaign's name in the sentence IS the way into its brief. */
+.s-scope-link {
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  color: var(--d100); cursor: pointer;
+  border-bottom: 1px solid var(--d600);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-scope-link:hover { color: var(--accent); border-color: var(--accent); }
+.s-scope-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ═══════════════════════════════════════════════
+   THE CARD — product-owned bits only
+
+   The card itself is the design system's `.type-card`. What is here is the
+   status tint and the three-tier type scale, both of which are decisions
+   about THIS product's list rather than about the component.
+
+   The tint is the library's own idiom, not an invention: `.bcard.p1/.p2/.p3`
+   puts the whole border at low alpha on the card's existing 1px. Same
+   information, no new mechanism, no content shift, and hover still wins.
+═══════════════════════════════════════════════ */
+.s-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px; align-items: start;
+}
+.s-card { display: flex; flex-direction: column; cursor: pointer; }
+/* The whole card opens the record — the same rule the table row follows, and
+   the same hover value, so the two views answer a pointer identically.
+   Background rather than border, because the border is carrying the status
+   tone below and a hover that overrode it would erase the alarm. */
+.s-card:hover { background: rgba(255,255,255,0.03); }
+:root[data-theme="light"] .s-card:hover { background: rgba(16,24,40,0.03); }
+.s-card:hover .s-card-title { color: var(--accent); }
+.s-card.st-err  { border-color: rgba(240,68,56,0.2); }
+.s-card.st-warn { border-color: rgba(247,144,9,0.2); }
+.s-card.st-ok   { border-color: rgba(23,178,106,0.16); }
+/* st-neutral takes the default border: "no issues" is the absence of a
+   signal, not a signal of its own. */
+
+.s-card .tc-head { justify-content: space-between; }
+.s-card-title {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: var(--d50);
+  letter-spacing: var(--ls-tight); line-height: var(--lh-snug);
+  padding: 8px 16px 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.s-card-title:hover { color: var(--accent); }
+.s-card-title:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* One line, and it is the single most identifying fact for the type. Two
+   lines here would be a second tier competing with the title. */
+.s-card-snip {
+  font-size: 13px; color: var(--d300); line-height: var(--lh-base);
+  padding: 6px 16px 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Every tier differs from its neighbour in BOTH size and colour, and there
+   is no uppercase anywhere on this card. */
+/* THE CARD'S TWO HALVES STOP TOUCHING.
+
+   Its four parts each carried their own top padding and nothing separated
+   them, so the identity (type · name · role) and the state (status · next
+   step · owner · last touch) ran together as one paragraph — measured at 0px
+   between every pair. The rule below is the seam: above it is who this is,
+   below it is where it stands, and they are answers to different questions.
+   The library's `.tc-gov` already draws that line on its own cards; ours was
+   overriding it away. */
+.s-card-meta {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px; font-weight: 500; color: var(--d400);
+  line-height: var(--lh-relaxed);
+}
+/* ═══════════════════════════════════════════════
+   THE STATUS IS THE PRODUCT'S ONE COMPUTED CLAIM, AND IT LOOKED LIKE TEXT
+
+   It was a bold coloured run inside a `·`-separated meta line, which put the
+   single fact this whole surface exists to derive at the same visual weight
+   as the owner's name and the date beside it. Every screen answers "where
+   does this stand" first; the answer was the least distinguishable thing on
+   the card.
+
+   It is now a marked object: a tone dot, a tinted ground, a hairline in its
+   own colour. Not a `.chip` — chips here are filters, and a status is not
+   something you clicked. Not `.trust-state` either, which belongs to
+   Knowledge and means something else. Its own thing, in one place, used by
+   the card, the table, the record and the task sheet.
+═══════════════════════════════════════════════ */
+.s-meta-st {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
+  white-space: nowrap; vertical-align: middle;
+}
+/* The dot carries the tone at full strength; the ground carries it at 12%.
+   Colour alone never distinguishes them — the word is always there. */
+.s-meta-st::before {
+  content: ""; flex: none; width: 6px; height: 6px;
+  border-radius: 50%; background: currentColor;
+}
+.s-meta-st.tone-err   { color: var(--err-text);  background: var(--err-bg);  border-color: rgba(240,68,56,0.28); }
+.s-meta-st.tone-warn  { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.28); }
+.s-meta-st.tone-ok    { color: var(--ok-text);   background: var(--ok-bg);   border-color: rgba(23,178,106,0.26); }
+.s-meta-st.tone-neutral { color: var(--d300); background: var(--card-bg-raised); border-color: var(--card-border); }
+
+/* On the record it is the headline fact, so it is sized as one. */
+.s-rec-status .s-meta-st {
+  font-size: var(--fs-sm); padding: 4px 12px 4px 8px; letter-spacing: normal;
+}
+.s-rec-status .s-meta-st::before { width: 8px; height: 8px; }
+/* An overdue next step is the one meta fact that outranks the others,
+   because it is the one with a date that has already passed. */
+.s-meta-due { color: var(--err); font-weight: var(--fw-semibold); }
+/* A status somebody overruled says so. Without the mark the escape hatch
+   quietly becomes the attestation model again: a value someone typed,
+   indistinguishable from a fact. */
+.s-override-dot {
+  display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; margin-left: 4px; vertical-align: middle; opacity: 0.8;
+}
+/* The matched ICP is Knowledge's object, reachable from the card without
+   leaving it. Quiet: it is provenance, not a status. */
+.s-icp {
+  font-size: 9px; font-weight: var(--fw-bold); letter-spacing: var(--ls-wide);
+  color: var(--d500); cursor: pointer;
+  border: 1px solid var(--card-border); border-radius: var(--r-xs);
+  padding: 2px 4px;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.s-icp:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); }
+.s-icp:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.s-empty { margin-top: 24px; }
+
+/* ═══════════════════════════════════════════════
+   THE RECORD PAGE — and the one docked thread
+
+   A record is a page, so the briefing rail and the filter row step aside
+   while one is open. `.is-record` on the body is the only switch: two
+   regions hiding themselves independently is two regions that can disagree
+   about whether a record is open.
+═══════════════════════════════════════════════ */
+body.is-record .app-sidebar { display: none; }
+
+/* CENTRED. `max-width` with no auto margin pins the page to the left of a
+   stage that has just lost its sidebar — 780px of content against ~1220px
+   of room, and the reported "everything is left aligned, what is this?"
+
+   The campaign page is wider because pass 11 gave it a card grid: at 780px
+   `repeat(auto-fill, minmax(320px, 1fr))` resolves to two columns and the
+   filter row above them wraps. Prose does not follow it out — a description
+   set to the width of a card grid is a description nobody finishes. */
+.s-rec { max-width: 780px; margin-inline: auto; }
+/* A campaign page has no companion column — the rail only docks for a
+   record or a selection — so a cap here is a hole rather than a measure. Its
+   prose is capped below, which is where the reading happens. */
+.s-rec.s-camp-page { max-width: none; }
+.s-camp-page .s-camp-desc,
+.s-camp-page .s-sheet-note,
+.s-camp-page .s-camp-empty,
+.s-camp-page .empty-state-desc,
+/* The page's own summary. NOT the cards' — `.s-card-snip` is already bounded
+   by the card it sits in, and capping it there would only shorten a line that
+   is 55 characters wide. Measured uncapped at the page level: 322. */
+.s-camp-page .tc-summary:not(.s-card-snip) { max-width: 68ch; }
+
+
+/* min-width:0 so a long domain or a monospaced email cannot push the grid
+   column wider than its track and shove the thread off screen. */
+.s-rec-main { min-width: 0; }
+
+.s-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  color: var(--d400); cursor: pointer; padding: 4px 0; margin-bottom: 12px;
+  transition: color var(--t-fast);
+}
+.s-back:hover { color: var(--d50); }
+.s-back:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-back svg { width: 14px; height: 14px; }
+
+.s-rec-head { margin-bottom: 24px; }
+.s-rec-kind {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+}
+.s-rec-kind svg { width: 12px; height: 12px; }
+.s-rec-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl); font-weight: var(--fw-extrabold);
+  color: var(--d50); letter-spacing: var(--ls-tighter); line-height: var(--lh-tight);
+  margin-top: 4px;
+}
+/* The status and the sentence that produced it, on one line. A computed
+   status that will not say why it is what it is asks to be taken on faith,
+   which is the whole thing this product replaced. */
+.s-rec-status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.s-rec-because { font-size: var(--fs-sm); color: var(--d400); }
+.s-rec-facts { font-size: var(--fs-sm); color: var(--d400); margin-top: 6px; line-height: var(--lh-base); }
+.s-rec-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.s-rec-actions .btn svg { width: 13px; height: 13px; }
+.s-rec-head .inline-note { margin-top: 12px; }
+
+/* The next step, raised. It is the only thing on this page with a date in
+   the future, and the only one with a date in the past that matters. */
+.s-next {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; margin-bottom: 24px;
+  background: var(--card-bg-raised);
+  border: 1px solid var(--card-border); border-radius: var(--r-lg);
+}
+.s-next.is-over { border-color: rgba(240,68,56,0.3); background: var(--err-bg); }
+.s-next-what { font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50); }
+.s-next-when { font-size: var(--fs-xs); color: var(--d400); }
+.s-next.is-over .s-next-when { color: var(--err); }
+.s-next .btn { margin-left: auto; }
+
+/* Grouped by a hairline and space, not by a box. A card should exist where
+   elevation means something — these are sections of one page, all at the
+   same level, and boxing each one draws five containers around content that
+   is already contiguous. Space above is larger than space below, because a
+   heading belongs to what follows it. */
+.s-block { padding-top: 24px; margin-bottom: 0; border-top: 1px solid var(--hairline); }
+.s-block:first-of-type { border-top: 0; padding-top: 0; }
+.s-block + .s-block { margin-top: 24px; }
+.s-block-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d100);
+  letter-spacing: var(--ls-tight); margin-bottom: 4px;
+}
+.s-block-sub { font-size: var(--fs-xs); color: var(--d500); margin-bottom: 12px; line-height: var(--lh-base); }
+.s-block-title + .s-people, .s-block-title + .s-reach,
+.s-block-title + .s-camps, .s-block-title + .s-share { margin-top: 12px; }
+.s-none { font-size: var(--fs-sm); color: var(--d500); }
+.s-inline-btn {
+  font-family: inherit; font-size: inherit; font-weight: var(--fw-semibold);
+  color: var(--accent); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.s-inline-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.s-people { display: flex; flex-direction: column; gap: 2px; }
+.s-person {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 8px 12px; border-radius: var(--r-md); cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.s-person:hover { background: rgba(255,255,255,0.04); }
+:root[data-theme="light"] .s-person:hover { background: rgba(16,24,40,0.04); }
+.s-person:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.s-person-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-person-name { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--d50); }
+.s-person-role { font-size: var(--fs-xs); color: var(--d500); }
+.s-person-st { margin-left: auto; font-size: var(--fs-xs); flex-shrink: 0; }
+
+.s-reach { display: flex; flex-direction: column; gap: 6px; }
+.s-reach-row { display: flex; align-items: center; gap: 12px; }
+.s-reach-what { font-size: var(--fs-xs); color: var(--d500); width: 60px; flex-shrink: 0; }
+.s-reach-val { font-size: var(--fs-sm); color: var(--d100); font-family: var(--font-mono); min-width: 0; overflow-wrap: anywhere; }
+
+.s-camps { display: flex; flex-wrap: wrap; gap: 6px; }
+.s-camp { cursor: pointer; }
+.s-camp:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-share { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--d400); }
+.s-share-own { display: inline-flex; align-items: center; gap: 6px; color: var(--d100); }
+.s-share-with { color: var(--d400); }
+
+/* What Knowledge holds, as one line rather than a block of cards. It is a
+   sentence with the objects set into it, so it reads at the weight of a
+   footnote — which is what it is on a page about a lead. */
+.s-kbline {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  padding: 12px 16px; margin-top: 12px;
+  border: 1px solid var(--d700); border-radius: var(--r-md);
+  font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
+}
+.s-kbline-mark { flex: none; color: var(--ai-text); transform: translateY(2px); }
+.s-kbline-text { flex: 1 1 auto; min-width: 200px; }
+/* The review flag is the one thing here that is news, so it is the one thing
+   that carries a tone. */
+.s-kbline-warn { color: var(--warn-text); }
+.s-kbline-sep { color: var(--d600); }
+
+/* A review that has been asked for stops being a control and says who asked
+   and when — the same move `.cite-action.is-flagged` makes for a report, and
+   for the same reason: a live button on a request already sent invites
+   sending it twice. */
+.s-kb-card .is-asked {
+  background: none; border-color: var(--card-border); color: var(--d500);
+  cursor: default; pointer-events: none;
+}
+/* The two card actions wrap rather than squeeze in a 400px rail. */
+.s-kb-card .tc-action { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Read in the rail (400px) or the canvas, so it fills its column. */
+.s-kb-card { max-width: none; }
+.s-kb-card + .s-kb-card { margin-top: 8px; }
+.s-kb-card .tc-summary { margin: 0; padding: 6px 16px 0; }
+
+/* ═══════════════════════════════════════════════
+   THE COMMIT SURFACE
+
+   Every consequential write goes through this. The effects panel is above
+   the button, never beside it: a consequence you read after deciding is a
+   consequence you did not read.
+═══════════════════════════════════════════════ */
+.s-commit-back { display: flex; align-items: center; justify-content: center; }
+.s-commit { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; }
+/* A block quotation — what the rep actually typed. It had a background, a
+   left rule and a radius, which is three devices saying "this is quoted"
+   where one does. Butterick's rule for a block quote is indent and reduced
+   size, no quotation marks, because the indent already signals it; and for
+   rules generally, try space above and below first. The raised surface and
+   the inset are the whole of it. */
+.s-commit-quote {
+  font-size: var(--fs-sm); color: var(--d200); line-height: var(--lh-base);
+  padding: 12px 16px; margin-bottom: 16px;
+  background: var(--card-bg-raised);
+  border-radius: var(--r-sm);
+}
+.s-effects {
+  padding: 12px; border-radius: var(--r-md);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+}
+.s-effects-title {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  margin-bottom: 8px;
+}
+.s-effect {
+  display: flex; gap: 8px; font-size: var(--fs-xs); line-height: var(--lh-base);
+  color: var(--d200); padding: 4px 0;
+}
+.s-effect::before { flex-shrink: 0; font-weight: var(--fw-bold); }
+.s-effect.is-ok::before   { content: "+"; color: var(--ok); }
+.s-effect.is-warn::before { content: "!"; color: var(--warn); }
+/* The skip line is mandatory, not decoration: an operation that silently
+   no-ops on part of its scope reports a success nobody has reason to
+   distrust. */
+.s-effect.is-skip::before { content: "–"; color: var(--d500); }
+.s-effect.is-skip { color: var(--d500); }
+
+.s-pick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+.s-pick-row { padding: 8px; border-radius: var(--r-md); cursor: pointer; }
+.s-pick-row:hover { background: rgba(255,255,255,0.04); }
+:root[data-theme="light"] .s-pick-row:hover { background: rgba(16,24,40,0.04); }
+.s-pick-role { color: var(--d500); font-size: var(--fs-xs); }
+.s-why { width: 100%; resize: vertical; margin-bottom: 16px; }
+.s-commit .decision-zone { margin-bottom: 16px; }
+
+.s-toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); z-index: 960; }
+
+/* ═══════════════════════════════════════════════
+   THE CHANGE MARKER
+
+   A toast is a receipt: it says something happened somewhere else. This
+   says WHERE — the exact element that changed, tinted for a moment.
+═══════════════════════════════════════════════ */
+/* A TRANSITION, not a keyframe. This fires on every write and writes here
+   come in bursts — a keyframe restarts from zero when re-triggered, so two
+   quick changes made the first one snap back to full tint. A transition
+   retargets from wherever it had got to. */
+.s-changed {
+  border-radius: var(--r-md);
+  background-color: rgba(var(--accent-rgb), 0.16);
+  transition: background-color 1400ms var(--ease-out) 200ms;
+}
+.s-changed.is-settling { background-color: transparent; }
+/* Under reduced motion the tint holds instead of fading — the signal
+   survives, the movement does not. */
+@media (prefers-reduced-motion: reduce) {
+  .s-changed { transition: none; background-color: rgba(var(--accent-rgb), 0.12); }
+  .s-changed.is-settling { background-color: rgba(var(--accent-rgb), 0.12); }
+}
+
+/* ═══════════════════════════════════════════════
+   MOTION — the craft pass
+
+   Four corrections, each with a reason rather than a preference.
+═══════════════════════════════════════════════ */
+
+/* 1 · Hover is gated. Touch devices fire :hover on tap, so an ungated hover
+   transition makes every tap on a phone leave a stuck hover state. */
+@media (hover: none) {
+  .s-card:hover, .s-person:hover, .s-frow:hover, .s-pick-row:hover,
+  .s-camp-chip:hover, .proto-link:hover { background: none; }
+}
+
+/* 2 · The commit surface enters. Nothing in the real world appears from
+   nothing, and this modal carries the consequence of every write on the
+   surface — arriving instantly reads as an error dialog rather than a
+   decision. Origin stays CENTRE: a modal is not anchored to a trigger. */
+@media (prefers-reduced-motion: no-preference) {
+  .s-commit-back { animation: sFade 160ms var(--ease-out); }
+  .s-commit { animation: sRise 200ms var(--ease-out); transform-origin: center; }
+  @keyframes sFade { from { opacity: 0; } }
+  /* From 0.97, never from 0 — an element that scales up from nothing has no
+     shape to come from. */
+  @keyframes sRise { from { opacity: 0; transform: scale(0.97); } }
+
+  /* 3 · The rail and the sheet enter from the edge they live on, so the
+     motion says where they came from and where dismissing sends them. */
+  .app-talk { animation: sSlideIn 220ms var(--ease-out); }
+  @keyframes sSlideIn { from { opacity: 0; transform: translateX(-12px); } }
+}
+
+/* 4 · The peek and any anchored panel scale from their trigger, not from
+   their own centre. A popover belongs to what opened it. */
+.peek, .ntf-panel { transform-origin: top right; }
+.v2-dropdown-panel { transform-origin: top left; }
+
+/* ═══════════════════════════════════════════════
+   THE BRIEFING — what changed, and one thing to do about each
+
+   Not counts and not a log: current-state counts live in the Status
+   filter, which is where somebody looking for them will go, and repeating
+   them here would be the same fact twice.
+═══════════════════════════════════════════════ */
+.brief { padding: 24px 16px; overflow-y: auto; flex: 1; min-height: 0; }
+.brief::-webkit-scrollbar { width: 4px; }
+.brief::-webkit-scrollbar-track { background: transparent; }
+.brief::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+:root[data-theme="light"] .brief::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
+
+.s-brief { display: flex; flex-direction: column; gap: 20px; }
+.s-brief-item { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 8px; align-items: start; }
+/* Tone on one leading dot. The same three priorities the bell uses, because
+   they are two views of one model. */
+.s-brief-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  margin-top: 6px; margin-left: 2px; background: var(--d500);
+}
+.s-brief-dot.p1 { background: var(--err); }
+.s-brief-dot.p2 { background: var(--warn); }
+.s-brief-dot.p3 { background: var(--brand); }
+.s-brief-text { font-size: var(--fs-xs); line-height: var(--lh-base); color: var(--d300); }
+.s-brief-cta {
+  grid-column: 2;
+  justify-self: start;
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--accent-text); cursor: pointer; padding: 2px 0;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.4);
+  transition: border-color var(--t-fast);
+}
+.s-brief-cta:hover { border-color: var(--accent); }
+.s-brief-cta:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* A quiet briefing is a real state and the best one this rail can report.
+   It was unreachable while any entry was pushed unconditionally. */
+.s-brief-quiet { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
+.s-brief-quiet-sub { color: var(--d500); margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════
+   WORK IN THE CANVAS
+
+   Not a modal in a different place. A work block stays in the thread after
+   it runs, its result lands under it, and the conversation that produced it
+   is still there to read — a modal's whole contract is that it disappears
+   and takes its reasoning with it.
+═══════════════════════════════════════════════ */
+/* ── AiMY's own controls ──
+   Anything AiMY authored, or is about to do on your behalf, carries the mark
+   and the AI blue. An AiMY affordance that looks like an ordinary button is
+   the same defect as an AiMY touchpoint attributed to a rep: the surface
+   hiding who acted.
+
+   THE MARK CARRIES THE GRADIENT; THE LABEL DOES NOT. `--ai` runs from
+   #0066ff to #6fdfe2, and clipped to text the label starts at the dark end —
+   measured 3.58:1 against the card, under the 4.5 that small text needs.
+   `--ai-text` is the library's own token for AI-blue TYPE and measures
+   7.22:1. The gradient was the wrong token for the job, not the wrong idea:
+   it is for surfaces and marks, and the mark beside this label is already
+   a gradient-filled SVG. */
+.s-ai-btn { display: inline-flex; align-items: center; gap: 6px; }
+.s-ai-btn svg { flex-shrink: 0; }
+.s-trace-sum.s-ai-btn { color: var(--ai-text); font-weight: var(--fw-bold); }
+.ntf-foot-btn.s-ai-btn { justify-content: center; }
+
+/* THE BLOCK FITS THE SURFACE IT LIVES IN.
+
+   Measured: the create-a-campaign block ran **1031px** with the owner reveal
+   open, inside a **578px** thread — 452px taller than the room it had. The
+   thread was pinned to its bottom, so what you saw was the assignee tail, the
+   effects and the buttons, with the block's own title 479px above the fold
+   and the REQUIRED name field 321px above it. That is the reported "weird
+   scroll when I choose to assign someone": nothing jumped, you were simply
+   already at the bottom of something far too tall.
+
+   Modals got this treatment in pass 6 and the canvas block never did. The
+   body scrolls inside a bounded box; the head and the actions are pinned, so
+   Create and Cancel are reachable at any scroll position and at any window
+   height — rather than being visible only by the accident of the thread
+   sitting at its end. */
+.s-work {
+  min-width: 0;
+  display: flex; flex-direction: column;
+  /* The thread's own height, less its padding and the turns above. Capping
+     against the viewport keeps this honest on short windows, which is where
+     the defect was worst. */
+  max-height: min(72vh, 520px);
+}
+.s-work-head, .s-work-actions { flex: none; }
+.s-work-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.s-work-mark { display: flex; flex-shrink: 0; }
+.s-work-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: var(--ls-tight);
+}
+.s-work-lede { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); margin-bottom: 12px; max-width: 65ch; }
+.s-work-body {
+  margin-bottom: 16px;
+  /* `min-height: 0` because a flex item's default `auto` refuses to shrink
+     below its content — without it the cap above does nothing and the box
+     grows to 1031px again. */
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  /* Clear of the scrollbar, so a radio label never sits under it. */
+  padding-right: 4px;
+}
+/* A settled block has no body and no actions, so it must not keep a cap that
+   would leave it a mostly-empty box. */
+.s-work.is-done { max-height: none; }
+/* 16px, measured at 0. The effects panel has no bottom margin and this row
+   had no top one, so Cancel and the confirm sat welded to the box stating
+   what they would do — the two things in a decision that most need to read
+   as separate. */
+.s-work-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+/* Work that has run stops being a control and becomes a record of what was
+   done. Live buttons on finished work invite running it twice. */
+.s-work.is-done { opacity: 0.72; }
+.s-work-said {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ok);
+  padding-top: 8px; border-top: 1px solid var(--hairline);
+}
+.s-work-evidence { margin-bottom: 16px; }
+.s-work-ev-h {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d500);
+  margin-bottom: 8px;
+}
+.s-seed-list { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+
+/* ── Add contacts ── */
+.s-add-tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.s-add-src { flex-wrap: wrap; }
+.s-add-src .seg-btn { flex: 1 1 auto; }
+.s-add-search { width: 100%; display: flex; align-items: center; gap: 6px; }
+.s-add-search svg { flex-shrink: 0; color: var(--d500); }
+.s-add-q {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none;
+  font-family: inherit; font-size: var(--fs-xs); color: var(--d50);
+}
+.s-add-q::placeholder { color: var(--d600); }
+.s-add-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-add-name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); }
+/* Three things worth knowing before you tick a row: never contacted, being
+   worked, or already here. V1 shows exactly these. */
+.s-add-badge {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 9px; font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border-radius: var(--r-pill); padding: 2px 8px;
+}
+.s-add-badge.is-new { background: var(--ok-bg); color: var(--ok); }
+.s-add-badge.is-prospect { background: var(--accent-dim); color: var(--accent); }
+.s-add-badge.is-already { background: rgba(255,255,255,0.06); color: var(--d500); }
+:root[data-theme="light"] .s-add-badge.is-already { background: rgba(16,24,40,0.06); }
+
+/* ═══════════════════════════════════════════════
+   ANSWERS — computed, and citing what they counted
+═══════════════════════════════════════════════ */
+.s-ans { min-width: 0; }
+.s-ans-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: var(--ls-tight); margin-bottom: 12px;
+}
+.s-ans-body { display: flex; flex-direction: column; gap: 2px; }
+/* `baseline` sat the count, the name and the control on the type baseline of
+   whichever ran tallest, so a row with a two-line name pulled its number out
+   of line with every row above it. These are three unrelated things sharing
+   a row; they align on the row, not on each other's text. */
+.s-ans-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--hairline);
+}
+.s-ans-row:last-child { border-bottom: 0; }
+.s-ans-name {
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
+  min-width: 0; text-align: left;
+}
+button.s-ans-name { cursor: pointer; }
+button.s-ans-name:hover { color: var(--accent); }
+button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-ans-sub { color: var(--d500); font-weight: var(--fw-regular); font-size: var(--fs-2xs); }
+.s-ans-fact { margin-left: auto; font-size: var(--fs-xs); color: var(--d400); text-align: right; font-variant-numeric: tabular-nums; }
+.s-ans-go { flex-shrink: 0; }
+
+/* A distribution row IS its own control — the whole row opens the accounts
+   in that status, the same rule the card and the table row follow. Eight
+   rows each carrying a Show button was the card-CTA defect at one-eighth
+   scale, in a single page. */
+.s-ans-hit, .s-ans-one {
+  width: 100%; text-align: left; cursor: pointer;
+  font-family: inherit;
+  border-radius: var(--r-sm);
+  transition: background-color var(--t-fast);
+}
+.s-ans-hit:hover, .s-ans-one:hover { background: rgba(255,255,255,0.03); }
+:root[data-theme="light"] .s-ans-hit:hover,
+:root[data-theme="light"] .s-ans-one:hover { background: rgba(16,24,40,0.03); }
+.s-ans-hit:focus-visible, .s-ans-one:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* One status is a sentence, not a bar, so it needs no bar column. */
+.s-ans-one { border-bottom: 0; }
+
+/* ── The distribution reads as a distribution ──
+   "Where its 24 accounts stand" was eight numbers in a column: a shape you
+   had to do arithmetic to see. The bar carries the proportion and the status
+   tone, so the campaign's shape is legible before the numbers are read —
+   which is the whole reason that block is on the sheet. */
+.s-ans-bar {
+  flex: 0 0 84px; height: 6px; border-radius: var(--r-pill);
+  background: var(--card-border); overflow: hidden;
+}
+.s-ans-bar span { display: block; height: 100%; border-radius: var(--r-pill); background: currentColor; }
+.s-ans-bar.tone-err  { color: var(--err-text); }
+.s-ans-bar.tone-warn { color: var(--warn-text); }
+.s-ans-bar.tone-ok   { color: var(--ok-text); }
+.s-ans-bar.tone-neutral { color: var(--d500); }
+
+/* ── Reschedule: two faces of one date ──
+   Quick picks for the four answers people actually give, and a real date
+   field for the fifth. Picking either updates the other and the stated
+   effect above it. */
+.s-when { display: flex; flex-direction: column; gap: 8px; }
+.s-when-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.s-when-btn.is-on { border-color: var(--accent); background: var(--accent-dim); color: var(--d50); }
+.s-when-date { width: 100%; color-scheme: dark light; }
+
+/* A refusal that offers somewhere to go. */
+.s-ans-none { font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base); }
+.s-ans-try { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.s-ans-note { font-size: var(--fs-xs); color: var(--d500); line-height: var(--lh-base); margin-top: 12px; }
+/* A number with no way to see behind it is the same unsourced confidence
+   this product exists to remove, wearing a more objective face. */
+.s-ans-cite {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline);
+  font-size: var(--fs-2xs); color: var(--d500);
+}
+.s-ans-cite .cite-action { margin-left: auto; }
+
+/* ═══════════════════════════════════════════════
+   THE TABLE — Clay's canvas, and the fix for V1's
+
+   V1's table scrolled horizontally past twelve columns with seven of them
+   reading "N/A". This one draws only the columns the data fills, so the
+   scroll is a property of how much there is to say rather than of how many
+   fields the API returns.
+═══════════════════════════════════════════════ */
+/* Wide content scrolls inside its own container. The page body must never
+   scroll horizontally — that is the defect, not the fix for it. */
+/* `position: relative` is load-bearing, not tidiness. The action column's
+   `.s-sr` label is `position: absolute` with no positioned ancestor, so it
+   resolved against the initial containing block, escaped the scroll box and
+   pushed the PAGE to 1369px on the contacts table — a horizontal scrollbar
+   on the body, which is the exact defect the wrap exists to prevent. A
+   one-pixel invisible span, and it was the only thing overflowing. */
+.s-table-wrap { position: relative; overflow-x: auto; border-radius: var(--r-lg); }
+.s-table { width: 100%; min-width: 720px; }
+.s-table th { white-space: nowrap; }
+.s-table td { vertical-align: top; }
+.s-td-name {
+  font-family: inherit; font-size: inherit; font-weight: var(--fw-bold);
+  color: var(--d50); cursor: pointer; text-align: left;
+}
+.s-td-name:hover { color: var(--accent); }
+.s-td-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-td-sub { display: block; font-size: var(--fs-2xs); color: var(--d500); margin-top: 2px; }
+/* "not known" is a fact about the scrape and reads as one. V1 printed
+   "N/A", which is a spreadsheet's way of saying nothing at all. */
+.s-td-none { color: var(--d600); font-style: italic; }
+.s-td-act { text-align: right; white-space: nowrap; }
+/* Status on the row's left edge, at low alpha — the same idiom the card
+   uses, so a screenful tells you where the problems are before you have
+   read a name. */
+.s-tr.st-err  { box-shadow: inset 2px 0 0 rgba(240,68,56,0.45); }
+.s-tr.st-warn { box-shadow: inset 2px 0 0 rgba(247,144,9,0.45); }
+.s-tr.st-ok   { box-shadow: inset 2px 0 0 rgba(23,178,106,0.35); }
+.s-tr.is-picked { background: var(--accent-dim); }
+.s-td-tick { width: 32px; }
+.s-td-tick input { cursor: pointer; }
+/* Butterick: a table's data creates its own implied grid, so borders are
+   clutter. One hairline under the header, and figures that can be compared
+   down a column. */
+.s-table th { border-bottom: 1px solid var(--card-border); }
+.s-table td { border: 0; }
+.s-table tr + tr td { border-top: 1px solid var(--hairline); }
+.s-td-num { text-align: right; font-variant-numeric: tabular-nums; }
+.s-conf {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  margin-left: 4px; vertical-align: middle;
+}
+.s-conf-high   { background: var(--ok); }
+.s-conf-medium { background: var(--warn); }
+.s-conf-low    { background: var(--err); }
+.s-table-note { font-size: var(--fs-2xs); color: var(--d500); margin-top: 12px; }
+
+/* The whole row opens the record. Reaching for a checkbox to look at
+   something is the tax V1's table charged on every row. */
+.s-tr { cursor: pointer; }
+.s-tr:hover { background: rgba(255,255,255,0.03); }
+:root[data-theme="light"] .s-tr:hover { background: rgba(16,24,40,0.03); }
+.s-tr.is-picked:hover { background: rgba(var(--accent-rgb), 0.18); }
+/* The tick and the action keep their own cursor, because they do their own
+   thing and a pointer everywhere would promise they did not. */
+.s-td-tick, .s-td-act { cursor: default; }
+
+/* ── Columns and pagination ── */
+.s-table-tools { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.s-cols-wrap { position: relative; }
+.s-cols-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 940;
+  width: 240px; padding: 8px;
+  background: var(--panel-bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+}
+.s-cols-panel[hidden] { display: none; }
+.s-col-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); cursor: pointer; }
+.s-col-row:hover { background: rgba(255,255,255,0.04); }
+:root[data-theme="light"] .s-col-row:hover { background: rgba(16,24,40,0.04); }
+.s-col-row.is-locked { opacity: 0.55; cursor: default; }
+.s-cols-note { font-size: var(--fs-2xs); color: var(--d500); padding: 8px; line-height: var(--lh-base); }
+
+.s-pager {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline);
+  font-size: var(--fs-xs); color: var(--d400);
+}
+.s-per { display: inline-flex; align-items: center; gap: 6px; }
+.s-per-sel {
+  background: var(--card-bg-raised); color: var(--d100);
+  border: 1px solid var(--card-border); border-radius: var(--r-sm);
+  padding: 4px 6px; font-family: inherit; font-size: var(--fs-xs);
+  min-height: 24px; cursor: pointer;
+}
+.s-per-sel:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-pager-said { font-variant-numeric: tabular-nums; }
+.s-pager-nav { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.s-page-btn {
+  min-width: 28px; min-height: 24px; padding: 2px 6px;
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--d400); cursor: pointer; border-radius: var(--r-sm);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.s-page-btn:hover:not(:disabled) { color: var(--d50); background: rgba(255,255,255,0.06); }
+:root[data-theme="light"] .s-page-btn:hover:not(:disabled) { background: rgba(16,24,40,0.06); }
+.s-page-btn:disabled { opacity: 0.3; cursor: default; }
+.s-page-btn.is-here { background: var(--accent); color: #fff; }
+.s-page-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.s-page-gap { color: var(--d600); padding: 0 2px; }
+
+/* The tones the status word shares with the cards, the table and the rail. */
+.tone-err { color: var(--err-text); }
+.tone-warn { color: var(--warn-text); }
+.tone-ok { color: var(--ok-text); }
+.tone-neutral { color: var(--d400); }
+
+/* ═══════════════════════════════════════════════
+   THE DOCKED CONVERSATION
+
+   A column between the briefing and the canvas, present only when the
+   conversation has a subject on screen. It is not a chat panel: it carries
+   what was said, what AiMY understood, and WHAT CHANGED — which is why it
+   has to sit beside the surface rather than over it.
+═══════════════════════════════════════════════ */
+:root { --talk-width: 380px; }
+.app-talk {
+  width: var(--talk-width); flex-shrink: 0;
+  display: flex; flex-direction: column; min-height: 0;
+  border-right: 1px solid var(--hairline);
+  background: var(--card-bg);
+}
+.app-talk[hidden] { display: none; }
+
+/* The briefing gives up its width first — it is a summary of things you can
+   reach other ways, and the conversation is the thing you are doing now. */
+body.is-docked .app-sidebar { width: 0; overflow: hidden; }
+@media (max-width: 1400px) {
+  .app-talk { width: 340px; }
+}
+/* Below this the rail and a readable canvas cannot both fit. The rail wins:
+   if it is open, it is because you are doing something in it. */
+@media (max-width: 1080px) {
+  body.is-docked .app-main { display: none; }
+  .app-talk { width: 100%; border-right: 0; }
+}
+
+.s-talk-head {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 16px 16px 12px;
+}
+.s-talk-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: var(--ls-tight); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.s-talk-close {
+  margin-left: auto; flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--d500); cursor: pointer;
+}
+.s-talk-close:hover { color: var(--d50); background: rgba(255,255,255,0.06); }
+:root[data-theme="light"] .s-talk-close:hover { background: rgba(16,24,40,0.06); }
+.s-talk-close:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.s-talk-close svg { width: 14px; height: 14px; }
+
+/* What AiMY understood. Removing a chip rewrites the URL, and the surface
+   behind the rail re-renders — which is the whole argument for the rail. */
+.s-talk-chips {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  padding: 0 16px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.s-talk-count {
+  margin-left: auto; font-size: var(--fs-2xs); color: var(--d500);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bottom padding clears the float bar, which is fixed and overlaps the foot
+   of this column. Without it the last turn hides behind the input that
+   produced it. */
+.s-talk-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 96px; display: flex; flex-direction: column; gap: 12px; }
+/* With a record open the rail has no header — the record's own title names it
+   and its Back button is the way out — so the scroll takes the top padding the
+   header was contributing, or the first touchpoint sits against the edge. */
+.s-talk-scroll.is-headless { padding-top: 20px; }
+
+/* ── The touchpoint timeline, inside the rail ──
+   It was a second column on the right of an open record, which put two
+   conversation-shaped rails on one page. They are one thing: the
+   touchpoints are what has been said TO this lead and the turns are what
+   has been said ABOUT it — same subject, same order, one rail. */
+.s-timeline { max-width: none; margin-bottom: 4px; }
+.s-timeline .tl-dot { display: flex; align-items: center; justify-content: center; }
+.s-timeline .tl-dot svg { width: 9px; height: 9px; }
+.s-touch-who { color: var(--d500); font-weight: var(--fw-regular); }
+/* AiMY's own work is never disguised as the rep's. The --ai gradient is the
+   library's marker for an AI actor and the avatar gradient is its marker for
+   a human; they are not interchangeable. */
+.s-touch-by { color: var(--d300); font-weight: var(--fw-semibold); }
+/* Same correction as the AiMY controls: the AI blue is a TEXT token, and
+   the gradient clipped to type starts below the contrast floor. The marker
+   still reads as AiMY's — it is the only blue name in a column of grey
+   ones, and it is bold. */
+.s-touch-by.is-ai { color: var(--ai-text); font-weight: var(--fw-bold); }
+.s-touch.is-ai .tl-dot { border-color: rgba(var(--accent-rgb), 0.5); }
+
+.s-trace { margin-top: 8px; }
+.s-trace-sum {
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d500);
+  cursor: pointer; list-style: none; padding: 2px 0;
+  transition: color var(--t-fast);
+}
+.s-trace-sum::-webkit-details-marker { display: none; }
+.s-trace-sum::before { content: "▸ "; }
+.s-trace[open] .s-trace-sum::before { content: "▾ "; }
+.s-trace-sum:hover { color: var(--d200); }
+.s-trace .agent-steps { padding: 4px 0 0 12px; }
+.s-trace .agent-step-ico { font-size: 10px; }
+/* `.agent-step-label` and `.agent-step-meta` are both inline in the library,
+   and the meta carries a `margin-top` an inline box ignores — so the two ran
+   together as one string. Given a block context. (../GAPS.md) */
+.s-step-text { display: flex; flex-direction: column; min-width: 0; }
+.s-talk-scroll::-webkit-scrollbar { width: 4px; }
+.s-talk-scroll::-webkit-scrollbar-track { background: transparent; }
+.s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+:root[data-theme="light"] .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
+.s-talk-empty { font-size: var(--fs-xs); color: var(--d500); line-height: var(--lh-base); max-width: 46ch; }
+
+.s-turn { display: flex; flex-direction: column; gap: 6px; }
+.s-turn-body { font-size: var(--fs-sm); line-height: var(--lh-base); max-width: 60ch; }
+.s-turn.is-you { align-items: flex-end; }
+.s-turn.is-you .s-turn-body {
+  background: var(--accent-dim); color: var(--d50);
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
+  padding: 8px 12px;
+}
+.s-turn.is-aimy .s-turn-body { color: var(--d200); }
+.s-turn-opts { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.s-turn-opt { justify-content: flex-start; text-align: left; }
+/* An answered turn keeps its alternatives — the thread is a record, and
+   deleting them would hide what you chose between — but they are spent. */
+.s-turn-opts.is-spent .s-turn-opt { opacity: 0.35; cursor: default; }
+.s-turn-opts.is-spent .s-turn-opt.is-chosen {
+  opacity: 1; background: var(--accent-dim); color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* A write, in the thread, with its own way back. This is the half V1 has
+   nowhere: it shows the conversation and never what the conversation did. */
+.s-turn.is-change { align-items: stretch; }
+/* The whole border at low alpha, not a tinted left edge. This is the
+   library's own idiom — `.bcard.p1/.p2/.p3` — and Knowledge records having
+   tried the left edge and rejected it: the pattern it was copied from sets
+   `border-left-color` on a border its base rule has commented out, so it is
+   dead in the system it came from. The `±` mark carries the accent, so the
+   signal is still colour AND text rather than colour alone. */
+.s-change {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 8px 12px; border-radius: var(--r-md);
+  background: var(--card-bg-raised);
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base);
+}
+.s-change-mark { color: var(--accent); font-weight: var(--fw-bold); flex-shrink: 0; }
+.s-change-text { min-width: 0; }
+.s-change-text strong { color: var(--d50); }
+.s-change-undo {
+  margin-left: auto; flex-shrink: 0;
+  font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--accent); cursor: pointer; padding: 2px 6px; border-radius: var(--r-xs);
+  min-height: 24px;
+}
+.s-change-undo:hover { background: var(--accent-dim); }
+.s-change-undo:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.s-talk-foot { flex-shrink: 0; padding: 12px 16px 16px; border-top: 1px solid var(--hairline); }
+.s-talk-bar { width: 100%; }
+.s-talk-in { resize: none; }
+
+/* ══ THE BUILD, IN THE CANVAS ═════════════════════════════════════════
+   The criteria card's rules lived here. The card was the first of two forms
+   asking for one name, and it is gone; only `.s-crit-rows` survives, because
+   the read-out it drew is now a field inside the one form that remains. ══ */
+.s-crit-rows {
+  display: grid; grid-template-columns: auto 1fr; gap: 6px 16px;
+  margin: 0; font-size: var(--fs-xs); line-height: var(--lh-base);
+}
+.s-crit-rows dt { color: var(--d500); }
+.s-crit-rows dd { color: var(--d100); margin: 0; font-weight: var(--fw-semibold); }
+
+/* The audience panel. STICKY, because the whole reason the flow moved here
+   is that you could not see what your answers were doing — a preview that
+   scrolls out from under the question is the same defect with extra steps. */
+.s-aud {
+  /* `top: 0` parked it under `.overlay-context-bar`, which is absolutely
+     positioned over the first 104px of the thread. The thread's own
+     `padding-top: 80px` scrolls away with the content, so the offset has to
+     be stated here. */
+  position: sticky; top: -8px; z-index: 2;
+  margin-bottom: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--card-border); border-radius: var(--r-lg);
+  background: var(--card-bg-raised);
+  backdrop-filter: blur(12px);
+}
+.s-aud-head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.s-aud-n {
+  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums;
+}
+.s-aud-of { font-size: var(--fs-xs); color: var(--d500); font-variant-numeric: tabular-nums; }
+.s-aud-dist { margin-top: var(--sp-3); }
+.s-aud-names { margin-top: var(--sp-3); }
+.s-aud-none { margin: var(--sp-2) 0 0; font-size: var(--fs-xs); color: var(--d400); }
+
+.s-build-turns { display: flex; flex-direction: column; gap: var(--sp-3); }
+/* The build's own message. Being a `.chat-msg` gives it the same 640px cap as
+   everything else in the thread; the bubble then has to FILL that cap rather
+   than shrink to its content, or the block still does not line up — measured,
+   452px against the commit block's 610px on the same left edge. */
+.s-build-msg { width: 100%; }
+.s-build-msg .msg-bubble { flex: 1 1 auto; min-width: 0; }
+
+/* Cancel is not a button. Three controls of equal weight is three decisions
+   of equal weight, and two of these are ways out of one. It reads as the
+   quiet one, sits hard left, and keeps a 24px target. */
+.s-work-cancel {
+  min-height: 24px; padding: 0 var(--sp-2); margin-right: auto;
+  border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: var(--fs-xs); color: var(--d500);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.s-work-cancel:hover { color: var(--d200); }
+.s-work-actions.has-alt { flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════
+   LISTS — chips, assignees, the scope bar
+═══════════════════════════════════════════════ */
+.s-camps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.s-camp-chip { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.s-camp-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The campaign's state, said on the chip: a draft is safe to assemble and a
+   running one sends on your behalf. Computed, so there is no field anybody
+   has to remember to set — the same rule the lead statuses follow. */
+.s-camp-state {
+  font-size: 9px; font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+/* Every campaign chip carries a way out of that campaign. You could add and
+   never remove, which is a loop with a start and no finish. */
+.s-camp-pair { display: inline-flex; align-items: center; }
+.s-camp-out {
+  width: 20px; min-height: 24px; margin-left: -2px;
+  font-family: inherit; font-size: var(--fs-sm); color: var(--d600); cursor: pointer;
+  transition: color var(--t-fast);
+}
+.s-camp-out:hover { color: var(--err); }
+.s-camp-out:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* A note a rep added to AiMY's work. AiMY's own entry is never edited —
+   rewriting the record of what it did is the one thing this refuses. */
+/* A raised surface and nothing else — the same treatment `.s-commit-quote`
+   and `.s-sheet-brief` already use for an attached aside. This one kept a
+   left rule the other three had dropped, which made one of four identical
+   jobs look different for no reason. */
+.s-touch-note {
+  margin-top: 6px; padding: 6px 8px;
+  font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base);
+  background: var(--card-bg-raised);
+  border-radius: var(--r-xs);
+}
+.s-touch-note-who { font-weight: var(--fw-bold); color: var(--d100); }
+.s-touch-add { margin-top: 6px; display: inline-block; font-size: var(--fs-2xs); }
+.s-sheet-kind .s-camp-state { margin-left: 6px; }
+
+.s-assignees { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.s-assignee {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-xs); color: var(--d200);
+}
+.s-assignee-role { color: var(--d500); font-size: var(--fs-2xs); }
+.s-assignee.is-owner { color: var(--d50); font-weight: var(--fw-semibold); }
+.s-sheet-head-main { min-width: 0; }
+.s-new-name, .s-new-desc, .s-note, .s-addr, .s-kb-why { width: 100%; }
+.s-note, .s-kb-why { resize: vertical; }
+/* THE CHECKMARK IS NOT CENTRED IN ITS OWN BOX, and it is the library's rule.
+
+   `.ds-choice input[type="checkbox"]:checked::after` places a 5×9 element at
+   a hard-coded `left: 5px; top: 1.5px` and rotates it 45°. Rotation happens
+   about the element's centre, so the tick's centre is wherever that offset
+   put it — measured, **1.5px left and 3px above** the box's centre in an
+   18px box. Small, and visible: the tick sits high and to the left in every
+   picker, every add-contacts row and every decision zone at once.
+
+   The offsets were presumably tuned by eye at one size and then frozen. The
+   fix is to stop expressing the position as a distance from a corner and
+   express it as what it actually is — centred — so it stays centred at any
+   box size and any glyph size.
+
+   The radio is unaffected: `inset: 4px` is symmetric, so it centres itself.
+
+   Filed in ../GAPS.md. */
+.ds-choice input[type="checkbox"]:checked::after {
+  left: 50%; top: 50%;
+  /* Rotate first, then pull back by half — the order matters, because
+     `translate` after `rotate` would move along the rotated axes. */
+  transform: translate(-50%, -50%) rotate(45deg);
+  /* The tick's ink is its bottom and right borders, so its optical centre
+     sits a hair below its geometric one. One pixel up, and no more. */
+  margin-top: -1px;
+}
+
+/* EVERY TICK AND RADIO ON THIS SURFACE.
+
+   This rule used to carry `min-height: 24px` beside `height: 15px`, and said
+   in its own comment that SC 2.5.8 is about the target rather than the ink —
+   then grew the ink. `min-height` beats `height`, so every checkbox rendered
+   **15×24** and every radio **18×24**; and a radio is `border-radius: 50%`,
+   so an 18×24 radio drew an **ellipse** with the library's inset dot
+   stretched inside it. That was on screen in every picker, every decision
+   zone, every table row and every dialog.
+
+   The ink is now the drawn size and nothing else. The 24px target lives on
+   the box around the control — which is the pattern this file already uses
+   for `.filter-chip` a hundred lines above, and which a label gives for
+   free, since clicking a label is clicking its input. */
+.s-tick, .s-tick-all, .s-add-tick, .s-merge-tick, .s-new-assign, .s-new-owner, .s-task-pick, .s-enrich-tick {
+  width: 15px; height: 15px; accent-color: var(--accent);
+}
+/* Inside `.ds-choice` the library draws its own 18px control at a higher
+   specificity; it wins on size and should. Only the target is ours. */
+/* `min-height: 24px` gives the WCAG target — and it QUIETLY REMOVED the
+   protection that stops a flex item shrinking below its own content.
+
+   A flex item's default is `min-height: auto`, which is what makes a column
+   refuse to squash its children. Naming an explicit minimum replaces that
+   default, so inside `.s-pick-scroll` (a 280px column with overflow) every
+   row shrank to exactly 24px while its content stayed 38px — and the names
+   and subtitles overlapped each other down the whole list.
+
+   `flex-shrink: 0` says the thing `min-height: auto` was saying. Measured:
+   24px squashed, 54px correct. */
+.ds-choice { min-height: 24px; flex-shrink: 0; }
+/* The table's ticks have no label of their own, so the cell is the target. */
+.s-tick-hit {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 24px; min-height: 24px; cursor: pointer;
+}
+
+.s-scope { margin-bottom: 16px; }
+.s-scope .ss-num { font-variant-numeric: tabular-nums; }
+.s-scope .ss-actions { display: inline-flex; gap: 8px; margin-left: auto; }
+
+/* ═══════════════════════════════════════════════
+   THE COMMIT SURFACE — form pieces for the list operations
+═══════════════════════════════════════════════ */
+.s-commit-banner { margin-bottom: 16px; }
+.s-field { display: block; margin-bottom: 16px; }
+.s-field-label {
+  display: block; margin-bottom: 4px;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d300);
+}
+.s-field .field-input, .s-field .ds-textarea { width: 100%; }
+.s-field-note { font-weight: var(--fw-regular); color: var(--d500); }
+.s-pick-scope { font-size: var(--fs-xs); color: var(--d500); margin-bottom: 8px; }
+
+/* ── Owner: one line, and the other five behind a reveal ──
+   Six radios for an answer that is "you" nearly every time. `<details>` is
+   the native form of a closed control that opens in place, so it is the one
+   used rather than a toggle rebuilt out of a button and a class. */
+.s-owner-sum {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 6px 8px; border: 1px solid var(--d700); border-radius: var(--r-md);
+  list-style: none;
+}
+.s-owner-sum::-webkit-details-marker { display: none; }
+.s-owner-sum:hover { border-color: var(--d600); }
+.s-owner-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-owner-swap {
+  margin-left: auto; font-size: var(--fs-2xs); color: var(--d500);
+  border-bottom: 1px solid var(--d700);
+}
+.s-owner[open] .s-owner-sum { margin-bottom: 8px; }
+.s-owner[open] .s-owner-swap { color: var(--accent); border-color: var(--accent); }
+
+/* ── Assignees: the shape the campaign sheet already shows them in ──
+   Wrapping toggles rather than a stacked list, so six people take two rows
+   instead of six and the form reads at the weight of the decision. */
+.s-assign-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.s-assign-chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 4px 8px 4px 4px; min-height: 32px;
+  border: 1px solid var(--d700); border-radius: var(--r-pill);
+  font-size: var(--fs-2xs); color: var(--d300);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.s-assign-chip:hover { border-color: var(--d600); }
+/* KEYBOARD ONLY. `:focus-within` fires for a mouse click too — the chip's
+   hidden checkbox takes focus and the ring stays until you click somewhere
+   else, so a chip you had just picked showed a `--brand` outline AND the
+   `--accent` checked fill at once: two states drawn for one fact, and the
+   one that lingers is the one that means nothing.
+
+   `:has(input:focus-visible)` leaves the ring for the people who need it —
+   the input is `opacity: 0` but still in the tab order, so Tab reaches it and
+   the browser sets `:focus-visible` — and leaves a mouse click showing only
+   what it changed. Every other focus style in this file is already
+   `:focus-visible`; this was the one that was not. */
+.s-assign-chip:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* Checked reads as picked, not as focused: the accent fills the border and
+   tints the ground, which is how every other chosen chip here behaves. */
+.s-assign-chip:has(input:checked) { border-color: var(--accent); background: var(--accent-dim); color: var(--d100); }
+.s-assign-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.s-assign-name { display: flex; flex-direction: column; line-height: var(--lh-snug); }
+/* The channel, chosen where its consequence is stated rather than on a
+   control beside an input. AiMY reads it out of the words; this is where it
+   says what it read and lets you correct it. */
+.s-ch-pick { width: 100%; }
+.s-ch-pick .seg-btn { flex: 1; }
+.s-ch-note { font-size: var(--fs-2xs); color: var(--d500); margin-top: 6px; }
+.s-pick-scroll { max-height: 280px; overflow-y: auto; }
+/* Shown and disabled, never hidden: a contact you cannot FIND is worse than
+   one you cannot select, because you go looking for it. */
+.s-pick-row.is-already { opacity: 0.45; cursor: not-allowed; }
+.s-pick-row.is-already:hover { background: none; }
+.s-merge-sum:empty { display: none; }
+.s-merge-sum { display: flex; gap: 12px; margin-bottom: 16px; }
+.s-merge-fig {
+  flex: 1; padding: 12px;
+  border: 1px solid var(--card-border); border-radius: var(--r-md);
+  background: var(--card-bg-raised);
+}
+.s-merge-n {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums; line-height: var(--lh-tight);
+}
+.s-merge-lbl { display: block; font-size: var(--fs-2xs); color: var(--d500); margin-top: 2px; }
+.s-merge-delta { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ok); }
+/* A duplicate count of nought is good news and should not be tinted like a
+   warning; only a real overlap earns the colour. */
+.s-merge-fig.is-dupe .s-merge-n { color: var(--warn); }
+.s-merge-rule { margin-bottom: 16px; }
+.s-merge-rule .dz-actions { flex-direction: column; align-items: stretch; gap: 4px; }
+
+/* ═══════════════════════════════════════════════
+   THE CAMPAIGN SHEET — a filter, with a brief behind its name
+═══════════════════════════════════════════════ */
+/* THE SHEET FITS THE WINDOW, AND ITS MIDDLE IS WHAT SCROLLS.
+
+   Measured before this: the campaign sheet rendered 928px tall in a 720px
+   viewport, `max-height: none`, and the OVERLAY scrolled instead. So the
+   thing that moved was the whole card — title, state, and the close button
+   with it — and 256px of content sat below the fold with no indication it
+   was there. Scrolling to reach it scrolled away the way out.
+
+   Head and foot are pinned because they are the two things you need at every
+   scroll position: what am I looking at, and what can I do about it. */
+.doc-overlay {
+  position: fixed; inset: 0; z-index: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background: rgba(8,11,16,0.6); backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+.doc-overlay[hidden] { display: none; }
+:root[data-theme="light"] .doc-overlay { background: rgba(238,242,246,0.7); }
+.doc-sheet {
+  width: min(600px, 100%);
+  max-height: min(88vh, 900px);
+  display: flex; flex-direction: column;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: var(--r-2xl); box-shadow: var(--shadow-xl);
+}
+.s-sheet-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  padding: 0 24px 4px;
+  /* The scrolled edge needs to read as an edge, or a cut-off line looks like
+     the end of the content rather than the top of more of it. */
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+}
+.s-sheet-head { display: flex; align-items: flex-start; gap: 12px; padding: 24px 24px 16px; flex: none; }
+.s-sheet-head .modal-close { margin-left: auto; }
+.s-sheet-kind {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+}
+.s-sheet-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl); font-weight: var(--fw-extrabold); color: var(--d50);
+  letter-spacing: var(--ls-tight); margin-top: 2px;
+}
+.s-sheet-when { font-size: var(--fs-xs); color: var(--d400); margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════
+   THE CAMPAIGN PAGE
+
+   Was a 600px modal, and the content had outgrown it: a description, an
+   assignee list, a distribution over eight statuses, a plan, a Knowledge
+   brief and four actions. Worse than cramped, it was a LAYER — and layers
+   stack, which is how "Start it" ended up leaving three surfaces open at
+   once with cancel able only to peel the top.
+
+   It is a page now, on the record page's own scale, so the two read as the
+   same kind of thing because they are: a named object you opened, with one
+   way back.
+═══════════════════════════════════════════════ */
+.s-camp-page .s-sheet-head {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 0; margin-top: 16px;
+}
+.s-camp-page .s-sheet-head-main { flex: 1 1 auto; min-width: 0; }
+.s-camp-primary { margin-left: auto; flex: none; }
+.s-camp-body { margin-top: 24px; }
+/* Prose. The quote panel was sized for a paragraph, and a four-character
+   description turned it into a mostly empty box. */
+.s-camp-desc {
+  font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
+  max-width: 65ch; margin-bottom: 24px;
+}
+.s-camp-foot {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--hairline);
+}
+.s-camp-page .s-sheet-block { margin-bottom: 24px; }
+.s-camp-page .s-sheet-name { font-size: var(--fs-2xl); }
+
+/* Who gave the reason, quieter than the reason itself. The words are what
+   the next person needs; the attribution is what makes them trustable. */
+.s-why-who { color: var(--d500); }
+.s-sheet-head .inline-note { margin-top: 8px; }
+/* Same block-quote treatment as `.s-commit-quote`, for the same reason:
+   these are the two places on the surface that quote somebody's own words. */
+.s-sheet-brief {
+  font-size: var(--fs-sm); color: var(--d200); line-height: var(--lh-base);
+  padding: 12px 16px; margin-bottom: 24px;
+  background: var(--card-bg-raised);
+  border-radius: var(--r-sm);
+}
+.s-sheet-block { margin-bottom: 24px; }
+.s-sheet-h {
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--d100);
+  margin-bottom: 8px;
+}
+.s-sheet-note { font-size: var(--fs-xs); color: var(--d500); margin-top: 8px; line-height: var(--lh-base); }
+.s-sheet-foot {
+  display: flex; flex-wrap: wrap; gap: 8px; flex: none;
+  padding: 16px 24px 24px; border-top: 1px solid var(--hairline);
+}
+
+/* The commit surface takes the same treatment. It is the same shape — a
+   head that says what this is, a body that can run long, and a foot that
+   must never leave — so it should not have its own answer to the same
+   question. */
+.s-commit {
+  max-height: min(88vh, 900px);
+  display: flex; flex-direction: column;
+  padding: 0;
+}
+.s-commit .modal-header { flex: none; padding: 24px 24px 16px; margin: 0; }
+.s-commit .modal-body   { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 24px 4px; }
+.s-commit .modal-footer {
+  flex: none; padding: 16px 24px 24px; margin: 0;
+  border-top: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 8px;
+}
+/* An unmet requirement says what it is, in the footer, beside the button it
+   is holding. A disabled control with no explanation is the same defect as a
+   dead one — the difference is only that this one is deliberate. */
+.s-needs { margin-right: auto; font-size: var(--fs-2xs); color: var(--warn-text); }
+.s-commit .modal-footer:not(.is-blocked) .s-needs { display: none; }
+.s-commit [data-commit-go][disabled] { opacity: 0.45; cursor: not-allowed; }
+/* The field the requirement points at carries it too, so the two ends of the
+   condition are visible at once however the modal is scrolled. */
+.s-commit .modal-footer.is-blocked ~ * .s-why,
+.s-commit .modal-body .s-why:placeholder-shown,
+.s-commit .modal-body .s-kb-why:placeholder-shown,
+.s-commit .modal-body .s-note:placeholder-shown { border-color: rgba(247,144,9,0.4); }
+
+/* The AiMY mark and the words beside it sit on one optical centre. The mark
+   is 13×14 against a 12px uppercase label and a 20px title, so leaving them
+   on their own text baselines drops the mark a pixel or two below the line —
+   small, and visible on every AiMY-authored surface at once. */
+.s-sheet-kind { display: flex; align-items: center; gap: 6px; }
+.s-sheet-kind svg { flex: none; }
+
+/* ═══════════════════════════════════════════════
+   NON-HAPPY STATES
+═══════════════════════════════════════════════ */
+.s-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+/* Card proportions, so the grid does not reflow when the real thing lands —
+   the same reason Knowledge gives, and the same anatomy underneath. */
+.s-skel-card {
+  min-height: 132px; border-radius: var(--r-xl);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.s-skel-line { border-radius: var(--r-xs); }
+/* The meta line sits below the rule, where the real one does. */
+.s-skel-line.is-meta { margin-top: auto; padding-top: 0; }
+.s-skel-card .is-meta { border-top: 0; }
+.s-error { margin-top: 48px; }
+/* AiMY unavailable does not replace the surface — everything that reads a
+   record still works, and a screen saying otherwise would be lying. */
+.s-aidown { margin-bottom: 24px; }
+
+/* ═══════════════════════════════════════════════
+   PROTOTYPE CONTROL — scaffolding, never product
+
+   Mono type, dashed border, no accent, no brand. It should be impossible
+   to mistake for something that ships.
+═══════════════════════════════════════════════ */
+.proto-sec { margin-bottom: 16px; }
+.proto-sec:last-child { margin-bottom: 0; }
+.proto-h {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d600); margin-bottom: 4px;
+}
+.proto-link {
+  display: block; width: 100%; text-align: left;
+  font-family: var(--font-mono); font-size: 10px; color: var(--d400);
+  text-decoration: none; cursor: pointer;
+  padding: 2px 4px; border-radius: var(--r-xs);
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.proto-link:hover { color: var(--d100); background: rgba(255,255,255,0.05); }
+:root[data-theme="light"] .proto-link:hover { background: rgba(16,24,40,0.05); }
+.proto-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* ═══════════════════════════════════════════════
+   NARROW WIDTHS
+
+   Two things cannot shrink on their own and both drag the page wider than
+   the window, which is the one layout defect that is never acceptable:
+   a horizontal scrollbar on the body means every vertical scroll is
+   fighting a sideways drift.
+═══════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  /* The result line's controls — two segmented pairs and a button — are
+     413px of fixed-width content on a 375px screen. They stop being an
+     end-aligned group and become a row of their own. */
+  .s-result { flex-direction: column; align-items: stretch; }
+  .s-result-end { margin-left: 0; }
+  .s-result-end .seg { flex: 1; }
+  .s-result-end .seg-btn { flex: 1; }
+
+  /* The six ecosystem tabs are `white-space: nowrap`, so the strip cannot
+     shrink below 475px however much flex says it may. It scrolls instead of
+     overflowing — the tabs are chrome, and a chrome strip you swipe is
+     better than a page that drifts sideways. */
+  .topnav-tabs { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .topnav-tabs::-webkit-scrollbar { display: none; }
+  .topnav-tabs-inner { flex-shrink: 0; }
+  .app-topnav { padding: 0 12px; }
+}
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+
+   Exempted from css-audit's orphan check: these are styled only in
+   combination, or carry no visual weight of their own.
+═══════════════════════════════════════════════ */
+.s-row { display: flex; align-items: center; gap: 8px; }
+.s-gap-2 { gap: 8px; }
+.s-gap-3 { gap: 12px; }
+.s-gap-4 { gap: 16px; }
+.s-hidden { display: none !important; }
+/* Visible to a screen reader, not to the eye. */
+.s-sr {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ══ INSIDE A THING, NOT ACROSS THE CORPUS ═══════════════════════════════
+   A campaign page used to answer "show its accounts" by leaving for the
+   global list, and the window-fixed filter tray floated over it the whole
+   time. You were inside the campaign and outside it at once.
+
+   Now the campaign holds its accounts, its controls narrow within them and
+   count what they narrow, and the corpus-wide tray is not on screen at all
+   while a page is. ══ */
+body.is-record .filter-tray { display: none; }
+
+/* NOT space-between. With seven status chips it looked deliberate; with one
+   it threw a lone "Untouched 6" to the opposite edge of the page, a filter
+   floating a full column away from the heading it filters. Grouped after the
+   title instead, wrapping when it runs out of room — which reads the same at
+   one chip and at seven. */
+.s-camp-list-head {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
+}
+.s-camp-list-tools { margin-left: var(--sp-2); }
+.s-camp-list-head .s-sheet-h { margin: 0; }
+.s-camp-of { font-weight: 400; color: var(--d400); }
+.s-camp-list-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.s-camp-fchip { font-size: var(--fs-xs); }
+.s-camp-grid { margin-top: 0; }
+.s-ans-hit.is-on { background: var(--d50); }
+.s-ans-hit.is-on .s-ans-name { font-weight: 600; }
+
+/* ══ THE CANVAS AT 375 ════════════════════════════════════════════════════
+   `.aimy-overlay` is `position: absolute; inset: 0`, so its box is whatever
+   the app shell gives it — and the shell still reserves the sidebar at 375.
+   Measured: a **155px-wide thread inside a 375px viewport**, 113px of
+   horizontal overflow, with the build flow's own content at 215px.
+
+   The page itself did not overflow, which is why this survived: it is the
+   canvas that was squeezed, and until this pass the canvas held one confirm
+   block. It now holds the main flow in the product, so it gets a real box.
+   Fixed to the VIEWPORT, because a canvas you cannot read is not a surface. ══ */
+@media (max-width: 720px) {
+  .aimy-overlay { position: fixed; inset: 0; }
+  .s-build, .s-build-turns, .s-aud, .s-aud-head, .s-work, .s-work-body { min-width: 0; }
+  .s-aud-head { flex-wrap: wrap; }
+  /* An account name longer than the panel breaks rather than pushing it. */
+  .s-aud-names .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ══ PASS 12 FOLLOW-UP ═══════════════════════════════════════════════════ */
+
+/* `body.canvas-open { overflow: hidden }` lived here for one pass and could
+   never have done anything: `body` is already `height: 100vh; overflow:
+   hidden` (see the shell rules above). The scroll it was meant to stop was
+   the canvas THREAD's, fixed where that actually scrolls. */
+
+/* "47 accounts" and "of 118" ran together as "47 accountsof 118": the count
+   is `--fs-lg` and the qualifier `--fs-xs`, so a baseline-aligned flex gap
+   read as no gap at all against the larger glyphs. Stated explicitly. */
+.s-aud-head { gap: 0; align-items: baseline; flex-wrap: wrap; }
+.s-aud-of { margin-left: 0.4em; }
+
+/* The name row ran off the panel — eight company names plus "and 110 more"
+   is wider than the block, and the trailing note was clipped mid-word. Six
+   names now, and nothing in the row may exceed the panel it sits in. */
+.s-aud-names { flex-wrap: wrap; row-gap: 6px; }
+.s-aud-names > * { max-width: 100%; min-width: 0; }
+.s-aud-more { flex: 0 0 auto; font-size: var(--fs-xs); }
+
+/* The build stamp in the prototype panel — which file the browser actually
+   loaded, not which file is on disk. Small, quiet, and the first thing to
+   read when a report cannot be reproduced. */
+.proto-build {
+  padding: var(--sp-2) 0 var(--sp-3);
+  margin-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--fs-2xs); color: var(--d500);
+}
+.proto-build strong { color: var(--d200); font-weight: var(--fw-bold); }
+
+/* ══ WHAT HAPPENED, IN THE RAIL ═══════════════════════════════════════════
+   A campaign's history, in the same region and the same vocabulary a record's
+   touchpoints already use — one rail, whichever thing you opened. ══ */
+.s-hist { margin-bottom: var(--sp-4); }
+
+/* Where it stands now, before what got it here. */
+.s-hist-now {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  padding-bottom: var(--sp-3); margin-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+}
+.s-hist-count { font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums; }
+
+/* Each half is labelled, because the two answer different questions. */
+.s-hist-h {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  margin: var(--sp-4) 0 var(--sp-3);
+}
+.s-hist .s-hist-h:first-of-type { margin-top: 0; }
+.s-hist-more { margin-top: var(--sp-2); }
+.s-hist-sum {
+  cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 24px; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--accent); text-decoration: underline; text-underline-offset: 3px;
+}
+.s-hist-sum::-webkit-details-marker { display: none; }
+.s-hist-sum:hover { color: var(--d50); }
+.s-hist-more[open] .s-hist-sum { margin-bottom: var(--sp-3); }
+
+/* A lifecycle step is quieter than a touchpoint: it is what the campaign did,
+   not what was said to somebody. */
+.s-hist-item .tl-title { font-weight: var(--fw-semibold); }
+.s-hist-item .tl-dot svg { width: 11px; height: 11px; }
+
+.s-hist-new {
+  font-size: var(--fs-xs); color: var(--d500);
+  line-height: var(--lh-base); margin-top: var(--sp-3);
+}
+
+/* The distribution reads as a comparison, and a bar 1800px wide with its
+   count at the far right is not one — the eye cannot hold the two ends
+   together. Capped at a width where the label, the bar and the number are
+   one glance. */
+.s-camp-page .s-ans-rows, .s-camp-page .s-ans-row { max-width: 720px; }
