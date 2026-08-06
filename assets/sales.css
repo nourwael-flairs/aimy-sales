@@ -109,8 +109,19 @@ button {
    textarea waiting for a second line. */
 .aimy-float-input, .overlay-input { min-height: 24px; }
 .aimy-float-bar, .overlay-input-bar { cursor: text; }
-.aimy-float-bar > *:not(.aimy-float-input),
-.overlay-input-bar > *:not(.overlay-input) { cursor: default; }
+/* …and everything else in the bar goes back to an ordinary arrow, so the
+   chrome around the field does not offer a text caret.
+
+   `:not(button)` because this reset was too broad and swallowed the controls:
+   the icon that opens the canvas and both send buttons sat inside the bar and
+   were told they were inert. Nineteen of the twenty-two kinds of button on
+   this surface showed a pointer; these three did not, and the unread badge
+   drawn inside the icon inherited `default` from it — which is how it
+   surfaced. Excluded here rather than overridden below, because a rule that
+   says the wrong thing and a second rule that argues with it is worse than
+   one rule that is right. */
+.aimy-float-bar > *:not(.aimy-float-input):not(button),
+.overlay-input-bar > *:not(.overlay-input):not(button) { cursor: default; }
 
 /* A staged prompt is AiMY-composed and waiting on you, so the bar says so
    rather than looking like text you typed and abandoned. */
@@ -174,7 +185,7 @@ button {
 @media (prefers-reduced-motion: no-preference) {
   .btn, .entry-action, .filter-chip, .seg-btn, .bcard-ack-btn, .overlay-sugg-chip,
   .audit-revert, .cite-action, .td-action, .icon-btn,
-  .topnav-bell, .ds-theme-toggle, .aimy-float-send, .overlay-send, .overlay-close,
+  .topnav-bell, .ds-theme-toggle, .aimy-float-icon, .aimy-float-send, .overlay-send, .overlay-close,
   .agg-more, .ss-clear, .tab, .nav-item, .bcard-dismiss-reason {
     transition: transform var(--t-press) var(--ease-out),
                 background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
@@ -183,7 +194,7 @@ button {
   .bcard-ack-btn:active, .overlay-sugg-chip:active,
   .audit-revert:active, .cite-action:active, .td-action:active,
   .icon-btn:active, .topnav-bell:active, .ds-theme-toggle:active,
-  .aimy-float-send:active, .overlay-send:active, .overlay-close:active,
+  .aimy-float-icon:active, .aimy-float-send:active, .overlay-send:active, .overlay-close:active,
   .agg-more:active, .ss-clear:active, .tab:active,
   .nav-item:active, .bcard-dismiss-reason:active { transform: scale(0.97); }
 
@@ -2772,3 +2783,45 @@ body.is-record .filter-tray { display: none; }
    together. Capped at a width where the label, the bar and the number are
    one glance. */
 .s-camp-page .s-ans-rows, .s-camp-page .s-ans-row { max-width: 720px; }
+
+/* `[hidden]` must actually hide. The library gives `.float-badge`
+   `display: flex`, and a class selector outranks the user agent's
+   `[hidden] { display: none }` — so the badge shipped with `hidden` on it and
+   rendered a permanent red "0" regardless. See GAPS.md. */
+.float-badge[hidden] { display: none; }
+
+/* HOVER ON THE MARK, THE WAY KNOWLEDGE DOES IT.
+
+   Knowledge v2 reached this first — `assets/knowledge.css`:
+
+       #canvasOpen { cursor: pointer; }
+       #canvasOpen:hover { border-color: rgba(139,79,244,0.6); }
+
+   The mark already carries `border: 1px solid rgba(139,79,244,0.3)` from the
+   library, so the hover is that same border at twice the opacity: the control
+   does not gain an edge on hover, the edge it already has comes forward. That
+   is why it reads as one object waking up rather than a box appearing.
+
+   Written against `--accent-rgb` rather than the literal Knowledge used, since
+   the two are the same colour and only one of them survives a theme change.
+
+   The mark also joins the press list above. Its own neighbour in the same bar
+   — the send button — was already there, so the two controls in one pill
+   answered a press differently: one dipped, one did nothing. */
+#canvasOpen:hover { border-color: rgba(var(--accent-rgb), 0.6); }
+
+/* THE CONTROLS IN THE AiMY BAR SAY THEY ARE CONTROLS.
+
+   `cursor` is inherited, so stating it on the button is what fixes the unread
+   badge the report was about: the badge is a count drawn ON a control, not a
+   second control inside it, and giving it its own pointer would have implied
+   a target it does not have. */
+.aimy-float-icon,
+.aimy-float-send,
+.overlay-send { cursor: pointer; }
+
+/* Nothing is clickable while AiMY is unreachable, and the cursor should stop
+   promising it. `:disabled` already greys them; this stops the hand. */
+.aimy-float-icon:disabled,
+.aimy-float-send:disabled,
+.overlay-send:disabled { cursor: default; }

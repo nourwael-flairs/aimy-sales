@@ -5861,9 +5861,36 @@
   const aiMark = () => `<svg viewBox="0 0 18 20" width="13" height="14" aria-hidden="true"><use href="#aimy-logo-small"/></svg>`;
 
   /* ── The canvas ── */
+  /* ── The badge on the float icon ──
+
+     It was shipped with `hidden` on it and showed "0" anyway, because the
+     library styles `.float-badge { display: flex }` and a class selector
+     outranks the UA's `[hidden] { display: none }`. So the attribute the
+     markup used to hide it did nothing. Filed in GAPS.md; overridden locally.
+
+     And nothing ever set it. A red badge that always reads zero is worse than
+     no badge: it is the one shape on the surface that means "something needs
+     you", saying it permanently and meaning nothing.
+
+     Now it counts the only thing it could honestly count — turns that landed
+     in the canvas while the canvas was CLOSED, which is exactly what the mark
+     is for: the way back to something you have not seen. Zero of those is not
+     a number worth drawing, so at zero it is not drawn. */
+  let unseen = 0;
+
+  function paintFloatBadge() {
+    const b = $('.float-badge');
+    if (!b) return;
+    b.hidden = !unseen;
+    b.textContent = String(unseen);
+    b.setAttribute('aria-label', `${plural(unseen, 'unread answer')} in the canvas`);
+  }
+
   function openCanvas() {
     const ov = $('#aimyOverlay');
     if (ov) ov.classList.add('open');
+    unseen = 0;
+    paintFloatBadge();
     /* No body lock here, and no `scrollTo`. Both were added last pass on the
        theory that the document was scrolling; `body` is already
        `height: 100vh; overflow: hidden`, so they could never have done
@@ -5882,6 +5909,11 @@
   function pushMsg(who, html) {
     const th = $('#overlayThread');
     if (!th) return;
+    /* Only AiMY's turns count, and only while you are not looking at them. */
+    if (who !== 'user' && !($('#aimyOverlay') || { classList: { contains: () => false } }).classList.contains('open')) {
+      unseen++;
+      paintFloatBadge();
+    }
     th.insertAdjacentHTML('beforeend', `<div class="chat-msg ${who === 'user' ? 'user' : 'aimy'}"><div class="msg-bubble">${html}</div></div>`);
     /* A FORM IS READ FROM ITS TOP. Pinning the thread to the bottom put the
        commit block's footer on screen and everything else above the fold —
