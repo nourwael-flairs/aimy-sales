@@ -330,9 +330,9 @@
      bounded to — is one field. */
   const REPS = [
     { id: 'nour',    name: 'Nour Wael',     initials: 'NW', role: 'Product Design',    tier: 'admin' },
-    { id: 'ahmed',   name: 'Ahmed Mahfouz', initials: 'AM', role: 'Sales Lead',        tier: 'manager' },
+    { id: 'ahmed',   name: 'Ahmed Mohamed', initials: 'AM', role: 'Sales Lead',        tier: 'manager' },
     { id: 'engy',    name: 'Engy Saleh',    initials: 'ES', role: 'BDR',               tier: 'rep' },
-    { id: 'habeba',  name: 'Habeba Mourad', initials: 'HM', role: 'BDR',               tier: 'rep' },
+    { id: 'habeba',  name: 'Sally Tarek', initials: 'HM', role: 'BDR',               tier: 'rep' },
     { id: 'omar',    name: 'Omar Fathy',    initials: 'OF', role: 'Account Executive', tier: 'rep' },
     { id: 'sara',    name: 'Sara Nabil',    initials: 'SN', role: 'Account Executive', tier: 'rep' },
     { id: 'youssef', name: 'Youssef Adel',  initials: 'YA', role: 'Delivery Director', tier: 'stakeholder' },
