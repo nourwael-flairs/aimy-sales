@@ -16,7 +16,7 @@
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
   <link rel="stylesheet" href="assets/aimy-ds.css" />
-  <link rel="stylesheet" href="assets/sales.css?v=91" />
+  <link rel="stylesheet" href="assets/sales.css?v=93" />
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -202,11 +202,24 @@
   <aside class="app-talk" id="talkRail" aria-label="Conversation" hidden></aside>
 
   <!-- ══════════════════════════════════════════════
-       MAIN — filters → grid → record, all in place
+       MAIN — type → filters → count → grid, in the order they depend
+
+       ONE ROW PER QUESTION, and the order is the causal one: what am I
+       looking at, how is it narrowed, what came back, and then the results.
+       The record type used to render below the filter row and beside the
+       count, which put a control that DECIDES WHICH FILTERS EXIST underneath
+       them, and a result on the same line as the navigation that produced
+       it. Four clusters over three rows, none of them grouped by kind.
   ══════════════════════════════════════════════ -->
   <main class="app-main">
     <div class="page-scroll" id="pageScroll">
       <div class="page-inner">
+
+        <!-- WHAT you are looking at, and the one action on the whole
+             surface. Above the filters because it is their parent: which
+             axes exist follows from the record type, which is why Team draws
+             no filter row at all. -->
+        <div id="navBar"></div>
 
         <!-- The filters, visible. Chat sets these same controls, so what AiMY
              understood is shown by the controls lighting up rather than said
@@ -217,8 +230,8 @@
              free text, an answer's record set, a matched ICP. -->
         <div id="chipBar"></div>
 
-        <!-- The surface: the grid, the table, the folders, or one record.
-             One region, four shapes. -->
+        <!-- The surface: the count of what came back, then the grid, the
+             table, the folders, or one record. One region, four shapes. -->
         <div id="wbStage"></div>
 
       </div>
@@ -357,6 +370,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/sales.js?v=91"></script>
+<script src="assets/sales.js?v=93"></script>
 </body>
 </html>

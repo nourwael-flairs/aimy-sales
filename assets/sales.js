@@ -2193,23 +2193,38 @@
     return dropdown({ key, value: cur || ALL_OPT, rows });
   }
 
+  /* THE ROW DRAWS WHAT THIS LIST ACTUALLY FILTERS BY, and nothing else.
+
+     A control that cannot change the list under it is worse than a missing
+     one: it reads as a filter that is merely off, so you spend a click — and
+     on the calendar, two dates — finding out it was never a filter at all.
+
+     Three follow from that. Team declares no axes, so it gets no row rather
+     than an empty one. Only the lead list reads a date (`filteredTasks`,
+     `filteredCampaigns` and `filteredTeam` never touch `due` or `touched`),
+     so Running, Campaigns and Team get no calendar. And More renders only
+     when there is more — a button promising further filters over an empty
+     popover is the same lie, one click deeper. */
   function filterRow() {
     const primary = ROW_AXES().map(axisDropdown).join('');
-    const on = MORE_AXES().filter((k) => (AXES[k].scalar ? S[k] : (S[k] || []).length)).length;
+    const more = MORE_AXES();
+    const cal = onLeads() ? dateRange() : '';
+    const on = more.filter((k) => (AXES[k].scalar ? S[k] : (S[k] || []).length)).length;
+    if (!primary && !cal && !more.length) return '';
 
     return `<div class="s-filters" role="group" aria-label="Filters">
-      ${primary}${dateRange()}
-      <div class="s-more-wrap">
+      ${primary}${cal}
+      ${more.length ? `<div class="s-more-wrap">
         <button class="s-more-btn${on ? ' active-filter' : ''}" type="button" data-more
                 aria-haspopup="dialog" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
           More${on ? ` <span class="s-more-n">${on}</span>` : ''}
         </button>
         <div class="s-more-panel" hidden role="dialog" aria-label="More filters">
-          <div class="s-more-grid">${MORE_AXES().map(axisDropdown).join('')}</div>
+          <div class="s-more-grid">${more.map(axisDropdown).join('')}</div>
           ${on ? `<button class="s-more-clear" type="button" data-clear-more>Clear these ${on}</button>` : ''}
         </div>
-      </div>
+      </div>` : ''}
     </div>`;
   }
 
@@ -2324,9 +2339,22 @@
     const chips = [];
     const add = (key, val, text) => chips.push({ key, val, text });
 
+    /* AND THE CHIPS FOLLOW THE SAME RULE AS THE ROW. A chip states a filter
+       that is ON, and an axis this list does not read is not on — whatever
+       `S` still holds from the type you were looking at a moment ago.
+       Industry survives a trip to Team on purpose, because coming back
+       should find your filters where you left them; but while you are on
+       Team it narrows nothing, and a chip claiming otherwise is the count
+       above it made to look explained by something that did not touch it.
+
+       Only free text is universal: all four lists match on `q`. Archive, an
+       answer's record set and the keyword pair are read by `filtered` alone. */
+    const axesHere = new Set(ROW_AXES().concat(MORE_AXES()));
+    const kw = onLeads();
+
     if (S.q) add('q', '', `Matching “${S.q}”`);
-    if (S.archived === '1') add('archived', '', 'Archived');
-    if (S.ids.length) add('ids', '', `${plural(S.ids.length, 'record')} from an answer`);
+    if (onLeads() && S.archived === '1') add('archived', '', 'Archived');
+    if (onLeads() && S.ids.length) add('ids', '', `${plural(S.ids.length, 'record')} from an answer`);
 
     /* THIS IS WHAT MAKES "MORE" HONEST. An axis whose control is on the row
        is already saying its first value by lighting up, so only its second
@@ -2336,18 +2364,23 @@
        lie about what you are looking at. */
     for (const key of MULTI) {
       if (key === 'ids' || key === 'cols' || key === 'inc' || key === 'exc') continue;
+      if (!axesHere.has(key)) continue;
       const vals = S[key] || [];
       const from = ROW_AXES().includes(key) ? 1 : 0;
       vals.slice(from).forEach((v) => add(key, v, chipText(key, v)));
     }
-    if (S.due && !DUE[S.due]) add('due', '', `Next step ${fmtRange(S.due)}`);
-    else if (S.due) add('due', '', DUE[S.due].label);
-    if (S.touched) add('touched', '', `Last touched ${S.touched.includes('..') ? fmtRange(S.touched) : (TOUCHED[S.touched] || {}).label || S.touched}`);
+    if (onLeads()) {
+      if (S.due && !DUE[S.due]) add('due', '', `Next step ${fmtRange(S.due)}`);
+      else if (S.due) add('due', '', DUE[S.due].label);
+      if (S.touched) add('touched', '', `Last touched ${S.touched.includes('..') ? fmtRange(S.touched) : (TOUCHED[S.touched] || {}).label || S.touched}`);
+    }
 
-    if (!chips.length && !S.inc.length && !S.exc.length) return '';
+    const inc = kw ? S.inc : [];
+    const exc = kw ? S.exc : [];
+    if (!chips.length && !inc.length && !exc.length) return '';
     return `<div class="s-chips" role="group" aria-label="Active filters">
-      ${S.inc.map((w) => keywordChip('inc', w)).join('')}
-      ${S.exc.map((w) => keywordChip('exc', w)).join('')}
+      ${inc.map((w) => keywordChip('inc', w)).join('')}
+      ${exc.map((w) => keywordChip('exc', w)).join('')}
       ${chips.map((c) => `<button class="chip active s-chip" type="button"
           data-drop-key="${esc(c.key)}" data-drop-val="${esc(c.val)}">
           ${esc(c.text)}
@@ -2394,11 +2427,71 @@
   }
 
   /* ═══════════════════════════════════════════════
+     THE NAV ROW — which record type, and the one action on all of it
+
+     IT IS THE PARENT OF THE FILTER ROW, so it renders above it. Which axes
+     exist follows from the record type — that is what `AXES_ON` declares,
+     and why Team draws no filter row — so a filter row above the tabs was
+     five controls whose meaning had not been established yet.
+
+     A TAB STRIP, NOT A SEGMENTED PAIR. This and the view switcher were the
+     same pill in the same weight, which is why they read as one control
+     split in half however far apart they were put; separating them by row
+     was treating the symptom. They are not the same kind of thing — this one
+     changes WHAT IS IN the list and is the most consequential control on the
+     surface, the other only redraws it — so they no longer look alike. The
+     underline is also what keeps this distinct from the ecosystem strip in
+     the header, which is the library's `.tabs-strip` pill and would have
+     been a third identical control saying a third different thing.
+  ═══════════════════════════════════════════════ */
+
+  function navRow() {
+    return `<div class="s-nav">
+      <div class="s-tabs" role="group" aria-label="Record type">
+        <button class="s-tab${S.on === 'accounts' ? ' active' : ''}" type="button" data-on="accounts"${S.on === 'accounts' ? ' aria-current="page"' : ''}>Accounts</button>
+        <button class="s-tab${S.on === 'contacts' ? ' active' : ''}" type="button" data-on="contacts"${S.on === 'contacts' ? ' aria-current="page"' : ''}>Contacts</button>
+        <button class="s-tab${onCamps() ? ' active' : ''}" type="button" data-on="campaigns"${onCamps() ? ' aria-current="page"' : ''}>Campaigns</button>
+        ${seesOthers() ? `<button class="s-tab${onTeam() ? ' active' : ''}" type="button" data-on="team"${onTeam() ? ' aria-current="page"' : ''}>Team</button>` : ''}
+        ${/* Running carries a count and the other four do not. It is not
+              decoration and it is not a house style: work in flight is the
+              one thing on this surface that changes while nobody is looking
+              at it, and work that has STOPPED is the one thing that gets
+              worse. Putting a count on every tab would make this just how
+              tabs look here, which is the same as removing it.
+
+              Two counts, two weights. Stopped is red and outranks; in flight
+              is quiet and only shows when nothing has stopped. */ ''}
+        <button class="s-tab${onTasks() ? ' active' : ''}" type="button" data-on="tasks"${onTasks() ? ' aria-current="page"' : ''}>Running${
+          (() => {
+            const ts = filteredTasks();
+            const stuck = ts.filter((t) => taskState(t) === 'needs-you').length;
+            if (stuck) return `<span class="s-seg-n">${stuck}</span>`;
+            const live = ts.filter((t) => ['running', 'queued'].includes(taskState(t))).length;
+            return live ? `<span class="s-seg-n is-quiet">${live}</span>` : '';
+          })()
+        }</button>
+      </div>
+      ${canWrite() ? `<button class="btn btn-brand btn-sm s-build" type="button" data-build>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Build a campaign
+      </button>` : ''}
+    </div>`;
+  }
+
+  /* ═══════════════════════════════════════════════
      THE RESULT LINE
 
-     The count, what it is counting, and the two things that change the
-     shape of the answer rather than its contents: which record type, and
-     which view. Both write to the URL; both keep every filter.
+     WHAT CAME BACK, directly above the list it counts. It used to sit two
+     rows up, sharing a line with the record-type switcher — a result beside
+     the navigation that produced it — while the filters that actually
+     narrowed it were somewhere else entirely.
+
+     One sentence: the count, what it sits inside, and how much of it is
+     waiting on a person. That last figure had a row of its own and is 21 OF
+     THESE 118 — it qualifies the number, so it belongs in the same breath as
+     it, and folding it in is what pays for the extra row the tabs now take.
+     Only the view switcher sits opposite, because redrawing the list is the
+     one thing on this line that does not change what is in it.
   ═══════════════════════════════════════════════ */
 
   function resultLine(list) {
@@ -2422,67 +2515,33 @@
             && !c.members.some((m) => DB.accBy[m] && !DB.accBy[m].outcome)).length
         : list.filter((r) => ['awaiting-us', 'stalled'].includes(statusOf(r))).length;
 
-    /* Two rows, and which control sits on which is the whole point.
-
-       ACCOUNTS/CONTACTS BELONGS WITH THE COUNT, because it says what is being
-       counted — "118" means nothing until you know of what. CARDS/TABLE is a
-       display control and belongs with the other display controls, on its own
-       line. Side by side they were two identical segmented pairs reading as
-       one four-option thing, which is the defect in the screenshot.
-
-       The waiting figure loses its red pill. It is a pointer, not an alarm —
+    /* The waiting figure has no red pill. It is a pointer, not an alarm —
        the card borders already carry the alarm, and a second red thing beside
-       the count competes with the number it is qualifying. */
+       the count competes with the number it is qualifying. Inline in the
+       sentence it needs even less: the underline says it is a filter you can
+       click, and the position says what it is 21 of. */
     return `<div class="s-result">
       <div class="s-result-row">
         <div class="s-result-main">
           <h1 class="s-result-count">${plural(list.length, noun)}</h1>
-          ${/* Contacts say what they sit inside. "236 contacts" beside a tab
-                reading "118 accounts" gives no clue the first is the people
-                in the second — the same relation the account card now
+          ${/* Contacts say what they sit inside. "236 contacts" over a grid
+                the Accounts tab calls 118 gives no clue the first is the
+                people in the second — the same relation the account card
                 states from its own side. */ ''}
           ${S.on === 'contacts' && list.length
             ? `<span class="s-result-scope">at ${esc(plural(new Set(list.map((r) => accOf(r).id)).size, 'account'))}</span>` : ''}
           ${scope ? `<span class="s-result-scope">in ${scope}</span>` : ''}
-          <div class="seg" role="group" aria-label="Record type">
-            <button class="seg-btn${S.on === 'accounts' ? ' active' : ''}" type="button" data-on="accounts">Accounts</button>
-            <button class="seg-btn${S.on === 'contacts' ? ' active' : ''}" type="button" data-on="contacts">Contacts</button>
-            ${/* Tasks carry a count on the tab and the other two do not. It
-                  is not decoration: work in flight is the one thing on this
-                  surface that changes while nobody is looking at it, and
-                  work that has STOPPED is the one thing that gets worse.
-
-                  Two counts, two weights. Stopped is red and outranks; in
-                  flight is quiet and only shows when nothing has stopped —
-                  one number on a tab, and it is the number that matters
-                  most at that moment. */ ''}
-            <button class="seg-btn${onCamps() ? ' active' : ''}" type="button" data-on="campaigns">Campaigns</button>
-            ${seesOthers() ? `<button class="seg-btn${onTeam() ? ' active' : ''}" type="button" data-on="team">Team</button>` : ''}
-            <button class="seg-btn${onTasks() ? ' active' : ''}" type="button" data-on="tasks">Running${
-              (() => {
-                const ts = filteredTasks();
-                const stuck = ts.filter((t) => taskState(t) === 'needs-you').length;
-                if (stuck) return `<span class="s-seg-n">${stuck}</span>`;
-                const live = ts.filter((t) => ['running', 'queued'].includes(taskState(t))).length;
-                return live ? `<span class="s-seg-n is-quiet">${live}</span>` : '';
-              })()
-            }</button>
-          </div>
-        </div>
-        ${canWrite() ? `<button class="btn btn-brand btn-sm s-build" type="button" data-build>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Build a campaign
-        </button>` : ''}
-      </div>
-      <div class="s-result-row is-under">
-        <div class="s-result-left">
-          ${need ? `<button class="s-result-need" type="button" data-quick="status=awaiting-us,stalled">${need} waiting on a person</button>` : ''}
+          ${need ? `<span class="s-result-dot" aria-hidden="true">·</span>
+            <button class="s-result-need" type="button" data-quick="status=awaiting-us,stalled">${need} waiting on a person</button>` : ''}
         </div>
         <div class="seg" role="group" aria-label="View">
           <button class="seg-btn${S.view === 'cards' ? ' active' : ''}" type="button" data-view="cards">Cards</button>
           <button class="seg-btn${S.view === 'table' ? ' active' : ''}" type="button" data-view="table">Table</button>
         </div>
       </div>
+      ${/* The frame, under the count and over the grid — it is the reason
+            the number is the size it is, so it reads in the order it is
+            needed rather than as a footnote to something two rows below. */ ''}
       ${disclosure()}
     </div>`;
   }
@@ -6145,6 +6204,17 @@
      RENDER — one entry point, driven by the URL
   ═══════════════════════════════════════════════ */
 
+  /* THE THREE CHROME ROWS LEAVE TOGETHER OR NOT AT ALL. A record is a page,
+     and every one of them is a control for a list you are not looking at —
+     which is why they were already being cleared in a pair at five call
+     sites, and why the pair becoming a trio is exactly the kind of thing
+     that gets missed at four of them. */
+  const clearBars = () => {
+    $('#navBar').innerHTML = '';
+    $('#filterBar').innerHTML = '';
+    $('#chipBar').innerHTML = '';
+  };
+
   function paint() {
     const stage = $('#wbStage');
     if (!stage) return;
@@ -6173,8 +6243,7 @@
 
     /* A campaign page. Same region, same rules, same Back. */
     if (camp) {
-      $('#filterBar').innerHTML = '';
-      $('#chipBar').innerHTML = '';
+      clearBars();
       /* `campkey`, NOT `camp`. The stage carries a marker so a repaint can
          tell "same campaign redrawn" from "a different one opened" — and
          `[data-camp]` is a live handler selector, so naming the marker
@@ -6199,8 +6268,7 @@
     /* Asked for a campaign and did not get one. Same two reasons a record
        has, and the same answer under clean scoping: not here. */
     if (S.camp && !camp) {
-      $('#filterBar').innerHTML = '';
-      $('#chipBar').innerHTML = '';
+      clearBars();
       stage.innerHTML = `<div class="empty-state s-empty">
         <div class="empty-state-title">That campaign is not here</div>
         <p class="empty-state-desc">The link points at something this workspace does not hold. It may have been merged into another, or removed.</p>
@@ -6210,8 +6278,7 @@
     }
 
     if (rec) {
-      $('#filterBar').innerHTML = '';
-      $('#chipBar').innerHTML = '';
+      clearBars();
       /* Only on open, never on repaint. Logging a touchpoint used to carry
          you to the top of the record that had just changed. */
       const fresh = stage.dataset.lead !== rec.id;
@@ -6228,8 +6295,7 @@
        was, and leave a way out that is not the back button. */
     const denial = leadDenial();
     if (denial) {
-      $('#filterBar').innerHTML = '';
-      $('#chipBar').innerHTML = '';
+      clearBars();
       stage.innerHTML = `<div class="empty-state s-empty s-denied">
         ${lockMark()}
         <div class="empty-state-title">${esc(denial.title)}</div>
@@ -6242,7 +6308,7 @@
     /* Loading and error replace the surface; ai-down does not, because
        everything that reads the record still works. */
     const screen = stateScreen();
-    if (screen) { $('#filterBar').innerHTML = ''; $('#chipBar').innerHTML = ''; stage.innerHTML = screen; return; }
+    if (screen) { clearBars(); stage.innerHTML = screen; return; }
 
     const list = onTasks() ? orderedTasks(filteredTasks()) : onCamps() ? orderedCamps(filteredCampaigns()) : onTeam() ? orderedTeam(filteredTeam()) : ordered(filtered());
     /* A selection that survives its own records leaving the surface is a
@@ -6251,6 +6317,7 @@
       const here = new Set(list.map((r) => r.id));
       [...SEL].forEach((id) => { if (!here.has(id)) SEL.delete(id); });
     }
+    $('#navBar').innerHTML = navRow();
     $('#filterBar').innerHTML = filterRow();
     $('#chipBar').innerHTML = chipBar();
     stage.innerHTML = aiBanner() + resultLine(list) + scopeBar() + grid(list);
