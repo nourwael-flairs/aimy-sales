@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Status** | Locked interaction principle — implementation specification in progress |
-| **Owner** | Ahmed Mohamed |
+| **Owner** | Ahmed Mahfouz |
 | **Scope** | All AiMY agents — new builds and revamps |
 | **Supersedes** | Per-product interaction decisions that conflict with this document |
 | **Source** | *AiMY — Briefing-to-Canvas UX Specification* (Confluence), locked 2026-07-24 |
@@ -487,7 +487,7 @@ These do **not** reopen the interaction principle.
 
 ## 16. Provenance
 
-- *Briefing-to-Canvas Interaction Model*, locked by Ahmed Mohamed, 2026-07-24
+- *Briefing-to-Canvas Interaction Model*, locked by Ahmed Mahfouz, 2026-07-24
 - *AiMY — Briefing-to-Canvas UX Specification*, Confluence, July 2026
 - *AiMY QA v2 Prototype — Briefing-to-Canvas Design Review*, 2026-07-25 — source of the briefing surface budget
 - `design-system.md` — tokens, brand, typography
