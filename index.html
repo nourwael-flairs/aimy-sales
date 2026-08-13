@@ -7,7 +7,13 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Poppins:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- Poppins is gone. It was `--font-display` against Urbanist as
+       `--font-sans`, and the two are both geometric sans with near-identical
+       skeletons — at the sizes this product sets, the pairing separated
+       nothing and headings did not anchor the groups under them. Urbanist 800
+       does the display role, and the font request loses a whole family.
+       Argued in sales.css §THE TYPE SYSTEM, filed in GAPS.md. -->
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <!-- The AiMY mark as the tab icon, pointing at the asset that was already
        here. `Aimy-full.svg` is the MARK — one path, the radial gradient, a
@@ -16,7 +22,7 @@
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
   <link rel="stylesheet" href="assets/aimy-ds.css" />
-  <link rel="stylesheet" href="assets/sales.css?v=93" />
+  <link rel="stylesheet" href="assets/sales.css?v=263" />
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -82,19 +88,40 @@
     </div>
   </div>
 
+  <!-- ══ THE SPACERS ARE HOW THE STRIP CENTRES, AND THEY ARE QA'S ══════════
+       This product had none: `.topnav-logo` and `.topnav-right` carried
+       `flex: 1 1 0` instead, which centres on the window the same way and is
+       a different mechanism from the one the two sibling products use. The
+       shared masthead is shared markup, not a shared appearance — a second
+       way of achieving the same layout is the thing that drifts. -->
+  <div class="topnav-spacer"></div>
+
   <div class="topnav-tabs">
-    <div class="topnav-tabs-inner" role="navigation" aria-label="AiMY products">
+    <!-- No `role="navigation"` here. QA and Knowledge do not carry one, and a
+         landmark in one product and not the others is exactly the divergence
+         this block exists to prevent. The tabs are reachable and labelled by
+         their own text. -->
+    <div class="topnav-tabs-inner">
       <button class="topnav-tab" type="button">Connect</button>
-      <a class="topnav-tab" href="https://aimy-knowledge.nour-ali.workers.dev/">Knowledge</a>
+      <a class="topnav-tab" href="https://aimy-knowledge.nour-ali.workers.dev/" title="Switch to AiMY Knowledge">Knowledge</a>
       <button class="topnav-tab" type="button">Analytics</button>
       <button class="topnav-tab" type="button">Talent</button>
-      <a class="topnav-tab" href="https://aimyqa.nour-ali.workers.dev/">QA</a>
-      <button class="topnav-tab active" type="button" aria-current="page">
+      <a class="topnav-tab" href="https://aimyqa.nour-ali.workers.dev/" title="Switch to AiMY QA">QA</a>
+      <!-- THE WAY HOME, AND IT IS THE PRODUCT YOU ARE IN. Every other surface
+           here has one way back; the briefing had none, so a filtered list
+           five chips deep could only be escaped by clearing them one at a
+           time. Pressing the product you are already on returns you to its
+           front page, which is what a product strip does everywhere else.
+           Marked, not restyled — the look of this row is deliberate. -->
+      <button class="topnav-tab active" type="button" aria-current="page" data-home
+              title="Back to the briefing">
         <svg width="18" height="20" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
         Sales
       </button>
     </div>
   </div>
+
+  <div class="topnav-spacer"></div>
 
   <div class="topnav-right">
     <!-- V1 opens in a new tab so the two builds can be compared side by side.
@@ -171,35 +198,41 @@
 <div class="app-body">
 
   <!-- ══════════════════════════════════════════════
-       SIDEBAR — the briefing. Not chat history, and not navigation.
+       THE RAIL — an index of what is reachable, and nothing else.
 
-       V1 put the list of past conversations here, which is the thing this
-       rail replaces. A log cannot be filtered and cannot be acted on, and
-       asking the same question twice made two of them — the live V1 rail
-       carries "Current Job Opportunities Available" twice for exactly that
-       reason.
+       It used to hold the briefing, at 22 characters per line: prose in a
+       column too narrow to read prose in. The briefing moved to the stage
+       and the rail went with it, and that was right about the briefing and
+       wrong about the rail — with no rail there was nowhere to SEE what
+       exists. Campaigns could only be reached by asking for them, which is
+       a fine way to reach a thing you already know the name of and a poor
+       way to learn there are seven.
 
-       What the rail carries instead is the briefing: what changed since you
-       were last here, and one thing to do about each. Every item is a FILTER
-       LINK — it sets the surface's state rather than going somewhere else.
+       So it is back, doing the one job a rail is good at: a short, complete
+       index of the containers. Not the briefing, not navigation between
+       modes, not a chat log. What campaigns there are, what is running, and
+       the pool everything else sits in. Names and counts — nothing here is
+       prose, so nothing here needs a measure.
   ══════════════════════════════════════════════ -->
-  <nav class="app-sidebar" aria-label="Briefing">
-    <div class="brief" id="brief"></div>
-  </nav>
+  <nav class="app-rail" id="appRail" aria-label="What is here"></nav>
 
   <!-- ══════════════════════════════════════════════
-       THE DOCKED CONVERSATION
+       THE DOCKED CONVERSATION IS GONE, AND ITS ARGUMENT WITH IT.
 
-       Not a chat panel and not always here. It appears when the conversation
-       has a SUBJECT ON SCREEN — a campaign being built, an open record, a
-       selection — because an overlay cannot show a change it is causing.
-       For a question with no anchor the canvas still opens over the work.
+       It existed because the canvas was narrow — offset by the sidebar's
+       width and blurring the corpus behind it, so a conversation that was
+       CHANGING something on screen could not be had inside it. The rail was
+       the workaround: dock the thread beside the work instead of over it.
 
-       It carries what was said, what AiMY understood as removable filter
-       chips, and what changed with a way back. The conversation and the
-       change log are one list.
+       The canvas is full width now and carries its own chat column, so the
+       workaround has nothing left to work around. Its two real contents —
+       the touchpoint timeline on a record, the lifecycle on a campaign —
+       open the subject's thread in the canvas instead, which is where the
+       rest of what was said about that subject already lived. Two places
+       holding one conversation was the defect the rail's own comment
+       described ("TWO conversation-shaped rails on one page") and never
+       quite finished removing.
   ══════════════════════════════════════════════ -->
-  <aside class="app-talk" id="talkRail" aria-label="Conversation" hidden></aside>
 
   <!-- ══════════════════════════════════════════════
        MAIN — type → filters → count → grid, in the order they depend
@@ -235,14 +268,6 @@
         <div id="wbStage"></div>
 
       </div>
-    </div>
-
-    <!-- ══ The settings sheet. Same overlay pattern as a record, because it is
-         the same kind of thing: something you open over the work, act on, and
-         close. `?settings=campaign:q3-nl` — addressable, so a campaign brief
-         can be linked to like everything else here. ══ -->
-    <div class="doc-overlay" id="setOverlay" role="dialog" aria-modal="true" aria-label="Settings" hidden>
-      <div class="doc-sheet is-settings" id="setSheet"></div>
     </div>
 
     <!-- ══ The input. Not a chat box — it drives the page. Four routes.
@@ -282,48 +307,82 @@
     <!-- ══ Canvas overlay — opens for questions and generative work only.
          Not for filtering, not for opening a known record, not for writes. ══ -->
     <div class="aimy-overlay" id="aimyOverlay" role="dialog" aria-label="AiMY Canvas">
-      <div class="overlay-badge">
-        <svg width="11" height="11" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
-        AiMY Canvas
-      </div>
-      <button class="overlay-close" data-overlay-close aria-label="Close canvas">
-        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"></line>
-          <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"></line>
-        </svg>
-      </button>
 
-      <!-- The canvas shows its basis without being asked. Absolutely
-           positioned, so revealing it never shifts the thread. -->
-      <div class="overlay-context-bar" id="overlayContextBar">
-        <span class="overlay-context-label">Based on</span>
-        <div class="overlay-context-tags" id="overlayContextTags"></div>
-      </div>
+      <!-- ══ THE CHAT COLUMN ══════════════════════════════════════════════
+           Two groups, and the split is the point. ON SCREEN is the thread
+           belonging to whatever you have open — this campaign, this account,
+           this step — and it persists, so returning to a thing returns you
+           to what was said about it. RECENT is the free-standing sessions,
+           the questions that were not about one record.
 
-      <div class="overlay-thread" id="overlayThread" aria-live="polite">
-        <div class="overlay-suggestions" id="overlaySuggestions">
-          <button class="overlay-sugg-chip">Which campaigns are stalling?</button>
-          <button class="overlay-sugg-chip">Who have we not touched in 30 days?</button>
-          <button class="overlay-sugg-chip">What did AiMY send last week, and who replied?</button>
+           V1 put a list of past chats in the left rail of the whole product
+           and this pass's predecessor deleted it, correctly: a log of
+           conversations is not navigation. It is navigation INSIDE a
+           conversation, which is where it belongs and where it now is.
+      ══════════════════════════════════════════════════════════════════ -->
+      <aside class="overlay-chats" id="overlayChats" aria-label="Conversations"></aside>
+
+      <div class="overlay-main">
+        <!-- THE BADGE IS GONE. "AiMY Canvas" floated over the thread naming
+             the surface you had just opened, beside an input reading "Ask
+             AiMY anything…" and under an AiMY mark on the input bar. Three
+             statements of the same fact, and the smallest of them was the
+             only one that was not also doing something. -->
+        <button class="overlay-close" data-overlay-close aria-label="Close canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"></line>
+            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"></line>
+          </svg>
+        </button>
+
+        <!-- The canvas shows its basis without being asked. Absolutely
+             positioned, so revealing it never shifts the thread. -->
+        <div class="overlay-context-bar" id="overlayContextBar">
+          <span class="overlay-context-label">Based on</span>
+          <div class="overlay-context-tags" id="overlayContextTags"></div>
         </div>
-      </div>
 
-      <div class="overlay-input-wrap">
-        <div class="overlay-input-bar">
-          <div class="aimy-float-icon">
-            <svg width="16" height="18" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
+        <!-- The openers are drawn by `paintThread` now, not written here.
+             They were static markup that `sug.remove()` deleted on the first
+             paint carrying a subject or a turn — and `remove()` is permanent,
+             so opening the canvas on a record once cost you the empty-state
+             prompts for the rest of the session. A thing that should come
+             back has to be rendered, not hidden. -->
+        <div class="overlay-thread" id="overlayThread" aria-live="polite"></div>
+
+        <div class="overlay-input-wrap">
+          <div class="overlay-input-bar">
+            <div class="aimy-float-icon">
+              <svg width="16" height="18" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
+            </div>
+            <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
+                      spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
+            <button class="overlay-send" id="overlaySend" aria-label="Send">
+              <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
+                <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
-          <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
-                    spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
-          <button class="overlay-send" id="overlaySend" aria-label="Send">
-            <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
-              <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
         </div>
-      </div>
+      </div><!-- /.overlay-main -->
     </div>
   </main>
+
+  <!-- ══════════════════════════════════════════════
+       THE CALL — a shell region, not a modal.
+
+       A call is live and timed, and you move around during one: you open the
+       record mid-call, check the campaign brief, look at what was said last
+       time. A container that disappears when you navigate cannot hold it, so
+       this sits beside the main column and survives everything the URL does.
+
+       Empty and hidden until a call exists. The canvas offsets to clear it
+       rather than covering it, and the canvas's chat column is removed for
+       the duration — switching session mid-call would swap the surface
+       underneath a live conversation, which is the one accident on this
+       screen with a person on the other end of it.
+  ══════════════════════════════════════════════ -->
+  <aside class="app-call" id="callPanel" aria-label="Call in progress" hidden></aside>
 </div>
 
 <!-- Drop a list anywhere on the workbench. Covers the whole window, because
@@ -370,6 +429,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/sales.js?v=93"></script>
+<script src="assets/sales.js?v=263"></script>
 </body>
 </html>
