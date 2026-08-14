@@ -12409,13 +12409,43 @@
 
     const list = $('#asList');
     if (!list) return;
-    list.innerHTML = REPS.map((p) => {
+    /* ══ ONE PERSON PER ROLE ═══════════════════════════════════════════════
+       The panel listed all ten of them — ten rows to make seven choices,
+       because three functions carry two people each. Engy and Sally see the
+       identical product; so do Omar and Sara, and Marit and Tomas. What this
+       control is FOR is looking at the workbench as each FUNCTION sees it,
+       and a second person inside one shows you the same surface with a
+       different name on it.
+
+       THE CAST IS UNTOUCHED. All ten still own leads, sit on campaign crews
+       and take assignments, and `?as=` still accepts any of them — which is
+       what `tier-audit` walks. Only the switcher narrows.
+
+       Your own function shows YOU rather than that function's first rep, so
+       the row you are standing on is always the row marked current. */
+    const cast = Object.keys(FUNCTIONS)
+      .map((fn) => REPS.filter((p) => p.fn === fn))
+      .map((set) => set.filter((p) => p.id === w.id)[0] || set[0])
+      .filter(Boolean);
+    /* ══ THE RULE IS ON THE ROW IT IS TRUE OF ══════════════════════════════
+       Every row carried its function's entitlement sentence — seven of them,
+       twenty words each, which made a 920px list inside a 504px panel that
+       had to scroll to choose between seven things. A dropdown is not the
+       place to read a permissions table.
+
+       The one that is stated is YOURS, because that is the one currently
+       governing what you can see, and it is the sentence a person actually
+       needs. The other six are named by their role, which is what you are
+       choosing between — and picking one states its rule the moment it
+       becomes yours. */
+    list.innerHTML = cast.map((p) => {
       const pt = FUNCTIONS[p.fn];
-      return `<li><button class="as-item${p.id === w.id ? ' is-current' : ''}" type="button" data-as="${esc(p.id)}">
+      const you = p.id === w.id;
+      return `<li><button class="as-item${you ? ' is-current' : ''}" type="button" data-as="${esc(p.id)}">
         <span class="avatar avatar-sm">${esc(p.initials)}</span>
         <span class="as-item-text">
-          <span class="as-name">${esc(p.name)}${p.id === w.id ? ' <span class="as-you">you</span>' : ''}</span>
-          <span class="as-rule">${esc(pt.rule)}</span>
+          <span class="as-name">${esc(p.name)}${you ? ' <span class="as-you">you</span>' : ''}</span>
+          ${you ? `<span class="as-rule">${esc(pt.rule)}</span>` : ''}
         </span>
         <span class="as-tier">${esc(pt.label)}</span>
       </button></li>`;
