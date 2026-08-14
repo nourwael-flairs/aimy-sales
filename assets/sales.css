@@ -412,7 +412,7 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-page-title, .s-block-h {
 /* Prose caps at a readable measure. 45–90 characters is the single biggest
    readability factor, and every one of these inherits a 1160px column. */
 .s-brief-text, .s-sheet-brief, .s-block-sub, .s-none,
-.s-talk-empty, .aiu-body, .empty-state-desc, .s-turn-body {
+.aiu-body, .empty-state-desc, .msg-bubble {
   max-width: 65ch;
 }
 
@@ -1164,7 +1164,9 @@ body {
   color: var(--d500); padding: 0 8px; margin-bottom: 8px;
 }
 .ov-chat {
-  display: flex; align-items: center; gap: 8px;
+  /* `flex-start`, now the title can run to two lines: centred would float
+     the turn count against the middle of a wrapped question. */
+  display: flex; align-items: flex-start; gap: 8px;
   min-height: 24px; padding: 8px; border-radius: var(--r-sm);
   font-size: var(--fs-xs); color: var(--d300);
   cursor: pointer; text-align: left; width: 100%;
@@ -1173,7 +1175,12 @@ body {
 .ov-chat:hover { background: var(--accent-dim); color: var(--d50); }
 .ov-chat:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .ov-chat.is-here { background: var(--accent-dim); color: var(--d50); font-weight: var(--fw-semibold); }
-.ov-chat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Wraps rather than ellipsises, like everything else that was truncating.
+   A session's title IS the question that was asked, and "What would make Q3
+   Netherlands wor…" is the half of it that does not say which question. The
+   rows in this column are what you are choosing between; a list you cannot
+   read is a list you cannot choose from. */
+.ov-chat-name { min-width: 0; line-height: var(--lh-snug); }
 .ov-chat-n {
   margin-left: auto; flex-shrink: 0;
   font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums;
@@ -4144,6 +4151,17 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-trace-sum::before { content: "▸ "; }
 .s-trace[open] .s-trace-sum::before { content: "▾ "; }
 .s-trace-sum:hover { color: var(--d200); }
+/* ══ A CLOSED DISCLOSURE HAS TO STAY CLOSED ═══════════════════════════════
+   The library ships `.agent-steps { display: flex }`, and a class selector
+   outranks the UA's `details:not([open]) > *:not(summary) { display: none }`
+   — so every collapsed "What AiMY did" laid its full step list out anyway
+   and spilled it 225px below a summary claiming to be 23px tall. Measured on
+   40 traces: the whole point of the disclosure, defeated by one inherited
+   declaration.
+
+   Stated at the same specificity the library uses, scoped to the closed
+   state, so opening still gets the library's flex column. */
+.s-trace:not([open]) .agent-steps { display: none; }
 .s-trace .agent-steps { padding: 4px 0 0 12px; }
 .s-trace .agent-step-ico { font-size: var(--fs-2xs); }
 /* `.agent-step-label` and `.agent-step-meta` are both inline in the library,
@@ -4154,45 +4172,106 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-talk-scroll::-webkit-scrollbar-track { background: transparent; }
 .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 :root[data-theme="light"] .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
-/* ══ THE CANVAS GETS AN ANCHOR ═════════════════════════════════════════════
-   It had three type steps, the largest 14px, and named its subject only in
-   absolutely-positioned chrome above the thread — so the surface where you
-   ask about a thing never said, at any weight, which thing.
+/* `.ov-open` and `.ov-open-h` are gone with the heading they drew. A canvas
+   is a conversation and opens with a message from AiMY — `openingSay`,
+   rendered through `turnHtml` like everything else it says. Nothing on this
+   surface is set above the body step, which is what a chat reads like.
+   `.s-talk-empty` went with them; the sentence is a turn now. */
 
-   The subject at the anchor step, the invitation under it at body size, the
-   openers under that. Three steps in one block, and the block is gone the
-   moment there is a first turn: after that the conversation is the subject. */
-.ov-open { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.ov-open-h {
-  font-family: var(--font-display);
-  font-size: var(--fs-3xl); font-weight: var(--fw-extrabold); color: var(--d50);
-  letter-spacing: var(--ls-tight); line-height: var(--lh-tight);
+/* ── A question in the thread, and its shortcuts ──
+   The hint is what AiMY would say if you took its suggestion, shown as the
+   quoted sentence rather than pre-filled into the box: a field that arrives
+   full is a decision somebody made, and one you can read and take is a
+   proposal. */
+.s-cb-hint {
+  margin-top: 8px; padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  max-width: 60ch;
 }
-.s-talk-empty { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-base); max-width: 46ch; }
+.s-cb-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.s-cb-opt {
+  font-family: inherit; cursor: pointer;
+  padding: 8px 12px; border-radius: var(--r-xl);
+  border: 1px solid var(--card-border); background: var(--card-bg-raised);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.s-cb-opt:hover { border-color: var(--accent); background: var(--accent-dim); }
+.s-cb-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Answered, not removed: the thread is a record and what you chose between
+   is part of it. Spent reads as spent — no hover, no pointer, no border. */
+.s-cb-opt.is-spent {
+  cursor: default; color: var(--d600);
+  border-color: transparent; background: none;
+}
 
-.s-turn { display: flex; flex-direction: column; gap: 4px; }
-.s-turn-body { font-size: var(--fs-base); line-height: var(--lh-base); max-width: 60ch; }
-.s-turn.is-you { align-items: flex-end; }
-.s-turn.is-you .s-turn-body {
-  background: var(--accent-dim); color: var(--d50);
-  border: 1px solid rgba(var(--accent-rgb), 0.22);
-  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
-  padding: 8px 12px;
+/* ══ MESSAGES ARE THE FAMILY'S, NOT THIS PRODUCT'S ═══════════════════════
+   `.s-turn` was a local message shape: a right-aligned tinted box for you, a
+   bare paragraph for AiMY, no avatars, no tails, no typing state. The
+   library ships `.chat-msg` / `.msg-avatar` / `.msg-bubble` and both sibling
+   products use it, so the one surface in Sales that IS a chat was the one
+   that did not look like one.
+
+   These are QA's numbers where QA and the library disagree — a 28px avatar
+   at 8px radius against the DS's 30px circle, a 12px bubble against 16, and
+   14px text against 13. Matching what is on screen in the sibling beats
+   matching what is in the file, and 14 is this product's body step, so the
+   two agree for once. */
+.chat-msg { display: flex; gap: 12px; align-items: flex-start; padding: 0 4px; }
+.chat-msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  flex-shrink: 0; margin-top: 2px;
 }
-.s-turn.is-aimy .s-turn-body { color: var(--d200); }
-.s-turn-opts { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
-.s-turn-opt { justify-content: flex-start; text-align: left; }
-/* An answered turn keeps its alternatives — the thread is a record, and
-   deleting them would hide what you chose between — but they are spent. */
-.s-turn-opts.is-spent .s-turn-opt { opacity: 0.35; cursor: default; }
-.s-turn-opts.is-spent .s-turn-opt.is-chosen {
-  opacity: 1; background: var(--accent-dim); color: var(--accent);
-  border-color: rgba(var(--accent-rgb), 0.4);
+.msg-avatar.aimy-av {
+  background: rgba(70, 40, 140, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+}
+.msg-avatar.aimy-av svg { width: 14px; height: 16px; }
+.msg-avatar.user-av { background: var(--grad-avatar); color: #fff; }
+.msg-bubble {
+  max-width: 540px; padding: 12px 16px; border-radius: var(--r-xl);
+  font-size: var(--fs-base); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50);
+}
+/* The tail points at its speaker: the square corner sits on the avatar's
+   side, which is the whole reason a bubble reads as coming from somebody. */
+.chat-msg.aimy .msg-bubble {
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  border-radius: var(--r-xs) var(--r-xl) var(--r-xl) var(--r-xl);
+}
+.chat-msg.user .msg-bubble {
+  background: var(--accent-dim); border: 1px solid rgba(var(--accent-rgb), 0.22);
+  color: var(--d100);
+  border-radius: var(--r-xl) var(--r-xs) var(--r-xl) var(--r-xl);
+}
+
+/* ── AiMY composing ──
+   Three dots in an AiMY bubble, which is what both siblings draw. The pause
+   is what makes an answer read as a reply rather than as a lookup. */
+.typing-dots { display: flex; gap: 4px; padding: 4px; align-items: center; }
+.typing-dots span {
+  width: 4px; height: 4px; border-radius: 50%; background: var(--d500);
+  animation: sTyping 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sTyping {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots span { animation: none; opacity: 0.6; }
 }
 
 /* A write, in the thread, with its own way back. This is the half V1 has
    nowhere: it shows the conversation and never what the conversation did. */
-.s-turn.is-change { align-items: stretch; }
+/* The receipt is not a message — it is what a message DID — so it keeps
+   its own full-width shape rather than a bubble with a speaker. */
+.chat-msg.is-change { align-items: stretch; padding: 0 4px; }
 /* The whole border at low alpha, not a tinted left edge. This is the
    library's own idiom — `.bcard.p1/.p2/.p3` — and Knowledge records having
    tried the left edge and rejected it: the pattern it was copied from sets
@@ -4633,6 +4712,34 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   border: 1px solid var(--d700); border-radius: var(--r-pill);
   font-size: var(--fs-xs); color: var(--d300);
   transition: border-color var(--t-fast), background var(--t-fast);
+}
+/* ══ A TWO-LINE CHIP IS NOT A PILL ═══════════════════════════════════════
+   One rule was serving two shapes. With an avatar and a single line the chip
+   is 34px tall and `--r-pill` is exactly right. With a name STACKED over a
+   description it is 46px — and a 9999px radius on 46px is a 23px corner, so
+   both lines run straight into the curve with nothing to clear it: the 4px
+   left padding exists to seat an avatar flush, and a chip with no avatar
+   spends it on nothing. That is the clipping.
+
+   `:has(.s-pick-role:not(:empty))` asks the question the shape actually
+   depends on — is there a second line — rather than a class every call site
+   has to remember to pass. The `:not(:empty)` is load-bearing: three call
+   sites were rendering the span from `p.role`, which REPS do not carry, so
+   five assignee chips held an EMPTY element. Without the guard they matched
+   as two-line and lost their pill at 34px tall. (Those three now read
+   `roleOf`, so the span has content — but a shape rule that depends on a
+   value being non-blank should say so rather than assume it.)
+
+   A rounded rectangle, and horizontal padding that clears its own corner. */
+.s-assign-chip:has(.s-pick-role:not(:empty)) {
+  border-radius: var(--r-xl);
+  padding: 8px 12px;
+}
+/* Except where an avatar is one of the two lines' neighbours: it seats flush
+   against the left edge and the radius is what gives it room, so only the
+   right side needs the wider padding. */
+.s-assign-chip:has(.s-pick-role:not(:empty)):has(.avatar) {
+  padding: 4px 12px 4px 4px;
 }
 .s-assign-chip:hover { border-color: var(--d600); }
 /* KEYBOARD ONLY. `:focus-within` fires for a mouse click too — the chip's
