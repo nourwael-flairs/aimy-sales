@@ -191,29 +191,72 @@ function checkTasks() {
 }
 
 /* ── 4 · A read-only tier is never asked to write ──
-   The second defect. Every surface that can offer an action checks the same
-   flag, so the check is: with `canWrite()` false, nothing that writes is on
-   offer. Card exits, the briefing item and the bell row all derive from
-   these, so testing the derivation tests all three. */
+
+   ══ THIS CHECK COULD NOT FIRE, AND THE BUG IT EXISTS FOR SHIPPED ══
+
+   It had three assertions and two of them were unreachable. The first line
+   returns when `canWrite()` is TRUE, so everything after it runs only when
+   `canWrite()` is false — and both remaining assertions were gated on
+   `canWrite()` being true:
+
+       if (S.canWrite()) { note('canWrite() is true…'); return; }   // returns
+       …
+       if (S.canWrite()) note(`${shown} card exits would render`);  // dead
+       if (S.taskExit(t) && S.canWrite()) note(…);                  // dead
+
+   So it confirmed one thing and then asked two questions whose precondition
+   it had just eliminated. It reported "no leaks" on a build where a CLIENT
+   could press `×` on a campaign chip and remove an account from a running
+   campaign.
+
+   AND REPAIRING THE LOGIC WOULD NOT HAVE BEEN ENOUGH. Both dead assertions
+   reason about `exitFor` and `taskExit` — what the MODEL would recommend.
+   `data-uncamp` is emitted directly by `recordPage`, through neither. A
+   check built on derivations can only ever find controls that come from
+   derivations.
+
+   So this now renders the real surfaces for a read-only tier and reads the
+   markup back. Anything that writes, in markup a read-only viewer is served,
+   is a leak — whatever produced it. */
+
+/* Every `data-*` key whose handler mutates `DB`. Kept as data rather than
+   inferred, because the point is that a NEW write control has to be added
+   here deliberately — a list that derives itself would grow silently. */
+const WRITE_KEYS = [
+  /* `kbfix` and `merge` are kept although the controls are gone (F-08). A
+     removed write is exactly the one a later edit might reintroduce without
+     its guard, and a key that matches nothing costs one string compare. */
+  'uncamp', 'addlist', 'reschedule', 'fixaddr', 'kbrev', 'kbfix', 'newsfor',
+  'archive', 'share', 'ending', 'enrichone', 'callstart', 'dismiss', 'exit',
+  'edit', 'fixtouch', 'annotate', 'autocall', 'logtouch', 'writeset',
+  'writeone', 'enrichcamp', 'enrichlist', 'enrichsel', 'assign', 'assignsel',
+  'assignto', 'listassign', 'listcamp', 'listrun', 'addto', 'addsell',
+  'unsell', 'audadd', 'addstep', 'plan', 'stop', 'merge', 'reportto',
+  'newcamp', 'newlist', 'addsel', 'taskgo', 'taskpause', 'taskstop',
+  'taskundo', 'writeall', 'callend', 'callrec', 'callmute', 'callhold',
+];
+
 function checkReadOnly() {
   READ_ONLY.forEach((id) => as(id, (who) => {
     if (S.canWrite()) { note(`${id} (${who.fn}): canWrite() is true for a read-only tier`); return; }
 
-    const withExit = S.filtered().filter((r) => S.exitFor(r));
-    if (withExit.length) {
-      /* Not a failure on its own — the card suppresses it — but it means the
-         suppression is the only thing standing between a read-only tier and
-         a write control, so it is worth saying out loud. */
-      const shown = withExit.length;
-      if (shown && !S.FUNCTIONS[who.fn].writes) {
-        // the card gate is `exit && canWrite()`; assert the gate exists
-        if (S.canWrite()) note(`${id}: ${shown} card exits would render`);
-      }
-    }
+    /* Render each surface this tier can reach and read the markup back. */
+    const surfaces = [];
+    const rec = S.maySee(S.DB.con.filter((r) => !r.arch))[0] || S.maySee(S.DB.acc.filter((r) => !r.arch))[0];
+    if (rec) surfaces.push(['a record', () => S.recordPage(rec)]);
+    const camp = S.filteredCampaigns()[0];
+    if (camp) surfaces.push(['a campaign', () => S.campPage(camp)]);
+    surfaces.push(['home', () => S.homePage()]);
+    surfaces.push(['the rail', () => S.railInsights()]);
 
-    const stuck = S.filteredTasks().filter((t) => S.taskState(t) === 'needs-you');
-    stuck.forEach((t) => {
-      if (S.taskExit(t) && S.canWrite()) note(`${id} (${who.fn}): task "${t.title}" offers ${S.taskExit(t).label}`);
+    surfaces.forEach(([where, render]) => {
+      let html = '';
+      try { html = render() || ''; } catch (e) { note(`${id}: ${where} threw — ${e.message}`); return; }
+      WRITE_KEYS.forEach((k) => {
+        if (html.includes(`data-${k}=`) || html.includes(`data-${k}>`) || html.includes(`data-${k} `)) {
+          note(`${id} (${who.fn}): ${where} renders data-${k} — a write control on a read-only tier`);
+        }
+      });
     });
   }));
 }

@@ -396,7 +396,7 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-page-title, .s-block-h {
 /* Figures that sit in a column must be comparable down that column.
    Proportional digits make 1,000 narrower than 8,888 and the eye has to
    re-find the decimal on every row. */
-.s-result-count, .s-talk-count, .s-crit-count, .s-merge-n,
+.s-result-count, .s-talk-count, .s-crit-count,
 .ntf-count, .s-td-num, .s-table td, .ss-num, .s-folder-n {
   font-variant-numeric: tabular-nums;
 }
@@ -2981,6 +2981,32 @@ body.is-record .app-sidebar { display: none; }
    product has only ever drawn two of the three, so anything qualifying a
    conclusion had to hang under the card as a figure block of its own. */
 .rail-evidence { margin: 0 0 12px; }
+
+/* The refusal offers two lists — what it can be asked and what it can be told
+   to do — and without a caption each they read as one long run of chips. */
+.s-ans-cap {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+  margin: 16px 0 8px;
+}
+.s-ans-cap:first-of-type { margin-top: 12px; }
+
+/* Which suppliers were asked, and how often each answers — the same reading
+   the enrichment waterfall has carried since v4, on the surface that until
+   now asserted a match count from nowhere. */
+.s-find-via {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+  font-size: var(--fs-xs); color: var(--d300); margin-top: 8px;
+}
+.s-find-hit { color: var(--d400); font-variant-numeric: tabular-nums; }
+
+/* ── A FOURTH CONFIDENCE TIER, AND THE ONLY ONE A LOOKUP CANNOT PRODUCE ──
+   The library styles high · medium · low, which are all a provider's answer
+   about how sure it is. `stated` is a person having typed it, which outranks
+   every lookup — so it takes the accent rather than the ok/warn/err ladder:
+   it is not a better guess, it is not a guess. */
+.conf-stated { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.24); background: var(--accent-dim); }
+.conf-stated .conf-meter i { background: var(--accent); }
 .rail-new svg { width: 14px; height: 14px; }
 /* ── What a campaign is for ──
    Set as the campaign's own sentence rather than as another meta line: it is
@@ -4268,6 +4294,11 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    ones, and it is bold. */
 .s-touch-by.is-ai { color: var(--ai-text); font-weight: var(--fw-bold); }
 .s-touch.is-ai .tl-dot { border-color: rgba(var(--accent-rgb), 0.5); }
+/* Why we reached out, in the slot the campaign name otherwise holds. One
+   step up from the rest of the meta line because it is the only part of it
+   that is a REASON rather than a label — and it appears on a minority of
+   rows, so it has to be findable among them. */
+.s-touch-why { color: var(--d400); font-style: italic; }
 
 .s-trace { margin-top: 8px; }
 .s-trace-sum {
@@ -4296,6 +4327,17 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    and the meta carries a `margin-top` an inline box ignores — so the two ran
    together as one string. Given a block context. (../GAPS.md) */
 .s-step-text { display: flex; flex-direction: column; min-width: 0; }
+
+/* ── The transcript, folded under the touchpoint it came from ──
+   `.call-line` and `.call-who` are the live panel's own classes, reused so a
+   line read during the call and the same line read a month later are set
+   identically. What the panel does not carry is the closed state and the
+   indent, which the trace beside this already defines — so this only adds
+   those two, at the trace's own specificity. */
+.s-trace:not([open]) .s-said-lines { display: none; }
+.s-said-lines { display: flex; flex-direction: column; gap: 8px; padding: 8px 0 0 12px; }
+.s-said-lines .call-line { font-size: var(--fs-sm); }
+
 .s-talk-scroll::-webkit-scrollbar { width: 4px; }
 .s-talk-scroll::-webkit-scrollbar-track { background: transparent; }
 .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
@@ -4725,7 +4767,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    the box around the control — which is the pattern this file already uses
    for `.filter-chip` a hundred lines above, and which a label gives for
    free, since clicking a label is clicking its input. */
-.s-tick, .s-tick-all, .s-add-tick, .s-merge-tick, .s-new-assign, .s-new-owner,
+.s-tick, .s-tick-all, .s-add-tick, .s-new-assign, .s-new-owner,
 .s-new-con, .s-new-sell, .s-new-client, .s-new-watch, .s-task-pick, .s-enrich-tick,
 .s-aud-pick, .s-log-reply, .s-log-obj, .s-list-to {
   width: 15px; height: 15px; accent-color: var(--accent);
@@ -4759,6 +4801,22 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 ═══════════════════════════════════════════════ */
 .s-commit-banner { margin-bottom: 16px; }
 .s-field { display: block; margin-bottom: 16px; }
+/* ── `hidden` HAS TO WIN, AND IT DID NOT ──
+   `[hidden] { display: none }` lives in the UA stylesheet, so a class rule
+   setting `display` on the same element beats it. `.s-field` did, which meant
+   the Topic and Objection fields on "Log a touchpoint" — hidden on purpose,
+   `f.hidden = !inbound`, because an outbound message has no reply category
+   and no objection — were `hidden: true` and `display: block` at once, 93px
+   and 57px tall, on every outbound log.
+
+   Measured: the fields showed, they took a choice, and `run()` discarded it
+   (`inbound ? ... : null`). Pick "Not interested" on a call you made, press
+   Log it, and the touchpoint records nothing — a control that accepts input
+   and throws it away, which is the defect this pass keeps finding.
+
+   Stated at class specificity rather than with `!important`: same weight as
+   the rule it corrects, later in the file, so it wins by order. */
+.s-field[hidden] { display: none; }
 .s-field-label {
   display: block; margin-bottom: 4px;
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d300);
@@ -4904,26 +4962,6 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    one you cannot select, because you go looking for it. */
 .s-pick-row.is-already { opacity: 0.45; cursor: not-allowed; }
 .s-pick-row.is-already:hover { background: none; }
-.s-merge-sum:empty { display: none; }
-.s-merge-sum { display: flex; gap: 12px; margin-bottom: 16px; }
-.s-merge-fig {
-  flex: 1; padding: 12px;
-  border: 1px solid var(--card-border); border-radius: var(--r-md);
-  background: var(--card-bg-raised);
-}
-.s-merge-n {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--d50);
-  font-variant-numeric: tabular-nums; line-height: var(--lh-tight);
-}
-.s-merge-lbl { display: block; font-size: var(--fs-xs); color: var(--d500); margin-top: 2px; }
-.s-merge-delta { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--ok); }
-/* A duplicate count of nought is good news and should not be tinted like a
-   warning; only a real overlap earns the colour. */
-.s-merge-fig.is-dupe .s-merge-n { color: var(--warn); }
-.s-merge-rule { margin-bottom: 16px; }
-.s-merge-rule .dz-actions { flex-direction: column; align-items: stretch; gap: 4px; }
 
 /* ═══════════════════════════════════════════════
    THE CAMPAIGN SHEET — a filter, with a brief behind its name
@@ -5647,7 +5685,12 @@ body.is-record .filter-tray { display: none; }
    The reply category and the objection only exist on something they said to
    us, so both fields are hidden until the direction says inbound. `hidden`
    does the work; this is only the seam above them. */
-.s-inbound-only { margin-top: 12px; }
+/* The two halves of the direction question. They are the same field shape
+   and only one of them is ever on screen, so they take the same spacing. */
+.s-inbound-only, .s-outbound-only { margin-top: 12px; }
+/* The radio itself is the hit target inside the chip, exactly as the other
+   `.s-assign-chip` groups on this surface do it. */
+.s-log-why { accent-color: var(--accent); }
 /* Direction is the same segmented control the channel uses, so the two rows
    read as one question asked twice rather than as two kinds of control. */
 .s-dir-pick { display: inline-flex; }
