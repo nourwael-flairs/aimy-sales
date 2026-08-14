@@ -412,7 +412,7 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-page-title, .s-block-h {
 /* Prose caps at a readable measure. 45–90 characters is the single biggest
    readability factor, and every one of these inherits a 1160px column. */
 .s-brief-text, .s-sheet-brief, .s-block-sub, .s-none,
-.s-talk-empty, .aiu-body, .empty-state-desc, .s-turn-body {
+.aiu-body, .empty-state-desc, .msg-bubble {
   max-width: 65ch;
 }
 
@@ -1035,6 +1035,11 @@ body {
    this element or it scrolls away. */
 .page-scroll {
   flex: 1; overflow-y: auto;
+  /* Same reason as `.app-rail` — see the note there. This column is long
+     enough to overflow on nearly every surface, which hides the shift
+     rather than removing it: a short page that gains a block, or a node
+     that opens on an already-short campaign, jumps 5px wider. */
+  scrollbar-gutter: stable;
   padding: 24px 32px 96px;
 }
 
@@ -1164,7 +1169,9 @@ body {
   color: var(--d500); padding: 0 8px; margin-bottom: 8px;
 }
 .ov-chat {
-  display: flex; align-items: center; gap: 8px;
+  /* `flex-start`, now the title can run to two lines: centred would float
+     the turn count against the middle of a wrapped question. */
+  display: flex; align-items: flex-start; gap: 8px;
   min-height: 24px; padding: 8px; border-radius: var(--r-sm);
   font-size: var(--fs-xs); color: var(--d300);
   cursor: pointer; text-align: left; width: 100%;
@@ -1173,7 +1180,12 @@ body {
 .ov-chat:hover { background: var(--accent-dim); color: var(--d50); }
 .ov-chat:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .ov-chat.is-here { background: var(--accent-dim); color: var(--d50); font-weight: var(--fw-semibold); }
-.ov-chat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Wraps rather than ellipsises, like everything else that was truncating.
+   A session's title IS the question that was asked, and "What would make Q3
+   Netherlands wor…" is the half of it that does not say which question. The
+   rows in this column are what you are choosing between; a list you cannot
+   read is a list you cannot choose from. */
+.ov-chat-name { min-width: 0; line-height: var(--lh-snug); }
 .ov-chat-n {
   margin-left: auto; flex-shrink: 0;
   font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums;
@@ -1566,24 +1578,51 @@ body {
    a named object with an owner, a description and verbs. Reusing
    `.s-sheet-kind` and `.s-sheet-name` is what makes the two read as
    siblings rather than as two inventions. */
+/* ══ THE NAME GETS THE WIDTH ═══════════════════════════════════════════
+   Two columns put the verbs beside the title, and three of them wanted
+   330px of a 666px header — so "Amsterdam & Randstad, 200+ staff" had 336px
+   at the 32px anchor size and broke across two lines, mid-phrase. A title
+   that wraps is the one thing on the surface that must not: it is the
+   anchor, and an anchor you read in two goes is not one.
+
+   One column. The verbs sit under the name rather than in front of it,
+   which is also the order they are wanted in — what this is, then what you
+   can do to it. The primary is still the only filled control here. */
 .s-listhead {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start; gap: 8px 16px; margin-bottom: 20px;
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 8px; margin-bottom: 20px;
 }
-.s-listhead-main { min-width: 0; }
+.s-listhead-main { min-width: 0; width: 100%; }
 .s-listhead-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* ── FULL WIDTH, AND NO FACT MAY BREAK IN HALF ──
+   These sat in the left column, which the buttons on the right squeezed to
+   338px of a 666px header — so a run needing about 700px broke wherever it
+   ran out: "Engy Saleh owns / it · made 3 weeks ago". Under both columns
+   now, laid out as atomic units with a gap where the `·` glyphs were, so a
+   wrap falls between two facts and never through one. */
+/* ── AND LEGIBLE, NOT MERELY PASSING ──
+   13px at `--d400` measured 6.08:1. That clears AA and it is still WRONG
+   here: the product's own comparable meta line — `.rail-row-say`, the
+   findings under the rail's conclusion — is 9.07, so this line was set
+   dimmer than the convention for exactly the same kind of text. Body size
+   and the meta colour, which is what it should have been all along. */
 .s-listhead-facts {
-  margin-top: 4px;
-  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  width: 100%;
+  display: flex; flex-wrap: wrap; gap: 4px 20px;
+  font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-relaxed);
 }
+.s-lf { white-space: nowrap; }
 .s-listhead-facts b { color: var(--d100); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 /* What the list is for, at body size and full width under both columns —
    it is the one piece of prose on the surface and the thing a re-run reads
    back, so it is not a caption. */
 .s-listhead-crit {
-  grid-column: 1 / -1;
-  font-size: var(--fs-base); color: var(--d300);
-  line-height: var(--lh-base); max-width: 72ch;
+  width: 100%;
+  /* `--d200`. It was `--d300` (9.07) and the facts under it have just come
+     UP to 9.07 — two lines at one weight is no ranking, and of the two this
+     is the one that says what the list is. */
+  font-size: var(--fs-base); color: var(--d200);
+  line-height: var(--lh-relaxed); max-width: 72ch;
 }
 /* The count steps down when a list is open, because the list's name is the
    anchor and a surface gets one. */
@@ -2814,6 +2853,20 @@ body.is-record .app-sidebar { display: none; }
   display: flex; flex-direction: column;
   padding: 24px 16px;
   overflow-y: auto;
+  /* ══ THE GUTTER IS ALWAYS THERE, SO NOTHING MOVES WHEN THE SCROLLBAR IS ══
+
+     `overflow-y: auto` on a column whose height depends on what is open
+     means the scrollbar appears and disappears — and its 5px comes out of
+     the CONTENT box, not the element. Measured: opening the history took
+     every child of the rail from 247px to 242px, so the conclusion, the
+     evidence pill, every finding and the history block all reflowed and
+     re-wrapped from one press on something at the bottom of the column.
+
+     `stable` reserves the gutter whether or not it is occupied. The rail is
+     280px either way; what changes is that it is 274px of content always
+     rather than 279 sometimes. `#pageScroll` has the same latent shift and
+     only hides it by always overflowing, so it gets the same treatment. */
+  scrollbar-gutter: stable;
   background: transparent;
   border-right: 1px solid var(--hairline);
 }
@@ -2876,8 +2929,11 @@ body.is-record .app-sidebar { display: none; }
 .rail-row.tone-ok   { border-left-color: var(--ok); }
 .rail-row-say { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); }
 
-/* The campaign's history, under everything it is context for. */
-.rail-hist { padding-top: 16px; border-top: 1px solid var(--hairline); }
+/* The campaign's history, under everything it is context for. No rule of its
+   own any more: it used to draw the hairline that separated it from the
+   findings, and `.s-hist` is a bordered block now, so the two together were
+   a boundary and then another boundary eight pixels later. */
+.rail-hist { display: block; }
 
 /* ── WHAT IS STANDING ──
 
@@ -2921,8 +2977,10 @@ body.is-record .app-sidebar { display: none; }
 .rail-fig.is-flat { cursor: default; }
 .rail-fig.is-flat:hover { background: none; }
 
-.rail-make { padding-top: 16px; border-top: 1px solid var(--hairline); }
-.rail-new { width: 100%; justify-content: flex-start; }
+/* The evidence zone. `.bcard` is conclusion · evidence · action and the
+   product has only ever drawn two of the three, so anything qualifying a
+   conclusion had to hang under the card as a figure block of its own. */
+.rail-evidence { margin: 0 0 12px; }
 .rail-new svg { width: 14px; height: 14px; }
 /* ── What a campaign is for ──
    Set as the campaign's own sentence rather than as another meta line: it is
@@ -2963,26 +3021,87 @@ body.is-record .app-sidebar { display: none; }
    The values take the slack so every change control lands on the same right
    edge, which is what makes four rows scan as a block rather than as four
    sentences of different lengths. */
-.s-camp-id { gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--hairline); }
-.s-id-vals { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
-.s-camp-id .s-crew-row > .s-inline-btn { margin-left: auto; flex: none; }
-/* The group a person is in — BDR, Sales — reading as a caption inside the
-   run of names rather than as another name. */
-.s-id-fn {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d600);
-  margin-left: 8px;
+/* ══ IT IS A COLUMN, NOT A FULL-WIDTH TABLE ═════════════════════════════
+   Uncapped, the row stretched the whole stage and `margin-left: auto` put
+   `Change` about 1,400px from the `TEAM` it changes — a control and its
+   label at opposite ends of the screen with nothing between them. Capped at
+   the measure the goal already uses, the four rows are one column and every
+   control is beside what it changes. */
+.s-camp-id {
+  gap: 12px; margin-bottom: 20px; padding-bottom: 16px;
+  max-width: 88ch;
+  border-bottom: 1px solid var(--hairline);
 }
-.s-camp-id .s-goal-text { font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-base); }
+/* ══ THE GAP INSIDE A NAME IS NOT THE GAP BETWEEN GROUPS ═════════════════
+   Both were 4px, so an avatar sat as close to its own name as one person sat
+   to the next group's caption — "ES Engy Saleh Marketing LH Lina Haddad"
+   with no boundary anywhere in it. 16 between the items in this run, 8
+   inside a person, which is the ratio every other group on the surface
+   uses. */
+.s-id-vals { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+/* Stacked: one line per function, and the row's caption and control align to
+   the first of them rather than floating in the middle of four. */
+.s-id-vals.is-stacked { flex-direction: column; align-items: stretch; gap: 8px; }
+.s-crew-row.is-stacked { align-items: flex-start; }
+.s-id-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+/* One offering and the controls that belong to it, so which `×` removes
+   which is structural rather than inferred from spacing. */
+.s-id-item { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+/* ══ A FIXED COLUMN, AND NO RIVER IN IT ═════════════════════════════════
+   Fixed so the names line up down the block and "who is on BDR" is a glance.
+   RIGHT-ALIGNED because left-aligned it was 84px of box holding 42px of
+   "Owner" — 42px of dead space plus the 12px gap put 54px between a label
+   and the value it labels, on every line. Flush right, every label ends at
+   one edge and every value starts 12px after it, so the pair is tight and
+   the column is still a column. */
+.s-id-fn { min-width: 68px; flex: none; text-align: right; }
+.s-id-people { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-width: 0; }
+.s-camp-id .s-crew-row > .s-inline-btn { margin-left: auto; flex: none; }
+/* ── SENTENCE CASE, AND THAT IS THE POINT ──
+   These were 11px bold uppercase — the same treatment as the row caption
+   containing them, one shade apart — so `TEAM OWNER … MARKETING … BDR …
+   SALES …` read as eight captions of equal rank and nothing said which were
+   the structure. Four things in this block are captions now, and they are
+   the four rows. */
+/* `--d400`, not `--d500`. Measured against the page: `--d500` is 3.54:1,
+   under the 4.5 floor, on the labels that are the entire reason this row is
+   scannable — the second-dimmest thing in the block was the thing that says
+   what each line is. `--d400` is 6.08. */
+.s-id-fn {
+  font-size: var(--fs-xs); font-weight: var(--fw-regular);
+  letter-spacing: normal; text-transform: none; color: var(--d400);
+}
+
+/* The fold is gone: it hid three lines behind a press on a block that is
+   only four rows, and a disclosure earns its place by hiding something
+   large. Team stopped being large when the unfilled functions stopped
+   taking a line each. */
+/* ══ THE GOAL OUTRANKS A NAME ═══════════════════════════════════════════
+   At `--d200` it measured 11.41:1 — exactly what a person's name measures,
+   so the sentence the whole campaign exists to serve read at precisely the
+   weight of "Engy Saleh". It is the one thing in this block somebody has to
+   read, and now it is the brightest thing in it. */
+.s-camp-id .s-goal-text { font-size: var(--fs-base); color: var(--d50); line-height: var(--lh-base); }
+/* `--d400`, not `--d500`. These four captions are what makes the header
+   readable as rows — Goal, Selling, Team, For — and at the dimmest step on
+   an 11px caps run they were the least legible thing on the surface while
+   being the thing that says what each row is. */
 .s-crew-cap {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); min-width: 76px; flex-shrink: 0;
+  color: var(--d400); min-width: 76px; flex-shrink: 0;
 }
 /* An empty function says so. A row that simply vanishes when nobody holds it
    answers "who is doing the BDR work here" with silence, which reads as
-   somebody rather than as nobody. */
-.s-crew-none { font-size: var(--fs-base); color: var(--d600); font-style: italic; }
+   somebody rather than as nobody.
+
+   AND IT HAS TO BE LEGIBLE TO SAY IT. `--d600` at `--fs-base` measured
+   2.51:1 — the FAINTEST thing in the block and simultaneously the LARGEST,
+   set bigger than the 13px labels beside it. An absence is information here;
+   it was rendered as though it were noise. On the row's own size step now,
+   at `--d400` (6.08), with the italic kept because that is what marks it as
+   a gap rather than a name. */
+.s-crew-none { font-size: var(--fs-xs); color: var(--d400); font-style: italic; }
 
 /* ═══════════════════════════════════════════════
    THE TRAIL
@@ -3025,7 +3144,9 @@ body.is-record .app-sidebar { display: none; }
 .s-trail-wait::after {
   content: ""; width: 12px; height: 1px; background: var(--card-border);
 }
-.s-trail-tools { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+/* 16, not 12. Two links a body-gap apart read as one phrase — "Add a step
+   Is this the right order?" — rather than as two things you could do. */
+.s-trail-tools { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
 
 /* ═══════════════════════════════════════════════
    ANALYTICS AS CARDS
@@ -3060,7 +3181,6 @@ body.is-record .app-sidebar { display: none; }
 .s-metric.tone-ok { background: var(--ok-bg); border-color: rgba(23,178,106,0.24); }
 .s-metric.tone-warn { background: var(--warn-bg); border-color: rgba(247,144,9,0.24); }
 .s-metric.tone-err { background: var(--err-bg); border-color: rgba(240,68,56,0.24); }
-.s-metrics-eng { margin-bottom: 12px; }
 
 /* Replies, one row per category. */
 .s-replies { display: flex; flex-direction: column; gap: 2px; }
@@ -3188,39 +3308,54 @@ body.is-record .app-sidebar { display: none; }
    Name, who they are, why now, and the control that starts it. The reason
    sits between the person and the button on purpose: it is what makes the
    button pressable rather than arbitrary. */
-.s-queue { display: flex; flex-direction: column; gap: 16px; }
+/* 12, not 16. A row is two lines now rather than four, and the separation
+   that read as generous around 38px of content read as loose around 76px —
+   the gap plus the divider's padding was nearly as tall as the person. */
+.s-queue { display: flex; flex-direction: column; gap: 12px; }
+/* ── TWO LINES, NOT FOUR ──
+   Name·role·account on the first, why·draft-state on the second, and the
+   Call button beside both. It was four grid rows — 110px a person, so six
+   people were 659px and the Reach node ran past the screen it is supposed
+   to be readable on. */
 .s-qrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; }
+.s-qrow-id {
+  grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+}
 .s-qrow-name {
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
   text-align: left; cursor: pointer; min-height: 24px;
 }
 .s-qrow-name:hover { color: var(--ai-text); }
 .s-qrow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-qrow-go { grid-row: 1 / span 3; grid-column: 2; align-self: center; }
 /* Both are lowercase sentences, so both belong on the meta step rather than
    the caps-only caption step. */
-.s-qrow-sub { grid-column: 1; font-size: var(--fs-xs); color: var(--d500); }
-.s-qrow-why { grid-column: 1; font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-relaxed); }
-/* What we agreed to say, on the row where somebody says it. Body size, not
-   meta — it is the one thing on this stage that gets read word for word, and
-   sizing it as a caption would be sizing the message as an annotation on the
-   name. Attributed, because "AiMY drafted" and "Lina wrote" are different
-   claims and the person about to dial should know which one they are
-   holding. */
-.s-qrow-line {
-  grid-column: 1 / -1; margin-top: 4px;
-  font-size: var(--fs-xs); color: var(--d200);
-  line-height: var(--lh-base); max-width: 72ch;
+.s-qrow-sub { font-size: var(--fs-xs); color: var(--d500); }
+/* WRAPS, NEVER TRUNCATES. Why this person is worth ringing and whether
+   there is a line to read them are one question — should I call this one
+   next — so they share a line, and a narrow column moves the second half
+   down rather than clipping it. */
+.s-qrow-why {
+  grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-relaxed);
 }
+.s-qrow-because { min-width: 0; }
+/* WHETHER there is a line, not what it says — and attributed, because
+   "AiMY drafted" and "Lina wrote" are different claims. */
 .s-qrow-lead {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
-  margin-right: 8px;
 }
 .s-qrow-none { color: var(--warn); }
-/* The Call button spans the row's original three lines; with the message
-   under them it spans four. */
-.s-qrow-go { grid-row: 1 / span 4; }
+/* Two rows, and the Call button stands beside both. */
+.s-qrow-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+/* ── ONE PERSON PER ROW, AND YOU CAN SEE WHERE ONE ENDS ──
+   Six people ran together as one block of text: the queue is a flex column
+   with a gap and no boundary, so "Femke…" and "Lieke…" were separated by the
+   same distance as the lines inside each of them. A hairline is the cheapest
+   thing that says where a person stops. */
+.s-queue > .s-qrow + .s-qrow {
+  border-top: 1px solid var(--hairline); padding-top: 12px;
+}
 
 /* ── ONE SENTENCE AND ONE WAY IN ──
 
@@ -4144,6 +4279,17 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-trace-sum::before { content: "▸ "; }
 .s-trace[open] .s-trace-sum::before { content: "▾ "; }
 .s-trace-sum:hover { color: var(--d200); }
+/* ══ A CLOSED DISCLOSURE HAS TO STAY CLOSED ═══════════════════════════════
+   The library ships `.agent-steps { display: flex }`, and a class selector
+   outranks the UA's `details:not([open]) > *:not(summary) { display: none }`
+   — so every collapsed "What AiMY did" laid its full step list out anyway
+   and spilled it 225px below a summary claiming to be 23px tall. Measured on
+   40 traces: the whole point of the disclosure, defeated by one inherited
+   declaration.
+
+   Stated at the same specificity the library uses, scoped to the closed
+   state, so opening still gets the library's flex column. */
+.s-trace:not([open]) .agent-steps { display: none; }
 .s-trace .agent-steps { padding: 4px 0 0 12px; }
 .s-trace .agent-step-ico { font-size: var(--fs-2xs); }
 /* `.agent-step-label` and `.agent-step-meta` are both inline in the library,
@@ -4154,45 +4300,106 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-talk-scroll::-webkit-scrollbar-track { background: transparent; }
 .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 :root[data-theme="light"] .s-talk-scroll::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
-/* ══ THE CANVAS GETS AN ANCHOR ═════════════════════════════════════════════
-   It had three type steps, the largest 14px, and named its subject only in
-   absolutely-positioned chrome above the thread — so the surface where you
-   ask about a thing never said, at any weight, which thing.
+/* `.ov-open` and `.ov-open-h` are gone with the heading they drew. A canvas
+   is a conversation and opens with a message from AiMY — `openingSay`,
+   rendered through `turnHtml` like everything else it says. Nothing on this
+   surface is set above the body step, which is what a chat reads like.
+   `.s-talk-empty` went with them; the sentence is a turn now. */
 
-   The subject at the anchor step, the invitation under it at body size, the
-   openers under that. Three steps in one block, and the block is gone the
-   moment there is a first turn: after that the conversation is the subject. */
-.ov-open { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.ov-open-h {
-  font-family: var(--font-display);
-  font-size: var(--fs-3xl); font-weight: var(--fw-extrabold); color: var(--d50);
-  letter-spacing: var(--ls-tight); line-height: var(--lh-tight);
+/* ── A question in the thread, and its shortcuts ──
+   The hint is what AiMY would say if you took its suggestion, shown as the
+   quoted sentence rather than pre-filled into the box: a field that arrives
+   full is a decision somebody made, and one you can read and take is a
+   proposal. */
+.s-cb-hint {
+  margin-top: 8px; padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  max-width: 60ch;
 }
-.s-talk-empty { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-base); max-width: 46ch; }
+.s-cb-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.s-cb-opt {
+  font-family: inherit; cursor: pointer;
+  padding: 8px 12px; border-radius: var(--r-xl);
+  border: 1px solid var(--card-border); background: var(--card-bg-raised);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.s-cb-opt:hover { border-color: var(--accent); background: var(--accent-dim); }
+.s-cb-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Answered, not removed: the thread is a record and what you chose between
+   is part of it. Spent reads as spent — no hover, no pointer, no border. */
+.s-cb-opt.is-spent {
+  cursor: default; color: var(--d600);
+  border-color: transparent; background: none;
+}
 
-.s-turn { display: flex; flex-direction: column; gap: 4px; }
-.s-turn-body { font-size: var(--fs-base); line-height: var(--lh-base); max-width: 60ch; }
-.s-turn.is-you { align-items: flex-end; }
-.s-turn.is-you .s-turn-body {
-  background: var(--accent-dim); color: var(--d50);
-  border: 1px solid rgba(var(--accent-rgb), 0.22);
-  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
-  padding: 8px 12px;
+/* ══ MESSAGES ARE THE FAMILY'S, NOT THIS PRODUCT'S ═══════════════════════
+   `.s-turn` was a local message shape: a right-aligned tinted box for you, a
+   bare paragraph for AiMY, no avatars, no tails, no typing state. The
+   library ships `.chat-msg` / `.msg-avatar` / `.msg-bubble` and both sibling
+   products use it, so the one surface in Sales that IS a chat was the one
+   that did not look like one.
+
+   These are QA's numbers where QA and the library disagree — a 28px avatar
+   at 8px radius against the DS's 30px circle, a 12px bubble against 16, and
+   14px text against 13. Matching what is on screen in the sibling beats
+   matching what is in the file, and 14 is this product's body step, so the
+   two agree for once. */
+.chat-msg { display: flex; gap: 12px; align-items: flex-start; padding: 0 4px; }
+.chat-msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  flex-shrink: 0; margin-top: 2px;
 }
-.s-turn.is-aimy .s-turn-body { color: var(--d200); }
-.s-turn-opts { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
-.s-turn-opt { justify-content: flex-start; text-align: left; }
-/* An answered turn keeps its alternatives — the thread is a record, and
-   deleting them would hide what you chose between — but they are spent. */
-.s-turn-opts.is-spent .s-turn-opt { opacity: 0.35; cursor: default; }
-.s-turn-opts.is-spent .s-turn-opt.is-chosen {
-  opacity: 1; background: var(--accent-dim); color: var(--accent);
-  border-color: rgba(var(--accent-rgb), 0.4);
+.msg-avatar.aimy-av {
+  background: rgba(70, 40, 140, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+}
+.msg-avatar.aimy-av svg { width: 14px; height: 16px; }
+.msg-avatar.user-av { background: var(--grad-avatar); color: #fff; }
+.msg-bubble {
+  max-width: 540px; padding: 12px 16px; border-radius: var(--r-xl);
+  font-size: var(--fs-base); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50);
+}
+/* The tail points at its speaker: the square corner sits on the avatar's
+   side, which is the whole reason a bubble reads as coming from somebody. */
+.chat-msg.aimy .msg-bubble {
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  border-radius: var(--r-xs) var(--r-xl) var(--r-xl) var(--r-xl);
+}
+.chat-msg.user .msg-bubble {
+  background: var(--accent-dim); border: 1px solid rgba(var(--accent-rgb), 0.22);
+  color: var(--d100);
+  border-radius: var(--r-xl) var(--r-xs) var(--r-xl) var(--r-xl);
+}
+
+/* ── AiMY composing ──
+   Three dots in an AiMY bubble, which is what both siblings draw. The pause
+   is what makes an answer read as a reply rather than as a lookup. */
+.typing-dots { display: flex; gap: 4px; padding: 4px; align-items: center; }
+.typing-dots span {
+  width: 4px; height: 4px; border-radius: 50%; background: var(--d500);
+  animation: sTyping 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sTyping {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots span { animation: none; opacity: 0.6; }
 }
 
 /* A write, in the thread, with its own way back. This is the half V1 has
    nowhere: it shows the conversation and never what the conversation did. */
-.s-turn.is-change { align-items: stretch; }
+/* The receipt is not a message — it is what a message DID — so it keeps
+   its own full-width shape rather than a bubble with a speaker. */
+.chat-msg.is-change { align-items: stretch; padding: 0 4px; }
 /* The whole border at low alpha, not a tinted left edge. This is the
    library's own idiom — `.bcard.p1/.p2/.p3` — and Knowledge records having
    tried the left edge and rejected it: the pattern it was copied from sets
@@ -4369,9 +4576,15 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 }
 .s-rec-stage-of { font-size: var(--fs-2xs); color: var(--d600); }
 .s-rec-stage-name { font-size: var(--fs-xs); color: var(--d300); }
+/* ══ A CONTROL YOU CANNOT SEE IS NOT RESTRAINT ══════════════════════════
+   `--d600` measured 2.51:1 — the same near-invisible value the empty states
+   were using, on a thing that is not decoration but the only way to take an
+   offering off a campaign. "Support ×" read as "Support" with a smudge after
+   it. `--d400` is 6.08 and still quieter than the name it sits beside; the
+   hover to `--err` is what says it removes. */
 .s-camp-out {
   width: 20px; min-height: 24px; margin-left: -2px;
-  font-family: inherit; font-size: var(--fs-sm); color: var(--d600); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-sm); color: var(--d400); cursor: pointer;
   transition: color var(--t-fast);
 }
 .s-camp-out:hover { color: var(--err); }
@@ -4463,7 +4676,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 
 .s-assignees { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .s-assignee {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 8px;
   font-size: var(--fs-xs); color: var(--d200);
 }
 .s-assignee-role { color: var(--d500); font-size: var(--fs-xs); }
@@ -4634,6 +4847,34 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   font-size: var(--fs-xs); color: var(--d300);
   transition: border-color var(--t-fast), background var(--t-fast);
 }
+/* ══ A TWO-LINE CHIP IS NOT A PILL ═══════════════════════════════════════
+   One rule was serving two shapes. With an avatar and a single line the chip
+   is 34px tall and `--r-pill` is exactly right. With a name STACKED over a
+   description it is 46px — and a 9999px radius on 46px is a 23px corner, so
+   both lines run straight into the curve with nothing to clear it: the 4px
+   left padding exists to seat an avatar flush, and a chip with no avatar
+   spends it on nothing. That is the clipping.
+
+   `:has(.s-pick-role:not(:empty))` asks the question the shape actually
+   depends on — is there a second line — rather than a class every call site
+   has to remember to pass. The `:not(:empty)` is load-bearing: three call
+   sites were rendering the span from `p.role`, which REPS do not carry, so
+   five assignee chips held an EMPTY element. Without the guard they matched
+   as two-line and lost their pill at 34px tall. (Those three now read
+   `roleOf`, so the span has content — but a shape rule that depends on a
+   value being non-blank should say so rather than assume it.)
+
+   A rounded rectangle, and horizontal padding that clears its own corner. */
+.s-assign-chip:has(.s-pick-role:not(:empty)) {
+  border-radius: var(--r-xl);
+  padding: 8px 12px;
+}
+/* Except where an avatar is one of the two lines' neighbours: it seats flush
+   against the left edge and the radius is what gives it room, so only the
+   right side needs the wider padding. */
+.s-assign-chip:has(.s-pick-role:not(:empty)):has(.avatar) {
+  padding: 4px 12px 4px 4px;
+}
 .s-assign-chip:hover { border-color: var(--d600); }
 /* KEYBOARD ONLY. `:focus-within` fires for a mouse click too — the chip's
    hidden checkbox takes focus and the ring stays until you click somewhere
@@ -4707,9 +4948,13 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 }
 .s-sheet-head { display: flex; align-items: flex-start; gap: 12px; padding: 24px 24px 16px; flex: none; }
 .s-sheet-head .modal-close { margin-left: auto; }
+/* `--d400`, not `--d500`. This is the word that says what the surface IS —
+   LIST, CAMPAIGN, RUN — and it measured 3.54:1, under the 4.5 floor and the
+   faintest thing on the page it introduces. Same correction the campaign's
+   identity captions took, on the same token, for the same reason. */
 .s-sheet-kind {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
 }
 /* TITLE, one step up from block heading. It was `--fs-xl` — which resolves
    to 16px, the BLOCK HEADING step — so the name of the run you have open sat
@@ -4816,6 +5061,11 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 }
 .s-node-head:hover { background: var(--accent-dim); }
 .s-node-head:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* A readout, on the report a read-only tier gets: it still states the figure,
+   because where a campaign stands is what a client came for, but there is
+   nothing behind it for them so it does not offer to be pressed. */
+.s-node-head.is-flat { cursor: default; }
+.s-node-head.is-flat:hover { background: none; }
 .s-node.is-open > .s-node-head { background: var(--accent-dim); }
 /* The ordinal carries the STAGE'S CONDITION, not where you are standing:
    clear, holding work, or holding work that is yours. Which node happens to
@@ -4951,14 +5201,41 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 .s-read-mark { display: inline-flex; margin-right: 8px; vertical-align: -2px; }
 .s-read-mark svg { width: 13px; height: 15px; }
 
-/* The offering and report-to pickers reuse the tick vocabulary. */
-.s-sell-kinds { flex-wrap: wrap; }
-.s-sell-kind-in, .s-camp-client, .s-camp-watch { width: 15px; height: 15px; accent-color: var(--accent); }
+/* The report-to pickers reuse the tick vocabulary — they are choice rows,
+   where a visible radio is the affordance. */
+.s-camp-client, .s-camp-watch { width: 15px; height: 15px; accent-color: var(--accent); }
 .s-sell-pick { cursor: pointer; }
 
+/* ══ A SEGMENTED CONTROL DOES NOT ALSO HAVE RADIOS IN IT ══════════════════
 
-/* Logging from a campaign, at the head of the history it writes into. */
-.s-hist-log { margin-bottom: 12px; display: inline-block; }
+   `Kind` was drawn as `.seg` — the library's segmented control, whose whole
+   premise is that the segment IS the affordance — with a 15px radio rendered
+   inside each segment. Two affordances for one choice, and the pill sat there
+   doing nothing.
+
+   Worse, it could not show its own state. `.seg-btn.active` is a class the
+   library expects JavaScript to toggle; nothing here toggles it, and this
+   control is driven by `:checked`. So picking `Solution` left all three
+   segments looking identical and the only evidence was the radio dot — which
+   is why the radio had to be visible, and why it looked like a broken radio
+   group rather than a segmented control.
+
+   The input goes away, the `<span>` becomes the segment, and `:checked`
+   paints it. No `:has()`: this file has twice had a `:has()` rule silently
+   stop matching, and a sibling selector cannot. */
+.s-sell-kinds { flex-wrap: wrap; }
+.s-sell-kinds .seg-btn { padding: 0; background: none; position: relative; }
+.s-sell-kind-in { position: absolute; opacity: 0; width: 0; height: 0; }
+.s-sell-kinds .seg-btn > span {
+  display: block; padding: 4px 12px; border-radius: var(--r-sm);
+  min-height: 24px; line-height: 16px;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.s-sell-kinds .seg-btn:hover > span { color: var(--d100); }
+.s-sell-kind-in:checked + span { background: var(--accent-dim); color: var(--accent); }
+.s-sell-kind-in:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+
 /* A scrolling column, because a campaign with forty people on it would push
    the confirm below the dialog — a commit that cannot show its own button. */
 .s-logpick { max-height: 320px; overflow-y: auto; }
@@ -5147,13 +5424,29 @@ body.is-record .filter-tray { display: none; }
   display: flex; flex-wrap: wrap; align-items: baseline;
   gap: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
 }
+/* THE HEADING IS NOT ONE OF THE ACTIONS. It sat at the same baseline and the
+   same 12px gap as the buttons beside it, so "Queue · Let AiMY call 12 · Log
+   what happened" read as three links of equal weight and the section had no
+   visible title. Pushing everything after the heading to the far edge is
+   what makes a heading read as one. */
+.s-camp-list-head > :first-child { margin-right: auto; }
 .s-camp-list-head .s-sheet-h { margin: 0; }
-.s-camp-of { font-weight: 400; color: var(--d400); }
 
 /* The spread is this block's own header — bars that narrow the grid under
    them — so it sits tight to its title and loose from the cards it filters. */
+/* What the campaign is allowed to send on, above the steps it governs. It
+   used to exist only as a line in the rail's history — "The plan was set" —
+   with no control anywhere to see or change it. */
+.s-plan-on {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
+  font-size: var(--fs-xs); color: var(--d300); margin-bottom: var(--sp-4);
+}
+.s-plan-cap {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+}
+
 .s-camp-spread { margin-bottom: var(--sp-5); }
-.s-camp-allone { margin-bottom: var(--sp-5); }
 .s-camp-grid { margin-top: 0; }
 .s-ans-hit.is-on { background: var(--d50); }
 .s-ans-hit.is-on .s-ans-name { font-weight: 600; }
@@ -5210,24 +5503,64 @@ body.is-record .filter-tray { display: none; }
 /* ══ WHAT HAPPENED, IN THE RAIL ═══════════════════════════════════════════
    A campaign's history, in the same region and the same vocabulary a record's
    touchpoints already use — one rail, whichever thing you opened. ══ */
-.s-hist { margin-bottom: var(--sp-4); }
-
-/* Where it stands now, before what got it here. */
-.s-hist-now {
-  display: flex; align-items: center; flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-3);
-  padding-bottom: var(--sp-3); margin-bottom: var(--sp-3);
-  border-bottom: 1px solid var(--hairline);
+/* ── ONE LINE UNTIL YOU WANT IT ──
+   It was 1,246px of a 1,959px rail: AiMY's conclusion and every finding under
+   it were the first third of something you scrolled a screen and a half to
+   finish. The summary states what opening it would give — how many, how
+   recent — so the decision can be made without making it, which is the only
+   thing that makes a disclosure better than a scroll. */
+/* ── A BLOCK, NOT A FOOTER ──
+   The summary was the 11px uppercase caption step on `--d500` — the faintest
+   thing in the product, the treatment field labels get — sitting at the
+   bottom of the rail under a button. It read as disabled chrome over the
+   record of everything the campaign has done. It is a heading now, on its own
+   ground, with a chevron that turns. */
+.s-hist {
+  margin-bottom: var(--sp-4); margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+}
+.s-hist-sum-top {
+  list-style: none; cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+  min-height: 44px; justify-content: center;
+}
+.s-hist-sum-top::-webkit-details-marker { display: none; }
+.s-hist-sum-top:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+.s-hist:hover { border-color: var(--card-border-hover); }
+.s-hist:hover .s-hist-h { color: var(--accent); }
+.s-hist[open] .s-hist-sum-top {
+  margin-bottom: var(--sp-3); border-bottom: 1px solid var(--hairline); padding-bottom: var(--sp-3);
 }
 .s-hist-count { font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums; }
 
-/* Each half is labelled, because the two answer different questions. */
+/* The heading takes the body step and the full text colour — it is the
+   dominant thing in its own block, and the count under it is the caption. */
 .s-hist-h {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
+  transition: color var(--t-fast);
+}
+/* Same shape as every other disclosure chevron in the library — `.acc-head
+   .chev`, `.tree-chev`, `.reasoning .chev` — so a turning chevron means the
+   same thing here as it does there, and this one has no timing of its own to
+   go out of step with them. */
+.s-hist-chev {
+  width: 14px; height: 14px; flex: none; margin-left: auto;
+  transition: transform var(--t-base) var(--ease-out);
+}
+.s-hist[open] .s-hist-chev { transform: rotate(180deg); }
+
+/* The two halves inside, each labelled, because they answer different
+   questions. These stay on the caption step — they are subordinate to the
+   block's own heading, which is the point of giving that heading a step of
+   its own. */
+.s-hist-h-sub {
+  display: block; margin: var(--sp-4) 0 var(--sp-3);
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
-  margin: var(--sp-4) 0 var(--sp-3);
 }
-.s-hist .s-hist-h:first-of-type { margin-top: 0; }
 .s-hist-more { margin-top: var(--sp-2); }
 .s-hist-sum {
   list-style: none; display: inline-flex; align-items: center; gap: 4px;
@@ -5244,11 +5577,6 @@ body.is-record .filter-tray { display: none; }
 /* The campaign's lifecycle sits in the rail, which is 220px wide. It keeps
    the library's sizes; the RECORD's history does not — see §THE HISTORY IS
    THE RECORD, further down, beside the rest of the touchpoint styling. */
-
-.s-hist-new {
-  font-size: var(--fs-xs); color: var(--d500);
-  line-height: var(--lh-base); margin-top: var(--sp-3);
-}
 
 /* The distribution reads as a comparison, and a bar 1800px wide with its
    count at the far right is not one — the eye cannot hold the two ends
