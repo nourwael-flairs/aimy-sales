@@ -1778,10 +1778,23 @@
     members.forEach((a) => (by[statusOf(a)] = (by[statusOf(a)] || 0) + 1));
     /* The same distribution the sheet draws, at card scale — so the shape of
        a campaign is legible from the list without opening it. */
-    const bars = TAX.status.filter((s) => by[s.k]).slice(0, 4);
+    /* ══ AND THE SAME BAND HERE COULD NOT BE DECODED IN PRINCIPLE ═════════
+
+       The lead card's band was unlabelled; this one was unlabelled AND
+       ambiguous. Measured on `Amsterdam scrape — August`: four segments,
+       `6 untouched · 8 awaiting us · 15 awaiting them · 2 not a fit` — and
+       `untouched` and `not a fit` both carry the neutral tone, so two of the
+       four rendered as identical grey blocks at different widths. A reader
+       who had learned the colour code still could not tell which was which.
+
+       A campaign IS a population, so the spread belongs on this card — as
+       the one number that asks for somebody, in the meta run that already
+       states the rest. `31 accounts, 8 waiting on us` is the sentence the
+       band was drawing, and it names its own units. */
+    const waiting = by['awaiting-us'] || 0;
     const meta = [
       `<span class="s-meta-st tone-${esc(CAMP_STATE[st].tone)}">${esc(CAMP_STATE[st].label)}</span>`,
-      esc(plural(members.length, 'account')),
+      esc(plural(members.length, 'account') + (waiting ? `, ${waiting} waiting on us` : '')),
       esc(actor(c.owner).name),
       c.client ? esc(clientName(c.client)) : 'our own book',
     ];
@@ -1789,9 +1802,6 @@
       <div class="tc-head"><span class="tc-type">Campaign</span></div>
       <button class="tc-title s-card-title" type="button" data-camp="${esc(c.k)}">${esc(c.name)}</button>
       <p class="tc-summary s-card-snip">${esc(c.description || 'No description.')}</p>
-      ${members.length ? `<div class="s-camp-dist" role="img" aria-label="${esc(bars.map((s) => `${by[s.k]} ${s.label.toLowerCase()}`).join(', '))}">
-        ${bars.map((s) => `<span class="s-camp-seg tone-${esc(s.tone)}" style="width:${Math.round((by[s.k] / members.length) * 100)}%"></span>`).join('')}
-      </div>` : ''}
       <div class="tc-gov s-card-meta">${meta.join('<span class="tc-gov-sep"> · </span>')}</div>
     </article>`;
   }
@@ -6569,29 +6579,32 @@
         </div>
         <span class="s-meta-st tone-${toneOf(st)}">${esc(label('status', st))}</span>
       </div>
-      ${/* ══ WHERE ITS PEOPLE STAND ═══════════════════════════════════════
-            An organization's own status is computed from its contacts, so
-            the status word above answers "is anything owed here" and cannot
-            answer "how much of this account is moving". Three contacts, one
-            of whom replied and two nobody has ever rung, is a different
-            account from three who all replied — and the word is the same
-            for both.
+      ${/* ══ THE BAND WAS A PROGRESS BAR CARRYING A COMPOSITION ═════════════
 
-            The same bar the campaign cards use, one grain down. One
-            distribution component across the surface, so a spread is read
-            the same way wherever it appears. */ ''}
-      ${(() => {
-        if (rec.kind !== 'acc') return '';
-        const mine = maySee(DB.con.filter((c) => c.acc === acc.id && !c.arch));
-        if (mine.length < 2) return '';
-        const by = {};
-        mine.forEach((c) => (by[statusOf(c)] = (by[statusOf(c)] || 0) + 1));
-        const bars = TAX.disposition.filter((s) => by[s.k]);
-        if (bars.length < 2) return '';
-        return `<div class="s-camp-dist s-card-dist" role="img" aria-label="${esc(bars.map((s) => `${by[s.k]} ${s.label.toLowerCase()}`).join(', '))}">
-          ${bars.map((s) => `<span class="s-camp-seg tone-${esc(s.tone)}" style="width:${Math.round((by[s.k] / mine.length) * 100)}%"></span>`).join('')}
-        </div>`;
-      })()}
+            It was here to say what the status word cannot — that three
+            contacts, one replied and two never rung, is a different account
+            from three who all replied. A real gap. This was not an answer to
+            it.
+
+            **The form promises the wrong reading.** A 4px full-width bar at
+            the foot of a card means one thing in every product anybody uses:
+            how far along this is. Two segments read as 72% done, not as two
+            people in two states.
+
+            **Nothing on the card decoded it.** No legend, no counts, no
+            labels — the `aria-label` carried the whole answer (`1 awaiting
+            us, 1 awaiting them`), so a screen reader got the fact and a
+            sighted reader got two colours. When the assistive text is the
+            richer of the two, the visual form is not carrying the content.
+
+            **And it fired irregularly**: 13 of 32 cards on one screen,
+            because it needs two contacts across two statuses. Scanning a
+            list, the absence of a bar reads as no progress rather than as no
+            spread.
+
+            Cut, not relocated. The card already prints `2 people`, and the
+            record one press away lists them with their statuses — which is
+            the same information in a form that states which is which. */ ''}
       ${/* THE META RUN IS ONE THING, SO IT IS ONE ELEMENT. It was three
             spans and two separators loose in a wrapping flex row beside the
             flag chip — so when the run got long the CHIP wrapped, landing
@@ -8201,13 +8214,40 @@
       const c = (o.enrich && o.enrich[f]) || null;
       return c && c.conf !== 'high' ? c : null;
     };
-    const withProv = (html, c) => (c ? `${html}${confBadge(c)}` : html);
-    const facts = [];
+    const withProv = (html, c) => (c ? `${html}<span class="s-prov tone-${PROV[c.conf].tone}" title="${esc(c.src || PROV[c.conf].why)}">${PROV[c.conf].word}</span>` : html);
+    /* ══ SIX FACTS AT ONE RANK ═════════════════════════════════════════════
+
+       Measured: every fact in this block rendered at **13px, weight 400,
+       `--d400`** — one size, one weight, one colour, for six facts of five
+       different kinds. `7k staff`, `Public & education`, `Amsterdam`,
+       `Founded 1956`, `$250M – $1B` and `Came in through an AiMY scrape` all
+       claimed the reader's attention equally, so the block had to be read
+       word by word to find anything in it.
+
+       That flatness is also what made the confidence badge impossible. A
+       qualifier can only sit quietly beside a value if the value outranks
+       it — and at 13px/400 there was nothing to be quieter than, so the
+       badge grew a fill, a border and a meter to be distinguishable, and
+       then outshouted the whole block. Fixing the ranking is what makes the
+       qualifier work; they were one problem.
+
+       THREE RANKS, in the order a seller qualifies:
+
+         1 · **The size.** Headcount and revenue are the two axes every ICP
+             in Knowledge is written against ("1,000+ staff, in-house QA").
+             They are what this block is for.
+         2 · **What and where.** Industry and place — the next filter.
+         3 · **Background.** When it was founded, and how the record reached
+             us. Neither changes a decision; the second is not a fact about
+             the company at all, it is a fact about our record of it. */
+    const lead = [];
+    const mid = [];
+    const back = [];
     if (rec.kind === 'acc') {
-      facts.push(withProv(editField(acc, 'emp', acc.emp != null ? fmtSize(acc.emp) : ''), provOf(acc, 'emp')));
-      facts.push(esc(label('industry', acc.industry)));
-      facts.push(`${editField(acc, 'city')}, ${esc(acc.country)}`);
-      if (acc.founded) facts.push(withProv(esc(`Founded ${acc.founded}`), provOf(acc, 'founded')));
+      if (acc.emp != null) lead.push(withProv(editField(acc, 'emp', fmtSize(acc.emp)), provOf(acc, 'emp')));
+      mid.push(esc(label('industry', acc.industry)));
+      mid.push(`${editField(acc, 'city')}, ${esc(acc.country)}`);
+      if (acc.founded) back.push(withProv(esc(`Founded ${acc.founded}`), provOf(acc, 'founded')));
       /* ══ REVENUE, AS A BAND, FOR THE FIRST TIME ═════════════════════════
 
          Modelled on 118 accounts with sector multipliers, filtered on
@@ -8224,12 +8264,17 @@
          the source does not have. `TAX.rev` already banded it for the filter
          because, as its own comment says, nobody searches for "between $4M
          and $7.5M". The same reasoning applies to reading it. */
-      if (acc.rev != null) facts.push(withProv(esc(label('rev', revBand(acc.rev))), provOf(acc, 'rev')));
-      facts.push(esc(`Came in through ${label('src', acc.src).toLowerCase()}`));
+      if (acc.rev != null) lead.push(withProv(esc(label('rev', revBand(acc.rev))), provOf(acc, 'rev')));
+      back.push(esc(`Came in through ${label('src', acc.src).toLowerCase()}`));
     } else {
-      facts.push(editField(rec, 'role'));
-      facts.push(`at ${esc(acc.name)}`);
-      facts.push(editField(rec, 'phone'));
+      lead.push(editField(rec, 'role'));
+      mid.push(`at ${esc(acc.name)}`);
+      /* ══ AND THE PHONE NUMBER WAS ON THIS PAGE TWICE ═══════════════════
+         `+31 64 117 4745` here, and again forty pixels down in the reach
+         block under a `Phone` label with its own confidence and its own
+         fix-it control. One home per fact: the reach block is the home,
+         because it is the one that says the number is reachable and offers
+         to find one when it is not. */
     }
 
     const cons = rec.kind === 'acc' ? DB.con.filter((c) => c.acc === acc.id) : [];
@@ -8308,7 +8353,12 @@
               nobody finishes. */ ''}
         <div class="s-rec-block">
           <span class="s-rec-cap">${esc(rec.kind === 'acc' ? 'The company' : 'The person')}</span>
-          <div class="s-rec-facts">${facts.map((f) => `<span>${f}</span>`).join('')}</div>
+          <div class="s-rec-facts">
+            ${[['lead', lead], ['mid', mid], ['back', back]]
+              .filter(([, xs]) => xs.length)
+              .map(([k, xs]) => `<div class="s-facts-${k}">${xs.map((f) => `<span>${f}</span>`).join('')}</div>`)
+              .join('')}
+          </div>
         </div>
 
         ${recBlocks(rec, acc, cons)}
@@ -8489,7 +8539,7 @@
       const bounced = touchesFor(rec).some((t) => t.outcome === 'bounced');
       out.push(block('Contact', `<div class="s-reach">
         ${rec.email || bounced
-          ? reachRow('Email', rec.email || 'None on file', rec.email ? rec.enrich.email : null, bounced ? rec.id : null)
+          ? reachRow('Email', rec.email || 'None on file', rec.email ? rec.enrich.email : null, bounced ? rec.id : null, rec.email ? [rec, 'email'] : null)
           : ''}
         ${/* PHONE CARRIES ITS PROVENANCE TOO. This passed `null` — hardcoded
               — while `enrichRun` has always written `enrich.phone` with a
@@ -8498,7 +8548,7 @@
               which is also why the shape bug above it stayed invisible: the
               field that could be corrected had no badge, and the field with
               a badge could not be corrected. */ ''}
-        ${rec.phone ? reachRow('Phone', rec.phone, (rec.enrich && rec.enrich.phone) || null) : ''}
+        ${rec.phone ? reachRow('Phone', rec.phone, (rec.enrich && rec.enrich.phone) || null, null, [rec, 'phone']) : ''}
         ${rec.li ? reachRow('LinkedIn', rec.li, null) : ''}
       </div>`));
     }
@@ -8713,10 +8763,20 @@
     </section>`;
   }
 
-  function reachRow(what, val, conf, bouncedFor) {
+  /* `edit` makes the value the editable one. It arrives here because the
+     facts line above used to carry a second copy of the phone number and was
+     the ONLY place either address could be corrected — so taking the
+     duplicate out would have stranded `EDITABLE.con.phone` with no call site,
+     the same way `EDITABLE.src.name` was found declared and unreachable.
+
+     Email gets it for the first time. The comment below has recorded since
+     F-09 that `con.email` had no `editField` call site — "the field that
+     could be corrected had no badge, and the field with a badge could not be
+     corrected" — and this is the row with the badge. */
+  function reachRow(what, val, conf, bouncedFor, edit) {
     return `<div class="s-reach-row">
       <span class="s-reach-what">${esc(what)}</span>
-      <span class="s-reach-val">${esc(val)}</span>
+      <span class="s-reach-val">${edit ? editField(edit[0], edit[1], val) : esc(val)}</span>
       ${conf ? confBadge(conf) : ''}
       ${bouncedFor && canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-fixaddr="${esc(bouncedFor)}">Bounced — fix it</button>` : ''}
     </div>`;
@@ -8738,6 +8798,50 @@
      "Modelled from headcount", "Their switchboard, from the site footer".
      Naming it beats a tier's generic prose on all six fields, so the prose is
      the fallback for a value that arrived without one. */
+  /* ══ THE BADGE DOES NOT FIT A FACTS LINE ═══════════════════════════════
+
+     `.conf-badge` is the design system's, and it is right where it has a row
+     to itself — `reachRow` and the enrichment sheet both give it one, with a
+     label beside it and nothing competing. Inline in the record's facts run
+     it broke the run three ways, measured on one account:
+
+       · **89px for the word "medium"** where `140 staff` — the fact it
+         qualifies — is 60px. Two badges took 24% of a 652px line.
+       · **24px tall in a 19px run.** `align-items: baseline` then set the
+         badged facts at a different y from the plain ones, so a line built
+         to be scanned had its items on two baselines.
+       · It **forced the wrap**: six facts, three rows, `Came in through
+         inbound` alone on the last.
+
+     A previous pass measured the same defect and fixed the FREQUENCY — it
+     stopped `high` drawing, because a fact printed as a fact already claims
+     it. That was right and it was half: `medium` and `low` are common, and
+     the form was the other half.
+
+     So the facts line states the same thing as a word. Not the tier's name —
+     `140 staff medium` parses as a value before it parses as a confidence,
+     which is the failure that comment already named — but the PREDICATE, in
+     the past participle, which cannot be read as the number: estimated,
+     guessed, set by hand. Tone carries the rest and the title keeps the
+     provenance sentence. */
+  /* ══ AND ONLY THE EXCEPTIONS CARRY COLOUR ══════════════════════════════
+     Every displayed figure in this corpus is medium or low — 93 and 77 of
+     170 — because the data is scraped and modelled. So `estimated` is the
+     NORM, and a norm printed in a warning tone is a warning nobody can act
+     on; two amber words on every record teaches people to stop seeing amber.
+     It goes muted. `guessed` keeps the warn tone because it is the one that
+     says do not size a deal on this, and `set by hand` keeps the accent
+     because a person overriding a lookup is worth seeing.
+
+     No err tone anywhere here. Red on this page means a bounced address —
+     something wrong — and a modelled revenue band is imprecise, not wrong. */
+  const PROV = {
+    medium: { word: 'estimated',   tone: 'muted',  why: 'Pattern-matched from two known addresses' },
+    low:    { word: 'guessed',     tone: 'warn',   why: 'Guessed from the name and domain alone' },
+    stated: { word: 'set by hand', tone: 'accent', why: 'Corrected by hand' },
+    high:   { word: 'verified',    tone: 'ok',     why: 'Verified against the company domain' },
+  };
+
   function confBadge(c) {
     const why = c.conf === 'stated'
       /* The fourth tier, and the only one a lookup cannot produce. */
@@ -17872,7 +17976,14 @@
 
        An object, with the person as the source. `stated` is a confidence
        tier like the other three, and `confBadge` now has a sentence for it. */
-    if (o.enrich && o.enrich[field]) {
+    /* ══ AND THE UNDO HAS TO TAKE THIS BACK TOO ═══════════════════════════
+       The toast below restored `o[field]` and nothing else, so undoing a
+       correction put the value back and left the record saying a person had
+       set it. Latent while nothing rendered the tier — the facts line prints
+       it now, and it was visible on the first correction I made: `222 staff`
+       went back to `140 staff` under a standing `set by hand`. */
+    const wasProv = o.enrich && o.enrich[field];
+    if (wasProv) {
       o.enrich[field] = { conf: 'stated', src: me().name, at: iso(TODAY) };
     }
 
@@ -17888,6 +17999,7 @@
     reindex(); paint(); paintRail();
     toast(`${editTitle(o)} — ${spec.label} changed.`, () => {
       o[field] = was;
+      if (wasProv) o.enrich[field] = wasProv;
       if (editKind(o) === 'draft') { o.at = wasAt; o.edited = wasEd; }
       reindex(); paint(); paintRail();
     });
