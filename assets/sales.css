@@ -1820,6 +1820,25 @@ body {
 
 /* The read-only note where a record's actions would be. It occupies the same
    row so the page does not reflow into a shape nobody recognises. */
+/* ARCHIVED, STATED WHERE IT CHANGES THE READING. The whole page below it is
+   an insight, a next step and a timeline that all still describe live work —
+   so this sits between the name and them, filled rather than outlined, because
+   it is the frame those blocks are read inside and not another one of them. */
+.s-arch {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 12px; padding: 8px 12px;
+  border-radius: var(--r-md); background: var(--d800); border: 1px solid var(--d700);
+  font-size: var(--fs-sm); color: var(--d300);
+}
+.s-arch-st {
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--d100);
+}
+.s-arch-say { flex: 1 1 auto; min-width: 200px; }
+/* Pushed to the end of the row rather than following the sentence, so it holds
+   one edge however the sentence wraps. */
+.s-arch-act { margin-left: auto; }
+
 .s-readonly {
   display: flex; align-items: baseline; gap: 4px; margin-top: 16px;
   font-size: var(--fs-xs); color: var(--d500);
@@ -2512,22 +2531,33 @@ body {
 .s-share { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--d400); }
 .s-share-own { display: inline-flex; align-items: center; gap: 4px; color: var(--d100); }
 .s-share-with { color: var(--d400); }
+/* "Nour Wael owns it" — the name is the fact, the verb qualifies it, so they
+   are ranked rather than set as one run at one weight. */
+.s-share-role { color: var(--d400); }
 
-/* What Knowledge holds, as one line rather than a block of cards. It is a
-   sentence with the objects set into it, so it reads at the weight of a
-   footnote — which is what it is on a page about a lead. */
+/* What Knowledge holds: four rows at most, each naming one object. It was a
+   single wrapped sentence, on the argument that a lead page is not a place to
+   browse documents — still true, and the reason this is rows and not the block
+   of cards it replaced. But a sentence cannot name four things without
+   becoming a list read sideways, and counting them instead named none. */
 .s-kbline {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px;
-  padding: 12px 16px; margin-top: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 12px 16px;
   border: 1px solid var(--d700); border-radius: var(--r-md);
   font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
 }
 .s-kbline-mark { flex: none; color: var(--ai-text); transform: translateY(2px); }
-.s-kbline-text { flex: 1 1 auto; min-width: 200px; }
-/* The review flag is the one thing here that is news, so it is the one thing
-   that carries a tone. */
-.s-kbline-warn { color: var(--warn-text); }
-.s-kbline-sep { color: var(--d600); }
+.s-kbline-list { flex: 1 1 auto; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+/* The title is the control and takes the row; its kind and its trust follow on
+   the same line and wrap under it rather than squeezing the name. */
+.s-kbrow { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.s-kbrow-name { text-align: left; }
+/* Borrowed from the Knowledge line when both were one wrapped sentence, and
+   named after it long after only the running-work line still ran that way. */
+.s-runline-text { flex: 1 1 auto; min-width: 200px; }
+.s-runline-sep { color: var(--d600); }
+/* What kind of thing it is — quieter than the title it qualifies. */
+.s-kbline-kind { color: var(--d400); }
 
 /* A review that has been asked for stops being a control and says who asked
    and when — the same move `.cite-action.is-flagged` makes for a report, and
@@ -3334,13 +3364,34 @@ body {
   display: flex; flex-direction: column; gap: 4px;
   padding: 16px; border-radius: var(--r-lg);
   border: 1px solid var(--card-border); background: var(--card-bg);
+  /* The stretched link's containing block, and the hover feedback for a
+     target that is now the whole card rather than one line of it. */
+  position: relative;
+  transition: border-color var(--t-fast), background-color var(--t-fast);
 }
+.s-listrow:hover { border-color: var(--card-border-hover); }
+/* The name's hit area, grown to the card. `inset: 0` on the card's padding
+   box covers the facts and the reading; the two controls below sit above it
+   on their own stacking context. */
+.s-listrow-name::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+/* Focus rings the CARD, because the card is what the name now covers — and
+   it is drawn on the stretched pseudo-element rather than through `:has()`,
+   which this file has twice had stop matching silently. A ring on the button
+   itself would circle one line of text and claim a target that is 210px
+   tall. */
+.s-listrow-name:focus-visible { outline: none; }
+.s-listrow-name:focus-visible::after { outline: 2px solid var(--brand); outline-offset: -2px; }
 /* 4 inside against 16 between — the ratio rule, so three cards read as three
    things rather than as one column. */
 /* The operations, last and quiet. A list you cannot act on is a list nobody
    needs to see — but the verbs are not what you read the card for, so they
    sit under the facts that tell you whether to use them. */
-.s-listrow-ops { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+/* `position: relative` lifts these above the stretched link, so each keeps
+   its own target and its own tab stop. */
+.s-listrow-ops {
+  position: relative; z-index: 1;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px;
+}
 /* ── What AiMY concluded, between the facts and the verbs ──
    Where a reader wants the thing that makes the verb make sense: the facts
    say what the list IS, this says what is wrong with it, the button acts on
@@ -3531,25 +3582,46 @@ body {
 .call-none { font-size: var(--fs-base); color: var(--d600); line-height: var(--lh-relaxed); }
 .call-note-field { display: flex; flex-direction: column; gap: 4px; }
 
-.call-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
-.call-tool {
-  flex: 1 1 auto; min-height: 24px; padding: 8px 12px;
-  border-radius: var(--r-md); border: 1px solid var(--card-border);
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d200);
-  cursor: pointer; transition: background-color var(--t-fast), color var(--t-fast);
+/* ── The handlers: round icon targets, centred, in the order every phone
+   uses. Centred rather than stretched because a round button that grows to
+   fill a column stops reading as a phone control and starts reading as a
+   form. */
+.call-tools {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+  justify-content: center; margin-top: auto;
 }
+.call-tool {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  /* 44px, which is the tap-target floor and the size a thumb finds without
+     looking — the whole reason these stopped being words. */
+  width: 44px; height: 44px;
+  border-radius: 50%; border: 1px solid var(--card-border);
+  color: var(--d200); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.call-tool svg { width: 20px; height: 20px; }
 .call-tool:hover { background: var(--accent-dim); color: var(--d50); }
 .call-tool:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.call-tool.is-on { background: var(--accent-dim); color: var(--d50); border-color: var(--accent); }
+/* On means the thing is DOING something — muted, held — so it is filled
+   rather than outlined. A struck-through microphone that looks identical
+   whether or not you are muted is the state this control exists to show. */
+.call-tool.is-on {
+  background: var(--accent-dim); color: var(--d50); border-color: var(--accent);
+}
 /* The one control that ends a conversation with a person on the other end
-   is the only filled thing in the panel. */
+   is the only filled thing in the panel — and the only one that keeps its
+   word, because it is irreversible and a mispress costs you the call. */
 .call-end {
-  flex: 1 1 100%; min-height: 24px; padding: 8px 12px;
+  flex: 1 1 100%; order: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 8px 12px;
   border-radius: var(--r-md); border: 1px solid var(--err);
   background: var(--err); color: #fff;
   font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
+.call-end svg { width: 18px; height: 18px; }
 /* Darkened FROM the resting value rather than pinned to a literal. It was
    `#d92d20`, which is what `--err` resolves to in LIGHT — so in light theme
    the hover and the resting state were the same colour and the one control
@@ -3583,7 +3655,27 @@ body.is-calling .overlay-chats { display: none; }
    the thing you read and the attribution is what you check afterwards. */
 .s-callp-who { color: var(--d500); }
 .s-obj-pick { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-.s-obj-chip { cursor: pointer; }
+/* ── A pick inside a chip ──
+   The input is the affordance and the chip is the target, so the box is
+   sized and coloured like every other pick on a commit surface rather than
+   left at the browser default. Checkbox and radio both: a call has one
+   disposition and any number of obstacles, so the two shapes sit side by
+   side on one surface and have to look like they belong to it. */
+.s-obj-chip { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.s-obj-chip input, .s-obj-tick, .s-opp-tick, .s-prop-pick {
+  width: 15px; height: 15px; accent-color: var(--accent); flex: none;
+}
+/* The chip follows its own input, so a ticked one reads as chosen at a
+   glance rather than only by the 15px box inside it.
+
+   `:has()` here despite this file's history with it — the two rules that
+   silently stopped matching keyed on a CLASS that a later pass stopped
+   rendering (`.rail-camp`, and a `.s-pick-role` that emptied). This one keys
+   on `input:checked`, a DOM state that cannot be refactored away while there
+   is an input inside the chip, and if the input ever goes so does the chip. */
+.s-obj-chip:has(input:checked) {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--d50);
+}
 /* Same 15px box as every other pick on a commit surface. */
 .s-prop-pick { width: 15px; height: 15px; accent-color: var(--accent); }
 .s-remember { width: 100%; }
@@ -3620,14 +3712,38 @@ body.is-calling .overlay-chats { display: none; }
    account of one conversation and they are read one at a time. */
 .s-calls { display: flex; flex-direction: column; gap: 12px; }
 .s-call {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-  padding: 16px; border-radius: var(--r-lg);
+  padding: 12px 16px; border-radius: var(--r-lg);
   border: 1px solid var(--card-border); background: var(--card-bg);
 }
-.s-call-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.s-call-when { font-size: var(--fs-xs); color: var(--d400); }
-.s-call-by { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d300); }
+/* ── The closed line: when, who, how it went ──
+   The three facts that tell one call from another. `flex` on a `<summary>`
+   because the default marker would sit outside the row and push the date
+   off its left edge; the chevron is drawn instead, on the same construction
+   `.s-trace-sum` uses. */
+.s-call-sum {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  cursor: pointer; list-style: none;
+}
+.s-call-sum::-webkit-details-marker { display: none; }
+.s-call-sum::before { content: "▸ "; color: var(--d500); }
+.s-call[open] .s-call-sum::before { content: "▾ "; }
+.s-call-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-md); }
+.s-call-when { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
+.s-call-by { font-size: var(--fs-xs); color: var(--d400); }
 .s-call-by.is-ai { color: var(--ai-text); font-weight: var(--fw-bold); }
+/* How it went carries the tone, because it is the one fact on the line that
+   is good or bad news rather than a label. */
+.s-call-out { font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
+/* Pushed to the far end: it qualifies the date and is the least of the four,
+   so it neither competes for the left edge nor crowds the outcome. */
+/* Who was rung. First in the closed line and the only bold thing in it,
+   because on an account it is what tells two calls apart. */
+.s-call-who { font-weight: var(--fw-semibold); color: var(--d100); }
+.s-call-ago { margin-left: auto; font-size: var(--fs-2xs); color: var(--d500); }
+.s-call-body {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline);
+}
 
 /* ── Picking cards ──
    The tick sits in the card's own head row, before the type. Quiet until
@@ -3724,15 +3840,9 @@ body.is-calling .overlay-chats { display: none; }
   font-variant-numeric: tabular-nums; letter-spacing: var(--ls-tight);
 }
 .s-door-label { font-size: var(--fs-xs); color: var(--d300); }
-/* `Find companies`, in the strip of the tab it belongs to. `margin-left:
-   auto` pushes it and Close to the right end together — the tabs are the
-   navigation, these two are what you do once you have arrived. */
-.s-tab-new { margin-left: auto; align-self: center; margin-bottom: 4px; }
-.s-tab-new svg { width: 13px; height: 13px; }
-/* Auto only when it is first to the right edge; with `.s-tab-new` present it
-   follows it. */
+/* `Close` is the only thing on the right of the strip now — `Find companies`
+   sat beside it and was a write in the navigation. */
 .s-tab-shut { margin-left: auto; }
-.s-tab-new ~ .s-tab-shut { margin-left: 0; }
 .s-camp-rows { display: flex; flex-direction: column; gap: 2px; }
 .s-camp-row {
   display: grid; grid-template-columns: minmax(0, 15rem) auto minmax(0, 1fr) 13px;
@@ -3985,6 +4095,21 @@ body.is-calling .overlay-chats { display: none; }
    a gradient-filled SVG. */
 .s-ai-btn { display: inline-flex; align-items: center; gap: 4px; }
 .s-ai-btn svg { flex-shrink: 0; }
+/* ══ THE MARK ON A BRAND-FILLED CONTROL ═════════════════════════════════
+   The AiMY mark is a purple radial gradient, which reads on every ground
+   this product has except one: the filled accent primary, where it is purple
+   on purple. Measured on the list card's "Fill them in" — the only thing
+   marking that button as AiMY's, invisible.
+
+   `--aimy-mark` is declared on the symbol's own `fill` with the gradient as
+   its fallback (see index.html), so this is the single place that opts out
+   of it. Custom properties are the one thing that inherits into a `<use>`
+   shadow tree; a `fill` attribute of `url(#aimy-rg)` cannot be reached from
+   outside at all.
+
+   Every other surface is untouched — nothing else sets the variable, so
+   nothing else stops being the brand gradient. */
+.s-insight-lnk.primary, .em-direct, .btn-brand { --aimy-mark: currentColor; }
 .s-trace-sum.s-ai-btn { color: var(--ai-text); font-weight: var(--fw-bold); }
 .ntf-foot-btn.s-ai-btn { justify-content: center; }
 
@@ -4144,6 +4269,31 @@ button.s-ans-name:hover { color: var(--accent); }
 button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .s-ans-sub { color: var(--d500); font-weight: var(--fw-regular); font-size: var(--fs-xs); }
 .s-ans-fact { margin-left: auto; font-size: var(--fs-xs); color: var(--d400); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Who is worth ringing, in the canvas ──
+   Two lines and a phone. Name and role on the first, the reason on the
+   second, the verb on the right of both — so the eye reads down the names,
+   and the hand goes to one column. Divided rather than carded: six people
+   compared on one axis is a list, and six rectangles would make each of them
+   a decision of its own. */
+.s-ring { display: flex; flex-direction: column; }
+.s-ring-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; gap: 4px 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--hairline);
+}
+.s-ring-row:last-child { border-bottom: 0; }
+.s-ring-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+/* The reason spans the name column only, under it — a why that sat beside
+   the name pushed the phone off the row at the canvas's width. */
+.s-ring-why {
+  grid-column: 1; font-size: var(--fs-xs); color: var(--d400);
+  line-height: var(--lh-base); min-width: 0;
+}
+/* The phone spans both rows, so it is one target beside the person rather
+   than one per line. */
+.s-ring-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.s-ring-go svg { width: 13px; height: 13px; }
 .s-ans-go { flex-shrink: 0; }
 
 /* A distribution row IS its own control — the whole row opens the accounts
@@ -4275,6 +4425,13 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
   transition: color var(--t-fast);
 }
 .s-trace-sum::-webkit-details-marker { display: none; }
+/* How many lines are behind it — a count beside the noun rather than baked
+   into a sentence, so "Transcript" stays the label and the number stays the
+   qualifier. Same shape as `.s-tab-n` and `.s-view-n`. */
+.s-trace-n {
+  margin-left: 8px; font-size: var(--fs-2xs); color: var(--d500);
+  font-variant-numeric: tabular-nums;
+}
 .s-trace-sum::before { content: "▸ "; }
 .s-trace[open] .s-trace-sum::before { content: "▾ "; }
 .s-trace-sum:hover { color: var(--d200); }
@@ -4542,29 +4699,52 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-flagchip.tone-ok { color: var(--ok-text); }
 .s-flagchip.tone-neutral { color: var(--d500); }
 
-.s-camp-pair { display: inline-flex; align-items: center; }
-
-/* ── WHERE THIS RECORD STANDS, PER CAMPAIGN ──
-   The ordinal carries it: "3 of 6 · Enrich" says both how far along and how
-   far there is to go, which a stage name alone cannot. Set as a quiet
-   control rather than a chip — it sits beside the campaign chip and must not
-   compete with it, because the campaign is the subject and the stage is a
-   fact about it. */
-.s-rec-stage {
-  display: inline-flex; align-items: baseline; gap: 4px;
-  margin-left: 8px; padding: 2px 8px; min-height: 24px;
-  border-radius: var(--r-sm); cursor: pointer;
-  font-family: inherit; background: none; border: 0;
-  transition: background-color var(--t-fast);
+/* ── WHICH CAMPAIGNS THIS RECORD IS IN, AND WHERE IT STANDS IN EACH ──
+   Two lines per campaign, not one 342px strip. The grid puts the name and its
+   state on the first line with the remove pinned to the right edge, and the
+   record's position on the second, under the name it qualifies. */
+.s-camprows { display: flex; flex-direction: column; gap: 8px; }
+.s-camprow {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: baseline;
+  column-gap: 8px; row-gap: 4px;
+  padding: 8px 12px; border-radius: var(--r-md);
+  /* The card pair, matched. `--d700` is opaque and `--card-border-hover` is
+     14% white, so starting from one and hovering to the other moved the
+     border between two different families and read as a colour change rather
+     than as the boundary strengthening. Both ends come from the design
+     system's card boundary now — the same pair `.s-listrow` uses for the same
+     job, a row you press. */
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  /* The stretched link's containing block, and the hover feedback for it. */
+  position: relative; transition: border-color var(--t-fast);
 }
-.s-rec-stage:hover { background: var(--accent-dim); }
-.s-rec-stage:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.s-rec-stage-n {
-  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--d100);
-  font-variant-numeric: tabular-nums;
+.s-camprow:hover { border-color: var(--card-border-hover); }
+/* The name covers the row, so pressing anywhere opens the campaign at this
+   record's stage — the `::after` idiom rather than `:has()`, which this file
+   has twice had stop matching silently. */
+.s-camprow-name {
+  font-family: inherit; background: none; border: 0; padding: 0; text-align: left;
+  font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50);
+  cursor: pointer;
 }
-.s-rec-stage-of { font-size: var(--fs-2xs); color: var(--d600); }
-.s-rec-stage-name { font-size: var(--fs-xs); color: var(--d300); }
+.s-camprow-name::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.s-camprow-name:focus-visible { outline: none; }
+.s-camprow-name:focus-visible::after { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* A step under the name, level with the position line below it: the campaign
+   is the subject and its state is one of two facts about it. Tone and weight
+   are what separate it from the name, not size — at 14px/400 beside 14px/600
+   it was competing for the same rank. */
+.s-camprow-state { justify-self: start; font-size: var(--fs-xs); }
+/* Above the stretched link, and pinned to the far edge so two rows of
+   different name lengths still put it in one place. */
+.s-camprow .s-camp-out { position: relative; z-index: 1; justify-self: end; margin-left: 0; }
+/* The second line, spanning all three columns under the name. */
+.s-camprow-at {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs); color: var(--d300);
+}
+.s-camprow-sep { color: var(--d600); }
+.s-camprow-add { align-self: flex-start; margin-top: 4px; }
 /* ══ A CONTROL YOU CANNOT SEE IS NOT RESTRAINT ══════════════════════════
    `--d600` measured 2.51:1 — the same near-invisible value the empty states
    were using, on a thing that is not decoration but the only way to take an
@@ -4764,7 +4944,13 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d300);
 }
 .s-field .field-input, .s-field .ds-textarea { width: 100%; }
-.s-field-note { font-weight: var(--fw-regular); color: var(--d500); }
+/* ── The qualifier beside a field label ──
+   `Rememberoptional`. The label and the note are two inline spans with
+   nothing between them, so every field carrying one read as a single
+   run-together word. A margin rather than a space in the markup, because a
+   literal space inside a template is invisible to whoever edits it next and
+   the first person to reformat the line deletes it. */
+.s-field-note { margin-left: 8px; font-weight: var(--fw-regular); color: var(--d500); }
 
 /* ── Owner: one line, and the other five behind a reveal ──
    Six radios for an answer that is "you" nearly every time. `<details>` is

@@ -3202,10 +3202,30 @@
           placeholder="Anything worth keeping.">${esc(c.note)}</textarea>
       </label>
 
+      ${/* ══ ICONS, BECAUSE NOBODY READS MID-CALL ═══════════════════════════
+
+            Three word-pills — Mute · Hold · End — on the one surface where
+            the person using it is talking to somebody else and has about a
+            second of attention to spare. Every telephone made since about
+            2005 puts the same three shapes in the same order, so the shapes
+            are what the hand goes to.
+
+            The LABEL SURVIVES as `aria-label` and as the tooltip, which is
+            what makes this an icon button rather than a mystery: the name is
+            one hover or one screen reader away, and the state is in the name
+            (`Unmute`, not `Mute` again) so it never says the opposite of
+            what pressing it does.
+
+            End keeps its word ALONGSIDE the handset. It is the one
+            irreversible control here and the only one whose mispress costs
+            you the call — Fitts says make it big, and the doctrine says a
+            destructive control states itself. */ ''}
       <div class="call-tools">
-        <button class="call-tool${c.muted ? ' is-on' : ''}" type="button" data-call-mute>${c.muted ? 'Unmute' : 'Mute'}</button>
-        <button class="call-tool${c.held ? ' is-on' : ''}" type="button" data-call-hold>${c.held ? 'Resume' : 'Hold'}</button>
-        <button class="call-end" type="button" data-call-end>End</button>
+        <button class="call-tool${c.muted ? ' is-on' : ''}" type="button" data-call-mute
+          aria-pressed="${!!c.muted}" aria-label="${c.muted ? 'Unmute' : 'Mute'}" title="${c.muted ? 'Unmute' : 'Mute'}">${chIcon(c.muted ? 'mic-off' : 'mic')}</button>
+        <button class="call-tool${c.held ? ' is-on' : ''}" type="button" data-call-hold
+          aria-pressed="${!!c.held}" aria-label="${c.held ? 'Resume' : 'Hold'}" title="${c.held ? 'Resume' : 'Hold'}">${chIcon(c.held ? 'play' : 'pause')}</button>
+        <button class="call-end" type="button" data-call-end aria-label="End the call">${chIcon('hangup')}End</button>
       </div>`;
   }
 
@@ -3318,9 +3338,17 @@
     commit({
       title: `What happened with ${rec.name}?`,
       body: `<p class="s-commit-quote">${esc(fmtClock(c.secs))} on the call${said ? `, ${plural(said, 'line')} recorded` : ', nothing recorded'}.</p>
+        ${/* ══ NO "COUNTS AS REACHING THEM" ═════════════════════════════════
+              Seven rows, and six of them carried the same six words. It was
+              there to explain that a disposition drives the status — but it
+              explained the MODEL, not the choice: nobody picking "Gatekeeper"
+              is deciding whether it counts, they are saying what happened.
+              The consequence is stated once, where consequences go, in the
+              effects line below. */ ''}
+        <div class="s-field-label">Disposition</div>
         <div class="s-pick">${TAX.callOutcome.map((o) => `<label class="ds-choice s-pick-row">
           <input type="radio" name="callout" value="${esc(o.k)}" />
-          <span>${esc(o.label)} <span class="s-pick-role">${esc(o.writes ? 'counts as reaching them' : 'does not count as contact')}</span></span>
+          <span>${esc(o.label)}</span>
         </label>`).join('')}</div>
         ${/* ══ WHAT YOU ASKED FOR, AND WHAT IT SCHEDULES ════════════════════
               The one thing a call produces that nobody can reconstruct
@@ -3328,20 +3356,41 @@
               the disposition where the disposition already implies it: a
               booked callback IS another call, so the surface says so rather
               than making you say it twice. */ ''}
+        ${/* ══ NOUNS, AND MORE THAN ONE OF EACH ══════════════════════════════
+
+              The labels were questions — "What you proposed", "What pushed
+              back", "What opened up" — which is the shape this product took
+              out of its headings two passes ago and then reintroduced here.
+              These are the brief's own four words: disposition, proposal,
+              obstacle, opportunity.
+
+              AND THEY ARE CHECKBOXES. Radios say a call produces exactly one
+              of each, and a real call does not: somebody pushes back on
+              pricing AND timing, or you propose a demo AND to send the deck.
+              Modelling that as one made the person recording it drop
+              whatever came second.
+
+              DISPOSITION STAYS A RADIO, because it is genuinely one — a call
+              ended one way, and "Spoke to them" plus "No answer" is not a
+              call that happened twice, it is a contradiction. */ ''}
         <div class="s-obj-pick">
-          <span class="s-field-label">What you proposed</span>
+          <span class="s-field-label">Proposal</span>
           <div class="s-camps">
-            ${TAX.proposal.map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
-              <input type="radio" name="prop" class="s-prop-pick" value="${esc(o.k)}"${o.k === 'none' ? ' checked' : ''} /> ${esc(o.label)}
+            ${TAX.proposal.filter((o) => o.k !== 'none').map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
+              <input type="checkbox" class="s-prop-pick" value="${esc(o.k)}" /> ${esc(o.label)}
             </label>`).join('')}
           </div>
+          ${/* `none` is no longer a chip. With checkboxes, "nothing" is the
+                empty set — an explicit `Nothing yet` beside five real options
+                is a sixth thing to read that says what not ticking anything
+                already says, and it can contradict them. */ ''}
           <p class="s-ch-note" data-effect="propNext">Nothing was asked for, so nothing is scheduled.</p>
         </div>
         <div class="s-obj-pick">
-          <span class="s-field-label">What pushed back</span>
+          <span class="s-field-label">Obstacle</span>
           <div class="s-camps">
             ${TAX.objection.map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
-              <input type="radio" name="objection" value="${esc(o.k)}" /> ${esc(o.label)}
+              <input type="checkbox" class="s-obj-tick" value="${esc(o.k)}" /> ${esc(o.label)}
             </label>`).join('')}
           </div>
         </div>
@@ -3362,15 +3411,15 @@
               readings already use. Writing an opportunity directly would
               have made a second source of truth for one fact. */ ''}
         <div class="s-obj-pick">
-          <span class="s-field-label">What opened up</span>
+          <span class="s-field-label">Opportunity</span>
           <div class="s-camps">
             ${TAX.signalKind.map((o) => `<label class="chip default s-obj-chip">
-              <input type="radio" name="opp" value="${esc(o.k)}" /> ${esc(label('opportunity', o.into))}
+              <input type="checkbox" class="s-opp-tick" value="${esc(o.k)}" /> ${esc(label('opportunity', o.into))}
             </label>`).join('')}
           </div>
         </div>
         <label class="ds-field s-field">
-          <span class="s-field-label">What was said</span>
+          <span class="s-field-label">Note</span>
           <textarea class="ds-textarea s-why" rows="2" spellcheck="false"
             placeholder="In your words. This is what the next person to open this record will read.">${esc(c.note)}</textarea>
         </label>
@@ -3387,7 +3436,7 @@
               top of the next brief, which is the only thing that makes
               writing it worth doing. */ ''}
         <label class="ds-field s-field">
-          <span class="s-field-label">Remember for next time<span class="s-field-note">optional</span></span>
+          <span class="s-field-label">Remember<span class="s-field-note">optional</span></span>
           <input class="input s-remember" type="text" spellcheck="false"
             value="${esc((rec.remember && rec.remember.text) || '')}"
             placeholder="Anything true of them next month — timing, who decides, what they care about." />
@@ -3400,9 +3449,13 @@
       run() {
         const out = ($('input[name="callout"]:checked') || {}).value;
         const why = (($('.s-why') || {}).value || '').trim();
-        const obj = ($('input[name="objection"]:checked') || {}).value || null;
-        const opp = ($('input[name="opp"]:checked') || {}).value || null;
-        const prop = ($('input[name="prop"]:checked') || {}).value || 'none';
+        /* Sets now, not single values. `objection` and `proposal` become
+           arrays on the touchpoint; the FIRST of each is what the axes read,
+           so every filter, count and reading that has ever asked `t.objection`
+           keeps working against a record that now carries two. */
+        const objs = $$('.s-obj-tick:checked').map((i) => i.value);
+        const opps = $$('.s-opp-tick:checked').map((i) => i.value);
+        const props = $$('.s-prop-pick:checked').map((i) => i.value);
         const remember = (($('.s-remember') || {}).value || '').trim();
         if (!out) { toast('Nothing picked, so nothing was logged.'); return false; }
         if (!why) { toast('A call with no note is a call nobody else can read. Nothing was logged.'); return false; }
@@ -3412,12 +3465,19 @@
           ch: 'phone', dir: 'out', at: iso(TODAY), by: me().id,
           outcome: callToOutcome(out),
           note: why, list: campsOf(rec)[0] || null, steps: null,
-          reply: null, objection: obj, callOutcome: out,
-          /* What was asked for. `none` is a real answer — a groundwork call
-             is a thing that happens — so it is stored rather than nulled, and
-             the summary can say "nothing was asked for" as a fact instead of
-             leaving a blank somebody has to interpret. */
-          proposal: prop,
+          /* ══ ONE FOR THE AXES, ALL OF THEM FOR THE RECORD ══════════════
+             `objection` is a scalar everywhere else in this file — the
+             Replies rows, `offeringGaps`, `objectionLikely`, the campaign
+             readings and three filters all do `t.objection === k`. Widening
+             it to an array would have broken every one of them silently,
+             which is the worst kind of change: nothing throws, the numbers
+             just quietly stop counting.
+             So the first stays where it was and the full set sits beside it.
+             The summary reads the set; everything that has ever read the
+             scalar keeps reading the scalar. */
+          reply: null, objection: objs[0] || null, objections: objs,
+          callOutcome: out,
+          proposal: props[0] || 'none', proposals: props,
           /* ══ THE TRANSCRIPT SURVIVES THE CALL ═══════════════════════════
 
              R5.2 derives the obstacle insight from "analysis of dispositions
@@ -3442,9 +3502,11 @@
         /* Dated today and attributed to the person who heard it, so the
            record says where it came from rather than presenting a hand-typed
            opportunity as something AiMY found. */
-        const sig = opp ? { id: 'sg-said-' + Date.now(), on: rec.id, acc: accOf(rec).id,
-          kind: opp, at: iso(TODAY), detail: why, by: me().id } : null;
-        if (sig) DB.signal.push(sig);
+        /* One signal per opportunity ticked, so two openings recorded on one
+           call arrive as two facts the rail and the filters can each find. */
+        const sigs = opps.map((k, n) => ({ id: 'sg-said-' + Date.now() + '-' + n, on: rec.id, acc: accOf(rec).id,
+          kind: k, at: iso(TODAY), detail: why, by: me().id }));
+        sigs.forEach((x) => DB.signal.push(x));
 
         /* ══ WHAT YOU PROPOSED BECOMES WHAT IS DUE ═══════════════════════
            A proposal with no date is a thing you meant to do. `TAX.proposal`
@@ -3455,7 +3517,11 @@
            Only where there is nothing already scheduled: overwriting a next
            step somebody else set, on the strength of a chip, is the kind of
            quiet write this product keeps taking out. */
-        const wantNext = BY.proposal[prop] && BY.proposal[prop].next;
+        /* The first proposal names the follow-up. Several proposals do not
+           mean several next steps — a next step is the ONE thing due, and
+           the rest are in the summary. */
+        const firstProp = props[0];
+        const wantNext = firstProp && BY.proposal[firstProp] && BY.proposal[firstProp].next;
         const prevNext = rec.next;
         if (wantNext && !rec.next) {
           rec.next = { what: wantNext, due: iso(shift(TODAY, 7)), by: me().id };
@@ -3465,16 +3531,29 @@
         if (remember) rec.remember = { text: remember, by: me().id, at: iso(TODAY) };
 
         reindex(); paint(); paintChrome();
-        /* The overview, in the canvas, as the thing that closes the loop —
-           see `callSummary`. A toast says it was logged; this says what was
-           logged, and it is the same block the record's call history draws. */
-        callSummary(t, rec);
-        toast(`Logged: ${row.label.toLowerCase()} on ${rec.name}${sig ? `, and ${label('opportunity', BY.signalKind[opp].into).toLowerCase()}` : ''}.`, () => {
+        toast(`Logged: ${row.label.toLowerCase()} on ${rec.name}${sigs.length ? `, and ${plural(sigs.length, 'opening')}` : ''}.`, () => {
           DB.touch = DB.touch.filter((x) => x.id !== t.id);
-          if (sig) DB.signal = DB.signal.filter((x) => x.id !== sig.id);
+          const made = sigs.map((x) => x.id);
+          if (made.length) DB.signal = DB.signal.filter((x) => !made.includes(x.id));
           rec.next = prevNext; rec.remember = prevRemember;
           reindex(); paint(); paintChrome();
         });
+        /* ══ AFTER THE TOAST, NOT BEFORE ═══════════════════════════════════
+
+           The overview closes the loop — a toast says it was logged, this
+           says WHAT was logged, and it is the same block the record's call
+           history draws.
+
+           It has to come second. `renderWork` puts its block into the thread
+           with `pushMsg`, which writes the DOM only; `toast` calls
+           `noteChange`, which pushes a stored turn and repaints the thread
+           from the array — wiping anything that was never in it. Called
+           first, the overview appeared and vanished in the same frame.
+
+           `repaintKb` carries the identical note about `askReview`. Two
+           surfaces have now hit it, which makes it the shape of this thread
+           rather than a mistake either of them made. */
+        callSummary(t, rec);
       },
     });
   }
@@ -3497,26 +3576,42 @@
      `rows` and not prose: six labelled facts of different kinds, which is
      the shape `.s-callp` already carries on the brief. A paragraph would
      make the reader parse for the one they wanted. */
+  /* The brief's four nouns, in the order a call produces them. Each reads
+     the SET where there is one and falls back to the scalar for the calls
+     logged before there were sets — a row that said "Pricing" on a call that
+     recorded pricing and timing would be quietly losing half of it. */
   function callFacts(t, rec) {
     const out = BY.callOutcome[t.callOutcome] || BY.outcome[t.outcome];
-    const prop = BY.proposal[t.proposal];
+    const many = (list, one, fmt) => {
+      const set = (list && list.length ? list : (one ? [one] : []));
+      return set.map(fmt).filter(Boolean);
+    };
+    const props = many(t.proposals, t.proposal === 'none' ? null : t.proposal, (k) => (BY.proposal[k] || {}).label);
+    const objs = many(t.objections, t.objection, (k) => label('objection', k));
+    /* The openings are on the record as signals — read back rather than
+       stored twice, so correcting a signal corrects this. */
+    const sigs = (DB.signalOn[t.on] || []).filter((x) => x.at === t.at && x.by === t.by);
+
     const rows = [];
-    if (out) rows.push(['How it went', out.label, out.tone]);
-    /* `none` states itself. A groundwork call is a thing that happened, and
-       leaving the row out would make it indistinguishable from a call
-       logged before this field existed. */
-    if (prop) rows.push(['You proposed', prop.label, prop.k === 'none' ? 'neutral' : 'ok']);
-    if (t.objection) rows.push(['They pushed back on', label('objection', t.objection), 'warn']);
-    /* The opening is on the record as a signal — this reads it back rather
-       than storing a second copy, so correcting the signal corrects this. */
-    const sig = (DB.signalOn[t.on] || []).filter((x) => x.at === t.at && x.by === t.by)[0];
-    if (sig) rows.push(['Opened up', label('opportunity', (BY.signalKind[sig.kind] || {}).into || sig.kind), 'ok']);
+    if (out) rows.push(['Disposition', out.label, out.tone]);
+    /* Stated even when empty. A groundwork call is a thing that happened,
+       and a missing row is indistinguishable from a call logged before the
+       field existed. */
+    rows.push(['Proposal', props.length ? props.join(' · ') : 'nothing asked for', props.length ? 'ok' : 'neutral']);
+    if (objs.length) rows.push(['Obstacle', objs.join(' · '), 'warn']);
+    if (sigs.length) rows.push(['Opportunity', sigs.map((x) => label('opportunity', (BY.signalKind[x.kind] || {}).into || x.kind)).join(' · '), 'ok']);
     if (rec && rec.next) rows.push(['Next', `${rec.next.what}, due ${fmtDate(rec.next.due)}`, 'neutral']);
     return rows;
   }
 
-  function callSummaryHtml(t, rec) {
-    const rows = callFacts(t, rec);
+  /* `without` drops a row the surface around it already states. The record's
+     call list puts the disposition in the closed summary — it is what tells
+     one call from another — so repeating it as the first row inside is the
+     same fact twice, eight pixels apart. The canvas overview passes nothing
+     and keeps all of them, because there it is the only thing on screen. */
+  function callSummaryHtml(t, rec, without) {
+    const skip = without || [];
+    const rows = callFacts(t, rec).filter(([cap]) => !skip.includes(cap));
     return `<div class="s-callsum">
       <div class="s-callsum-rows">
         ${rows.map(([cap, val, tone]) => `<div class="s-callsum-row">
@@ -3527,7 +3622,7 @@
       ${t.note ? `<p class="s-callsum-note">${esc(t.note)}</p>` : ''}
       ${rec && rec.remember ? `<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>${esc(rec.remember.text)}</p>` : ''}
       ${t.lines && t.lines.length ? `<details class="s-trace">
-        <summary class="s-trace-sum">${esc(plural(t.lines.length, 'line'))} recorded</summary>
+        <summary class="s-trace-sum">Transcript<span class="s-trace-n">${t.lines.length}</span></summary>
         <div class="s-said-lines">
           ${t.lines.map((l) => `<p class="call-line is-${esc(l.who)}"><span class="call-who">${l.who === 'you' ? esc(actor(t.by).name.split(' ')[0]) : 'Them'}</span>${esc(l.text)}</p>`).join('')}
         </div>
@@ -6570,6 +6665,23 @@
     pin: '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
     aimy: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    /* ══ THE CALL HANDLERS, AS THE SHAPES EVERYBODY ALREADY KNOWS ══════════
+
+       Mute · Hold · Hang up were words in a row of pills. Jakob's Law is the
+       whole argument: every phone anybody has held for twenty years puts a
+       struck-through microphone, two bars and a tilted handset in that
+       order, and a caller reaching for one mid-conversation is not reading.
+
+       `hangup` is the handset rotated 135° — the shape a receiver makes
+       going back into a cradle, which is why it means what it means. Drawn
+       from the same `phone` path rather than a second outline, so the two
+       cannot drift apart. */
+    mic: '<path d="M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/>',
+    'mic-off': '<path d="M15 9V6a3 3 0 00-5.9-.7M9 9v3a3 3 0 004.6 2.5"/><path d="M5 11a7 7 0 0011.5 5.4M19 11a7 7 0 01-.3 2M12 18v3M9 21h6"/><path d="M3 3l18 18"/>',
+    pause: '<path d="M9 5v14M15 5v14"/>',
+    play: '<path d="M7 4l12 8-12 8z"/>',
+    hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
+    dot: '<circle cx="12" cy="12" r="6"/>',
   };
   const chIcon = (k) =>
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ''}</svg>`;
@@ -8135,6 +8247,32 @@
             <h1 class="s-rec-name">${editField(rec, 'name')}</h1>
             <span class="s-meta-st tone-${toneOf(st)}">${esc(label('status', st))}</span>
           </div>
+
+          ${/* ══ ARCHIVED WAS A WORD ON A BUTTON, AT THE BOTTOM ══════════════
+
+                An archived record rendered IDENTICALLY to a live one — its
+                status chip, its insight, its next step, its whole page — and
+                the only evidence anywhere on it was a ghost button in the
+                last block reading `Bring it back`, which tells you what to
+                press and never what happened. Measured: the string "archiv"
+                appeared nowhere on an archived record.
+
+                So the fact states itself, in the position that changes how
+                everything under it is read, and it carries the one thing you
+                would do here. `Bring it back` is a nudge, not a verb —
+                `Restore` says the same thing and says it in the vocabulary
+                everything else on this page uses.
+
+                And the consequence comes with it. `archiveRec`'s toast
+                already says "still in 2 campaigns — a running one keeps
+                sending", which is the fact that makes archiving surprising —
+                and it said it for four seconds, once, at the moment you
+                archived. It is a standing condition, so it stands. */ ''}
+          ${rec.arch ? `<div class="s-arch">
+            <span class="s-arch-st">Archived</span>
+            <span class="s-arch-say">${esc(archSay(rec))}</span>
+            ${canWrite() ? `<button class="btn btn-ghost btn-sm s-arch-act" type="button" data-archive="${esc(rec.id)}">Restore</button>` : ''}
+          </div>` : ''}
           ${/* ══ WHAT TO DO, THEN WHY, THEN THE FACTS ═════════════════════
 
                 The page used to open with a status word, five facts run
@@ -8189,7 +8327,9 @@
                    title="No number on this record">${chIcon('phone')}No number — find one</button>`) : ''}
             <button class="btn btn-ghost btn-sm" type="button" data-share="${esc(rec.id)}">Share</button>
             <button class="btn btn-ghost btn-sm" type="button" data-ending="${esc(rec.id)}">${ENDINGS.includes(st) ? 'Change how it ended' : 'Record how it ended'}</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-archive="${esc(rec.id)}">${rec.arch ? 'Bring it back' : 'Archive'}</button>
+            ${/* Only one way in. Restoring lives on the banner, beside the
+                  state it undoes. */ ''}
+            ${rec.arch ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-archive="${esc(rec.id)}">Archive</button>`}
           </div>
         </div>` : ''}
       </div>
@@ -8309,11 +8449,11 @@
     if (live.length) {
       out.push(`<div class="s-runline">
         <span class="s-kbline-mark">${aiMark()}</span>
-        <span class="s-kbline-text">${live.map((t) => {
+        <span class="s-runline-text">${live.map((t) => {
           const st = taskState(t);
           return `<button class="s-inline-btn" type="button" data-task="${esc(t.id)}">${esc(t.title)}</button>
             <span class="s-run-st tone-${esc(TASK_STATE[st].tone)}">${esc(TASK_STATE[st].label.toLowerCase())}</span>`;
-        }).join('<span class="s-kbline-sep"> · </span>')}</span>
+        }).join('<span class="s-runline-sep"> · </span>')}</span>
       </div>`);
     }
 
@@ -8387,14 +8527,40 @@
        rest. It presses through to that campaign at that stage. */
     const mine = campsOf(rec).map((k) => DB.campBy[k]).filter(Boolean);
     const host = accOf(rec);
+    /* ══ THREE CONTROLS AND FOUR FACTS IN A 28px STRIP ═════════════════════
+
+       Measured: `Q3 Netherlands — QA RUNNING 4 of 4 Measure ×` — a 342px
+       inline run holding the campaign's name, its state, this record's stage,
+       the stage ordinal, the total, and a remove — with three separate
+       buttons inside it and nothing saying which was which. Two campaigns put
+       707px of that on one wrapping line.
+
+       The fault is that it was built as a CHIP. A chip is one word you press;
+       this is a thing with a name, a state and a position, which is a row.
+       So it is a row, in the anatomy the rest of the product uses: the name
+       and its state on top, where this record stands underneath, the whole
+       row opening the campaign, and the remove sitting above it.
+
+       AND THREE DESTINATIONS BECOME ONE. The name went to the campaign and
+       the stage went to the campaign AT that stage — `data-camprow` carries
+       both, so it strictly dominates, and from a record the useful answer is
+       the node this record is actually sitting in. A second control to reach
+       a less specific version of the same page is a choice the reader has to
+       make and cannot get wrong, which is the worst kind. */
     out.push(block('Campaigns', mine.length
-      ? `<div class="s-camps">${mine.map((c) => {
+      ? `<div class="s-camprows">${mine.map((c) => {
           const st = campState(c);
           const k = memberStage(host, c);
           const stage = STAGE_BY[k];
-          return `<span class="s-camp-pair"><button class="chip default s-camp-chip" type="button" data-camp="${esc(c.k)}">${esc(c.name)}<span class="s-camp-state tone-${esc(CAMP_STATE[st].tone)}">${esc(CAMP_STATE[st].label)}</span></button><button class="s-rec-stage" type="button" data-camprow="${esc(c.k)}|${esc(k)}" aria-label="${esc(`At ${stage.label}, step ${stage.n} of ${CAMP_STAGE.length} of ${c.name}`)}"><span class="s-rec-stage-n">${stage.n}</span><span class="s-rec-stage-of">of ${CAMP_STAGE.length}</span><span class="s-rec-stage-name">${esc(stage.label)}</span></button>${canWrite() ? `<button class="s-camp-out" type="button" data-uncamp="${esc(rec.id)}|${esc(c.k)}" aria-label="Take it out of ${esc(c.name)}">×</button>` : ''}</span>`;
+          return `<div class="s-camprow">
+            <button class="s-camprow-name" type="button" data-camprow="${esc(c.k)}|${esc(k)}"
+              aria-label="${esc(`${c.name}, ${CAMP_STATE[st].label.toLowerCase()} — open it at ${stage.label}`)}">${esc(c.name)}</button>
+            <span class="s-camprow-state tone-${esc(CAMP_STATE[st].tone)}">${esc(CAMP_STATE[st].label)}</span>
+            ${canWrite() ? `<button class="s-camp-out" type="button" data-uncamp="${esc(rec.id)}|${esc(c.k)}" aria-label="Take it out of ${esc(c.name)}">×</button>` : ''}
+            <span class="s-camprow-at">${esc(stage.label)}<span class="s-camprow-sep"> · </span>step ${stage.n} of ${CAMP_STAGE.length}</span>
+          </div>`;
         }).join('')}
-        ${canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-addlist="${esc(rec.id)}">Add to another</button>` : ''}</div>`
+        ${canWrite() ? `<button class="btn btn-ghost btn-sm s-camprow-add" type="button" data-addlist="${esc(rec.id)}">Add to another</button>` : ''}</div>`
       : `<p class="s-none">In no campaign.${canWrite() ? ` <button class="s-inline-btn" type="button" data-addlist="${esc(rec.id)}">Add it to one</button>` : ''}</p>`));
 
     /* ── History, collapsed ──
@@ -8440,15 +8606,44 @@
        a call is the one thing this record must never do. */
     const calls = touchesFor(rec).filter((t) => t.ch === 'phone');
     if (calls.length) {
+      /* ══ CLOSED, AND EACH ONE ITS OWN ═══════════════════════════════════
+
+            Every call drew its full summary — six labelled rows, the note,
+            the remember line and the transcript — so a record with four
+            calls was four open reports stacked, and finding the one you
+            wanted meant reading all of them.
+
+            The summary line is who · when · how it went, which is what
+            distinguishes one call from another and the whole of what you
+            scan a history for. Everything else is inside.
+
+            NEWEST OPEN. The last call is the one you need before the next,
+            and a history whose every entry is shut asks you to press before
+            it tells you anything — so the first is open and the rest wait to
+            be asked for. */
       out.push(block('Calls', `<div class="s-calls">
-        ${calls.map((t) => `<article class="s-call">
-          <div class="s-call-head">
-            <span class="s-call-when">${esc(fmtDate(t.at))} · ${esc(fmtAgo(t.at))}</span>
-            <span class="s-call-by${t.by === 'aimy' ? ' is-ai' : ''}">${esc(actor(t.by).name)}</span>
-          </div>
-          ${callSummaryHtml(t, rec)}
-          ${canWrite() ? `<button class="s-inline-btn" type="button" data-fixtouch="${esc(t.id)}">Correct it</button>` : ''}
-        </article>`).join('')}
+        ${calls.map((t, i) => {
+          const out2 = BY.callOutcome[t.callOutcome] || BY.outcome[t.outcome];
+          const who = rec.kind === 'acc' ? DB.conBy[t.on] : null;
+          return `<details class="s-call"${i === 0 ? ' open' : ''}>
+            <summary class="s-call-sum">
+              ${/* WHO WAS RUNG, ON AN ACCOUNT. The closed line named the rep
+                    who dialled and never the person on the other end — which
+                    on an organization with four contacts is the one thing
+                    that tells two calls apart. On a contact's own record it
+                    is the page's title, so it does not repeat there. */ ''}
+              ${who ? `<span class="s-call-who">${esc(who.name)}</span>` : ''}
+              <span class="s-call-when">${esc(fmtDate(t.at))}</span>
+              <span class="s-call-by${t.by === 'aimy' ? ' is-ai' : ''}">${esc(actor(t.by).name)}</span>
+              ${out2 ? `<span class="s-call-out tone-${esc(out2.tone)}">${esc(out2.label)}</span>` : ''}
+              <span class="s-call-ago">${esc(fmtAgo(t.at))}</span>
+            </summary>
+            <div class="s-call-body">
+              ${callSummaryHtml(t, rec, ['Disposition'])}
+              ${canWrite() ? `<button class="s-inline-btn" type="button" data-fixtouch="${esc(t.id)}">Correct it</button>` : ''}
+            </div>
+          </details>`;
+        }).join('')}
       </div>`));
     }
 
@@ -8467,11 +8662,25 @@
     }
 
     const shared = rec.shared || [];
-    out.push(block('Shared with', `<div class="s-share">
-      <span class="s-share-own"><span class="avatar avatar-sm">${esc(actor(rec.owner).initials)}</span>${esc(actor(rec.owner).name)} owns it</span>
+    /* ══ "SHARED WITH · NOUR WAEL OWNS IT · NOT SHARED WITH ANYONE" ═════
+
+          Three claims that argued with each other. The caption said the
+          block was about sharing, the first line answered a different
+          question — who owns it — and the last line then denied the caption.
+          Read top to bottom it says "shared with: nobody", under a heading
+          promising a list.
+
+          The block is about WHO HOLDS IT, which is one question with two
+          parts: an owner, always, and other people, sometimes. So the
+          caption names that, the owner is stated as a fact, and the second
+          half only appears when there is a second half — an absence does not
+          need a sentence of its own when the heading no longer promises
+          one. */
+    out.push(block('Who holds it', `<div class="s-share">
+      <span class="s-share-own"><span class="avatar avatar-sm">${esc(actor(rec.owner).initials)}</span>${esc(actor(rec.owner).name)}<span class="s-share-role"> owns it</span></span>
       ${shared.length
-        ? `<span class="s-share-with">shared with ${shared.map((id) => `<button class="s-inline-btn" type="button" data-gofilter="shared:${esc(id)}" title="See everything shared with ${esc(actor(id).name)}">${esc(actor(id).name)}</button>`).join(', ')}</span>`
-        : `<span class="s-none">not shared with anyone</span>`}
+        ? `<span class="s-share-with">also ${shared.map((id) => `<button class="s-inline-btn" type="button" data-gofilter="shared:${esc(id)}" title="See everything shared with ${esc(actor(id).name)}">${esc(actor(id).name)}</button>`).join(', ')}</span>`
+        : ''}
     </div>`));
 
     /* ── What Knowledge holds ──
@@ -8484,7 +8693,7 @@
        So: one line, naming what is there, opening it where reading happens.
        The retrieval AIMY-1253 asks for is unchanged; only its weight is. */
     const kb = knowledgeFor(rec, acc);
-    if (kb.length) out.push(kbLine(kb, acc));
+    if (kb.length) out.push(block('Knowledge', kbLine(kb, acc, rec)));
 
     return out.join('');
   }
@@ -8576,39 +8785,60 @@
      object *Verified* teaches people to stop reading badges, and the badge
      exists for the expired one. The full state is on every object in the
      canvas, where it is being read rather than counted. */
-  function kbLine(kb, acc) {
-    const icp = kb.find((k) => k.type === 'icp' && k.id === acc.icp);
-    const rest = kb.filter((k) => k !== icp);
+  function kbLine(kb, acc, rec) {
+    /* ══ "1 THING TO SEND" NAMED NOTHING, UNDER NO HEADING ══════════════
 
-    /* Two targets at most, and each opens exactly what it names — the ICP
-       alone, or the sendable material alone. An extra "read them all" would
-       be a third button covering the union of the other two, which is the
-       same duplication the cards were removed for, one order smaller. */
-    const parts = [];
-    if (icp) {
-      parts.push(`Matched <button class="s-inline-btn" type="button" data-kb="${esc(icp.id)}">${esc(icp.title)}</button>`
-        + (icp.trust !== 'verified'
-          ? ` <span class="trust-state ts-${esc(icp.trust)}" data-trust-state="${esc(icp.trust)}">${esc(TRUST_LABEL[icp.trust])}</span>`
-          : ''));
-    }
-    if (rest.length) {
-      /* THE STALE COUNT IS A CONTROL. It was text, on the argument that a
-         button here would open what the button beside it already opens.
-         That was wrong twice over: it opens a DIFFERENT set — one object,
-         not four — so finding the stale one meant opening four and hunting
-         for the badge; and "review" is not "read", so even having found it
-         there was nothing to do. A line that names a problem and offers no
-         way to it is the shape this whole surface exists to remove. */
-      const stale = rest.filter((k) => k.trust !== 'verified');
-      parts.push(`<button class="s-inline-btn" type="button" data-kb="${esc(rest.map((k) => k.id).join(','))}">${rest.length} ${icp ? 'more' : 'thing' + (rest.length === 1 ? '' : 's')} to send</button>`
-        + (stale.length
-          ? `<span class="s-kbline-sep"> — </span><button class="s-inline-btn s-kbline-warn" type="button" data-kb="${esc(stale.map((k) => k.id).join(','))}">${stale.length} need${stale.length === 1 ? 's' : ''} a review</button>`
-          : ''));
-    }
+       Two failures, and the second caused the first.
+
+       This was the ONE row on a record with no caption — every other block
+       states what it is in the left column, and this one arrived as a
+       floating sentence with an AI glyph in front of it. With nothing
+       saying WHAT the row was, its contents had to carry that job too, and
+       they were the least able to: "Matched ICP — QA, enterprise EMEA ·
+       1 thing to send". A proper noun and a count, answering neither what
+       this is nor what is in it.
+
+       And the count was the worse half. `knowledgeFor` returns AT MOST
+       FOUR objects, so there was never a set too large to name — "1 thing"
+       is strictly less informative than the title sitting right behind it,
+       and the only way to learn which document AiMY had was to press a
+       button whose label had already told you everything it was going to.
+
+       So: the block says Knowledge, and every object states its own title,
+       its kind, and its trust when that is not clean. Four rows at most,
+       which is what four rows of a real corpus cost — and the aggregated
+       "N need a review" button goes, because a badge on the row whose
+       title opens that exact object is a shorter route than a control that
+       opened a set. */
+    const icp = kb.find((k) => k.type === 'icp' && k.id === acc.icp);
+    const rows = icp ? [icp].concat(kb.filter((k) => k !== icp)) : kb;
+
+    /* WHY EACH ONE IS HERE, WHERE THAT IS NOT THE KIND ITSELF.
+       `knowledgeFor` pulls from three places and only one of them is
+       self-evident: a story or a deck is here because it matches the
+       service, which its kind says. The account's own profile is here
+       because it matched. The third — whatever a campaign hangs its
+       Knowledge on — is here because of the campaign, and a campaign may
+       hang an ICP there, so a QA account in a voice campaign drew TWO rows
+       reading `ICP`, one of them matched and the other unexplained. The
+       campaign names itself now. */
+    const from = {};
+    (rec ? campsOf(rec) : []).forEach((k) => {
+      const c = DB.campBy[k];
+      if (c && c.kb && c.kb !== acc.icp) from[c.kb] = c.name;
+    });
 
     return `<div class="s-kbline">
       <span class="s-kbline-mark">${aiMark()}</span>
-      <span class="s-kbline-text">${parts.join('<span class="s-kbline-sep"> · </span>')}</span>
+      <div class="s-kbline-list">
+        ${rows.map((k) => `<div class="s-kbrow">
+          <button class="s-inline-btn s-kbrow-name" type="button" data-kb="${esc(k.id)}">${esc(k.title)}</button>
+          <span class="s-kbline-kind">${k === icp ? 'Matched ' : ''}${esc(KB_TYPE[k.type] || k.type)}${from[k.id] ? esc(` · from ${from[k.id]}`) : ''}</span>
+          ${k.trust !== 'verified'
+            ? `<span class="trust-state ts-${esc(k.trust)}" data-trust-state="${esc(k.trust)}">${esc(TRUST_LABEL[k.trust])}</span>`
+            : ''}
+        </div>`).join('')}
+      </div>
     </div>`;
   }
 
@@ -9943,13 +10173,20 @@
       <div class="s-tabstrip" role="tablist">
         ${tabs.map((t) => `<button class="s-tab${t.k === open ? ' is-on' : ''}" type="button" role="tab"
           aria-selected="${t.k === open}" data-tab="${esc(t.k)}">${esc(t.label)}<span class="s-tab-n">${tabPool(t.k).length}</span></button>`).join('')}
-        ${/* Ghost, like `New campaign` beside the campaigns it heads. It was
-              filled, and on a tab whose cards each carry AiMY's own
-              recommendation that is two filled controls where the rule is
-              one. A standing entrance is reachable from everywhere and is
-              never what AiMY thinks you should do next. */ ''}
-        ${open === 'lists' && canWrite()
-          ? `<button class="btn btn-ghost btn-sm s-tab-new" type="button" data-findco>${chIcon('plus')}Find companies</button>` : ''}
+        ${/* ══ NO `FIND COMPANIES` IN THE STRIP ══════════════════════════════
+
+              It sat in the tab bar — navigation — as a verb belonging to one
+              of the three tabs, so the row read as "Organizations · Contacts
+              · Lists · and also make one". A tab strip says where you are;
+              putting a write in it makes the position of a control depend on
+              which tab happens to be open.
+
+              Sourcing stays reachable from the three places that are about
+              sourcing: the chat (`findco` and `find-lookalikes` are both
+              shapes it answers), the initiative AiMY raises when the book is
+              thin, and every campaign's own Find node — which is the one
+              that matters, because a list made for nothing is the case this
+              product keeps arguing against. */ ''}
         ${/* The way back to the doors. An opened tab that cannot be closed is
               not a disclosure, it is a mode — and the briefing spent two
               versions removing modes. */ ''}
@@ -10149,6 +10386,22 @@
        which is the whole point of the change. */
     const read = listReading(s).card;
     return `<article class="s-listrow" style="--i:${i || 0}" data-aimy-item="${esc(s.k)}">
+      ${/* ══ THE WHOLE CARD OPENS THE LIST ═══════════════════════════════
+
+            Only the name was pressable — a 16px run of text at the top of a
+            210px card, so most of the target was inert and the card looked
+            like something you could click and mostly could not. Fitts's Law
+            the wrong way round: the biggest thing on screen was the smallest
+            thing you could hit.
+
+            A STRETCHED LINK, not a wrapping button. The card holds two
+            controls of its own and a button inside a button is invalid and
+            unreachable by keyboard. So the name stays a real button and its
+            `::after` covers the card; the two AiMY controls are lifted above
+            it with `position: relative`, so each keeps its own target and
+            its own tab stop. Three controls, one card, no nesting — which is
+            the same construction `.s-inline-btn::after` already uses to grow
+            a hit area without growing the ink. */ ''}
       <button class="s-listrow-name" type="button" data-quick="${esc(listQuery(s.k))}">${esc(s.name)}</button>
       ${/* ══ THE CARD READS, IT DOES NOT WRITE ═══════════════════════════
 
@@ -11462,6 +11715,74 @@
       } });
     go({ on: 'campaigns', camp: key, stage: campStage(c), lead: '', chat: '' });
     paintChrome();
+  }
+
+  /* ══ WHO IS WORTH RINGING, WITH THE PHONE ON EACH ROW ══════════════════
+
+     `Ring someone` used to write `tab=contacts&cut=worth-call` — a correct
+     narrowing of the briefing's contacts tab, which is at the FOOT of the
+     page. So pressing the second opener in "Since your last visit" changed a
+     count 1,400px below the fold and left the screen you were looking at
+     identical. The action worked and the product looked broken, which is the
+     same defect the float chips had before `on` defaulted to the list.
+
+     Sending you to the leads surface instead would have been the other
+     obvious fix and it is worse: you asked WHO SHOULD I RING, and a filtered
+     grid answers "here is a set, now read twelve rows and choose". The
+     question has a short answer and AiMY has it.
+
+     So it answers, in the canvas, where an answer belongs — and each row
+     carries the phone, because the whole point of asking is that you are
+     about to dial. Ranked by `queueBlock`'s own function so the opener and
+     the queue cannot disagree about who is first, and the reason on each row
+     is `whyFlag`/`because` — the same sentence the record states, not a
+     second derivation of it. */
+  function whoToRing() {
+    if (!canWrite()) return;
+    const mine = maySee(DB.con).filter((c) => !c.arch && c.phone && !ENDINGS.includes(statusOf(c)));
+    if (!mine.length) {
+      answerBlock('Nobody to ring', 'Nothing you can see has a number and something open on it. <em>Fill in the gaps</em> finds numbers for the people who have none.');
+      return;
+    }
+    /* The same rank `queueBlock` uses: waiting on us, then blocked, then
+       something open, then the rest. */
+    const rank = (c) => (statusOf(c) === 'awaiting-us' ? 0 : obstaclesOf(c).length ? 1 : opportunitiesOf(c).length ? 2 : 3);
+    const q = mine.slice().sort((a, b) => rank(a) - rank(b)).slice(0, 6);
+
+    const body = `<div class="s-ring">
+      ${q.map((c, i) => {
+        const flag = topFlag(c);
+        return `<div class="s-ring-row">
+          <div class="s-ring-who">
+            <button class="s-ans-name" type="button" data-open="${esc(c.id)}">${esc(c.name)}</button>
+            <span class="s-ans-sub">${esc(c.role)} · ${esc(accOf(c).name)}</span>
+          </div>
+          <p class="s-ring-why">${esc(flag ? whyFlag(c, flag.k) : because(c))}</p>
+          ${/* Only the first is filled. Six identical filled Call buttons is
+                six recommendations, which is none — the list is ranked, so
+                the top row IS the recommendation and says so by being the
+                only filled thing here. Same rule as the queue.
+
+                NOT THROUGH `claimPrimary`. That arbiter is per PAINT, and the
+                page paints before the canvas opens — so by the time this
+                renders the claim is spent on whatever the briefing put first,
+                and every row came out ghost. Measured: six Call buttons, none
+                filled, on a block whose entire job is to say who to ring
+                first.
+
+                The canvas is its own surface and gets its own primary, which
+                is what `canvasWork` has always assumed — its confirm is
+                `btn-brand` unconditionally. Two filled controls never share a
+                screen here because the canvas overlays the page and a settled
+                work block has had its actions replaced. */ ''}
+          <button class="s-insight-lnk${i === 0 ? ' primary' : ''} s-ring-go" type="button"
+            data-callstart="${esc(c.id)}">${chIcon('phone')}Call</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    answerBlock(`${plural(q.length, 'person')} worth ringing`, body,
+      mine.length > q.length ? `${mine.length} have a number` : '', q.map((c) => c.id));
   }
 
   function startStrip() {
@@ -12951,11 +13272,18 @@
         ${cite && cite.length ? `<button class="cite-action" type="button" data-cite="${esc(cite.join(','))}">Show them</button>` : ''}
       </div>` : ''}
     </div>`;
-    /* ALWAYS through the thread. It used to be `docked() ? say : pushMsg` —
-       stored when the rail was up, DOM-only when the canvas was over the
-       work. The canvas is the only home now and you can switch away from a
-       conversation and back, so an answer that exists only as markup is an
-       answer that vanishes the moment you do. */
+    /* ══ AND THE CANVAS OPENS, BECAUSE AN ANSWER NOBODY SEES IS NOT ONE ═══
+
+       `say` pushes the turn and calls `paintTalk`, which repaints the thread
+       ONLY IF the canvas is already open. That held while every answer came
+       from typing into the canvas — it was open by definition. The moment
+       one is raised from a control on the page, the turn lands in the thread
+       and nothing draws it: the question is answered, correctly, off screen.
+
+       Found on `Ring someone`, which is exactly that case. `openCanvas` is
+       idempotent and adds nothing when the canvas is already up, so the chat
+       path is unchanged. */
+    openCanvas();
     say('aimy', title, { html });
   }
 
@@ -13102,7 +13430,26 @@
   /* An explicit `?chat=` wins, then the subject, then the surface's own —
      which is what a question asked with nothing open belongs to. */
   const threadKey = () => S.chat || subjectKey() || 'surface';
-  const thread$ = () => (THREADS[threadKey()] || (THREADS[threadKey()] = []));
+  /* ══ WHEN EACH THREAD WAS LAST TOUCHED ═════════════════════════════════
+
+     `SESSIONS[k].at` records when a free-standing conversation was STARTED,
+     and subject threads had no time at all — they are keyed off the record
+     they belong to and were never stamped. That was survivable while the
+     column had two groups keyed off two different things; with one list
+     there has to be one order.
+
+     Stamped in the accessor rather than at the eight places that push a
+     turn, because every one of them goes through here first and a stamp
+     somebody has to remember to add is a stamp that gets missed. Opening a
+     conversation counts as touching it, which is what every thread list
+     does and what makes the one you just read stay near the top. */
+  const THREAD_AT = Object.create(null);
+  let threadSeq = 0;
+  const thread$ = () => {
+    const k = threadKey();
+    THREAD_AT[k] = ++threadSeq;
+    return THREADS[k] || (THREADS[k] = []);
+  };
 
   /* What a thread is called in the column. A subject names itself. */
   function threadName(key) {
@@ -13160,17 +13507,39 @@
       return (THREADS[key] || []).some((t) => String(t.text || '').toLowerCase().includes(q));
     };
 
-    /* ON SCREEN is what you have open, whether or not anything has been said
-       about it yet — an empty thread on the record in front of you is still
-       the place the next thing goes, and hiding it until it has content
-       makes the column appear to change shape as you talk. */
-    const onScreen = subj ? [subj] : [];
-    const recent = Object.keys(SESSIONS)
-      .sort((a, b) => (SESSIONS[b].at < SESSIONS[a].at ? -1 : 1));
-    /* The surface thread is neither: it is where questions about the whole
-       book go, and it always exists. Listed under Recent as the first entry
-       so it can be got back to, because nothing else names it. */
-    const across = (THREADS.surface && THREADS.surface.length) || here === 'surface' ? ['surface'] : [];
+    /* ══ ONE LIST ══════════════════════════════════════════════════════════
+
+       There were two groups — `On screen`, holding the one subject you have
+       open, and `Recent`, holding the sessions — and the split asked the
+       reader to know which kind of thing a conversation was before they
+       could look for it. Nobody knows that. A conversation is a
+       conversation; where it is attached is a property of it, not a
+       category to file it under.
+
+       AND THE SPLIT WAS HIDING THREADS. `Recent` was `Object.keys(SESSIONS)`,
+       and subject threads are deliberately NOT in `SESSIONS` — their name
+       comes from the record instead. So a thread about ING appeared in the
+       column only while ING was on screen: ask three questions about them,
+       navigate away, and the conversation existed with no way back to it.
+       Merging the groups is what makes it reachable.
+
+       What is in the list: everything with something in it, plus whatever is
+       open now — an empty thread on the record in front of you is still the
+       place the next thing goes, and hiding it until it has content makes
+       the column change shape as you talk. */
+    const keys = new Set();
+    Object.keys(THREADS).forEach((k) => { if ((THREADS[k] || []).length) keys.add(k); });
+    Object.keys(SESSIONS).forEach((k) => keys.add(k));
+    /* Where questions about the whole book go. It always exists and nothing
+       else names it, so it is listed as soon as it holds anything. */
+    if ((THREADS.surface && THREADS.surface.length) || here === 'surface') keys.add('surface');
+    if (subj) keys.add(subj);
+    if (here) keys.add(here);
+    /* Most recently touched first. `THREAD_AT` is the stamp; a session that
+       has been listed but never opened falls back to its start order, so a
+       thread restored from a previous visit still sorts sensibly. */
+    const at = (k) => THREAD_AT[k] || (SESSIONS[k] ? -1 : -2);
+    const recent = [...keys].sort((a, b) => at(b) - at(a));
 
     const row = (key) => `<button class="ov-chat${key === here ? ' is-here' : ''}" type="button"
         data-chat="${esc(key)}" ${key === here ? 'aria-current="true"' : ''}>
@@ -13178,10 +13547,10 @@
         ${(THREADS[key] || []).length ? `<span class="ov-chat-n">${(THREADS[key] || []).length}</span>` : ''}
       </button>`;
 
-    /* ON SCREEN IS NEVER FILTERED. It is what you have open, and a search
-       that could hide the thing in front of you would be answering a
-       different question from the one being asked. */
-    const found = across.concat(recent).filter(hits);
+    /* WHAT YOU HAVE OPEN IS NEVER FILTERED OUT. A search that could hide the
+       conversation in front of you would be answering a different question
+       from the one being asked. */
+    const found = recent.filter((k) => k === here || hits(k));
 
     host.innerHTML = `
       ${/* ══ THE LOOP THAT DID NOT CLOSE ═══════════════════════════════════
@@ -13202,17 +13571,13 @@
         <input class="ov-chat-input" type="search" id="chatFind" placeholder="Find a conversation…"
           spellcheck="false" autocomplete="off" value="${esc(CHAT_Q)}" />
       </label>
-      ${onScreen.length ? `<div class="ov-chat-group">
-        <div class="ov-chat-cap">On screen</div>
-        ${onScreen.map(row).join('')}
-      </div>` : ''}
       ${found.length ? `<div class="ov-chat-group">
         <div class="ov-chat-cap">${q ? 'Found' : 'Recent'}</div>
         ${found.map(row).join('')}
       </div>` : ''}
       ${q && !found.length
         ? `<p class="ov-chat-none">Nothing matches “${esc(CHAT_Q)}” — in a title or in anything said.</p>`
-        : (!onScreen.length && !found.length
+        : (!found.length
           ? '<p class="ov-chat-none">Nothing asked yet. What you ask about a record stays with that record.</p>' : '')}`;
     /* The caret goes back where it was: repainting the column on every
        keystroke would otherwise send it to the end of the word. */
@@ -13268,31 +13633,43 @@
        about it, rendered through `turnHtml` so it is the same bubble every
        other thing AiMY says arrives in. Nothing on this surface is set above
        the body step now, which is what a chat should read like. */
+    /* ══ OPENERS, AND THE HALF THAT WAS MISSING ═══════════════════════════
+       The old rule: show three generic questions where there is no subject,
+       and show NOTHING where there is one — "on a record the questions to ask
+       are about THAT, and three generic ones would be three wrong
+       suggestions."
+
+       The reasoning is right and the conclusion was wrong. With a record open
+       there are six things the product can do to that exact person, all
+       working and none of them ever named. The answer to "generic suggestions
+       are wrong here" is specific ones, not silence.
+
+       One ask and two verbs, because a chip row that is all verbs reads as a
+       toolbar and this is a conversation. */
+    const openers = (() => {
+      const rec = openRec();
+      const chips = rec
+        ? ['Why are they where they are?', `Draft a proposal for ${rec.name}`, `Find a slot with ${rec.name}`]
+        : subjectKey() ? [] : OPENERS;
+      return chips.length ? `<div class="overlay-suggestions">
+        ${chips.map((q) => `<button class="overlay-sugg-chip" type="button">${esc(q)}</button>`).join('')}
+      </div>` : '';
+    })();
+
+    /* ══ AND THEY COME BEFORE THE MESSAGE, NOT AFTER IT ═══════════════════
+
+       They sat under AiMY's opening line, which put them at the bottom of
+       the thread — directly above the input, in the position every message
+       after this one will take. So the first thing in a new conversation
+       looked like the last thing said, and the chips read as a reply to the
+       greeting rather than as ways to start.
+
+       Above it, they are what they are: the doors, then the voice. It also
+       means the greeting is the line closest to the box you type in, which
+       is the right adjacency — the sentence that says what AiMY can do about
+       this subject sits next to where you would say what you want. */
     th.innerHTML = (!turns.length
-      ? turnHtml({ who: 'aimy', text: openingSay() })
-        + (/* ══ OPENERS, AND THE HALF THAT WAS MISSING ═══════════════════
-              The old rule: show three generic questions where there is no
-              subject, and show NOTHING where there is one — "on a record the
-              questions to ask are about THAT, and three generic ones would
-              be three wrong suggestions."
-
-              The reasoning is right and the conclusion was wrong. With a
-              record open there are six things the product can do to that
-              exact person, all working and none of them ever named. The
-              answer to "generic suggestions are wrong here" is specific
-              ones, not silence.
-
-              One ask and two verbs, because a chip row that is all verbs
-              reads as a toolbar and this is a conversation. */
-          (() => {
-            const rec = openRec();
-            const chips = rec
-              ? ['Why are they where they are?', `Draft a proposal for ${rec.name}`, `Find a slot with ${rec.name}`]
-              : subjectKey() ? [] : OPENERS;
-            return chips.length ? `<div class="overlay-suggestions">
-              ${chips.map((q) => `<button class="overlay-sugg-chip" type="button">${esc(q)}</button>`).join('')}
-            </div>` : '';
-          })())
+      ? openers + turnHtml({ who: 'aimy', text: openingSay() })
       : '') + turns.map(turnHtml).join('');
     th.scrollTop = th.scrollHeight;
     paintChats();
@@ -13602,7 +13979,7 @@
             the note above is what you read first and a transcript is what
             you open when the note is not enough. */ ''}
       ${t.lines && t.lines.length ? `<details class="s-trace">
-        <summary class="s-trace-sum">${plural(t.lines.length, 'line')} recorded</summary>
+        <summary class="s-trace-sum">Transcript<span class="s-trace-n">${t.lines.length}</span></summary>
         <div class="s-said-lines">
           ${t.lines.map((l) => `<p class="call-line is-${esc(l.who)}"><span class="call-who">${l.who === 'you' ? esc(actor(t.by).name.split(' ')[0]) : 'Them'}</span>${esc(l.text)}</p>`).join('')}
         </div>
@@ -15144,13 +15521,18 @@
        bargain the channel picker keeps above: a line stating a consequence
        has to track the control that decides it, or it is read once and then
        it lies. */
-    if ((el = e.target.closest('.s-prop-pick'))) {
-      const row = BY.proposal[el.value];
+    if (e.target.closest('.s-prop-pick')) {
+      /* Reads the whole set, because they are checkboxes now: the FIRST
+         ticked names the next step, and the line says how many others were
+         asked for so the difference between "and nothing else happens" and
+         "and two more are in the summary" is on screen before you commit. */
+      const picked = $$('.s-prop-pick:checked').map((i) => i.value);
+      const first = picked[0] && BY.proposal[picked[0]];
       const line = $('[data-effect="propNext"]');
-      if (line && row) {
-        line.textContent = row.next
-          ? `“${row.next}” goes on the record, due in a week.`
-          : 'Nothing was asked for, so nothing is scheduled.';
+      if (line) {
+        line.textContent = !first ? 'Nothing was asked for, so nothing is scheduled.'
+          : picked.length === 1 ? `“${first.next}” goes on the record, due in a week.`
+          : `“${first.next}” goes on the record, due in a week. The other ${picked.length - 1} ${picked.length === 2 ? 'stays' : 'stay'} on the call.`;
       }
       return;
     }
@@ -15457,7 +15839,7 @@
         return;
       }
       if (k === 'findco') { findCompanies(); return; }
-      if (k === 'call') { go(Object.assign(cleared(), { tab: 'contacts', cut: 'worth-call' })); return; }
+      if (k === 'call') { whoToRing(); return; }
       if (k === 'fillgaps') {
         const gaps = maySee(DB.acc).filter((a) => !a.arch && (a.emp == null || a.rev == null));
         if (!gaps.length) { toast('Nothing is missing headcount or revenue.'); return; }
@@ -16238,7 +16620,7 @@
         const accId = accOf(rec).id;
         l.members.push(accId);
         reindex(); paint();
-        markChanged('.s-camps');
+        markChanged('.s-camprows');
         go({ on: 'campaigns', camp: l.k, lead: '' });
         toast(`Added to ${l.name}.`, () => {
           l.members = l.members.filter((m) => m !== accId);
@@ -17082,16 +17464,24 @@
      Only these two qualified. The other 36 confirm surfaces either ask for
      something (they are forms, not speed bumps), act on many records, or are
      partly irreversible — and the ladder wants a surface for each of those. */
+  /* ONE DERIVATION FOR THE BANNER AND THE TOAST. The toast said this at the
+     moment of archiving and the page never said it again; now both read the
+     same function, so a record cannot be told one thing on the way in and
+     something else every time it is opened. */
+  function archSay(rec) {
+    const camps = campsOf(rec).length;
+    return camps
+      ? `Out of the book. Still in ${plural(camps, 'campaign')} — a running one keeps sending.`
+      : 'Out of the book. Nobody sees it in a list or a queue.';
+  }
+
   function archiveRec(id) {
     const rec = recBy(id);
     if (!rec) return;
     const going = !rec.arch;
-    const camps = campsOf(rec).length;
     rec.arch = going;
     paint(); paintChrome();
-    toast(going
-      ? `${rec.name} archived.${camps ? ` Still in ${plural(camps, 'campaign')} — a running one keeps sending.` : ''}`
-      : `${rec.name} is back.`,
+    toast(going ? `${rec.name} archived. ${archSay(rec)}` : `${rec.name} is back.`,
       () => { rec.arch = !going; paint(); paintChrome(); });
   }
 
@@ -17120,7 +17510,7 @@
     const at = c.members.indexOf(accId);
     c.members = c.members.filter((m) => m !== accId);
     reindex(); paint(); paintChrome();
-    markChanged('.s-camps');
+    markChanged('.s-camprows');
     toast(`Out of ${c.name}.`, () => {
       c.members.splice(at < 0 ? c.members.length : at, 0, accId);
       reindex(); paint(); paintChrome();
