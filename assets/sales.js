@@ -276,6 +276,38 @@
        it does not do the thing, we do not do the thing, or it costs too
        much. Anything that is none of those is `other` and says so rather
        than being filed under the nearest. */
+    /* ══ WHAT YOU PUT TO THEM ══════════════════════════════════════════════
+
+       The call surface recorded how it went, why they pushed back and what
+       opened up — three of the four things a call produces. The fourth is
+       what you ASKED FOR, and it was the one that decides everything after:
+       a call where you proposed a demo and a call where you proposed nothing
+       are the same disposition and completely different next steps.
+
+       It is also the only one of the four the next person cannot reconstruct.
+       A disposition is derivable from the outcome, an objection was going to
+       be one of five, an opening is on the record as a signal — but whether
+       anybody actually asked for the meeting exists nowhere unless the person
+       who asked writes it down.
+
+       `next` names the follow-up each one implies, so the surface can offer
+       to schedule the thing you just proposed rather than making you
+       remember to. */
+    proposal: [
+      { k: 'none',     label: 'Nothing yet',   next: null,
+        blurb: 'Groundwork. Nothing was asked for.' },
+      { k: 'meeting',  label: 'A meeting',     next: 'Meeting with them',
+        blurb: 'Time in a diary, with the people who decide.' },
+      { k: 'demo',     label: 'A demo',        next: 'Demo for them',
+        blurb: 'Show them the thing working.' },
+      { k: 'proposal', label: 'A proposal',    next: 'Proposal to them',
+        blurb: 'Something written, with numbers in it.' },
+      { k: 'info',     label: 'Send them something', next: 'Send what was promised',
+        blurb: 'A deck, a case study, a price — whatever you said you would send.' },
+      { k: 'callback', label: 'Another call',  next: 'Call them back',
+        blurb: 'They asked to pick it up later.' },
+    ],
+
     objection: [
       { k: 'feature', label: 'Features',  blurb: 'It does not do something they need.' },
       { k: 'service', label: 'Services',  blurb: 'We do not offer something they need.' },
@@ -466,13 +498,13 @@
       label: 'Admin', ceiling: 'Everyone',
       rule: 'Admins see every record in the workspace and may change any of it.',
       sees: () => true, writes: true,
-      home: ['opener', 'pipeline', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
+      home: ['opener', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
     },
     marketing: {
       label: 'Marketing', ceiling: 'Everyone',
       rule: 'Marketing sees the whole book — demand is generated across it, not inside one campaign.',
       sees: () => true, writes: true,
-      home: ['opener', 'pipeline', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
+      home: ['opener', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
     },
     bdr: {
       label: 'BDR', ceiling: 'Everyone in Sales EMEA',
@@ -484,14 +516,14 @@
          Sourcing, enriching and handing a list on is the whole of this
          function's day, and `tabPool('lists')` is entitlement-bounded, so a
          BDR sees the ones holding accounts they may see. */
-      home: ['opener', 'pipeline', 'agenda', 'campaigns', 'lists', 'orgs', 'contacts'],
+      home: ['opener', 'agenda', 'campaigns', 'lists', 'orgs', 'contacts'],
     },
     sales: {
       label: 'Sales', ceiling: 'Everyone in Sales EMEA',
       rule: 'You see the leads you own, the ones shared with you, and the campaigns you are on.',
       sees: (rec, me) => rec.owner === me.id || (rec.shared || []).includes(me.id) || onACampaignWith(rec, me.id),
       writes: true,
-      home: ['opener', 'pipeline', 'queue', 'agenda', 'campaigns', 'orgs', 'contacts'],
+      home: ['opener', 'queue', 'agenda', 'campaigns', 'orgs', 'contacts'],
     },
     'sales-manager': {
       label: 'Sales manager', ceiling: 'Everyone in Sales EMEA',
@@ -512,19 +544,19 @@
 
             After `progress`, because a manager's own block comes first, and
             before `agenda`: the obstacles explain the progress above them. */
-      home: ['opener', 'pipeline', 'progress', 'insights', 'agenda', 'campaigns', 'orgs', 'contacts'],
+      home: ['opener', 'progress', 'insights', 'agenda', 'campaigns', 'orgs', 'contacts'],
     },
     client: {
       label: 'Client', ceiling: null,
       rule: 'You see the leads in your own engagement, and nothing outside it.',
       sees: (rec, me) => clientsOf(rec).includes(me.client), writes: false,
-      home: ['opener', 'pipeline', 'insights', 'campaigns'],
+      home: ['opener', 'insights', 'campaigns'],
     },
     stakeholder: {
       label: 'Stakeholder', ceiling: 'Everyone',
       rule: 'Stakeholders see every lead and can change none of them.',
       sees: () => true, writes: false,
-      home: ['opener', 'pipeline', 'insights', 'campaigns'],
+      home: ['opener', 'insights', 'campaigns'],
     },
   };
 
@@ -1400,7 +1432,15 @@
         crit: 'Netherlands · 200+ staff · software, banking, logistics · has a live domain', found: 1240 },
       { k: 'src-nl-ent', name: 'Netherlands enterprise, 1000+', kind: 'companies', by: 'ahmed', at: -54, auto: false,
         crit: 'Netherlands · 1000+ staff · regulated or safety-critical delivery', found: 380 },
-      { k: 'src-inbound', name: 'Inbound — website and demo forms', by: 'sally', at: -9, auto: true,
+      /* `habeba`, not `sally`. It read `by: 'sally'` — Sally Tarek's display
+         name rather than her id — and `actor()` falls back to
+         `{ id, name: id }` for an unknown key, so this list was owned by a
+         lowercase person called "sally" who does not exist. It surfaced the
+         moment the list card started naming its owner; before that only the
+         list's own page drew `by`, and nobody had opened that one. Checked
+         the rest of the corpus the same way: every other `owner`, `by`,
+         `shared` and `crew` entry resolves. */
+      { k: 'src-inbound', name: 'Inbound — website and demo forms', by: 'habeba', at: -9, auto: true,
         crit: 'Anyone who asked us first, synced hourly from the CRM', found: 0 },
       { k: 'src-referral', name: 'Referral intros', by: 'nour', at: -70, auto: false,
         crit: 'Named introductions, dropped in as a file', found: 0 },
@@ -3198,6 +3238,18 @@
       body: `<div class="s-brief-call">
         <p class="s-callp"><b>Who</b> ${esc(rec.kind === 'con' ? `${rec.name}, ${rec.role} at ${acc.name}` : acc.name)}${acc.emp != null ? ` · ${esc(fmtSize(acc.emp))}` : ''}</p>
         <p class="s-callp"><b>What has passed</b> ${ts.length ? esc(`${plural(ts.length, 'touchpoint')}, last ${touchPhrase(ts[0]).toLowerCase()}`) : 'Nothing. This is the first contact.'}</p>
+        ${/* ══ AND WHAT SOMEBODY ASKED TO BE REMEMBERED ═══════════════════
+              The other half of the loop the after-call surface opens. A
+              "remember for next time" nobody reads back is a field that
+              stops being filled in after a fortnight — this is the only
+              thing that makes writing it worth the ten seconds.
+
+              Second, directly under what has passed, because it is the same
+              kind of fact at a longer range: that says what we did, this
+              says what is true of them. Attributed, because "never call on a
+              Monday" is somebody's judgement and the next person deserves to
+              know whose. */ ''}
+        ${rec.remember ? `<p class="s-callp"><b>Remember</b> ${esc(rec.remember.text)} <span class="s-callp-who">— ${esc(actor(rec.remember.by).name)}, ${esc(fmtAgo(rec.remember.at))}</span></p>` : ''}
         ${c ? `<p class="s-callp"><b>Selling</b> ${c.sells && c.sells.length ? esc(c.sells.map((x) => x.name).join(' and ')) : 'nothing stated on the campaign'}</p>
                <p class="s-callp"><b>The goal</b> ${esc(c.goal || 'none stated')}</p>` : ''}
         ${flag ? `<p class="s-callp"><b>Watch for</b> ${esc(whyFlag(rec, flag.k))}</p>` : ''}
@@ -3232,9 +3284,10 @@
           : 'Name the problem you think they have and ask whether you have it right. Do not pitch.')}</p>
         <p class="s-callp"><b>They will push back on</b> ${esc(objectionLikely(rec))}</p>
       </div>`,
+      /* No `confirm`, so no actions — see the note in `renderWork`. It is a
+         brief, it appears as the phone starts ringing, and it stays in the
+         thread for the length of the call. */
       effects: [],
-      confirm: 'Got it',
-      run() { /* reading it is the whole action */ },
     });
   }
 
@@ -3269,15 +3322,25 @@
           <input type="radio" name="callout" value="${esc(o.k)}" />
           <span>${esc(o.label)} <span class="s-pick-role">${esc(o.writes ? 'counts as reaching them' : 'does not count as contact')}</span></span>
         </label>`).join('')}</div>
-        <label class="ds-field s-field">
-          <span class="s-field-label">Note</span>
-          <textarea class="ds-textarea s-why" rows="2" spellcheck="false"
-            placeholder="In your words. This is what the next person to open this record will read.">${esc(c.note)}</textarea>
-        </label>
+        ${/* ══ WHAT YOU ASKED FOR, AND WHAT IT SCHEDULES ════════════════════
+              The one thing a call produces that nobody can reconstruct
+              afterwards — see the note on `TAX.proposal`. Pre-selected from
+              the disposition where the disposition already implies it: a
+              booked callback IS another call, so the surface says so rather
+              than making you say it twice. */ ''}
         <div class="s-obj-pick">
-          <span class="s-field-label">Objection</span>
+          <span class="s-field-label">What you proposed</span>
           <div class="s-camps">
-            ${TAX.objection.map((o) => `<label class="chip default s-obj-chip">
+            ${TAX.proposal.map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
+              <input type="radio" name="prop" class="s-prop-pick" value="${esc(o.k)}"${o.k === 'none' ? ' checked' : ''} /> ${esc(o.label)}
+            </label>`).join('')}
+          </div>
+          <p class="s-ch-note" data-effect="propNext">Nothing was asked for, so nothing is scheduled.</p>
+        </div>
+        <div class="s-obj-pick">
+          <span class="s-field-label">What pushed back</span>
+          <div class="s-camps">
+            ${TAX.objection.map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
               <input type="radio" name="objection" value="${esc(o.k)}" /> ${esc(o.label)}
             </label>`).join('')}
           </div>
@@ -3299,13 +3362,36 @@
               readings already use. Writing an opportunity directly would
               have made a second source of truth for one fact. */ ''}
         <div class="s-obj-pick">
-          <span class="s-field-label">Opportunity</span>
+          <span class="s-field-label">What opened up</span>
           <div class="s-camps">
             ${TAX.signalKind.map((o) => `<label class="chip default s-obj-chip">
               <input type="radio" name="opp" value="${esc(o.k)}" /> ${esc(label('opportunity', o.into))}
             </label>`).join('')}
           </div>
-        </div>`,
+        </div>
+        <label class="ds-field s-field">
+          <span class="s-field-label">What was said</span>
+          <textarea class="ds-textarea s-why" rows="2" spellcheck="false"
+            placeholder="In your words. This is what the next person to open this record will read.">${esc(c.note)}</textarea>
+        </label>
+        ${/* ══ AND ONE LINE THAT OUTLIVES THE CALL ═══════════════════════════
+
+              `What was said` is about this call and reads as history the
+              moment the next one happens. This is the other kind of thing a
+              call produces: they have a baby due in March, they hate being
+              rung on Mondays, the budget lands in Q3. Durable, small, and the
+              reason somebody sounds like they remember you.
+
+              It goes on the RECORD, not the touchpoint, because it is true of
+              the person rather than of the call — and it is read back at the
+              top of the next brief, which is the only thing that makes
+              writing it worth doing. */ ''}
+        <label class="ds-field s-field">
+          <span class="s-field-label">Remember for next time<span class="s-field-note">optional</span></span>
+          <input class="input s-remember" type="text" spellcheck="false"
+            value="${esc((rec.remember && rec.remember.text) || '')}"
+            placeholder="Anything true of them next month — timing, who decides, what they care about." />
+        </label>`,
       effects: [['warn', 'A non-contact outcome leaves the status alone.']],
       needs: '.s-why', needsSay: 'Say what was said.',
       reversible: 'Undoable',
@@ -3316,6 +3402,8 @@
         const why = (($('.s-why') || {}).value || '').trim();
         const obj = ($('input[name="objection"]:checked') || {}).value || null;
         const opp = ($('input[name="opp"]:checked') || {}).value || null;
+        const prop = ($('input[name="prop"]:checked') || {}).value || 'none';
+        const remember = (($('.s-remember') || {}).value || '').trim();
         if (!out) { toast('Nothing picked, so nothing was logged.'); return false; }
         if (!why) { toast('A call with no note is a call nobody else can read. Nothing was logged.'); return false; }
         const row = BY.callOutcome[out];
@@ -3325,6 +3413,11 @@
           outcome: callToOutcome(out),
           note: why, list: campsOf(rec)[0] || null, steps: null,
           reply: null, objection: obj, callOutcome: out,
+          /* What was asked for. `none` is a real answer — a groundwork call
+             is a thing that happens — so it is stored rather than nulled, and
+             the summary can say "nothing was asked for" as a fact instead of
+             leaving a blank somebody has to interpret. */
+          proposal: prop,
           /* ══ THE TRANSCRIPT SURVIVES THE CALL ═══════════════════════════
 
              R5.2 derives the obstacle insight from "analysis of dispositions
@@ -3352,13 +3445,106 @@
         const sig = opp ? { id: 'sg-said-' + Date.now(), on: rec.id, acc: accOf(rec).id,
           kind: opp, at: iso(TODAY), detail: why, by: me().id } : null;
         if (sig) DB.signal.push(sig);
+
+        /* ══ WHAT YOU PROPOSED BECOMES WHAT IS DUE ═══════════════════════
+           A proposal with no date is a thing you meant to do. `TAX.proposal`
+           names the follow-up each one implies, so asking for a demo puts
+           "Demo for them" on the record due in a week rather than leaving
+           the rep to remember they said it.
+
+           Only where there is nothing already scheduled: overwriting a next
+           step somebody else set, on the strength of a chip, is the kind of
+           quiet write this product keeps taking out. */
+        const wantNext = BY.proposal[prop] && BY.proposal[prop].next;
+        const prevNext = rec.next;
+        if (wantNext && !rec.next) {
+          rec.next = { what: wantNext, due: iso(shift(TODAY, 7)), by: me().id };
+        }
+        /* On the record, not the touchpoint — it is true of the person. */
+        const prevRemember = rec.remember;
+        if (remember) rec.remember = { text: remember, by: me().id, at: iso(TODAY) };
+
         reindex(); paint(); paintChrome();
+        /* The overview, in the canvas, as the thing that closes the loop —
+           see `callSummary`. A toast says it was logged; this says what was
+           logged, and it is the same block the record's call history draws. */
+        callSummary(t, rec);
         toast(`Logged: ${row.label.toLowerCase()} on ${rec.name}${sig ? `, and ${label('opportunity', BY.signalKind[opp].into).toLowerCase()}` : ''}.`, () => {
           DB.touch = DB.touch.filter((x) => x.id !== t.id);
           if (sig) DB.signal = DB.signal.filter((x) => x.id !== sig.id);
+          rec.next = prevNext; rec.remember = prevRemember;
           reindex(); paint(); paintChrome();
         });
       },
+    });
+  }
+
+  /* ══ WHAT THE CALL PRODUCED, IN ONE BLOCK ══════════════════════════════
+
+     Logging a call ended on a toast: "Logged: spoke to them on Pieter
+     Bakker." Six fields captured — how it went, what you proposed, what
+     pushed back, what opened up, what was said, what to remember — and the
+     only acknowledgement was one clause naming the first of them. You
+     could not check what you had just recorded without going and finding
+     the touchpoint.
+
+     This is that check, and it is the SAME BLOCK the record's call history
+     draws for every earlier call. One renderer, so the summary you read the
+     moment you hang up and the summary you read three months later cannot
+     drift — and so a field added to the capture appears in both without
+     anybody remembering to add it twice.
+
+     `rows` and not prose: six labelled facts of different kinds, which is
+     the shape `.s-callp` already carries on the brief. A paragraph would
+     make the reader parse for the one they wanted. */
+  function callFacts(t, rec) {
+    const out = BY.callOutcome[t.callOutcome] || BY.outcome[t.outcome];
+    const prop = BY.proposal[t.proposal];
+    const rows = [];
+    if (out) rows.push(['How it went', out.label, out.tone]);
+    /* `none` states itself. A groundwork call is a thing that happened, and
+       leaving the row out would make it indistinguishable from a call
+       logged before this field existed. */
+    if (prop) rows.push(['You proposed', prop.label, prop.k === 'none' ? 'neutral' : 'ok']);
+    if (t.objection) rows.push(['They pushed back on', label('objection', t.objection), 'warn']);
+    /* The opening is on the record as a signal — this reads it back rather
+       than storing a second copy, so correcting the signal corrects this. */
+    const sig = (DB.signalOn[t.on] || []).filter((x) => x.at === t.at && x.by === t.by)[0];
+    if (sig) rows.push(['Opened up', label('opportunity', (BY.signalKind[sig.kind] || {}).into || sig.kind), 'ok']);
+    if (rec && rec.next) rows.push(['Next', `${rec.next.what}, due ${fmtDate(rec.next.due)}`, 'neutral']);
+    return rows;
+  }
+
+  function callSummaryHtml(t, rec) {
+    const rows = callFacts(t, rec);
+    return `<div class="s-callsum">
+      <div class="s-callsum-rows">
+        ${rows.map(([cap, val, tone]) => `<div class="s-callsum-row">
+          <span class="s-callsum-cap">${esc(cap)}</span>
+          <span class="s-callsum-val tone-${esc(tone)}">${esc(val)}</span>
+        </div>`).join('')}
+      </div>
+      ${t.note ? `<p class="s-callsum-note">${esc(t.note)}</p>` : ''}
+      ${rec && rec.remember ? `<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>${esc(rec.remember.text)}</p>` : ''}
+      ${t.lines && t.lines.length ? `<details class="s-trace">
+        <summary class="s-trace-sum">${esc(plural(t.lines.length, 'line'))} recorded</summary>
+        <div class="s-said-lines">
+          ${t.lines.map((l) => `<p class="call-line is-${esc(l.who)}"><span class="call-who">${l.who === 'you' ? esc(actor(t.by).name.split(' ')[0]) : 'Them'}</span>${esc(l.text)}</p>`).join('')}
+        </div>
+      </details>` : ''}
+    </div>`;
+  }
+
+  /* The overview, in the canvas, the moment the log lands. No actions — it
+     is a receipt, and the things you would do next are on the record it just
+     wrote to. */
+  function callSummary(t, rec) {
+    canvasWork({
+      title: `What you logged on ${rec.name}`,
+      lede: '',
+      writes: false,
+      body: callSummaryHtml(t, rec),
+      effects: [],
     });
   }
 
@@ -3597,6 +3783,32 @@
   let NET_IND = 'health';
   const netNew = () => (NET_POOL[NET_IND] || NET_POOL.health).map((r) => [...r, NET_IND]);
 
+  /* ══ THE RESULTS ARE REFINED BEFORE THEY ARE SAVED ══════════════════════
+
+     The flow was: describe → AiMY reads criteria → a count and six names →
+     `Bring in 8`, which in one press wrote the list, imported the rows and
+     navigated you to them. So you could refine the CRITERIA all you liked
+     and never the RESULTS, and assignment was a separate act you found
+     afterwards on a surface you had already been sent to.
+
+     What the sales team actually described: "you share some stuff and it
+     returns lists for you, you refine them then ask to assign the list to
+     someone or yourself, then it's saved to the database." Three verbs in
+     that sentence and the product had one.
+
+     `FIND_DROP` is the refinement: which returned rows you do not want. It
+     is state beside `FIND_CRIT` for the same reason — dropping a row has to
+     move the count without re-running anything — and it is reset wherever
+     the criteria are, so a new search never inherits the last one's
+     exclusions. Keyed by name, which is unique inside a pool.
+
+     NOTHING IS WRITTEN UNTIL SAVE. That was already true and is now the
+     point rather than an accident: the working set lives here, so Cancel
+     genuinely costs nothing and the confirm is the moment the list becomes
+     real to anybody else. */
+  let FIND_DROP = new Set();
+  const netKept = () => netNew().filter((r) => !FIND_DROP.has(r[0]));
+
   /* The criteria live in state so removing a chip can move the count without
      re-opening the block. Reset every time the flow starts. */
   let FIND_CRIT = [];
@@ -3724,6 +3936,17 @@
   }
 
   function findCompanies(campKey, srcKey) {
+    /* The guard F-01 put on nine other writers and missed here, because this
+       one opens a canvas rather than a commit and the sweep went by control.
+       It ends in a write — a list, and rows in the book — so it takes the
+       same test. No read-only tier can reach a control that calls it and
+       `tier-audit` checks that every run; a write stopped only by nothing
+       having drawn its button is stopped by a render, and renders change. */
+    if (!canWrite()) return;
+    /* Every entrance to this flow clears the exclusions. A search that
+       inherited the last one's dropped rows would silently return fewer
+       than it counted, which is the one thing this surface must never do. */
+    FIND_DROP = new Set();
     const c = campKey ? DB.campBy[campKey] : null;
     /* ══ "THE REST" — AND THE DOOR THAT MINTED A DUPLICATE INSTEAD ═════════
 
@@ -3826,6 +4049,7 @@
   function findBody() {
     const n = findCount();
     const rows = netNew();
+    const kept = netKept();
     const already = FIND_FROM && FIND_FROM.src ? (DB.sourceBy[FIND_FROM.src] || {}).imported || 0 : 0;
     const read = FIND_CRIT.filter((c) => !c.own && c.k !== 'live' && c.k !== 'new');
     return `<div class="s-find">
@@ -3860,20 +4084,67 @@
             says what the next press does, and continuing is now a press on
             the same door rather than a different one on a later surface. */ ''}
       <p class="s-find-count">${already
-        ? `<b>${n.toLocaleString('en-GB')}</b> companies match and <b>${already}</b> are already in. This brings the next <b>${rows.length}</b>.`
-        : `<b>${n.toLocaleString('en-GB')}</b> companies match. I would bring in the <b>${rows.length}</b> strongest first — run it again for the next batch when you have looked at them.`}</p>
+        ? `<b>${n.toLocaleString('en-GB')}</b> companies match and <b>${already}</b> are already in. This brings the next <b>${kept.length}</b>.`
+        : `<b>${n.toLocaleString('en-GB')}</b> companies match. These <b>${rows.length}</b> are the strongest — drop any you do not want, and run it again for the next batch.`}</p>
       ${/* WHERE THEY CAME FROM, ON THE SURFACE THAT CLAIMS THE COUNT. The
             enrichment surface has named its suppliers and their hit rates
             since v4; this one asserted a number from nowhere. Same shape,
             same reading — the supplier and how often it answers. */ ''}
       <p class="s-find-via"><span class="s-plan-cap">Asked</span>${FINDERS
         .map(([who, pct]) => `${esc(who)} <span class="s-find-hit">${pct}%</span>`).join(' · ')}</p>
-      <div class="s-find-names">${rows.slice(0, 6).map((c) => `<span class="chip default">${esc(c[0])}</span>`).join('')}</div>
+      ${/* ══ THE PREVIEW IS THE SET ═══════════════════════════════════════
+
+            Six name chips, and the confirm imported eight. It was a SAMPLE
+            of a decision already made — you could see who was coming and not
+            say no to any of them, so the only refinement available was to
+            change the criteria and hope.
+
+            Every row, each droppable, each carrying the three facts that
+            decide it: where they are, how many staff, what year. That is
+            what "refine them" means, and it is why the earlier note here —
+            "a set is described before it is enumerated" — stops applying:
+            enumeration is the point once the rows are yours to change.
+
+            Still not a grid. Rows of a fixed shape, no column headers, each
+            self-describing, which is the card rule at row scale. */ ''}
+      <div class="s-find-rows">
+        ${rows.map((c) => {
+          const out = FIND_DROP.has(c[0]);
+          return `<div class="s-find-row${out ? ' is-out' : ''}">
+            <span class="s-find-row-name">${esc(c[0])}</span>
+            <span class="s-find-row-facts">${esc(c[2])} · ${esc(fmtSize(c[3]))} · founded ${esc(String(c[4]))}</span>
+            <button class="s-find-row-x" type="button" data-finddrop="${esc(c[0])}"
+              aria-label="${out ? `Put ${esc(c[0])} back` : `Drop ${esc(c[0])}`}">${out ? '+' : '×'}</button>
+          </div>`;
+        }).join('')}
+      </div>
       <label class="ds-field s-field">
         <span class="s-field-label">Name</span>
         <input class="input s-find-name" type="text" spellcheck="false"
           value="${esc(findName())}" />
       </label>
+      ${/* ══ AND WHO IS GOING TO WORK IT ══════════════════════════════════
+
+            `by` was written as whoever ran the search and changed only
+            through `Hand it on`, a control on the list surface you reach
+            AFTERWARDS. So the question "who is this for" was asked at the
+            one moment nobody has the answer — after the thing exists — when
+            the moment you know is the moment you make it.
+
+            R4.5 asks for exactly this: "be assigned to a list or assign
+            someone to a list, permission permitting". `SELLERS` is the same
+            pool `Hand it on` offers, so the two cannot disagree about who
+            may hold one. */ ''}
+      <div class="s-field">
+        <span class="s-field-label">Who works it</span>
+        <div class="s-assign-grid">
+          ${SELLERS.map((pp) => `<label class="s-assign-chip">
+            <input type="radio" name="findby" class="s-find-by" value="${esc(pp.id)}"${pp.id === me().id ? ' checked' : ''} />
+            <span class="avatar avatar-sm">${esc(pp.initials)}</span>
+            <span class="s-assign-name">${esc(pp.name)}${pp.id === me().id ? ' (you)' : ''}<span class="s-pick-role">${esc(roleOf(pp))}</span></span>
+          </label>`).join('')}
+        </div>
+      </div>
     </div>`;
   }
 
@@ -3902,25 +4173,40 @@
       body: findBody(),
       effects: (() => {
         const c = FIND_FROM && FIND_FROM.camp ? DB.campBy[FIND_FROM.camp] : null;
-        const n = netNew().length;
+        const dropped = FIND_DROP.size;
         /* The two `skip` lines here were the clearest case in the product:
            "Nobody is contacted" and "The rest of the matches are not
            imported" — two sentences ruling out things the surface never
            offered, on a write the toast can undo. The `ok` line went with
            them, because "8 companies join the book as a new list" is what
-           the confirm button says: `Bring in 8`. */
+           the confirm button says.
+
+           The dropped count is a `warn` and keyed, so it rewrites as you
+           drop rows — it is the live preview of a decision being made, which
+           is the one case `effectsBlock` always draws. It says the rows are
+           gone from THIS list rather than from the book, because a person
+           who has just pressed × four times wants to know they have not
+           deleted four companies. */
         return [
+          dropped ? ['warn', `${plural(dropped, 'row')} dropped — they stay in the search, not in this list.`, 'findDrop'] : null,
           c ? ['ok', `They join ${c.name}, which moves to Enrich.`]
             : ['ok', 'Headcount, sector and domain only.'],
         ];
       })(),
       needs: '.s-find-name', needsSay: 'The list needs a name.',
       reversible: 'Undoable',
-      confirm: `Bring in ${netNew().length}`,
+      /* SAVE, not "bring in". The rows have been yours to change since the
+         preview became the set, so the press is the moment the list becomes
+         a thing rather than the moment the search happens. */
+      confirm: `Save ${netKept().length}`,
       run() {
         const name = (($('.s-find-name') || {}).value || '').trim();
         if (!name) { toast('The list needs a name. Nothing was imported.'); return false; }
-        const rows = netNew();
+        const rows = netKept();
+        if (!rows.length) { toast('Every row was dropped, so there is nothing to save.'); return false; }
+        /* Who works it, chosen here rather than found later. Falls back to
+           the person doing the saving, which is what it always was. */
+        const by = (($('.s-find-by:checked') || {}).value) || me().id;
         const camp = FIND_FROM && FIND_FROM.camp ? DB.campBy[FIND_FROM.camp] : null;
         /* RE-RUNNING WRITES BACK INTO THE LIST IT CAME FROM. Anything else
            leaves you with two lists of the same name and no way to tell
@@ -3929,13 +4215,17 @@
         const key = again ? again.k : 'src-new-' + (DB.source.length + 1);
         const before = DB.acc.length;
         const wereMembers = camp ? camp.members.slice() : null;
-        const wasList = again ? { name: again.name, crit: again.crit, found: again.found, imported: again.imported } : null;
+        const wasList = again ? { name: again.name, crit: again.crit, found: again.found, imported: again.imported, by: again.by } : null;
         const crit = FIND_CRIT.filter((c) => c.on).map((c) => c.label).join(' · ');
         if (again) {
-          again.name = name; again.crit = crit;
+          /* A re-run may hand the list on. It is the same surface asking the
+             same question, and refusing to honour the answer on a continuation
+             would make the field mean "who works it, unless this list already
+             existed" — which nothing on screen says. */
+          again.name = name; again.crit = crit; again.by = by;
           again.found = findCount(); again.imported += rows.length;
         } else {
-          DB.source.push({ k: key, name, by: me().id, at: iso(TODAY), auto: false,
+          DB.source.push({ k: key, name, by, at: iso(TODAY), auto: false,
             /* Which suppliers answered. Recorded on the list rather than per
                row, because a query goes to all three and the rows come back
                merged — claiming a vendor per company would be a precision
@@ -3952,7 +4242,12 @@
           DB.acc.push({
             id, kind: 'acc', name: nm, domain, city, country: 'Netherlands',
             emp, founded, industry, region: 'nl', rev: null, svc: 'qa', icp: null,
-            src: 'scrape', srcRef: key, owner: me().id, shared: [],
+            /* THE ROWS BELONG TO WHOEVER WORKS THE LIST, not to whoever
+               ran the search. They were `me()` unconditionally, so handing a
+               list on at the moment of saving would have given somebody a
+               list of records owned by you — and `standing()`, the team
+               board and every "mine" filter read that owner. */
+            src: 'scrape', srcRef: key, owner: by, shared: [],
             next: null, outcome: null, outcomeWhy: null, arch: false,
             enrich: { emp: { conf: 'high', src: 'Company register', at: iso(TODAY) }, founded: null, rev: null },
           });
@@ -3968,12 +4263,17 @@
         if (camp) {
           go({ on: 'campaigns', camp: camp.k, stage: campStage(camp), lead: '', status: [], industry: [], size: [] });
         } else {
-          go({ on: 'leads', srcref: key, status: [], obstacle: [], opp: [], campaign: [], ids: [], loose: '', q: '' });
+          go({ on: 'leads', srcref: key, task: '', status: [], obstacle: [], opp: [], campaign: [], ids: [], loose: '', q: '' });
         }
         paintChrome();
-        toast(camp ? `${plural(rows.length, 'company')} on ${camp.name}.`
-          : again ? `${plural(rows.length, 'company')} added to “${name}”.`
-          : `${plural(rows.length, 'company')} in “${name}”.`, () => {
+        /* Names the person when it is not you. Saying "and it is yours" on
+           every save would be telling somebody a thing they just decided;
+           saying nothing when it went to Sara would hide the one consequence
+           of this press they cannot see from where they are standing. */
+        const to = by === me().id ? '' : `, for ${actor(by).name}`;
+        toast(camp ? `${plural(rows.length, 'company')} on ${camp.name}${to}.`
+          : again ? `${plural(rows.length, 'company')} added to “${name}”${to}.`
+          : `${plural(rows.length, 'company')} in “${name}”${to}.`, () => {
           DB.acc.length = before;
           /* UNDO PUTS A RE-RUN BACK, IT DOES NOT DELETE THE LIST. Removing
              `key` unconditionally would have taken a list that existed
@@ -4492,6 +4792,13 @@
        A tab in the URL because a tab you cannot link to or reload into is a
        mode, and a mode is the thing this surface spent two versions removing. */
     'tab', 'cut', 'stage',
+    /* `view` — AND IT ONLY EVER HOLDS `all`. The six named views live in the
+       axes they set, so there is no key saying which one is on: `viewOn`
+       reads the axes. This is the one thing the axes cannot express, because
+       "no view" and "the default view" are both an empty axis set. It says
+       "I asked for everything", which is the difference between arriving and
+       choosing. */
+    'view',
     /* `from` — WHERE YOU CAME FROM, so Back goes there rather than to a
        fixed parent. Opening ABN AMRO from a campaign and pressing Back
        returned you to a list of organizations, which is where the record
@@ -4531,6 +4838,42 @@
 
   const S = {};
 
+  /* ══ THE LEAD LIST DOES NOT OPEN ON EVERYTHING ═════════════════════════
+
+     Measured with no filter applied: 5.4 screens, 115 buttons, 43 separate
+     things to read above the fold, and the first record card 356px down.
+     Six named views existed, every one of them counted before it is pressed,
+     and NONE of them was applied on arrival — so the surface opened on the
+     one question nobody asks ("show me all 247") and made you narrow it
+     yourself every time.
+
+     Hick's Law is the whole of it: the time to choose grows with the number
+     of options, and 247 records under seventeen axes is not a list, it is a
+     query builder with the query blank. A named view bounds the set BEFORE
+     you are asked to act on it, which is what the six were written for.
+
+     WHICH ONE, BY FUNCTION. Not a guess — each role's home already declares
+     what it leads with, and this matches it: a rep's home opens on their
+     call queue, so their leads open on who is waiting; a BDR's home carries
+     lists, so theirs opens on who has never been touched; a manager's home
+     is progress, so theirs opens on what has slipped.
+
+     `view=all` is the way out and it is a real value, not the absence of
+     one. Without it, clearing the view writes a bare URL, a bare URL gets
+     the default back, and "show me everything" becomes unreachable — which
+     is the trap this kind of default usually falls into. */
+  const DEFAULT_VIEW = { sales: 'waiting', bdr: 'untouched', 'sales-manager': 'overdue' };
+
+  /* Nothing is narrowing: no axis, no set of ids, no list, no campaign, no
+     search. Checked against the real key lists rather than a hand-written
+     subset, so an axis added later cannot quietly bypass this. */
+  const NARROWING = ['q', 'loose', 'srcref', 'touched', 'due', 'archived'];
+  function bareLeads() {
+    if (S.on !== 'leads' || S.lead || S.camp) return false;
+    if (MULTI.some((k) => (S[k] || []).length)) return false;
+    return !NARROWING.some((k) => S[k]);
+  }
+
   function parse() {
     const p = new URLSearchParams(location.search);
     for (const k of MULTI) {
@@ -4539,7 +4882,36 @@
     }
     for (const k of SCALAR) S[k] = p.get(k) || '';
     for (const k of Object.keys(DEFAULTS)) if (!S[k]) S[k] = DEFAULTS[k];
+
     return S;
+  }
+
+  /* ══ AND IT IS NOT WRITTEN INTO THE STATE ══════════════════════════════
+
+     The first cut applied the default view's axes into `S` inside `parse`.
+     It worked on arrival and was wrong everywhere after, because `S` IS THE
+     BASE `qs()` BUILDS EVERY LATER URL FROM: `Object.assign({}, S, over)`.
+     So `status: ['untouched']` went along for the ride on the next
+     navigation that did not explicitly clear it, and measured:
+
+       a list        ?status=untouched&srcref=src-ams   25 rows → 20
+       a campaign    ?status=untouched&campaign=q3-nl   24 rows →  8
+       three ids     ?status=untouched&ids=a0,a1,a2     an id set, filtered
+       a search      ?status=untouched&q=bank            1 of several
+
+     A default that silently narrows a set somebody asked for BY NAME is
+     worse than no default at all — it is the surface lying about what it
+     was asked. Every one of those links is one the product itself writes,
+     from the rail, the agenda and the campaign nodes.
+
+     So the default is a DISPLAY rule and never state: `filtered()` applies
+     it, `viewChips` lights it, and nothing writes it anywhere. Pressing a
+     real view still writes real axes, which is what makes that one linkable
+     and this one not — and that asymmetry is correct, because a default is
+     what you get for asking nothing. */
+  function defaultView() {
+    if (S.view === 'all' || !bareLeads()) return null;
+    return VIEWS.filter((x) => x.k === (DEFAULT_VIEW[me().fn] || 'waiting'))[0] || null;
   }
 
   function qs(over) {
@@ -4912,6 +5284,7 @@
        ignored the search box would be describing a different book. */
     const wide = !!(opts && opts.ignoreScope);
     const noCamp = !!(opts && opts.noCamp);
+    const dv = defaultView();
 
     return records().filter((rec) => {
       const acc = accOf(rec);
@@ -4926,6 +5299,9 @@
          answer→surface bridge: the canvas cites records and writes their
          ids here, so closing the canvas lands on what it was talking about. */
       if (S.ids.length) return S.ids.includes(rec.id);
+
+      /* The landing default, applied here so it never reaches the URL. */
+      if (!wide && dv && !dv.test(rec)) return false;
 
       if (!wide && !any(S.status, statusOf(rec))) return false;
       /* The other two axes are LISTS on the record, so they match with
@@ -5425,12 +5801,23 @@
     const pool = maySee(records()).filter((r) => !r.arch);
     const rows = VIEWS.map((v) => ({ v, n: pool.filter(v.test).length })).filter((r) => r.n);
     if (!rows.length) return '';
+    /* WHICH ONE IS LIT, and the default is lit without being in the axes.
+       `viewOn` reads the axes, which is right for a view somebody pressed;
+       the landing default is deliberately not written there (see
+       `defaultView`), so it is asked for separately. `All` is lit when
+       nothing else is, because the surface opens on a view now and
+       "everything" has to be a thing you can press rather than the state you
+       fall back into. */
+    const dv = defaultView();
+    const allOn = S.view === 'all';
     return `<nav class="s-views" aria-label="Ways in">
       ${rows.map(({ v, n }) => {
-        const on = viewOn(v);
+        const on = !allOn && (dv ? dv.k === v.k : viewOn(v));
         return `<button class="s-view${on ? ' is-on' : ''}" type="button" data-view="${esc(v.k)}"
           aria-pressed="${on}">${esc(v.label)}<span class="s-view-n">${n}</span></button>`;
       }).join('')}
+      <button class="s-view s-view-all${allOn ? ' is-on' : ''}" type="button" data-view="all"
+        aria-pressed="${allOn}">All<span class="s-view-n">${pool.length}</span></button>
     </nav>`;
   }
 
@@ -5878,7 +6265,7 @@
   function scopeName() {
     if (S.srcref) {
       const l = DB.source.filter((x) => x.k === S.srcref)[0];
-      if (l) return `<button class="s-scope-link" type="button" data-quick2="${esc('on=briefing&tab=lists&srcref=')}">${esc(l.name)}</button>`;
+      if (l) return `<button class="s-scope-link" type="button" data-quick2="${esc('on=briefing&tab=&srcref=')}">${esc(l.name)}</button>`;
     }
     if (S.campaign.length === 1) {
       return `<button class="s-scope-link" type="button" data-camp="${esc(S.campaign[0])}">${esc(campName(S.campaign[0]))}</button>`;
@@ -5899,7 +6286,7 @@
   function scopeBack() {
     /* These three draw their own `.s-back`. */
     if (S.lead || S.camp || S.task) return '';
-    if (S.srcref) return { label: 'Back to lists', over: { srcref: '', tab: 'lists', on: '' } };
+    if (S.srcref) return { label: 'Back to lists', over: { srcref: '', tab: '', on: '' } };
     if (S.campaign.length === 1) return { label: `Back to ${campName(S.campaign[0])}`, over: { camp: S.campaign[0], campaign: [], on: '' } };
     /* ══ THERE IS ALWAYS A WAY BACK ═════════════════════════════════════
        The last branch returned '', so organizations or contacts opened
@@ -6423,7 +6810,7 @@
         <button class="btn btn-brand btn-sm" type="button" data-newlist>New campaign</button>
         <button class="btn btn-ghost btn-sm" type="button" data-addsel>Add to a campaign</button>
         <button class="btn btn-ghost btn-sm" type="button" data-enrichsel>Fill in what is missing</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-assignsel>Give to someone</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-assignsel>Assign</button>
       </span>
       <button class="ss-clear" type="button" data-clearsel>Clear</button>
     </div>`;
@@ -6440,7 +6827,7 @@
     if (!recs.length) return;
     const mine = recs.filter((r) => r.owner === me().id).length;
     commit({
-      title: `Give ${plural(recs.length, 'lead')} to someone`,
+      title: `Assign ${plural(recs.length, 'lead')}`,
       body: `<div class="s-pick">${SELLERS.filter((p) => p.id !== me().id).map((p) => `<label class="ds-choice s-pick-row">
           <input type="radio" name="assignto" value="${esc(p.id)}" />
           <span>${esc(p.name)} <span class="s-pick-role">${esc(roleOf(p))}</span></span>
@@ -6453,7 +6840,7 @@
         : [],
       reversible: 'Undoable',
       who: `${me().name} is deciding this.`,
-      confirm: 'Give them over',
+      confirm: 'Assign them',
       run() {
         const to = ($('input[name="assignto"]:checked') || {}).value;
         if (!to) { toast('Nobody picked, so nothing moved.'); return false; }
@@ -6573,7 +6960,7 @@
       </div>` : ''}
 
       <div class="s-sheet-foot">
-        ${on.length ? `<button class="btn btn-brand btn-sm" type="button" data-quick="ids=${esc(on.map((r) => r.id).join(','))}&on=leads&who=">Show them on the surface</button>` : ''}
+        ${on.length ? `<button class="btn btn-brand btn-sm" type="button" data-quick="ids=${esc(on.map((r) => r.id).join(','))}&on=leads&who=">Show them</button>` : ''}
         ${/* Pause is not offered on a task that is already stopped. A
               needs-you task has stopped and is waiting on a person, so
               "Pause it" there is a control whose effect is nothing —
@@ -6585,7 +6972,7 @@
             : `<button class="btn btn-ghost btn-sm" type="button" data-taskpause="${esc(t.id)}">Start it again</button>`}
           <button class="btn btn-ghost btn-sm" type="button" data-taskstop="${esc(t.id)}">Stop it</button>
         ` : ''}
-        ${canWrite() && t.wrote ? `<button class="btn btn-ghost btn-sm" type="button" data-taskundo="${esc(t.id)}">Undo what it did</button>` : ''}
+        ${canWrite() && t.wrote ? `<button class="btn btn-ghost btn-sm" type="button" data-taskundo="${esc(t.id)}">Undo it</button>` : ''}
       </div>`;
   }
 
@@ -7410,7 +7797,7 @@
             </div>
             ${/* THE TOP OF A RANKED QUEUE IS THE NEXT CALL TO MAKE, so it is
                   Reach's one filled control — the same rule `queueBlock` and
-                  `agendaCard` already use on their first row. Ranking a
+                  the rail's agenda already use on their first row. Ranking a
                   queue and then giving all six rows the same weight is
                   ranking nobody looks at. */ ''}
             ${canWrite() && !campOver(l) ? (i === 0 && claimPrimary()
@@ -7984,7 +8371,7 @@
 
        The record named its campaigns and would not say where it had got to
        in any of them. `memberStage` has known since v8 — it is the same call
-       the campaign strip and the home pipeline make — so a record could
+       the campaign's four-node flow makes — so a record could
        answer "what happens to this one next" and instead answered only
        "which lists is it on".
 
@@ -8019,6 +8406,52 @@
        about the record. That is a different list of the same events: this
        one is the record of what happened, that one is the conversation
        around it. Collapsed here, it cannot compete with the insight. */
+    /* ══ THE CALLS, WITH EVERYTHING THAT WAS CAPTURED ══════════════════════
+
+       A call produced six fields and the record showed one of them: the
+       timeline row prints `note` and the disposition, and everything else —
+       what was proposed, what pushed back, what opened up, what to remember,
+       the transcript — was written and readable nowhere.
+
+       So the calls get their own block, drawn by the same `callSummaryHtml`
+       that acknowledges a call the moment you hang up. One renderer for the
+       thing you read at 0:58 and the thing you read in March, which is what
+       stops the two drifting.
+
+       Separate from History rather than inside it. History is every
+       touchpoint of every channel — an email that bounced, a meeting, a
+       LinkedIn note — and it is a sequence you scan. A call is the only one
+       of them that produces a conversation, and this is the record of what
+       came out of those. Newest first, because with a call the last one is
+       the one you need before the next.
+
+       EVERY PHONE TOUCHPOINT, not only the ones with a disposition. The
+       first cut asked for `callOutcome || lines`, which is what this
+       surface writes — and the corpus holds 52 phone touchpoints and not one
+       of them carries either, because they were seeded before the field
+       existed. So the block was invisible until you made a call yourself: a
+       feature you cannot find without first using the thing it documents.
+
+       A call logged in 2024 is still a call. It shows what it has —
+       `callFacts` leaves out any row whose data is absent — and the
+       difference between two rows and six is itself the honest statement
+       that less was captured then. Backfilling a disposition nobody picked
+       would have been the alternative, and inventing what somebody heard on
+       a call is the one thing this record must never do. */
+    const calls = touchesFor(rec).filter((t) => t.ch === 'phone');
+    if (calls.length) {
+      out.push(block('Calls', `<div class="s-calls">
+        ${calls.map((t) => `<article class="s-call">
+          <div class="s-call-head">
+            <span class="s-call-when">${esc(fmtDate(t.at))} · ${esc(fmtAgo(t.at))}</span>
+            <span class="s-call-by${t.by === 'aimy' ? ' is-ai' : ''}">${esc(actor(t.by).name)}</span>
+          </div>
+          ${callSummaryHtml(t, rec)}
+          ${canWrite() ? `<button class="s-inline-btn" type="button" data-fixtouch="${esc(t.id)}">Correct it</button>` : ''}
+        </article>`).join('')}
+      </div>`));
+    }
+
     const hist = touchesFor(rec);
     if (hist.length) {
       out.push(block('History', `<details class="s-rec-hist">
@@ -8697,10 +9130,28 @@
         state: 'detected', cta: 'Answer them', go: { ids: answered.map((r) => r.id), on: 'leads', who: '', lead: '' } });
     }
 
+    /* ══ "OF YOURS", AND IT HAS TO SAY SO ═══════════════════════════════
+
+       Measured on the BDR's home: this said "11 next steps past their date"
+       while the rail, eight hundred pixels to the right, said "13 overdue".
+       Both true, and NEITHER IS WRONG — they count different sets:
+
+           11   `mine` — owned by or shared with you, accounts AND contacts
+           13   `standingFigures` — every account you can SEE, accounts only
+
+       Two derivations of two genuinely different facts, wearing one word.
+       The reader's only way to discover that was to press both and count.
+       That is the v5 one-home-per-fact rule failing across the rail/page
+       boundary rather than inside a page, which is why five passes of
+       reading each surface on its own never caught it.
+
+       Neither number moves. Both labels now name their scope, here and in
+       `standingFigures`, so the difference is stated where the difference
+       is visible. */
     const over = mine.filter((r) => r.next && daysAgo(r.next.due) > 0);
     if (over.length) {
       const worst = over.slice().sort((a, b) => daysAgo(b.next.due) - daysAgo(a.next.due))[0];
-      items.push({ p: 1, text: `${plural(over.length, 'next step')} past ${over.length === 1 ? 'its' : 'their'} date. The oldest is ${worst.next.what.toLowerCase()} on ${worst.name}, ${plural(daysAgo(worst.next.due), 'day')} ago.`,
+      items.push({ p: 1, text: `${plural(over.length, 'next step')} of yours past ${over.length === 1 ? 'its' : 'their'} date. The oldest is ${worst.next.what.toLowerCase()} on ${worst.name}, ${plural(daysAgo(worst.next.due), 'day')} ago.`,
         state: 'detected', cta: 'Reschedule them', go: { ids: over.map((r) => r.id), on: 'leads', who: '', lead: '' } });
     }
 
@@ -8912,7 +9363,7 @@
         say: `You have closed <b>${plural(won.length, 'account')}</b>${inds.length ? `, mostly ${esc(inds.join(' and '))}` : ''}. I can look for companies that match them on size, sector and what they are hiring for. <b>Nothing is contacted</b> — they arrive as a list you look at first.`,
         act: 'Find them', mode: 'investigate',
         ask: `Find companies like the ${won.length} we have won. Show me what they have in common first — size, sector, what they were hiring for — then the companies that match, and say how confident you are about each.`,
-        alt: 'Change what to look for', altAsk: `What profile are you searching on? Show me what you read off the ${won.length} won accounts, and let me correct it.`,
+        alt: 'Change the criteria', altAsk: `What profile are you searching on? Show me what you read off the ${won.length} won accounts, and let me correct it.`,
       });
     }
 
@@ -8984,103 +9435,6 @@
      AiMY did in its own voice, then the action as a link. The same shape a
      card uses, because it is the same kind of statement at a different
      scope: this is about a set, that is about one lead. */
-  /* ══ THE PIPELINE, ACROSS THE WHOLE BOOK ══════════════════════════════════
-
-     THE PROCESS WAS ALREADY IN THE DATA AND ON NO SURFACE THAT MATTERED.
-
-     `memberStage` has placed every lead on one of six stages since v8, and
-     the only place the six were ever drawn was inside one open campaign —
-     where the strip is a TAB BAR that shows one stage at a time. So the
-     product knew where all its work stood and would not say: the landing
-     surface collapsed each campaign to a single word, and a record showed a
-     status with no position in the process at all.
-
-     This is that model, read at book scope. Six columns, one glance, and the
-     question it answers is the one the briefing could not: not "what
-     happened" but "where is everything".
-
-     ── THE UNITS ARE NAMED, BECAUSE THEY GENUINELY DIFFER ──
-
-     Two of the six are campaign-level gates and four are where a lead
-     stands. `memberStage` returns only the four; nothing is ever "at Find",
-     because Find is what happens before there is anybody to be anywhere.
-
-     The strip inside a campaign hid this by counting whatever each stage
-     happened to have — `done`, `24 in`, `3 waiting`, `21% back`: four kinds
-     of quantity in six columns, none of them saying what it counted, so the
-     row could not be read across. Here every column states its noun. A
-     figure you cannot name the unit of is not a figure.
-
-     ── DEDUPED BY RECORD, SO THE COUNT SURVIVES THE CLICK ──
-
-     A lead on two campaigns stands at two stages. Counting memberships would
-     make the columns sum past the book, and pressing one would then show
-     fewer records than it promised. The sets hold ids. */
-  function bookPipeline() {
-    const camps = filteredCampaigns();
-    const at = Object.create(null);
-    CAMP_STAGE.forEach((st) => (at[st.k] = { camps: [], ids: new Set() }));
-
-    for (const c of camps) {
-      const cs = campStage(c);
-      if (cs === 'find') at.find.camps.push(c);
-      /* Members are placed whatever the campaign's own gate says. A draft
-         with eighteen accounts on it and nothing sent is a campaign waiting
-         at Set up AND eighteen leads waiting at Reach — both true, both
-         work, and reporting only the first would lose the eighteen. */
-      for (const a of campMembers(c)) at[memberStage(a, c)].ids.add(a.id);
-    }
-
-    return CAMP_STAGE.map((st) => {
-      const row = at[st.k];
-      const isGate = st.scope === 'camp';
-      const n = isGate ? row.camps.length : row.ids.size;
-      return {
-        st, n, isGate,
-        noun: isGate ? plural(n, 'campaign').replace(/^\d+\s/, '') : plural(n, 'lead').replace(/^\d+\s/, ''),
-        camps: row.camps, ids: [...row.ids],
-      };
-    });
-  }
-
-  /* Each column is one target and it lands on exactly what it counted.
-
-     The member stages send `ids`, which is the only thing that carries "these
-     records" rather than "a filter that resembles them" — the same rule the
-     briefing's findings now follow. A gate with one campaign behind it opens
-     that campaign at the stage in question, because a list of one is a click
-     you already made. */
-  function pipelineBlock() {
-    const rows = bookPipeline();
-    const leads = rows.filter((r) => !r.isGate).reduce((a, r) => a + r.n, 0);
-    if (!rows.some((r) => r.n)) return '';
-
-    return `<section class="s-block s-block-wide" aria-label="Pipeline">
-      <div class="s-camp-rows-head">
-        <h2 class="s-block-h">Pipeline</h2>
-        <span class="s-pipe-total">${esc(plural(leads, 'lead'))} across ${esc(plural(filteredCampaigns().length, 'campaign'))}</span>
-      </div>
-      <ol class="s-pipe">
-        ${rows.map((r) => {
-          const owner = FUNCTIONS[r.st.fn] ? FUNCTIONS[r.st.fn].label : '';
-          const dead = !r.n;
-          const go = r.isGate
-            ? (r.camps.length === 1 ? `data-camprow="${esc(r.camps[0].k)}|${esc(r.st.k)}"` : 'data-quick="on=campaigns"')
-            : `data-pipe="${esc(r.st.k)}"`;
-          return `<li class="s-pipe-cell${dead ? ' is-clear' : ''}">
-            <button class="s-pipe-btn" type="button" ${dead ? 'disabled' : go}
-              aria-label="${esc(`${r.st.label}: ${plural(r.n, r.isGate ? 'campaign' : 'lead')}, ${owner}`)}">
-              <span class="s-pipe-head"><span class="s-pipe-n">${r.st.n}</span>${esc(r.st.label)}</span>
-              <span class="s-pipe-fig">${r.n}</span>
-              <span class="s-pipe-unit">${esc(r.noun)}</span>
-              <span class="s-pipe-who">${esc(owner)}</span>
-            </button>
-          </li>`;
-        }).join('')}
-      </ol>
-    </section>`;
-  }
-
   /* ══ YOUR CAMPAIGNS, AND WHERE EACH IS STUCK ══════════════════════════════
 
      THE HOME PAGE PUT CAMPAIGNS 1,425px DOWN — below the opener, the ways to
@@ -9160,35 +9514,62 @@
      second where a real alternative exists. AiMY QA carries two actions on
      exactly one card in ten, and that one is its only reversible cross-team
      commitment; the rest carry one. */
+  /* ══ THE AGENDA LIVES IN THE RAIL ══════════════════════════════════════
+
+     It was a page block: four cards, 404px, below the campaigns. Measured on
+     the BDR's home it sat at y=1183 on a 720px viewport — the list of what
+     needs you, below the fold, under the things it is about.
+
+     THE RAIL IS WHERE IT BELONGS BECAUSE OF WHAT THE RAIL IS FOR. v4 gave
+     this product a two-column rule it has only ever half-kept: the centre is
+     the thing you opened, the rail is everything around it. At book scope
+     the "thing you opened" is what changed and which campaigns are yours;
+     the agenda is work standing outside all of it, which is the rail's
+     definition. It also already had the component — `.rail-row` is a
+     sentence, a tone and a named action, which is an agenda item exactly.
+
+     The merge that made one list out of two moves here with it, because the
+     rail is now its only reader.
+
+     `briefItems` already carries a priority (0 highest); initiatives do not,
+     because until now they never competed with anything. Both are scored on
+     one scale so a stopped run can outrank a proposal and a proposal can
+     outrank a low-priority finding — which is the whole reason for merging
+     them rather than stacking one under the other. Findings score off their
+     own `p`; initiatives score off what they are: a DRAFTED thing is holding
+     an artefact and is nearly as urgent as a problem; a recommendation sits
+     below every real finding but above nothing at all. */
+  const INIT_RANK = { drafted: 1.5, staged: 0.5, recommended: 3.5, detected: 2.5 };
+
+  function agendaItems() {
+    return briefItems().map((it, i) => ({ kind: 'brief', it, i, score: it.p }))
+      .concat(initiatives().map((it) => ({ kind: 'init', it,
+        score: INIT_RANK[it.state] != null ? INIT_RANK[it.state] : 3 })))
+      .sort((a, b) => a.score - b.score);
+  }
+
+  /* One agenda item as a rail row. The two kinds carry their handles
+     differently — a finding is an index into a deterministic list, an
+     initiative names itself and its prompt — so the row carries the PIECES
+     and the rail writes them into the tag.
+
+     NOT AN `attr` STRING. The first cut returned the whole attribute list
+     pre-built, which is what the note on the rail's card action warns
+     against: `wiring-audit` reads the tag around a `data-aimy-ask` to check
+     that a control which only stages a question says so, and attributes
+     assembled outside the tag put `data-init` where the check cannot see it.
+     It reported MODE LIES on this function within a minute of the move —
+     correctly, because from where it stands the claim was unverifiable. */
+  function agendaRow(a) {
+    const it = a.it;
+    return a.kind === 'init'
+      ? { state: it.state, text: `${it.title}. ${firstClause(it.say)}`, act: it.act, init: it }
+      : { state: it.state || 'detected', text: it.text, act: it.cta, brief: a.i };
+  }
+
   const AGENDA_MAX = 4;
   let AGENDA_ALL = false;
 
-  function agendaCard(a, i) {
-    const it = a.it;
-    const isInit = a.kind === 'init';
-    const state = it.state || 'detected';
-    /* A finding had no title, so it gets one: the first clause of what it
-       says, with the rest as the sentence under it. A card whose title is
-       its own first line reads as a card with no title at all, so where the
-       sentence is a single clause the title carries it and the sentence goes. */
-    const title = isInit ? it.title : firstClause(it.text);
-    const rest = isInit ? firstClause(it.say) : it.text.slice(title.length).trim().replace(/^[.,;\s]+/, '');
-    return `<article class="s-agenda-card" style="--i:${i}" data-aimy-item="${esc(isInit ? it.k : 'brief-' + a.i)}">
-      <span class="work-state ws-${esc(state)}" data-work-state="${esc(state)}">${esc(WS_LABEL[state])}</span>
-      <h3 class="s-agenda-title">${esc(title)}</h3>
-      ${rest ? `<p class="s-agenda-say">${esc(rest)}</p>` : ''}
-      <div class="s-insight-acts">
-        ${/* The agenda is sorted by what it costs to leave alone, so the first
-              card is the recommendation and is the only filled one. */ ''}
-        <button class="s-insight-lnk${i === 0 && claimPrimary() ? ' primary' : ''}" type="button"
-          ${isInit ? `data-init="${esc(it.k)}" data-entry-mode="${esc(it.mode)}" data-aimy-topic="${esc(it.k)}" data-aimy-ask="${esc(it.ask)}"`
-            : `data-brief="${a.i}"`}>${esc(isInit ? it.act : it.cta)}</button>
-        ${isInit && it.alt ? `<button class="s-insight-lnk" type="button"
-          data-entry-mode="prompt" data-aimy-topic="${esc(it.k)}-alt"
-          data-aimy-ask="${esc(it.altAsk)}">${esc(it.alt)}</button>` : ''}
-      </div>
-    </article>`;
-  }
 
   /* ═══════════════════════════════════════════════
      ONE PAGE
@@ -9214,24 +9595,10 @@
      started, then what is already moving, then everything else.
   ═══════════════════════════════════════════════ */
   function homePage() {
-    const items = briefItems();
-    const inits = initiatives();
-    /* ── The merge, and the ranking that makes it one list ──
-
-       `briefItems` already carries a priority (0 highest); initiatives do
-       not, because until now they never competed with anything. Both are
-       scored on one scale here so a stopped run can outrank a proposal and
-       a proposal can outrank a low-priority finding — which is the whole
-       reason for merging them rather than stacking one under the other.
-
-       Findings score off their own p. Initiatives score off what they are:
-       a DRAFTED thing is holding an artefact and is nearly as urgent as a
-       problem; a recommendation is a suggestion and sits below every real
-       finding but above nothing at all. */
-    const INIT_RANK = { drafted: 1.5, staged: 0.5, recommended: 3.5, detected: 2.5 };
-    const agenda = items.map((it, i) => ({ kind: 'brief', it, i, score: it.p }))
-      .concat(inits.map((it) => ({ kind: 'init', it, score: INIT_RANK[it.state] != null ? INIT_RANK[it.state] : 3 })))
-      .sort((a, b) => a.score - b.score);
+    /* The agenda was computed here and drawn here. Both moved to the rail —
+       `agendaItems` and `bookReading` — so this function no longer knows
+       what needs you, which is correct: it draws the book, and what needs
+       you is the thing standing beside the book. */
 
     /* ── THE PAGE IS COMPOSED FROM THE FUNCTION, NOT FROM A SWITCH ──
 
@@ -9282,11 +9649,24 @@
         </div>
       </section>` : ''}
 
-      ${/* SECOND, AND BEFORE ANYTHING IT COULD BE READ AS A CONSEQUENCE OF.
-            The opener narrates three days; this states the standing shape of
-            the work. Orientation before agenda: what needs you is only
-            legible once you know where everything is. */ ''}
-      ${shows('pipeline') ? pipelineBlock() : ''}
+      ${/* ══ THE PIPELINE BLOCK IS GONE ═══════════════════════════════════
+
+            It drew the four stages across the whole book — `Find 1 campaign ·
+            Enrich 7 · Reach 44 · Measure 16` — and its argument was that
+            orientation must come before agenda: what needs you is only
+            legible once you know where everything is.
+
+            The argument was sound when it was written and the surface it was
+            written for no longer exists. v4 gave every campaign a four-node
+            flow drawing the same figures from the same derivations
+            (`memberStage` · `stageFigure`), so the stages are stated on the
+            page where they can be acted on. What was left here was a second
+            copy at book scope, 174px, above the agenda, answering a question
+            nobody had arrived with — and its first cell read `1 · Find · 1 ·
+            campaign`, two different 1s adjacent.
+
+            Nothing is lost that a campaign page does not already own, and
+            `bookPipeline` went with it: its only reader was this block. */ ''}
 
       ${/* THE SAME ANATOMY THE CARDS USE — work state, the finding, the
             named next step. The feedback asked for actions taken and next
@@ -9329,11 +9709,12 @@
 
       ${shows('campaigns') ? campaignRows() : ''}
 
-      ${shows('agenda') && agenda.length ? `<section class="s-block s-block-wide" aria-label="Agenda">
-        <h2 class="s-block-h">Agenda</h2>
-        <div class="s-agenda s-stagger">${(AGENDA_ALL ? agenda : agenda.slice(0, AGENDA_MAX)).map((a, i) => agendaCard(a, i)).join('')}</div>
-        ${!AGENDA_ALL && agenda.length > AGENDA_MAX ? `<button class="s-inline-btn s-tab-more" type="button" data-agenda-all>${esc(plural(agenda.length - AGENDA_MAX, 'more thing'))} I can start</button>` : ''}
-      </section>` : ''}
+      ${/* The Agenda section stood here — 404px of cards at y=1183, below the
+            campaigns they were about. It is in the rail now; see the note
+            above `agendaItems`. `'agenda'` stays in `FUNCTIONS[fn].home`
+            because it still decides WHO gets one: the rail reads the same
+            plan, so a client's rail carries no agenda for the same reason
+            their page never did. */ ''}
 
       ${/* ══ CAMPAIGNS SURFACE. ACCOUNTS DO NOT. ══════════════════════════
 
@@ -9363,10 +9744,10 @@
             They are THE SAME KIND OF THING AT DIFFERENT GRAINS: named sets
             of records you do work on. One surface with one set of controls,
             and a tab is how you say which grain you are working at. */ ''}
+
       ${tabsBlock(plan)}
     </div>`;
   }
-
   /* ═══════════════════════════════════════════════
      THE WORKING SURFACE — four tabs
 
@@ -9378,6 +9759,24 @@
   ═══════════════════════════════════════════════ */
   /* Campaigns are not a tab. `campaignRows()` is the campaign door and it is
      the better one — ranked by whose move it is, landing on the stage. */
+  /* ══ THREE DOORS, AND EACH SAYS WHAT IS BEHIND IT ══════════════════════
+
+     All three were a count and a noun and nothing else until pressed — 74px
+     of grey buttons at the foot of the page, which is the weakest placement
+     a primary destination can have (last AND smallest). `69 · Organizations`
+     is recognition-over-recall failing (NN/g #6): it asks you to remember
+     what a room holds in order to decide whether to enter it.
+
+     The fix is the preview, not the promotion. A first cut pulled lists out
+     of the doors and rendered their cards inline on the landing surface —
+     which put 756px of one grain onto a briefing and made the page 2.68
+     screens to save one press. A briefing that embeds the thing it exists to
+     save you from reading has given the ground back, which is the argument
+     the tab strip was built on and it still holds.
+
+     So all three stay doors, all three learn to say what is inside, and what
+     a list card gained — AiMY's reading of it — it keeps for when the door
+     is open. */
   const TABS = [
     { k: 'orgs',      label: 'Organizations' },
     { k: 'contacts',  label: 'Contacts' },
@@ -9462,8 +9861,8 @@
 
      THE BRIEFING WAS CARRYING A SECOND APPLICATION. This block rendered a
      tab strip, five cut chips and twelve cards inside the landing surface:
-     1,231px and 42 controls, more than the opener, the pipeline, the
-     campaigns and the agenda put together. The doctrine budgets a briefing
+     1,231px and 42 controls, more than the opener, the campaigns and the
+     agenda put together. The doctrine budgets a briefing
      at seven to nine BLOCKS; one block was two thirds of the page.
 
      Two changes, and the second is the one that matters.
@@ -9498,12 +9897,37 @@
     if (!tabs.length) return '';
 
     if (!tabs.some((t) => t.k === S.tab)) {
-      return `<section class="s-block s-block-wide" aria-label="Elsewhere">
+      return `<section class="s-block s-block-wide" aria-label="Everything">
+        ${/* ══ A DOOR SAYS WHAT IS BEHIND IT ═══════════════════════════════
+
+              `69 · Organizations` is recognition-over-recall failing (NN/g
+              #6): it asks you to remember what a room holds in order to
+              decide whether to enter it, and the only thing that
+              distinguishes the two doors is a noun you already know.
+
+              `tabPool` returns them through `ordered()`, which ranks by
+              urgency — so the first two names are not a sample, they are the
+              two this door is most worth opening for. That makes the preview
+              a REASON rather than decoration, which is the whole difference
+              between showing contents and padding a button. */ ''}
+        ${/* NOT "ELSEWHERE". These three are not somewhere else — they are
+              the corpus this whole product is about, and a heading that
+              calls them elsewhere tells you the page you are on is the
+              subject and they are a detour. It is the other way round: the
+              briefing is a reading OF these. */ ''}
+        <h2 class="s-block-h">Everything</h2>
         <nav class="s-doors">
-          ${tabs.map((t) => `<button class="s-door" type="button" data-tab="${esc(t.k)}">
-            <span class="s-door-n">${tabPool(t.k).length}</span>
-            <span class="s-door-label">${esc(t.label)}</span>
-          </button>`).join('')}
+          ${tabs.map((t) => {
+            const pool = tabPool(t.k);
+            const top = pool.slice(0, 2).map((r) => r.name);
+            return `<button class="s-door" type="button" data-tab="${esc(t.k)}">
+              <span class="s-door-head">
+                <span class="s-door-n">${pool.length}</span>
+                <span class="s-door-label">${esc(t.label)}</span>
+              </span>
+              ${top.length ? `<span class="s-door-peek">${esc(top.join(' · '))}${pool.length > top.length ? ` · and ${pool.length - top.length} more` : ''}</span>` : ''}
+            </button>`;
+          }).join('')}
         </nav>
       </section>`;
     }
@@ -9515,12 +9939,17 @@
     const shown = cut ? pool.filter(cut.test) : pool;
     const page = shown.slice(0, TAB_PAGE);
 
-    return `<section class="s-block s-block-wide s-tabs-block" aria-label="Organizations, contacts and lists">
+    return `<section class="s-block s-block-wide s-tabs-block" aria-label="Everything">
       <div class="s-tabstrip" role="tablist">
         ${tabs.map((t) => `<button class="s-tab${t.k === open ? ' is-on' : ''}" type="button" role="tab"
           aria-selected="${t.k === open}" data-tab="${esc(t.k)}">${esc(t.label)}<span class="s-tab-n">${tabPool(t.k).length}</span></button>`).join('')}
+        ${/* Ghost, like `New campaign` beside the campaigns it heads. It was
+              filled, and on a tab whose cards each carry AiMY's own
+              recommendation that is two filled controls where the rule is
+              one. A standing entrance is reachable from everywhere and is
+              never what AiMY thinks you should do next. */ ''}
         ${open === 'lists' && canWrite()
-          ? `<button class="btn btn-brand btn-sm s-tab-new" type="button" data-findco>${chIcon('plus')}Find companies</button>` : ''}
+          ? `<button class="btn btn-ghost btn-sm s-tab-new" type="button" data-findco>${chIcon('plus')}Find companies</button>` : ''}
         ${/* The way back to the doors. An opened tab that cannot be closed is
               not a disclosure, it is a mode — and the briefing spent two
               versions removing modes. */ ''}
@@ -9568,7 +9997,7 @@
     if (!s || !canWrite()) return;
     const was = s.by;
     const pool = SELLERS.filter((p) => p.id !== s.by);
-    if (!pool.length) { toast('There is nobody else to hand it to.'); return; }
+    if (!pool.length) { toast('There is nobody else to assign it to.'); return; }
     commit({
       title: `Hand on ${s.name}`,
       body: `<div class="s-pick">${pool.map((p, i) => `<label class="ds-choice s-pick-row">
@@ -9576,7 +10005,7 @@
         <span>${esc(p.name)} <span class="s-pick-role">${esc(roleOf(p))}</span></span>
       </label>`).join('')}</div>`,
       effects: [['warn', `${listPool(s).length} organizations come with it.`]],
-      confirm: 'Hand it on',
+      confirm: 'Assign it',
       run() {
         const to = ($('.s-list-to:checked') || {}).value;
         if (!to) return false;
@@ -9618,7 +10047,7 @@
     /* One claim, at the head of the loop that is not yet satisfied. */
     const next = !mine ? null
       : thin.length ? { label: `Fill in ${thin.length}`, attr: `data-enrichlist="${esc(s.k)}"` }
-      : !used.length ? { label: 'Put it in a campaign', attr: `data-listcamp="${esc(s.k)}"` }
+      : !used.length ? { label: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"` }
       : null;
 
     /* ══ FIVE FACTS THAT COULD BREAK IN HALF ═════════════════════════════
@@ -9665,8 +10094,8 @@
       </div>
       ${mine ? `<div class="s-listhead-acts">
         ${next ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')}" type="button" ${next.attr}>${esc(next.label)}</button>` : ''}
-        ${next && next.attr.indexOf('listcamp') < 0 ? `<button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Put it in a campaign</button>` : ''}
-        <button class="btn btn-ghost btn-sm" type="button" data-listassign="${esc(s.k)}">Hand it on</button>
+        ${next && next.attr.indexOf('listcamp') < 0 ? `<button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Make a campaign</button>` : ''}
+        <button class="btn btn-ghost btn-sm" type="button" data-listassign="${esc(s.k)}">Assign</button>
         ${s.auto ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Run it again</button>`}
       </div>` : ''}
       ${/* THE CRITERIA ARE THE LIST. Editable in place, because what a list
@@ -9689,25 +10118,113 @@
 
      Enrich, add to a campaign, run it again. Three verbs, and they are the
      three things somebody actually does to a list; assignment is a property
-     of a campaign rather than of a list, so it is not offered here. */
+     of a campaign rather than of a list, so it is not offered here.
+
+     ══ AND AiMY SAYS WHAT IT THINKS OF IT ═══════════════════════════════
+
+     The card carried a name, criteria, four facts and three equal-weight
+     ghost buttons — every fact this product knows about a list except the
+     one thing it had CONCLUDED about it. `listReading(s)` has produced that
+     sentence since v4 (`8 of 24 have no headcount or revenue, so they cannot
+     be sorted or scored → Fill them in`) and it was reachable from exactly
+     one place: the rail, and only while that list was the open scope. So the
+     one surface listing every list showed none of what AiMY had to say about
+     any of them.
+
+     ONE VOCABULARY, THREE SCOPES. The reading arrives in the same anatomy
+     the rail's card and the agenda rows use — work state, the finding, the
+     named verb — so a list card, a campaign row and an agenda item read as
+     the same kind of statement about things of different sizes.
+
+     ITS ACTION IS THE CARD'S PRIMARY, and the other verbs step back. Three
+     ghost buttons of equal weight is a card that has ranked nothing; the
+     reading already ranked them, and the recommended verb is whichever one
+     its state names. Where the reading's verb is one of the three, the
+     duplicate is dropped rather than drawn twice. */
   function listCard(s, i) {
-    const pool = listPool(s);
-    const pct = listCover(s);
-    const thin = pool.filter((a) => a.emp == null || a.rev == null);
-    const usedBy = listUsedBy(s);
+    /* `listPool`, `listCover`, `listUsedBy` and the thin count were all read
+       here to build a facts line and a row of verbs. The reading states what
+       they said, in words, and owns the only two controls — so this function
+       derives nothing now. It asks `listReading` and renders the answer,
+       which is the whole point of the change. */
+    const read = listReading(s).card;
     return `<article class="s-listrow" style="--i:${i || 0}" data-aimy-item="${esc(s.k)}">
       <button class="s-listrow-name" type="button" data-quick="${esc(listQuery(s.k))}">${esc(s.name)}</button>
-      <p class="s-listrow-crit">${editField(s, 'crit')}</p>
+      ${/* ══ THE CARD READS, IT DOES NOT WRITE ═══════════════════════════
+
+            The criteria were an `editField` here, so a list's definition —
+            the string `findCompanies` parses back into chips, the thing a
+            re-run reads — was editable from a card in a list of cards, with
+            no sight of what it holds and nothing on screen saying a re-run
+            would then return something else.
+
+            An index is for choosing which thing to work on. Changing the
+            thing happens on the thing: `listHead` keeps the editable name
+            and criteria, on the surface that also shows you the rows they
+            selected. Same rule the record cards keep — the grid opens a
+            record, it does not let you retype its name in passing. */ ''}
+      <p class="s-listrow-crit">${esc(s.crit)}</p>
+      ${/* ══ THE FACTS THE READING DOES NOT ALREADY STATE ══════════════════
+
+            This line was `25 brought in of 1,240 found · 92% complete · 3
+            campaigns draws on it · runs itself`, and once the reading landed
+            beside it THREE OF THE FOUR WERE SAID TWICE — the reading counts
+            the organizations, names the coverage gap and names the campaigns
+            using it, which is the same three facts in sentences.
+
+            Worse, two of them disagreed. Measured on the BDR's home:
+
+              facts    "25 brought in"    `s.imported`, what the RUN fetched
+              reading  "1 of 12"          `listPool`, what YOU may see
+
+            Both true, one word, no label — the P1 overdue defect again, and
+            I put it here by moving the reading in. `imported` is a property
+            of the run and not of the list as you can see it, so it goes; the
+            reading's count is the one that matches what pressing the name
+            will show you.
+
+            What is left is what the reading never says: how many the search
+            matched, who owns it, and whether it runs itself. Owner is new
+            here and was on `listHead` only — "whose list is this" is the
+            question a page of several lists raises and one list does not. */ ''}
       <p class="s-listrow-facts">
-        <b>${s.imported}</b> brought in of ${s.found.toLocaleString('en-GB')} found ·
-        <b>${pct}%</b> complete ·
-        ${usedBy.length ? esc(plural(usedBy.length, 'campaign')) + ' draws on it' : 'no campaign uses it'} ·
+        ${s.found.toLocaleString('en-GB')} matched the criteria ·
+        <b>${esc(actor(s.by).name)}</b> owns it ·
         ${s.auto ? 'runs itself' : 'run by hand'}
       </p>
+      <div class="s-listrow-read">
+        <span class="work-state ws-${esc(read.state)}" data-work-state="${esc(read.state)}">${esc(WS_LABEL[read.state] || read.state)}</span>
+        <p class="s-listrow-say">${read.text}</p>
+      </div>
+      ${/* ══ WHAT AiMY WOULD DO, AND WHAT IT WOULD ANSWER ══════════════════
+
+            Two controls, both AiMY's, where there were four: its recommended
+            move — carrying the mark, because anything AiMY authored or is
+            about to do wears it — and the question it would take instead.
+
+            The three that went (`Fill in N` · `Make a campaign` · `Run
+            it again`) were drawn on every card at equal weight whatever was
+            true of it, which is a card that has ranked nothing. All three
+            are on the list's own page, which is where acting on a list
+            belongs — the same rule that took the editable criteria off this
+            card. Nothing became unreachable. */ ''}
       ${canWrite() ? `<div class="s-listrow-ops">
-        ${thin.length ? `<button class="btn btn-ghost btn-sm" type="button" data-enrichlist="${esc(s.k)}">Fill in ${thin.length}</button>` : ''}
-        <button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Put it in a campaign</button>
-        ${s.auto ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Run it again</button>`}
+        ${/* Three forms, because a recommendation is not always a write: a
+              narrowing, a real verb, or — on a list that maintains itself
+              and has nothing wrong with it — a question, which is the honest
+              primary when AiMY has no move to offer. The mode is the literal
+              `prompt` in the tag, so `wiring-audit` can check that a control
+              which only stages a question says so. */ ''}
+        ${read.quick
+          ? `<button class="s-insight-lnk s-ai-btn${claimPrimary() ? ' primary' : ''}" type="button" data-quick="${esc(read.quick)}">${aiMark()}${esc(read.act)}</button>`
+          : read.attr
+          ? `<button class="s-insight-lnk s-ai-btn${claimPrimary() ? ' primary' : ''}" type="button" ${read.attr}>${aiMark()}${esc(read.act)}</button>`
+          : `<button class="s-insight-lnk s-ai-btn${claimPrimary() ? ' primary' : ''}" type="button"
+              data-entry-mode="prompt" data-aimy-topic="${esc('list-' + s.k)}"
+              data-aimy-ask="${esc(read.ask || '')}">${aiMark()}${esc(read.act)}</button>`}
+        ${read.alt ? `<button class="s-insight-lnk" type="button"
+          data-entry-mode="prompt" data-aimy-topic="${esc('list-' + s.k + '-alt')}"
+          data-aimy-ask="${esc(read.altAsk)}">${esc(read.alt)}</button>` : ''}
       </div>` : ''}
     </article>`;
   }
@@ -9784,7 +10301,13 @@
            orientation you already had. */
         delta: w.now - w.then,
         q: q({ status: 'awaiting-us' }) },
-      { n: mine.filter((r) => r.next && daysAgo(r.next.due) > 0).length, cap: 'overdue',
+      /* `overdue` on its own read as the same fact the agenda states as
+         "N next steps past their date", and the two numbers differed —
+         see the note in `briefItems`. This one counts every ACCOUNT in
+         scope; that one counts what is yours, across accounts and
+         contacts. The caption says which, so a reader who notices the
+         two numbers has the answer rather than a reason to distrust both. */
+      { n: mine.filter((r) => r.next && daysAgo(r.next.due) > 0).length, cap: 'overdue in the book',
         q: q({ due: 'overdue' }) },
       { n: maySee(DB.con).filter((c) => !c.arch && obstaclesOf(c).includes('address-bounced')).length,
         cap: 'bad addresses',
@@ -9915,18 +10438,60 @@
         act: showMe(loose.length), quick: `on=leads${RAIL_CLEAR.replace('&loose=', '&loose=1')}` },
     ].filter((x) => x.has).sort((a, b) => b.w - a.w);
 
-    const card = cands[0] || { state: 'completed',
+    /* WHO GETS ONE IS STILL `FUNCTIONS[fn].home`. The plan named the blocks
+       a function lands on, and moving the agenda off the page must not move
+       it out of that decision — a client's plan is `opener · insights ·
+       campaigns` and has never carried `agenda`, so their rail carries none
+       either. One list decides it, in one place, as before. */
+    const plan = (FUNCTIONS[me().fn] && FUNCTIONS[me().fn].home) || [];
+    const agenda = plan.includes('agenda') ? agendaItems() : [];
+
+    /* ══ THE TOP OF THE AGENDA IS THE CONCLUSION ══════════════════════════
+
+       `cands` above ranks three book-scope sentences and the best one became
+       the card. That was right while the rail had no agenda. With one, it
+       put THE SAME DERIVATION ON SCREEN THREE TIMES in a 320px column —
+       measured on the BDR's rail the moment the agenda landed:
+
+         card   "17 organizations replied and nobody has answered."
+         fig    "17 waiting on us  ↑11"
+         row    "8 leads came back to you and nobody has answered."
+
+       Card and fig are one number with one destination. The row is the same
+       question asked of what is YOURS. Three renderings, one fact, stacked
+       vertically — the defect v5 spent a whole pass removing from the
+       campaign page, reintroduced by putting a second ranked list beside the
+       first.
+
+       So there is one ranked list now and its head is the card. What needs
+       you most IS the conclusion at book scope; inventing a separate
+       sentence for the same surface was the duplication waiting to happen.
+       `cands` survives as the fallback for a tier with no agenda — a client
+       still needs a conclusion, and theirs is a reading rather than a task. */
+    const fallback = cands[0] || { state: 'completed',
       text: `<b>${plural(seen.length, 'organization')}</b> and <b>nothing waiting on a person</b>.`,
       act: 'Ask what to work on', ask: 'Nothing is obviously stuck. What is worth my time today?' };
+    const card = agenda.length ? agendaRow(agenda[0]) : fallback;
 
-    /* Findings: the objection the offering keeps losing on, which is the one
-       thing on this surface a client is actually reading. */
-    const rows = gaps.slice(0, 2).map((g) => ({
+    /* ══ WORK FIRST, DIAGNOSIS UNDER IT ═══════════════════════════════════
+
+       The rest of the agenda — what needs you — leads, because it is the
+       only thing here with a deadline attached. The offering findings stay,
+       below it, because they are a different kind of statement: "Features
+       lost us 2 of the 6 who gave a reason" is a diagnosis about the book,
+       not a task, and it is the one line a client is actually reading. */
+    const rest = agenda.slice(1);
+    const shown = AGENDA_ALL ? rest : rest.slice(0, AGENDA_MAX - 1);
+    const rows = shown.map(agendaRow).concat(gaps.slice(0, 2).map((g) => ({
       tone: 'warn',
       text: `${g.label} lost us ${g.n} of the ${gaps.reduce((a, b) => a + b.n, 0)} who gave a reason.`,
       act: showMe(g.n),
       quick: `on=leads${RAIL_CLEAR.replace('&ids=', `&ids=${[...new Set(maySeeTouch(DB.touch).filter((t) => t.objection === g.k).map((t) => t.acc))].join(',')}`)}`,
-    }));
+    })));
+    /* The counted way to the rest, on the rail rather than on the page it
+       left. A capped list that does not say it is capped lies about how much
+       there is. */
+    const more = !AGENDA_ALL && rest.length > AGENDA_MAX - 1 ? rest.length - (AGENDA_MAX - 1) : 0;
 
     /* ══ "THE WHOLE BOOK" IS NOT TRUE OF EVERYONE ══════════════════════════
 
@@ -9945,7 +10510,7 @@
       : 'Your book';
 
     return { eyebrow, subject: `${plural(seen.length, 'organization')} you can see`,
-      card, figs: standingFigures(), rows };
+      card, figs: standingFigures(), rows, more };
   }
 
   /* ── One campaign ──
@@ -10036,22 +10601,67 @@
 
     const card = !pool.length
       ? { state: 'detected', text: `<b>Nothing in it</b> that you are entitled to see.`,
-          /* `tab=lists` on the briefing, which is where lists are drawn.
-             `on=sources` is declared in `AXES_ON` and renders nothing —
-             `wiring-audit` calls it correctly: a control writing it repaints
-             whatever was already showing. */
-          act: 'Open the lists', quick: 'srcref=&tab=lists&on=' }
+          /* The briefing, where lists are a section of their own now — they
+             were a tab until v6 and `tab=lists` no longer resolves to
+             anything, so writing it would have left this control repainting
+             whatever was already on screen. `on=sources` is declared in
+             `AXES_ON` and renders nothing, which `wiring-audit` calls
+             correctly for the same reason. */
+          act: 'Open the lists', quick: 'srcref=&tab=&on=',
+          alt: 'Ask who owns it', altAsk: `${s.name} holds nothing I am entitled to see. Who owns it and what is in it?` }
       : sized.length < pool.length
         ? { state: 'recommended',
             text: `<b>${pool.length - sized.length} of ${pool.length}</b> have no headcount or revenue, so <b>they cannot be sorted or scored</b>.`,
-            act: 'Fill them in', attr: `data-enrichlist="${esc(s.k)}"` }
+            act: 'Fill them in', attr: `data-enrichlist="${esc(s.k)}"`,
+            /* ══ THE SECOND CONTROL IS A QUESTION, NOT A VERB ══════════════
+                  Every card carried the same three: Fill in · Put it in a
+                  campaign · Run it again. Three CRUD buttons of equal weight
+                  on every card in the list, regardless of what was true of
+                  any of them — a card that has ranked nothing, on a product
+                  whose whole claim is that it ranks things for you.
+
+                  All three live on the list's own page, where acting on a
+                  list belongs (the same rule that took the editable criteria
+                  off this card). What is left is what AiMY has to say: the
+                  move it recommends, and the question it would answer if you
+                  do not want the move. That pairing is `initiatives()`'s own
+                  shape — `act` and `alt` — reused at list scope. */
+            /* Singular gets its own question rather than a pluralised one.
+               "Which of them are worth enriching first" has no meaning when
+               there is one of them, and a label reading "Ask which first"
+               over a set of one is the surface not having looked at its own
+               data. */
+            ...(pool.length - sized.length === 1
+              ? { alt: 'Ask about it', altAsk: `One organization on ${s.name} has no headcount or revenue. What is worth knowing about it before we use this list?` }
+              : { alt: 'Ask which first', altAsk: `${pool.length - sized.length} organizations on ${s.name} have no headcount or revenue. Which of them are worth enriching first?` }) }
         : !used.length
           ? { state: 'detected',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, and <b>no campaign uses it</b>.`,
-              act: 'Make a campaign from it', attr: `data-listcamp="${esc(s.k)}"` }
+              act: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"`,
+              alt: 'Ask what to build', altAsk: `${s.name} is ${plural(pool.length, 'organization')}, fully sized, and no campaign uses it. What campaign would suit them?` }
+          /* ══ A HEALTHY LIST STILL GETS A SUGGESTION ═══════════════════
+                This branch said `Open it`, which is navigation wearing a
+                recommendation's clothes — and four of five cards drew it, so
+                the surface's advice for most of the book was "go and look".
+
+                What AiMY can actually offer a list that is sized and in use
+                is MORE OF IT: `findCompanies(null, k)` re-runs the criteria
+                that made it and brings the next batch, which is the same
+                continuation F-11 gave the Find surface.
+
+                Except on a list that runs itself. Offering to re-run
+                something that re-runs hourly is offering to do a thing that
+                is already happening — so there the honest primary is the
+                question, because AiMY genuinely has nothing to recommend
+                and a made-up verb would be worse than saying so. */
           : { state: 'completed',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, used by <b>${plural(used.length, 'campaign')}</b>.`,
-              act: 'Open it', quick: q };
+              ...(s.auto
+                ? { act: 'Ask how it is doing',
+                    ask: `${s.name} keeps itself up to date and is used by ${plural(used.length, 'campaign')}. How are they doing with it, and is the list still the right shape?` }
+                : { act: 'Find more like these', attr: `data-listrun="${esc(s.k)}"`,
+                    alt: 'Ask how it is doing',
+                    altAsk: `${s.name} is used by ${plural(used.length, 'campaign')}. How are they doing with it, and is the list still the right shape?` }) };
 
     const rows = [];
     if (noWay.length) {
@@ -10073,39 +10683,107 @@
      Why it is where it is: the stage, the state, and what put it there. No
      other surface says those three in one place — the record page states
      each of them somewhere down its own length. */
+  /* ══ THE RAIL SAYS WHAT THE RECORD PAGE CANNOT ═════════════════════════
+
+     v5 did this for a campaign and stopped there. Measured on ING, every
+     single thing this function produced was already on the page beside it:
+
+       card   "Address bounced — that is what is holding it at Reach."
+              …the page's own `.s-insight`: "I sent 2 messages to Daan de
+              Boer and every one bounced" → Fix the address
+       fig    "8 touchpoints"        …the timeline below it has 8 rows
+       fig    "3 of 4 · reach"       …`.s-rec-stage` states "3 of 4 Reach"
+       row    "On Amsterdam scrape — August."  …the Campaigns block links it
+
+     A whole column restating the column beside it, with a second verb on the
+     same subject — `Fix the address` in the centre and `Ask what to do` on
+     the right — so the one screen offered two different next moves for one
+     problem and ranked neither.
+
+     THE RULE: this thing in the centre, everything around it on the right.
+     A record page can say everything about ONE record and nothing about how
+     it sits among the others, which is the question a rep actually has when
+     they find a bounce — is this one broken address or is my whole list
+     rotting? The page structurally cannot answer it. That is the rail's job
+     here exactly as the peer comparison is on a campaign.
+
+     No new derivation: `obstaclesOf` and `opportunitiesOf` over `maySee` are
+     what `bookReading` already counts, and `campReadings` is what the
+     campaign's own rail already says. */
   function recReading(rec) {
     const st = statusOf(rec);
     const row = BY.status[st] || { label: st, tone: 'neutral' };
-    const acc = accOf(rec);
     const camps = campsOf(rec);
-    const c = camps.length ? DB.campBy[camps[0]] : null;
-    const stage = c ? STAGE_BY[memberStage(acc, c)] : null;
-    const ts = touchesFor(rec);
-    const last = ts[0];
     const obs = obstaclesOf(rec);
     const opp = opportunitiesOf(rec);
 
-    const card = obs.length
-      ? { state: 'detected', tone: 'err',
-          text: `<b>${esc(label('status', obs[0]))}</b> — that is what is holding it${stage ? ` at ${stage.label}` : ''}.`,
-          act: 'Ask what to do', ask: `${rec.name} is ${label('status', obs[0]).toLowerCase()}. What would move it?` }
-      : opp.length
-        ? { state: 'detected', tone: 'ok',
-            text: `<b>${esc(label('status', opp[0]))}</b>, and <b>nothing we send mentions it</b>.`,
-            act: 'Ask how to use it', ask: `${rec.name}: ${label('status', opp[0]).toLowerCase()}. How should we use that?` }
-        : { state: 'completed', tone: row.tone,
-            text: `<b>${esc(row.label)}</b>${stage ? `, standing at <b>${esc(stage.label)}</b>` : ''}${last ? ` since ${esc(fmtAgo(last.at))}` : ''}.`,
-            act: 'Ask about it', ask: `Where does ${rec.name} stand, and what is the next thing worth doing?` };
+    /* Peers are what you can see, minus this one. Accounts only, because
+       that is what the action delivers — the same rule `standing()` keeps. */
+    const peers = maySee(DB.acc).filter((a) => !a.arch && a.id !== rec.id && a.id !== rec.acc);
 
-    const figs = [
-      { n: ts.length, cap: 'touchpoints' },
-      stage ? { n: stage.n + ' of 4', cap: stage.label.toLowerCase() } : null,
-    ].filter(Boolean);
+    const flag = obs[0] || opp[0] || null;
+    const also = flag ? peers.filter((a) => obstaclesOf(a).concat(opportunitiesOf(a)).includes(flag)) : [];
+    const lbl = flag ? label('status', flag) : '';
 
-    const rows = camps.map((k) => ({ tone: 'ok',
-      text: `On ${campName(k)}.`, act: 'Open it', attr: `data-camp="${esc(k)}"` })).slice(0, 3);
+    const card = flag
+      ? (also.length
+        ? { state: 'reading', dot: obs[0] ? 'p1' : 'p3',
+            /* The count is the conclusion and the peer group is the evidence
+               — a "12 others" out of 68 is a pattern, out of 13 it is the
+               whole book. `.bcard` draws both. */
+            /* COUNT FIRST, LABEL AFTER THE DASH. Two shapes were tried and
+               both broke on a subset of the fourteen labels. As a predicate
+               — "15 others are address bounced" — only the adjectives parse:
+               "are stalled" works, "are wrong person" does not. Fronted —
+               "Address bounced on 15 others" — every label parses except the
+               one that carries its own number: "No reply in 3 on 15 other
+               organizations" puts two figures side by side meaning different
+               things.
 
-    return { eyebrow: 'This lead', subject: rec.name, card, figs, rows };
+               This shape holds for all fourteen because the label sits alone
+               after a dash, where it is a name rather than a clause, and the
+               two numbers can never touch. */
+            text: `<b>${esc(plural(also.length, 'other'))}</b> ${also.length === 1 ? 'has' : 'have'} this too — <b>${esc(lbl)}</b>.`,
+            evidence: [{ val: peers.length, cap: 'you can see' }],
+            act: showMe(also.length),
+            quick: `on=leads${RAIL_CLEAR.replace('&ids=', `&ids=${also.map((a) => a.id).join(',')}`)}` }
+        : { state: 'reading', dot: 'p3',
+            text: `<b>Nothing else</b> you can see has this — <b>${esc(lbl)}</b>.`,
+            evidence: [{ val: peers.length, cap: 'you can see' }],
+            act: 'Ask what is different', ask: `${rec.name} is ${lbl.toLowerCase()} and nothing else I can see is. What is different about it?` })
+      /* Nothing flagged: the comparison is where it stands against the rest,
+         which is still a thing the page cannot say. */
+      : { state: 'reading', dot: 'p3',
+          text: `<b>${esc(plural(peers.filter((a) => statusOf(a) === st).length, 'other organization'))}</b> ${peers.filter((a) => statusOf(a) === st).length === 1 ? 'is' : 'are'} <b>${esc(row.label.toLowerCase())}</b> as well.`,
+          evidence: [{ val: peers.length, cap: 'you can see' }],
+          act: showMe(peers.filter((a) => statusOf(a) === st).length),
+          quick: `on=leads${RAIL_CLEAR.replace('&status=', `&status=${st}`)}` };
+
+    /* ── And how the campaign carrying it is doing ──
+       The page names the campaign and links to it; what it never says is
+       whether that campaign is working, which decides whether this lead is
+       stuck or merely inside something stuck. `campReadings` is the
+       campaign rail's own comparison, borrowed at one row. */
+    const rows = [];
+    camps.slice(0, 2).forEach((k) => {
+      const c = DB.campBy[k];
+      if (!c) return;
+      const rate = campReadings(c).find((r) => r.key === 'rate');
+      /* Lowercased after the colon: `campReadings` writes a standalone
+         sentence ("A 44% reply rate, against 21%…") and it is a clause here.
+         Only the first character, so "AiMY" and a leading figure survive. */
+      const said = rate ? rate.text.replace(/<[^>]+>/g, '') : '';
+      rows.push(rate
+        ? { tone: rate.tone,
+            text: `${c.name}: ${/^[A-Z][a-z]/.test(said) ? said[0].toLowerCase() + said.slice(1) : said}`,
+            act: 'Open it', attr: `data-camp="${esc(k)}"` }
+        : { tone: 'neutral', text: `${c.name} has sent nothing yet, so there is nothing to compare it against.`,
+            act: 'Open it', attr: `data-camp="${esc(k)}"` });
+    });
+
+    /* No figs. Both of them — the touchpoint count and the stage — are
+       stated on the page, one in the timeline and one in `.s-rec-stage`. */
+    return { eyebrow: 'This lead', subject: rec.name, card, figs: [], rows };
   }
 
   function railInsights() {
@@ -10161,7 +10839,9 @@
               where the check cannot see it and correctly refuses to take the
               claim on trust. */ ''}
         ${c.act ? `<button class="s-insight-lnk rail-act" type="button"
-          ${c.quick ? `data-quick="${esc(c.quick)}"`
+          ${c.init ? `data-init="${esc(c.init.k)}" data-entry-mode="${esc(c.init.mode)}" data-aimy-topic="${esc(c.init.k)}" data-aimy-ask="${esc(c.init.ask)}"`
+            : c.brief != null ? `data-brief="${esc(String(c.brief))}"`
+            : c.quick ? `data-quick="${esc(c.quick)}"`
             : c.attr ? c.attr
             : `data-entry-mode="prompt" data-aimy-ask="${esc(c.ask || '')}"`}>${esc(c.act)}</button>` : ''}
       </div>
@@ -10185,15 +10865,31 @@
             </div>`)).join('')}
       </div>` : ''}
 
+      ${/* A ROW MAY CARRY A WORK STATE, AND AN AGENDA ITEM ALWAYS DOES.
+
+            The rows were findings only — a tone and a sentence — because
+            everything that had a STATE was a card on the page. With the
+            agenda here, "AiMY stopped and needs you" and "Features lost us
+            2 of 6" are both rows and are not the same kind of claim: the
+            first is halted work, the second is a reading. The chip is what
+            says which, and it is the same `work-state` component the agenda
+            cards used, so nothing new is invented for the move.
+
+            Findings keep tone and no chip. A state on a diagnosis would be
+            claiming it is a task. */ ''}
       ${(r.rows || []).length ? `<div class="rail-rows">
         ${r.rows.map((x) => `<div class="rail-row tone-${esc(x.tone || 'neutral')}">
+          ${x.state ? `<span class="work-state ws-${esc(x.state)}" data-work-state="${esc(x.state)}">${esc(WS_LABEL[x.state] || x.state)}</span>` : ''}
           <p class="rail-row-say">${esc(x.text)}</p>
           <button class="s-insight-lnk" type="button"
-            ${x.quick ? `data-quick2="${esc(x.quick)}"`
+            ${x.init ? `data-init="${esc(x.init.k)}" data-entry-mode="${esc(x.init.mode)}" data-aimy-topic="${esc(x.init.k)}" data-aimy-ask="${esc(x.init.ask)}"`
+              : x.brief != null ? `data-brief="${esc(String(x.brief))}"`
+              : x.quick ? `data-quick2="${esc(x.quick)}"`
               : x.attr ? x.attr
               : x.stage ? `data-stage="${esc(x.stage)}"`
               : `data-entry-mode="prompt" data-aimy-ask="${esc(x.ask || '')}"`}>${esc(x.act)}</button>
         </div>`).join('')}
+        ${r.more ? `<button class="s-inline-btn s-rail-more" type="button" data-agenda-all>${esc(plural(r.more, 'more thing'))} I can start</button>` : ''}
       </div>` : ''}
 
       ${/* ══ `New campaign` IS NOT THE RAIL'S ═════════════════════════════
@@ -10687,7 +11383,7 @@
     cbuildPush('who',
       `I read that as ${CBUILD.crit.join(' · ')}. ${plural(netNew().length, 'company')} match and none of them are in the book yet.`,
       [{ k: 'who-ok', label: `Bring in the ${netNew().length}` },
-       { k: 'who-edit', label: 'Change what I look for' }]);
+       { k: 'who-edit', label: 'Change the criteria' }]);
     paintTalk();
   }
 
@@ -12252,7 +12948,7 @@
       <div class="s-ans-body">${body}</div>
       ${citeLabel ? `<div class="s-ans-cite">
         <span>${esc(citeLabel)}</span>
-        ${cite && cite.length ? `<button class="cite-action" type="button" data-cite="${esc(cite.join(','))}">Put them on the surface</button>` : ''}
+        ${cite && cite.length ? `<button class="cite-action" type="button" data-cite="${esc(cite.join(','))}">Show them</button>` : ''}
       </div>` : ''}
     </div>`;
     /* ALWAYS through the thread. It used to be `docked() ? say : pushMsg` —
@@ -12890,7 +13586,7 @@
             mid-decision would change the thing being decided about. */ ''}
       ${canWrite() && !fixed ? `<div class="s-touch-ops">
         <button class="s-inline-btn" type="button" data-fixtouch="${esc(t.id)}">Correct this</button>
-        ${t.by === 'aimy' && !t.note2 ? `<button class="s-inline-btn" type="button" data-annotate="${esc(t.id)}">Add what you know</button>` : ''}
+        ${t.by === 'aimy' && !t.note2 ? `<button class="s-inline-btn" type="button" data-annotate="${esc(t.id)}">Add a note</button>` : ''}
       </div>` : ''}
       ${t.steps ? `<details class="s-trace">
         <summary class="s-trace-sum s-ai-btn">${aiMark()}What AiMY did</summary>
@@ -13132,6 +13828,24 @@
        when the four verbs made it easy to stack three of them. */
     if (workRun) settleWork(workRun.id, 'Left undone — you asked for something else.');
     const id = 'wk' + ++workSeq;
+    /* ══ A BLOCK WITH NOTHING TO DECIDE HAS NOTHING TO PRESS ═════════════
+
+       `o.confirm` absent means this is something to READ, and the whole
+       decision apparatus comes off: no Cancel, no filled confirm, and it
+       never becomes `workRun`.
+
+       The pre-call brief is the case that found it. It rendered `Cancel |
+       Got it` — and it is drawn by `startCall`, so the phone is already
+       ringing when it appears. Cancel cancelled nothing (the call had
+       started), and Got it dismissed the one thing you want in front of you
+       WHILE you talk. A brief is not a decision; it is the thing you keep
+       open during the thing.
+
+       Not registering it as `workRun` matters for the same reason: the next
+       real block would otherwise settle it with "Left undone — you asked for
+       something else", which is a verdict on a paragraph nobody was
+       supposed to act on. */
+    const reads = !o.confirm;
     /* `writes` defaults to true because almost every work block does. A
        read-only block opts out, and the opt-out is explicit so nobody adds
        a writing block that quietly leaves the glass up. */
@@ -13140,7 +13854,7 @@
        campaign was created." — which was correct for the guided build and
        wrong for every block after it: a second exit that always says the
        same thing is a second exit that only one block may have. */
-    workRun = { id, run: o.run, altRun: o.altRun || null, writes: o.writes !== false };
+    if (!reads) workRun = { id, run: o.run, altRun: o.altRun || null, writes: o.writes !== false };
     /* A CONFIRM THAT REFUSES IS A CONFIRM THAT SHOULD HAVE BEEN DISABLED.
        An unnamed campaign used to be caught by `run` and answered with a
        toast — after you had committed. `o.needs` names a field that has to
@@ -13164,11 +13878,11 @@
              them would throw away the filters — which is the whole point of
              the one people actually use. Blocks that have two exits still
              render two. */ ''}
-      <div class="s-work-actions${o.alt ? ' has-alt' : ''}">
+      ${reads ? '' : `<div class="s-work-actions${o.alt ? ' has-alt' : ''}">
         <button class="s-work-cancel" type="button" data-work-cancel="${id}">Cancel</button>
         ${o.alt ? `<button class="btn btn-ghost btn-sm" type="button" data-work-alt="${id}">${esc(o.alt)}</button>` : ''}
         <button class="btn btn-brand btn-sm" type="button" data-work-go="${id}"${o.needs ? ' disabled aria-disabled="true"' : ''}>${esc(o.confirm)}</button>
-      </div>
+      </div>`}
     </div>`);
     gateWork(o, id);
   }
@@ -14013,12 +14727,26 @@
        `briefing`, `paint()` drew the home page, and a correct URL changed
        nothing on screen. So `on` DEFAULTS to the list, and an attribute that
        names its own `on` still wins — which is how the lists link back to
-       `on=briefing&tab=lists`.
+       `on=briefing`.
 
        `tab` and `cut` clear for the reason they exist: they belong to the
-       briefing and die when you leave it. */
+       briefing and die when you leave it.
+
+       ── AND `task` CLEARS, WHICH IT DID NOT ──
+
+       The same defect one surface along, and it survived because the fix
+       above was applied to the keys that were on screen at the time. Every
+       key naming SOMETHING OPEN has to go — `lead`, `camp` and `task` are
+       one category — and `task` was missed.
+
+       Measured on `Show them on the surface`, the task sheet's own primary:
+       it wrote `?ids=a3,a6,…&on=leads` — twenty-four correct ids and the
+       right surface — and `task=tk-q3` rode along, so `paint()` drew the
+       task sheet again. A correct URL, twenty-four records behind it, and
+       nothing changed on screen. Exactly what the note above describes for
+       the tray chips, on the control that reads as the sheet's whole point. */
     if ((el = e.target.closest('[data-quick],[data-quick2]'))) {
-      const over = { on: 'leads', camp: '', lead: '', tab: '', cut: '' };
+      const over = { on: 'leads', camp: '', lead: '', task: '', tab: '', cut: '' };
       (el.dataset.quick || el.dataset.quick2).split('&').forEach((pair) => {
         const [k, v] = pair.split('=');
         if (k) over[k] = MULTI.includes(k) ? (v ? v.split(',') : []) : (v || '');
@@ -14202,12 +14930,27 @@
        count that is true before you press it. Pressing the one you are on
        clears it, so the chip is its own way out. */
     if ((el = e.target.closest('[data-view]'))) {
-      const v = VIEWS.filter((x) => x.k === el.dataset.view)[0];
-      if (!v) return;
       const over = { lead: '', camp: '', tab: '', cut: '' };
       for (const k of MULTI) over[k] = [];
       for (const k of ['q', 'touched', 'due', 'archived', 'srcref', 'loose']) over[k] = '';
-      go(viewOn(v) ? over : Object.assign(over, v.over));
+      /* ══ AND `All` IS A CHOICE, NOT AN EMPTY STATE ══════════════════════
+            Clearing a view writes a bare leads URL, and a bare leads URL is
+            what `parse` applies the default to — so without `view=all` the
+            chip you just switched off would light again on the next paint
+            and the surface would look like a control that refuses to
+            release. `all` says the emptiness was asked for. */
+      if (el.dataset.view === 'all') { go(Object.assign(over, { view: 'all' })); return; }
+      const v = VIEWS.filter((x) => x.k === el.dataset.view)[0];
+      if (!v) return;
+      /* Pressing the one you are on is still its own way out, and it lands
+         on everything for the same reason the `All` chip does — including
+         when the one you are on is the landing default, which `viewOn`
+         cannot see because it is not in the axes. */
+      const dv = defaultView();
+      const already = dv ? dv.k === v.k : (viewOn(v) && S.view !== 'all');
+      go(already
+        ? Object.assign(over, { view: 'all' })
+        : Object.assign(over, v.over, { view: '' }));
       return;
     }
     if ((el = e.target.closest('[data-opengroup]'))) {
@@ -14394,6 +15137,21 @@
       const line = $('[data-effect="chEffect"]');
       const rec = chPickRec ? recBy(chPickRec) : null;
       if (line && rec) line.textContent = chEffect(el.dataset.ch, rec);
+      return;
+    }
+
+    /* What the proposal schedules, rewritten as you pick it. The same
+       bargain the channel picker keeps above: a line stating a consequence
+       has to track the control that decides it, or it is read once and then
+       it lies. */
+    if ((el = e.target.closest('.s-prop-pick'))) {
+      const row = BY.proposal[el.value];
+      const line = $('[data-effect="propNext"]');
+      if (line && row) {
+        line.textContent = row.next
+          ? `“${row.next}” goes on the record, due in a week.`
+          : 'Nothing was asked for, so nothing is scheduled.';
+      }
       return;
     }
 
@@ -14629,7 +15387,7 @@
       settleWork(id, 'Left as filters. No campaign was created.');
       workRun = null;
       closeCanvas();
-      go({ on: 'leads', who: '', lead: '', camp: '' });
+      go({ on: 'leads', who: '', lead: '', camp: '', task: '' });
       toast('Nothing was created. The filters are still on the surface.');
       return;
     }
@@ -14726,23 +15484,17 @@
       go({ camp: k, stage, lead: '', task: '', in: '', from: hereRef('camp', 'lead', 'task', 'in', 'stage') });
       return;
     }
-    /* A pipeline column lands on the records it counted, by id — recomputed
-       here rather than written into the attribute, for the reason the
-       briefing's findings are: a set stashed in the DOM is a set that can
-       stop being true between the paint and the press. */
-    if ((el = e.target.closest('[data-pipe]'))) {
-      const row = bookPipeline().filter((r) => r.st.k === el.dataset.pipe)[0];
-      if (!row || !row.ids.length) return;
-      const over = { on: 'leads', who: '', ids: row.ids, lead: '', camp: '', tab: '', cut: '' };
-      for (const k of MULTI) if (k !== 'ids') over[k] = [];
-      for (const k of ['q', 'touched', 'due', 'archived']) over[k] = '';
-      go(over);
-      return;
-    }
     /* The rest of what AiMY can start. It does not open a second list — it
        widens the one that is there, because a "show more" that navigates is
        a different surface pretending to be the same one. */
-    if (e.target.closest('[data-agenda-all]')) { AGENDA_ALL = true; paint(); return; }
+    /* `paintRail()`, not `paint()`. This control was written when the agenda
+       was a page block, so repainting the page was the whole job; the agenda
+       is in the rail now and the rail has its own painter. Pressing it
+       flipped the flag, repainted the page it is no longer on, and left the
+       rail showing the same four rows under a control that had just claimed
+       to open four more — a control that looks broken rather than off, which
+       is the exact failure `taskPause`'s note in this file warns about. */
+    if (e.target.closest('[data-agenda-all]')) { AGENDA_ALL = true; paintRail(); return; }
     if ((el = e.target.closest('[data-cut]'))) { go({ cut: el.dataset.cut }); return; }
 
     /* ── The operations a list carries ── */
@@ -14751,6 +15503,18 @@
       if (s) enrichRun(new Set(listPool(s).filter((a) => a.emp == null || a.rev == null).map((a) => a.id)));
       return;
     }
+    /* ══ IT MAKES A CAMPAIGN. THE LABEL SAID IT ADDED TO ONE. ═══════════
+       `Put it in a campaign` — on the list's own head and on its card — over
+       a handler that calls `createCampaign`. "Put it in a campaign" is what
+       `data-addsel` does, to an EXISTING one you pick from a list; this one
+       makes a new campaign out of the list and takes you to it. Two controls
+       for two different acts, wearing near-identical words, and the wrong
+       one on each.
+
+       `Make a campaign` on all three render sites now, matching what the
+       reading has called it since v4 — which is how the disagreement was
+       visible at all: the same list said "Make a campaign from it" in its
+       reading and "Put it in a campaign" on the button underneath. */
     if ((el = e.target.closest('[data-listcamp]'))) {
       const s = DB.source.filter((x) => x.k === el.dataset.listcamp)[0];
       if (s) createCampaign(listPool(s).map((a) => a.id), s.name);
@@ -14771,6 +15535,16 @@
     if (e.target.closest('[data-call-hold]')) { if (DB.call) { DB.call.held = !DB.call.held; paintCall(); } return; }
     if (e.target.closest('[data-call-end]')) { endCall(); return; }
 
+    /* Dropping a returned row, and putting it back. A toggle rather than a
+       removal for the same reason a rejected criterion greys out instead of
+       vanishing: you are refining, and a refinement you cannot reverse
+       without re-running the whole search is one people will not make. */
+    if ((el = e.target.closest('[data-finddrop]'))) {
+      const k = el.dataset.finddrop;
+      if (FIND_DROP.has(k)) FIND_DROP.delete(k); else FIND_DROP.add(k);
+      paintFind();
+      return;
+    }
     if ((el = e.target.closest('[data-crit]'))) {
       const c = FIND_CRIT.filter((x) => x.k === el.dataset.crit)[0];
       if (!c) return;
