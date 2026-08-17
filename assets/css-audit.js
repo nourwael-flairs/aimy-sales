@@ -11,6 +11,11 @@
        a runtime error — the page still loads and the damage is only visible
        to somebody looking at the screen. A bulk CSS deletion once cost
        Knowledge 28 rules this way.
+   1b· And the reverse: every rule in sales.css is rendered by something.
+       Check 1 ran one way only for six passes, so this file reported "no
+       orphans" over 86 dead classes — 10% of the stylesheet, whole component
+       families left behind by removals. An audit that passes because its
+       check cannot reach the failure is the defect it exists to catch.
    2 · No control characters in the source. A tooling round-trip once turned
        every regex word boundary into a literal backspace: valid JavaScript,
        invisible in an editor, and the regex silently stops matching.
@@ -51,6 +56,53 @@ const EXEMPT = new Set(['s-hidden', 's-enter', 's-row', 's-gap-2', 's-gap-3', 's
 const orphans = [...used]
   .filter((c) => !EXEMPT.has(c))
   .filter((c) => !css.includes('.' + c))
+  .sort();
+
+/* ── 1b · AND THE SAME CHECK IN THE OTHER DIRECTION ──────────────────────
+
+   Check 1 has only ever run JS → CSS: a class the templates render with no
+   rule behind it. The reverse — a RULE nothing renders — was never checked,
+   so `css-audit` reported "no orphans" over 86 dead classes, 10% of the
+   stylesheet. Whole families: `.s-write-*` (7), `.s-talk-*` (5), `.s-aud-*`
+   (6), `.s-campo*` (4), `.s-build*` (3), `.rail-item*` (6). Every one is a
+   component this product removed and left the CSS of.
+
+   This is the same shape as the `tier-audit` hole v6 inherited from P7-06:
+   an audit that passes because its check cannot reach the failure is worse
+   than no audit, because it is evidence of a thing that was never looked at.
+
+   DYNAMICALLY COMPOSED CLASSES ARE NOT DEAD. `tone-${x}`, `conf-${c.conf}`
+   and `is-${l.who}` build a class name at paint time, so the literal never
+   appears in the source. A class counts as live if the prefix up to its LAST
+   hyphen is interpolated — `tone-neutral` is live because `tone-${` exists.
+
+   THE LAST HYPHEN, NOT ANY HYPHEN. The first cut walked every hyphen
+   boundary outwards, so `s-write-name` was tested against `s-write-${` (0
+   hits) and then against `s-${` — which appears 14 times in `sales.js`. That
+   one match exempted EVERY `s-*` class in the file: the check found 7 dead
+   rules where the real number was 86, and would have gone on reporting a
+   stylesheet that is 10% dead as clean. An audit whose filter is too
+   generous is the failure it was written to catch, one level up. */
+const html = (() => {
+  try { return fs.readFileSync(path.join(here, '..', 'index.html'), 'utf8'); } catch (e) { return ''; }
+})();
+const ds = fs.readFileSync(path.join(here, 'aimy-ds.css'), 'utf8');
+const mine = fs.readFileSync(path.join(here, 'sales.css'), 'utf8');
+const referenced = js + html + ds;
+
+const defined = new Set();
+mine.replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/\.(-?[_a-zA-Z][\w-]*)/g, (m, c) => { defined.add(c); return m; });
+
+const composed = (c) => {
+  const at = c.lastIndexOf('-');
+  return at > 0 && referenced.includes(c.slice(0, at + 1) + '${');
+};
+
+const unused = [...defined]
+  .filter((c) => !EXEMPT.has(c))
+  .filter((c) => !referenced.includes(c))
+  .filter((c) => !composed(c))
   .sort();
 
 /* ── Control characters ── */
@@ -171,6 +223,13 @@ if (orphans.length) {
   console.error('\n  ' + orphans.length + ' class(es) rendered with no CSS rule anywhere:\n');
   orphans.forEach((c) => console.error('    .' + c));
   console.error('');
+  process.exit(1);
+}
+if (unused.length) {
+  console.error('\n  ' + unused.length + ' rule(s) in sales.css that nothing renders:\n');
+  unused.forEach((c) => console.error('    .' + c));
+  console.error('\n  Each is a component that was removed and left its CSS behind.'
+    + '\n  Delete the rule, or add the class to EXEMPT with the reason.\n');
   process.exit(1);
 }
 /* ── 4 · Every token a rule READS is a token something DEFINES ──
