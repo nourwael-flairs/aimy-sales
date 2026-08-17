@@ -212,7 +212,14 @@
        an obstacle that cannot say what it is looking at is the unsourced
        confidence the whole status model exists to remove. */
     obstacle: [
-      { k: 'address-bounced', label: 'Address bounced', tone: 'warn', exit: 'Fix the address',    mode: 'em-direct', opens: 'commit' },
+      /* ══ "BOUNCED" IS THE MAIL SERVER'S WORD, NOT A SELLER'S ═════════
+         It describes a mechanism — a message rejected and returned — where
+         what a rep needs to know is a state: this address does not work.
+         The product had already reached for the plain version once, on
+         home, which counts "24 bad addresses" while everything else said
+         bounced. Two vocabularies for one fact, and the plainer one was
+         already the one being read most. */
+      { k: 'address-bounced', label: 'Bad address',      tone: 'warn', exit: 'Fix the address',    mode: 'em-direct', opens: 'commit' },
       { k: 'stalled',         label: 'Stalled',         tone: 'err',  exit: 'Reschedule or close', mode: 'em-direct', opens: 'commit' },
       { k: 'wrong-person',    label: 'Wrong person',    tone: 'warn', exit: 'Find who it should be', mode: 'em-investigate', opens: 'canvas' },
       { k: 'no-champion',     label: 'Champion left',   tone: 'warn', exit: 'Find a new one',     mode: 'em-investigate', opens: 'canvas' },
@@ -345,7 +352,8 @@
       { k: 'neutral',        label: 'Neutral',        tone: 'neutral' },
       { k: 'negative',       label: 'Negative',       tone: 'err' },
       { k: 'no-answer',      label: 'No answer',      tone: 'neutral' },
-      { k: 'bounced',        label: 'Bounced',        tone: 'warn' },
+      /* What happened to the message, in the same voice: it never arrived. */
+      { k: 'bounced',        label: 'Never arrived',  tone: 'warn' },
     ],
 
     industry: [
@@ -2469,7 +2477,7 @@
   function touchNote(ch, dir, outcome, con, acc) {
     const who = con ? con.name.split(' ')[0] : acc.name;
     if (ch === 'aimy') {
-      if (outcome === 'bounced') return `Address rejected the message. Nothing was delivered.`;
+      if (outcome === 'bounced') return `The address did not take it. Nothing was delivered.`;
       if (outcome === 'positive') return `${who} replied and asked what a pilot would look like.`;
       if (outcome === 'neutral') return `${who} replied: not now, try after the year end.`;
       return `Sequence step sent. No reply yet.`;
@@ -2791,6 +2799,47 @@
      above exists to prevent. */
   const settled = (rec) => ENDINGS.includes(dispositionOf(rec));
 
+  /* ══ A BOUNCE IS AN EVENT; A BAD ADDRESS IS A STATE ═══════════════════════
+
+     `ts.some((t) => t.outcome === 'bounced')` asks "did anything ever bounce",
+     and once it has, that is true for the life of the record. So correcting
+     the address changed the address and nothing else: the reach block kept
+     offering to fix it, the card kept its flag, the "No way to reach" view
+     kept the contact, home kept counting it among the bad addresses, and the
+     rail kept saying "nothing reached them, and the address is still on the
+     record" — of an address a person had just replaced.
+
+     The state is: **the newest bounce has not been answered**, and it is
+     answered by the address CHANGING.
+
+     ══ AND `enrich.email.at` IS NOT WHEN IT CHANGED ═══════════════════════
+
+     That was my first cut and it was wrong. `enrich.email.at` records when a
+     lookup last ran, not when the address was replaced — and the fixture
+     proves the difference by stamping the same constant, `2026-08-01`, on
+     every contact the scrape touched. Reading it as "when the address
+     changed" cleared every bounce older than the scrape: home went from
+     **24 bad addresses to 11** and it looked like a win, when in the fixture
+     not one of those addresses had ever been replaced.
+
+     So the record carries the fact directly. `emailAt` is written by the
+     three things that can change an address — the fix surface, an enrichment
+     run that fills an empty one, and an inline correction — and by nothing
+     else. Fixtures never set it, which is right: a seeded address has never
+     been changed, so every seeded bounce stands.
+
+     `<=` rather than `<` because same-day is the ambiguous case and leaving
+     the flag up is the safe direction: a fix that still shows can be checked,
+     a bounce that vanishes cannot. */
+  function addressBad(rec) {
+    const b = touchesFor(rec).filter((t) => t.outcome === 'bounced')[0];
+    if (!b) return false;
+    /* Nothing on file and a bounce against it: still bad, and `fixAddress`
+       has a branch for exactly this — "give them an address". */
+    if (!rec.email) return true;
+    return !rec.emailAt || rec.emailAt <= b.at;
+  }
+
   function obstaclesOf(rec) {
     if (settled(rec)) return [];
     const out = [];
@@ -2801,7 +2850,7 @@
     /* A broken address outranks everything, because it is the only one here
        that means nothing we sent ever arrived — every other obstacle is
        about a person choosing not to answer. */
-    if (ts.some((t) => t.outcome === 'bounced')) out.push('address-bounced');
+    if (addressBad(rec)) out.push('address-bounced');
 
     if (rec.next && daysAgo(rec.next.due) > STALL_DAYS) out.push('stalled');
 
@@ -2997,7 +3046,7 @@
       const b = touchesFor(rec).filter((t) => t.outcome === 'bounced');
       const to = DB.conBy[b[0] && b[0].on];
       return { state: 'detected',
-        text: `I sent ${b.length === 1 ? 'a message' : `<b>${b.length} messages</b>`} to ${to ? `<b>${esc(to.name)}</b>` : 'this account'} and ${b.length === 1 ? 'it' : 'every one'} bounced. Nothing reached them, and the address is still on the record.` };
+        text: `I sent ${b.length === 1 ? 'a message' : `<b>${b.length} messages</b>`} to ${to ? `<b>${esc(to.name)}</b>` : 'this account'} and ${b.length === 1 ? 'it never arrived' : 'not one arrived'}. The address on the record does not work.` };
     },
     stalled: (rec) => ({ state: 'detected',
       text: `<b>${esc(rec.next.what)}</b> came due <b>${plural(daysAgo(rec.next.due), 'day')}</b> ago and nothing has moved since. I have not rescheduled it.` }),
@@ -4747,6 +4796,11 @@
       r[f] = make();
       r.enrich = r.enrich || {};
       r.enrich[f] = { conf: hit > 80 ? 'high' : hit > 55 ? 'medium' : 'low', src: who, at: iso(TODAY) };
+      /* Finding an address for a contact that had none answers a bounce
+         against the emptiness — `addressBad` treats a missing address with a
+         bounce behind it as bad, and this is what fills it. `t.before` is the
+         undo image for the whole run, so this needs no separate rollback. */
+      if (f === 'email') r.emailAt = iso(TODAY);
       t.filled = (t.filled || 0) + 1;
       t.wrote = true;
     };
@@ -6729,7 +6783,7 @@
      single-record one. */
   const FLAG_SAY_MANY = {
     'address-bounced': (n) => ({ state: 'detected',
-      text: `I sent to <b>${n}</b> of these and every message bounced. Nothing reached them, and the addresses are still on the records.` }),
+      text: `I sent to <b>${n}</b> of these and nothing arrived. The addresses on the records do not work.` }),
     stalled: (n) => ({ state: 'detected',
       text: `<b>${n}</b> have a next step that came due and nothing has moved since. I have not rescheduled any of them.` }),
     'gone-quiet': (n) => ({ state: 'recommended',
@@ -7248,7 +7302,7 @@
        in the file. */
     return `<div class="s-metrics">
       ${card(sent, 'Sent', replied ? plural(replied, 'reply', 'replies') + ' back' : 'nothing back yet')}
-      ${card(rate(bounced, sent + bounced), 'Bounce rate', bounced ? 'addresses to fix' : 'nothing rejected', bounced ? 'warn' : null)}
+      ${card(rate(bounced, sent + bounced), 'Never arrived', bounced ? 'addresses to fix' : 'everything got through', bounced ? 'warn' : null)}
       ${card(rate(opened, sent), 'Open rate', 'email only')}
     </div>`;
   }
@@ -8040,10 +8094,18 @@
        page has already said, without either derivation knowing about the
        other's wording. */
     const said = [];
-    if (bounced / (sent + bounced) > 0.03) {
+    /* ══ THE RATE IS HISTORY; THE ACTION IS NOT ═══════════════════════════
+       The percentage is a true statement about what was sent and stays true
+       once the addresses are fixed — but the control under it opens the live
+       set, so on a campaign whose addresses had all been corrected the
+       finding still argued and its button landed on nothing. It states how
+       many are STILL bad, and does not raise at all when that is zero: a
+       finding whose action has nothing to act on is not a finding. */
+    const stillBad = campPeople(l).filter(addressBad).length;
+    if (stillBad && bounced / (sent + bounced) > 0.03) {
       said.push({ key: 'bounce', tone: 'warn',
-        text: `${Math.round((bounced / (sent + bounced)) * 100)}% of what went out bounced. Nothing after the first step reaches those people.`,
-        act: 'Show me the bad addresses',
+        text: `${Math.round((bounced / (sent + bounced)) * 100)}% of what went out never arrived. ${plural(stillBad, 'address')} still ${stillBad === 1 ? 'has' : 'have'} nothing getting through.`,
+        act: `Show me the ${stillBad}`,
         quick: `on=leads&who=contacts&campaign=${l.k}&obstacle=address-bounced&status=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=` });
     }
     /* ── THE ONE THING THE PAGE CANNOT KNOW ──
@@ -8423,7 +8485,7 @@
     switch (k) {
       case 'address-bounced': {
         const b = ts.filter((t) => t.outcome === 'bounced')[0];
-        return `what we sent ${b ? fmtAgo(b.at) : 'earlier'} was rejected — nothing arrived`;
+        return `what we sent ${b ? fmtAgo(b.at) : 'earlier'} never arrived, and the address has not changed since`;
       }
       case 'stalled':      return `${rec.next.what.toLowerCase()} is ${plural(daysAgo(rec.next.due), 'day')} past its date`;
       case 'gone-quiet':   return `nothing since ${fmtAgo(last.at)}, and nothing scheduled`;
@@ -8536,7 +8598,16 @@
          The row renders whenever there is an address OR a bounce to answer
          for. An empty field with a bounce against it is not nothing to say:
          it is the most actionable thing on the record. */
-      const bounced = touchesFor(rec).some((t) => t.outcome === 'bounced');
+      /* ══ ONE DERIVATION, NOT TWO THAT AGREE BY INSPECTION ═══════════════
+         This read `addressBad` directly while every other consumer goes
+         through `obstaclesOf`, and the two differ by one rule: `obstaclesOf`
+         returns nothing for a SETTLED record, because a closed lead has no
+         obstacles to clear. So a contact marked Lost raised no flag, appeared
+         in no view and was counted on no figure — and still carried a button
+         offering to fix its address. Found on `a63c0`, the only one in the
+         corpus, which is exactly how a rule that holds "by inspection" stays
+         wrong until a fixture happens to expose it. */
+      const bounced = obstaclesOf(rec).includes('address-bounced');
       out.push(block('Contact', `<div class="s-reach">
         ${rec.email || bounced
           ? reachRow('Email', rec.email || 'None on file', rec.email ? rec.enrich.email : null, bounced ? rec.id : null, rec.email ? [rec, 'email'] : null)
@@ -8778,7 +8849,13 @@
       <span class="s-reach-what">${esc(what)}</span>
       <span class="s-reach-val">${edit ? editField(edit[0], edit[1], val) : esc(val)}</span>
       ${conf ? confBadge(conf) : ''}
-      ${bouncedFor && canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-fixaddr="${esc(bouncedFor)}">Bounced — fix it</button>` : ''}
+      ${/* The label was `Bounced — fix it`: the mail server's word, plus a
+            state and a verb crammed into one control. The state belongs to
+            the row, not to its button — the row already carries a warning
+            tone for it — and the button says what pressing it does. It is
+            also the verb `TAX.obstacle` already declares for this exit, so
+            the two ways in now agree. */ ''}
+      ${bouncedFor && canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-fixaddr="${esc(bouncedFor)}">Fix the address</button>` : ''}
     </div>`;
   }
 
@@ -17986,6 +18063,12 @@
     if (wasProv) {
       o.enrich[field] = { conf: 'stated', src: me().name, at: iso(TODAY) };
     }
+    /* The third way an address can change, and the newest — the reach row
+       became editable when the facts line stopped carrying a second copy of
+       it. Without this a rep could correct a bounced address inline and watch
+       the flag stay up, which is the defect this whole thread began with. */
+    const wasEmailAt = o.emailAt;
+    if (field === 'email') o.emailAt = iso(TODAY);
 
     /* ══ CORRECTING THE COPY IS WHAT ENDS THE STALENESS ═════════════════
          A draft is stale when it was written before the newest signal on
@@ -18000,6 +18083,7 @@
     toast(`${editTitle(o)} — ${spec.label} changed.`, () => {
       o[field] = was;
       if (wasProv) o.enrich[field] = wasProv;
+      if (field === 'email') o.emailAt = wasEmailAt;
       if (editKind(o) === 'draft') { o.at = wasAt; o.edited = wasEd; }
       reindex(); paint(); paintRail();
     });
@@ -18164,8 +18248,8 @@
          was the word null. What is true in that case is that the address is
          gone and the bounce is still on the record. */
       body: `<p class="s-commit-quote">${rec.email
-          ? `${esc(rec.email)} — rejected by the server. Nothing sent to it was delivered.`
-          : 'Nothing on file, and a message to this contact already bounced. Nothing we send arrives.'}</p>
+          ? `${esc(rec.email)} — nothing sent to this address was delivered.`
+          : 'Nothing on file, and a message to this contact already failed to arrive. Nothing we send gets through.'}</p>
         <label class="ds-field s-field">
           <span class="s-field-label">${rec.email ? 'Correction' : 'Address'}</span>
           <input class="field-input s-addr" type="text" placeholder="${esc(rec.email || 'name@company.com')}" />
@@ -18175,13 +18259,16 @@
       run() {
         const next = (($('.s-addr') || {}).value || '').trim();
         if (!next || !next.includes('@')) { toast('That is not an address. Nothing was changed.'); return false; }
-        const prev = { email: rec.email, enrich: rec.enrich.email };
+        const prev = { email: rec.email, enrich: rec.enrich.email, at: rec.emailAt };
         rec.email = next;
         rec.enrich.email = { conf: 'high', src: `Corrected by ${me().name}`, at: iso(TODAY) };
+        /* When the address CHANGED, which is what answers the bounce. */
+        rec.emailAt = iso(TODAY);
         paint(); paintChrome();
         markChanged('.s-reach');
         toast('Address corrected.', () => {
-          rec.email = prev.email; rec.enrich.email = prev.enrich; paint(); paintChrome();
+          rec.email = prev.email; rec.enrich.email = prev.enrich; rec.emailAt = prev.at;
+          paint(); paintChrome();
         });
       },
     });
