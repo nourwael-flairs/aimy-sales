@@ -1709,37 +1709,36 @@ body {
 .s-prog-done { background: var(--ok); }
 .s-prog-fail { background: var(--err); }
 
-/* A campaign's shape, at card scale. The sheet draws the same distribution as
-   labelled rows; on a card there is no room for eight rows and no need — the
-   question a list answers is "which of these is in trouble", and a band of
-   status tone answers it without reading a number. */
-/* Space BELOW as well as above. It carried `margin: 8px 16px 0`, so the bar
-   sat hard against the meta line under it and the two read as one object —
-   the bar looked like an underline for the status word rather than a
-   summary of the whole campaign. */
-.s-camp-dist {
-  display: flex; height: 4px; margin: 8px 16px 12px;
-  border-radius: 2px; overflow: hidden; background: var(--d800);
-}
-/* Same for the task card's progress bar, which has the same shape and the
-   same neighbour. */
+/* The status distribution band is gone from both cards — a 4px full-width
+   bar reads as progress, and neither card carried a legend for it. The task
+   card's genuine progress bar keeps the space the band used to share. */
 .s-task-card .s-prog { margin-bottom: 12px; }
-/* On a record card the bar sits inside the card's own padding, so it takes
-   the vertical rhythm and not the horizontal inset. */
-.s-card-dist { margin: 8px 0 0; }
-/* Segments abut; a box-shadow inset draws the seam, so the separation
-   costs no space and stays on the spacing scale. */
-/* The person card is a campaign card with a different subject, so it reuses
-   the whole anatomy — the distribution band included. The only thing it adds
-   is an avatar in the type row, because a name needs a face beside it in a
-   way a campaign name does not. */
 
-.s-camp-seg { display: block; height: 100%; box-shadow: inset -1px 0 0 var(--card-bg); }
-.s-camp-seg:last-child { box-shadow: none; }
-.s-camp-seg.tone-err  { background: var(--err-text); }
-.s-camp-seg.tone-warn { background: var(--warn-text); }
-.s-camp-seg.tone-ok   { background: var(--ok-text); }
-.s-camp-seg.tone-neutral { background: var(--d600); }
+/* ── How sure a fact is, on the record's facts line ──
+   Not `.conf-badge`: that is a 24px pill with a fill, a border and a meter,
+   and this run is 19px of quiet text. A word at the caption step, in the
+   tone, sitting on the run's own baseline. */
+/* Not `--fs-2xs`: the scale reserves 11px for captions, "ALL CAPS AND
+   TRACKED, never lowercase", and this is a lowercase word. It is subordinate
+   on three axes instead — a step down in size from the value it qualifies, a
+   step down in weight, and several down in colour — which is what the old
+   badge was trying to achieve with a fill, a border and a meter. */
+.s-prov {
+  margin-left: 4px;
+  font-size: var(--fs-sm); font-weight: var(--fw-regular); white-space: nowrap;
+}
+.s-prov.tone-muted  { color: var(--d400); }
+.s-prov.tone-ok     { color: var(--ok-text); }
+.s-prov.tone-warn   { color: var(--warn-text); }
+/* `--accent-text`, not `--accent`: measured 3.77 dark / 4.29 light at this
+   size, both under the 4.5 floor. The token is the contrast-corrected pair of
+   the same purple and predates this work — not a re-theme. */
+.s-prov.tone-accent { color: var(--accent-text); }
+/* `.s-edit` pulls itself -2px so its pencil icon does not shove the `·` that
+   separates two facts. What follows here is not that dot but a word belonging
+   to the same fact, so the pull is given back and the gap is 4px whether the
+   value was editable or not — measured 2px against 4px before this. */
+.s-edit + .s-prov { padding-left: 2px; }
 
 /* What is running on THIS record, at the top of it. Same shape as the
    Knowledge line — a sentence with the objects set into it — because it is
@@ -2438,11 +2437,30 @@ body {
 /* Facts are separate spans with a dot drawn between them rather than one
    string with " · " baked in, so a fact can wrap as a unit and the last one
    never trails a dot into empty space. */
-.s-rec-facts {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px;
-  font-size: var(--fs-sm); color: var(--d400); line-height: var(--lh-base);
-}
+/* ── The company, in three ranks ──
+   It was one wrapping run at 13px/400/--d400 — six facts of five kinds, all
+   claiming the reader equally. The ranks are size, then what and where, then
+   background; each is a row, and the separation between rows is 4px against
+   the 8px between facts inside one, so a rank reads as a group. */
+.s-rec-facts { display: flex; flex-direction: column; gap: 4px; line-height: var(--lh-base); }
+.s-rec-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
 .s-rec-facts span + span::before { content: '·'; color: var(--d600); margin-right: 8px; }
+/* The two figures every ICP is written against. The only thing in the block
+   that is bigger, heavier and brighter than the rest — which is also what
+   lets a qualifier sit beside one without needing a box to be seen. */
+.s-facts-lead { font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50); }
+.s-facts-mid  { font-size: var(--fs-sm); color: var(--d300); }
+/* When it was founded, and how our record of it began — the second is not a
+   fact about the company at all. Neither changes a decision.
+
+   `--d400`, not the caption step. `--d500` measured **3.54:1 in dark**, under
+   the 4.5 floor — a known, product-wide value that every 11px section caption
+   already sits at and that v5 recorded as a design-system decision rather than
+   a per-surface one. A caption is a label you glance at; this is content, and
+   putting content at a caption's contrast is a step past that precedent
+   rather than a match for it. 6.83 dark / 5.60 light, and still a clear step
+   under the rank above it. */
+.s-facts-back { font-size: var(--fs-sm); color: var(--d400); }
 .s-rec-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .s-rec-actions .btn svg { width: 13px; height: 13px; }
 .s-rec-head .inline-note { margin-top: 12px; }
