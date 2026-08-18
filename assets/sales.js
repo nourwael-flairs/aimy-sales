@@ -11806,7 +11806,7 @@
   let CBUILD = null;
 
   function cbuildPush(step, text, opts, hint) {
-    thread$().push({ who: 'aimy', text, build: { step, opts: opts || [], hint: hint || '' } });
+    threadPush({ who: 'aimy', text, build: { step, opts: opts || [], hint: hint || '' } });
   }
 
   /* Every earlier question keeps its answer visible and loses its buttons.
@@ -11848,7 +11848,7 @@
     CBUILD.crit = FIND_CRIT.filter((c) => c.on).map((c) => c.label);
     CBUILD.step = 'who';
     cbuildSpend();
-    thread$().push({ who: 'you', text });
+    threadPush({ who: 'you', text });
     cbuildPush('who',
       `I read that as ${CBUILD.crit.join(' · ')}. ${plural(netNew().length, 'company')} match and none of them are in the book yet.`,
       [{ k: 'who-ok', label: `Bring in the ${netNew().length}` },
@@ -11919,7 +11919,7 @@
     DB.camp.push(c);
     CBUILD = null;
     reindex();
-    thread$().push({ who: 'change',
+    threadPush({ who: 'change',
       text: `Built <b>${esc(c.name)}</b> — ${esc(plural(members.length, 'organization'))} in it, with what it is for and what we sell.`,
       /* `undo` IS THE FUNCTION, not a flag — `turnHtml` tests it for the
          button and the handler calls it. */
@@ -12178,15 +12178,15 @@
       if (CBUILD.step === 'goal') { cbuildGoal(t); return; }
       if (CBUILD.step === 'name') {
         CBUILD.name = t.length > 60 ? t.slice(0, 59) + '…' : t;
-        thread$().push({ who: 'you', text: t });
+        threadPush({ who: 'you', text: t });
         cbuildMake();
         return;
       }
       /* `who` and `sells` are answered with the buttons on the turn. A
          sentence there is a person talking past the question, so it is said
          back rather than silently swallowed. */
-      thread$().push({ who: 'you', text: t });
-      thread$().push({ who: 'aimy', text: 'Pick one of the options above and I will carry on.' });
+      threadPush({ who: 'you', text: t });
+      threadPush({ who: 'aimy', text: 'Pick one of the options above and I will carry on.' });
       paintTalk();
       return;
     }
@@ -13654,18 +13654,44 @@
      column had two groups keyed off two different things; with one list
      there has to be one order.
 
-     Stamped in the accessor rather than at the eight places that push a
-     turn, because every one of them goes through here first and a stamp
-     somebody has to remember to add is a stamp that gets missed. Opening a
-     conversation counts as touching it, which is what every thread list
-     does and what makes the one you just read stay near the top. */
+     ══ AND OPENING ONE IS NOT TOUCHING IT ═════════════════════════════════
+
+     The stamp was written by the ACCESSOR, so merely reading a thread moved
+     it to the top of the column — press the third conversation and it jumps
+     to first while everything under it shifts down. The list reorders itself
+     out from under the cursor, and the next thing you meant to press is no
+     longer where you saw it.
+
+     The justification recorded here was "which is what every thread list
+     does". That is not what they do. Slack, WhatsApp and Mail all order by
+     the last MESSAGE, not the last open — opening a chat in any of them
+     leaves the list exactly where it was. The precedent argued for the
+     opposite of what it was cited for.
+
+     So the stamp moves from the read to the write: `threadPush` is the one
+     way a turn is appended, and it stamps. That keeps the property the
+     original comment wanted — one place to remember rather than eight — and
+     puts it on the event that actually changes what a conversation is.
+
+     A thread you open that has never been written in has no stamp and no
+     position, because the column only lists threads that hold something.
+     That case is handled in the sort, as a display rule rather than as
+     state: it goes first because it is entering the list, and nothing else
+     moves. */
   const THREAD_AT = Object.create(null);
   let threadSeq = 0;
   const thread$ = () => {
     const k = threadKey();
-    THREAD_AT[k] = ++threadSeq;
     return THREADS[k] || (THREADS[k] = []);
   };
+  /* Appending is what moves a conversation up the column. */
+  const threadPush = (turn) => {
+    const t = thread$();
+    THREAD_AT[threadKey()] = ++threadSeq;
+    t.push(turn);
+    return t;
+  };
+  const threadStamp = (k) => { THREAD_AT[k] = ++threadSeq; };
 
   /* What a thread is called in the column. A subject names itself. */
   function threadName(key) {
@@ -13698,6 +13724,8 @@
        only one thing that can be wrong. */
     SESSIONS[key] = { title: t.length > 42 ? t.slice(0, 41) + '…' : t, at: iso(TODAY), state: qs() };
     THREADS[key] = [];
+    /* Making one is not switching to one. */
+    threadStamp(key);
     return key;
   }
 
@@ -13751,10 +13779,27 @@
     if ((THREADS.surface && THREADS.surface.length) || here === 'surface') keys.add('surface');
     if (subj) keys.add(subj);
     if (here) keys.add(here);
-    /* Most recently touched first. `THREAD_AT` is the stamp; a session that
-       has been listed but never opened falls back to its start order, so a
-       thread restored from a previous visit still sorts sensibly. */
-    const at = (k) => THREAD_AT[k] || (SESSIONS[k] ? -1 : -2);
+    /* Most recently WRITTEN IN first. `THREAD_AT` is the stamp; a session
+       that has been listed but never written in falls back to its start
+       order, so a thread restored from a previous visit still sorts sensibly.
+
+       The open thread goes first ONLY when it is EMPTY — a record's
+       conversation you have never said anything in has no position, because
+       the column lists threads that hold something and this one is entering
+       it by being opened.
+
+       "Has no stamp" was my first test for that and it was too wide: a seeded
+       session has five turns and no stamp, because the fixture assigns
+       `THREADS[key]` directly rather than through `threadPush`. So every
+       seeded conversation qualified as "entering the list" and jumped to the
+       top the moment it was opened — the exact behaviour this change is
+       removing, reintroduced by its own fix. Emptiness is the real test:
+       a thread with turns is already listed and already has a place.
+
+       A display rule, never state: nothing is written here, so the next
+       paint reaches the same answer. */
+    const at = (k) => (k === here && !(THREADS[k] || []).length ? Infinity
+      : THREAD_AT[k] || (SESSIONS[k] ? -1 : -2));
     const recent = [...keys].sort((a, b) => at(b) - at(a));
 
     const row = (key) => `<button class="ov-chat${key === here ? ' is-here' : ''}" type="button"
@@ -14330,7 +14375,12 @@
      canvas had two threads and every writer had to ask which one it was in;
      there is one now, and `say`/`noteChange` are the same functions with the
      question removed. */
-  const liveThread = () => thread$();
+  /* `liveThread` was a second name for the accessor, and both of its callers
+     used it to APPEND — so when the stamp moved off the accessor, these two
+     were the sites that silently kept working and stopped sorting. Exactly
+     the "a stamp somebody has to remember to add is a stamp that gets missed"
+     the original comment predicted, arriving through an alias.
+     There is one way to append now, and no second name for it. */
   const paintLive = () => paintTalk();
 
   function say(who, text, extra) {
@@ -14339,7 +14389,7 @@
        it started, because that is the state the last answer is about. */
     const sk = threadKey();
     if (SESSIONS[sk]) SESSIONS[sk].state = qs();
-    liveThread().push(Object.assign({ who, text }, extra || {}));
+    threadPush(Object.assign({ who, text }, extra || {}));
     paintLive();
   }
 
@@ -14347,7 +14397,7 @@
      so the record of a change lives beside the conversation that caused it.
      Called by `toast()` so no write can forget. */
   function noteChange(text, undo) {
-    liveThread().push({ who: 'change', text, undo });
+    threadPush({ who: 'change', text, undo });
     paintLive();
   }
 
@@ -15227,6 +15277,7 @@
       const key = 'sess-' + ++sessSeq;
       SESSIONS[key] = { title: 'New conversation', at: iso(TODAY), state: qs(), blank: true };
       THREADS[key] = [];
+      threadStamp(key);
       go({ chat: key });
       openCanvas();
       const box = $('#overlayInput');
@@ -15937,7 +15988,7 @@
           if (!CBUILD.sells.some((x) => x.kb === kb.id)) {
             CBUILD.sells.push({ kind: 'service', name, kb: kb.id });
           }
-          thread$().push({ who: 'you', text: name });
+          threadPush({ who: 'you', text: name });
         }
         cbuildName();
         return;
