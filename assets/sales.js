@@ -3120,6 +3120,41 @@
   const WS_LABEL = { detected: 'Found', recommended: 'Suggested', drafted: 'Drafted',
     staged: 'Awaiting you', completed: 'Done', failed: 'Stopped', reading: 'Reading' };
 
+  /* ══ "FOUND" WAS COMPETING WITH THE THING YOU PRESS ════════════════════════
+
+     Measured on three consecutive rail rows. The chip and the button beneath
+     it are the same object: **26px against 28px tall, both weight 700, both a
+     fill with a 1px border and a rounded box**, bracketing a 400-weight
+     sentence. The only real difference is colour — and the chip has the
+     stronger of the two, info-blue on a blue tint against the button's grey
+     on 5% white. The loudest, most affordance-shaped element on the card is
+     the one that does nothing.
+
+     ══ AND IT HAD TWO VALUES ═══════════════════════════════════════════════
+
+     Across seven surfaces: **Found 37, Suggested 16**, everything else 6 —
+     and those six are a different component (`.rail-state` on the rail's
+     conclusion card, `ws-completed` on a sequence step). So on every surface
+     where the chip sits above a button it says one of two words, and neither
+     changes what the reader does next: both end in a named verb, and
+     "I noticed this" versus "I have an opinion" is a fact about AiMY's
+     posture, not about the work.
+
+     Three consecutive cards reading FOUND · FOUND · FOUND is the proof. A
+     label that appears on nearly every card and never changes the next move
+     has stopped being a signal.
+
+     So the two default states do not draw. What draws is the exception —
+     drafted, awaiting you, done, stopped, reading — which is the same
+     reduction this product already makes twice: `effectsBlock` drops an `ok`
+     line under a button that states it, and the confidence badge stopped
+     drawing `high` because a fact printed as a fact already claims it. */
+  const WS_QUIET = ['detected', 'recommended'];
+  function stateChip(state) {
+    if (!state || WS_QUIET.indexOf(state) >= 0) return '';
+    return `<span class="work-state ws-${esc(state)}" data-work-state="${esc(state)}">${esc(WS_LABEL[state] || state)}</span>`;
+  }
+
   /* The block itself. Rendered on cards and on the record, so a lead says
      the same thing about itself in both places — v2 had a status word on the
      card and a different sentence on the record, and reconciling them was
@@ -3132,7 +3167,7 @@
     const ask = FLAG_ASK[ex.k];
     return `<div class="s-insight${compact ? ' is-compact' : ''}" data-aimy-item="${esc(rec.id)}">
       <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-      <span class="work-state ws-${esc(said.state)}" data-work-state="${esc(said.state)}">${esc(WS_LABEL[said.state])}</span>
+      ${stateChip(said.state)}
       <span class="s-insight-txt">${said.text}</span>
       ${canWrite() ? `<span class="s-insight-acts">
         <button class="s-insight-lnk primary" type="button" data-exit="${esc(rec.id)}"
@@ -6868,7 +6903,7 @@
       return `<section class="s-group" aria-label="${esc(`${row.label} — ${recs.length}`)}">
         <div class="s-group-head tone-${esc(row.tone)}">
           <span class="s-group-mark">${aiMark()}</span>
-          <span class="work-state ws-${esc(say.state)}" data-work-state="${esc(say.state)}">${esc(WS_LABEL[say.state])}</span>
+          ${stateChip(say.state)}
           <span class="s-group-txt">${say.text}</span>
           <span class="s-group-acts">
             ${/* SECONDARY, because there are nine of these. A surface gets one
@@ -10627,7 +10662,7 @@
         ${s.auto ? 'runs itself' : 'run by hand'}
       </p>
       <div class="s-listrow-read">
-        <span class="work-state ws-${esc(read.state)}" data-work-state="${esc(read.state)}">${esc(WS_LABEL[read.state] || read.state)}</span>
+        ${stateChip(read.state)}
         <p class="s-listrow-say">${read.text}</p>
       </div>
       ${/* ══ WHAT AiMY WOULD DO, AND WHAT IT WOULD ANSWER ══════════════════
@@ -11313,7 +11348,7 @@
             claiming it is a task. */ ''}
       ${(r.rows || []).length ? `<div class="rail-rows">
         ${r.rows.map((x) => `<div class="rail-row tone-${esc(x.tone || 'neutral')}">
-          ${x.state ? `<span class="work-state ws-${esc(x.state)}" data-work-state="${esc(x.state)}">${esc(WS_LABEL[x.state] || x.state)}</span>` : ''}
+          ${stateChip(x.state)}
           <p class="rail-row-say">${esc(x.text)}</p>
           <button class="s-insight-lnk" type="button"
             ${x.init ? `data-init="${esc(x.init.k)}" data-entry-mode="${esc(x.init.mode)}" data-aimy-topic="${esc(x.init.k)}" data-aimy-ask="${esc(x.init.ask)}"`
@@ -11462,7 +11497,7 @@
     const onPage = !!(opts && opts.onPage);
     return `<div class="s-insight${onPage ? '' : ' is-compact'}" data-aimy-item="${esc(c.k)}">
       <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-      <span class="work-state ws-${esc(said.state)}" data-work-state="${esc(said.state)}">${esc(WS_LABEL[said.state])}</span>
+      ${stateChip(said.state)}
       <span class="s-insight-txt">${said.text}</span>
       ${canWrite() ? `<span class="s-insight-acts">
         ${/* THE PRIMARY DOES THE THING. It used to carry a composed question
