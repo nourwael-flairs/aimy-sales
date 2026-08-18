@@ -1304,20 +1304,52 @@ body {
    anchored above the input band because the bottom-centre belongs to the
    input and the toast.
 ═══════════════════════════════════════════════ */
+/* ══ `display: flex` BEAT `[hidden]`, SO THE DEV PANEL SHIPPED ═════════════
+
+   `proto()` sets `shell.hidden = !protoOn()`, so without `?proto` in the URL
+   the whole control is meant to be absent — and it never was. `[hidden]`
+   lives in the UA stylesheet as `display: none`, which any class rule with a
+   `display` outranks, so the shell rendered on every page load: a dashed
+   32px button in the bottom-right corner of the product.
+
+   Pressing it opened an EMPTY box, because the same guard that failed to
+   hide the shell does return early before filling the panel. So the one
+   thing a reader could do with it was find a 320px dashed rectangle with
+   nothing in it.
+
+   Every sibling in this file that needs the pairing already has it —
+   `.proto-panel[hidden]`, `.ntf-panel[hidden]`, `.drop-layer[hidden]`,
+   `.s-cal-panel[hidden]`, `.app-call[hidden]` — and this is the one that was
+   missed. It is the third time this file has been bitten by the same thing:
+   `.s-field { display: block }` beat `[hidden]` and put Topic and Objection
+   on every outbound log. */
+.proto[hidden] { display: none; }
 .proto {
   position: fixed; right: 16px; bottom: 16px; z-index: 950;
   display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
 }
+/* ══ QUIET IS NOT THE SAME AS INVISIBLE ═══════════════════════════════════
+   Measured against the page: the button's own background **1.08**, its dashed
+   border **2.51** — under the 3:1 floor a UI boundary needs to register as a
+   shape at all — and a `--d500` icon inside that. A 32px near-transparent
+   square with a faint dashed edge, in a corner. It was reported as missing
+   twice, and once it WAS rendering, it was still reported as missing: being
+   drawn and being findable are two different things.
+
+   The dashed edge stays, because that is what says scaffolding rather than
+   product. It just has to clear the floor: 3.54 for the border, and an icon
+   a step brighter so the control reads as a control. Still the quietest
+   thing on the page, and now actually on it. */
 .proto-toggle {
   width: 32px; height: 32px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--r-md);
-  border: 1px dashed var(--d600);
+  border: 1px dashed var(--d500);
   background: var(--panel-bg);
-  color: var(--d500); cursor: pointer;
+  color: var(--d400); cursor: pointer;
   transition: color var(--t-fast), border-color var(--t-fast);
 }
-.proto-toggle:hover { color: var(--d200); border-color: var(--d500); }
+.proto-toggle:hover { color: var(--d100); border-color: var(--d400); }
 .proto-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .proto-toggle svg { width: 16px; height: 16px; }
 .proto-panel {
