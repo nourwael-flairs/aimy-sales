@@ -14782,9 +14782,67 @@
      the flag; the person being shown the product never sees the scaffolding.
 
      Read straight off the URL rather than added to `SCALAR`, because it is
-     not application state — `go()` must not carry it, and a surface that
-     forgets it on the next navigation is the correct behaviour. */
-  const protoOn = () => new URLSearchParams(location.search).has('proto');
+     not application state — `go()` must not carry it, so it never rides
+     along in a link anybody shares.
+
+     ══ BUT IT MUST NOT BE FORGOTTEN ON THE NEXT NAVIGATION ═══════════════
+
+     That is what the rule used to say, and it was self-defeating: this panel
+     is TWENTY-NINE LINKS THAT NAVIGATE. Opening it and pressing anything —
+     which is the entire point of it — dropped `?proto` and destroyed the
+     control in the same click. Measured: `?proto` → open → follow the first
+     record link → `?lead=a1`, shell hidden, toggle gone. The tool could not
+     survive its own first use.
+
+     It went unnoticed because a second defect was hiding it. `.proto` had no
+     `[hidden]` companion rule, so `display: flex` beat the UA's
+     `display: none` and the shell rendered whatever this flag said. The bug
+     was load-bearing: it is the only reason the panel has ever been usable.
+     Fixing the CSS on its own is what made the control vanish — correctly,
+     and uselessly.
+
+     So the flag is read from the URL ONCE and held for the session. Opt-in
+     is unchanged, which is the half of the original reasoning that was
+     right: no flag and the person being shown the product sees no
+     scaffolding. `?proto=0` turns it back off.
+
+     ══ AND IT HAS TO SURVIVE A REAL PAGE LOAD ═══════════════════════════
+
+     A variable was not enough. Six of the panel's links are honest `<a href>`
+     anchors — deliberately, so they can be right-clicked and opened in a tab
+     — and an anchor is a full navigation: the document reloads, the script
+     re-runs, and anything held in memory is gone. Measured: `?proto` → open →
+     follow the first record link → the panel was dead again, for a second
+     and completely different reason than the first.
+
+     `sessionStorage` is the storage whose lifetime is exactly what is wanted
+     here: it survives reloads and real navigations inside this tab, and it
+     dies when the tab closes. Nobody who was not handed the flag ever sees
+     the scaffolding, and nobody who was has to keep re-typing it. */
+  /* ══ AND OPT-IN WAS THE WRONG DEFAULT FOR A PROTOTYPE ══════════════════
+
+     The original reasoning — "the person being shown the product never sees
+     the scaffolding" — protects a demo that happens occasionally, at the cost
+     of the person building this, who opens it every day. That trade is the
+     wrong way round. This artifact IS the prototype; the panel is how its
+     states, roles and empty cases are reached at all, and a tool you have to
+     remember a URL parameter to summon is a tool you stop using.
+
+     So it is on, and `?proto=0` takes it off for as long as the tab lives —
+     which is the demo case, and the one that is deliberate rather than
+     accidental. Whoever is presenting turns it off once; nobody has to
+     remember anything to have it. */
+  const PROTO_KEY = 'aimy-sales-proto';
+  const protoOn = () => {
+    let on = true;
+    try { const v = sessionStorage.getItem(PROTO_KEY); if (v !== null) on = v === '1'; } catch (e) { /* private mode */ }
+    const q = new URLSearchParams(location.search);
+    if (q.has('proto')) {
+      on = q.get('proto') !== '0';
+      try { sessionStorage.setItem(PROTO_KEY, on ? '1' : '0'); } catch (e) { /* private mode */ }
+    }
+    return on;
+  };
 
   function proto() {
     const shell = $('#proto');
