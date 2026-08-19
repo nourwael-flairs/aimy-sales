@@ -242,6 +242,17 @@
       { k: 'new-hire',     label: 'New decision-maker', tone: 'ok', exit: 'Introduce us',        mode: 'em-review', opens: 'canvas' },
       { k: 'hiring',       label: 'Hiring into it',  tone: 'ok', exit: 'Use the hiring signal',  mode: 'em-investigate', opens: 'canvas' },
       { k: 'renewal-near', label: 'Renewal near',    tone: 'ok', exit: 'Open the renewal',       mode: 'em-review', opens: 'canvas' },
+      /* ══ AND ONE FOR AN OPENING NOBODY HAS A NAME FOR ══════════════════
+         The seven above are what the monitors watch for. This is what a
+         person heard on a phone call and wrote down — recorded on the same
+         axis so it reaches the same filters and the same rail, rather than
+         being lost because no monitor has a category for it.
+
+         NO EXIT. The seven name a move because the product knows what kind
+         of thing each one is; inventing one for a sentence it has not read
+         would be exactly the guess this axis exists to avoid. `exitFor`
+         skips a row with no exit, so the card simply offers no button. */
+      { k: 'other',        label: 'Something opened', tone: 'ok', exit: null,       mode: null,        opens: null },
     ],
 
     /* What a reply was about. Assigned on arrival; the campaign's Replies
@@ -313,6 +324,20 @@
         blurb: 'A deck, a case study, a price — whatever you said you would send.' },
       { k: 'callback', label: 'Another call',  next: 'Call them back',
         blurb: 'They asked to pick it up later.' },
+      /* ══ AND ONE FOR WHAT IS NOT ON THE LIST ═══════════════════════════
+         `objection` has carried "Something else" since it was written, on
+         the argument that anything that is none of the named kinds "is
+         `other` and says so rather than being filed under the nearest". A
+         call asks for things that are none of these five just as easily — a
+         reference, a security review, an introduction — and until now they
+         had to be filed under the nearest or dropped.
+
+         It is also what the reading writes into: when the sentence names
+         something asked for that no chip covers, this chip takes the words
+         and the touchpoint carries them. `next` is deliberately vague
+         because the thing itself is on the record in the rep's words. */
+      { k: 'other',    label: 'Something else', next: 'Do what you said you would',
+        blurb: 'Recorded, and not one of the above.' },
     ],
 
     objection: [
@@ -335,6 +360,10 @@
       { k: 'job-posting', label: 'Job postings',       into: 'hiring' },
       { k: 'web-visit',   label: 'Website visits',     into: 'visited-site' },
       { k: 'renewal',     label: 'Renewals coming up', into: 'renewal-near' },
+      /* The kind for an opening a person typed rather than a monitor found.
+         Every kind resolves through `into`, so this one needs its own
+         opportunity — and has it. */
+      { k: 'other',       label: 'Something else',     into: 'other' },
     ],
 
     /* Four channels. Three are things a person did; the fourth is AiMY, and
@@ -3211,7 +3240,7 @@
          is made of somebody who is not in the room when the button is
          pressed; an interface that ships this as a settings toggle teaches
          that consent is one. */
-      recording: false, notice: false,
+      recording: false, notice: false, asking: false,
       muted: false, held: false,
       lines: [], note: '',
     };
@@ -3274,20 +3303,6 @@
         ${rec.phone ? `<p class="call-num">${esc(rec.phone)}</p>` : ''}
       </div>
 
-      ${/* THE NOTICE, AND IT GATES THE CONTROL. Not a checkbox in settings
-            and not a line of small print under a toggle that is already on:
-            recording cannot start until this has been said out loud, so the
-            interface cannot be used to record somebody quietly. */ ''}
-      <div class="call-rec">
-        ${c.notice
-          ? `<button class="call-rec-btn${c.recording ? ' is-on' : ''}" type="button" data-call-rec>
-              <span class="call-rec-dot" aria-hidden="true"></span>${c.recording ? 'Recording' : 'Record'}
-            </button>
-            <p class="call-rec-note">${c.recording ? 'They have been told, and it is being written down.' : 'They have been told. Nothing is being written down yet.'}</p>`
-          : `<p class="call-rec-note">Recording is off. It cannot start until you have told them.</p>
-             <button class="call-rec-btn" type="button" data-call-notice>I have told them</button>`}
-      </div>
-
       <div class="call-lines" id="callLines">${transcriptHtml(c)}</div>
 
       <label class="ds-field call-note-field">
@@ -3314,7 +3329,41 @@
             irreversible control here and the only one whose mispress costs
             you the call — Fitts says make it big, and the doctrine says a
             destructive control states itself. */ ''}
+      ${/* ══ THE NOTICE IS A DOOR, NOT A PANEL ═════════════════════════════
+
+            It was a block in the middle of the call: a paragraph saying
+            recording was off, a button saying you had told them, and a
+            second line repeating a state the transcript underneath already
+            states. Three lines of consent copy on screen for the whole call,
+            on the one surface where the person using it is talking to
+            somebody else.
+
+            THE RULE HAS NOT MOVED. Recording cannot start until the notice
+            has been given, and this interface still cannot be used to record
+            somebody quietly. What moved is WHEN it is asked: pressing Record
+            raises it, answering it starts the recording, and it is gone the
+            moment it is answered. A consent question standing on screen when
+            nobody is trying to record is not consent, it is furniture — and
+            furniture is the thing people stop reading.
+
+            ASKED ONCE PER CALL. `notice` lives on the call, so the second
+            press of Record just records. */ ''}
+      ${c.asking ? `<div class="call-consent" role="group" aria-labelledby="callConsentSay">
+        <p class="call-consent-say" id="callConsentSay">They have to be told before this can start. Have you told them?</p>
+        <div class="call-consent-acts">
+          <button class="btn btn-ghost btn-sm" type="button" data-call-consent="no">Not yet</button>
+          <button class="btn btn-brand btn-sm" type="button" data-call-consent="yes">I have told them</button>
+        </div>
+      </div>` : ''}
       <div class="call-tools">
+        ${/* RECORD IS A HANDSET CONTROL, so it sits with the handset
+              controls. It was the only one of the four somewhere else, in a
+              panel of its own, which made the most consequential toggle on
+              this surface the hardest one to find — and left the row of
+              round buttons saying "these are the things you do on a call"
+              while one of the things you do on a call was elsewhere. */ ''}
+        <button class="call-tool${c.recording ? ' is-rec' : ''}" type="button" data-call-rec
+          aria-pressed="${!!c.recording}" aria-label="${c.recording ? 'Stop recording' : 'Record'}" title="${c.recording ? 'Stop recording' : 'Record'}">${chIcon('dot')}</button>
         <button class="call-tool${c.muted ? ' is-on' : ''}" type="button" data-call-mute
           aria-pressed="${!!c.muted}" aria-label="${c.muted ? 'Unmute' : 'Mute'}" title="${c.muted ? 'Unmute' : 'Mute'}">${chIcon(c.muted ? 'mic-off' : 'mic')}</button>
         <button class="call-tool${c.held ? ' is-on' : ''}" type="button" data-call-hold
@@ -3426,12 +3475,476 @@
       : k === 'no-answer' ? 'no-answer'
       : k === 'not-interested' || k === 'do-not-call' ? 'negative' : 'neutral';
 
+
+  /* ══ SAY IT, AND AiMY FILLS THE FORM IN ═══════════════════════════════
+
+     Seven radios and sixteen chips is what this surface asks for, and it
+     asks for them in the twenty seconds between putting the phone down and
+     dialling the next number. The float bar has been able to write a whole
+     touchpoint out of one sentence since v3 — "called ING, positive, next
+     step demo Tuesday" — and the surface that opens the moment you hang up
+     could not do it at all. So the fastest way to log a call was to close
+     this and type into the bar instead: a surface sending you somewhere else
+     to do the one thing it exists for.
+
+     ONE INPUT, NOT TWO. The note was already required, already free text,
+     already "in your words" — so it IS the sentence AiMY reads, moved to the
+     top where you reach it first, rather than a second box beside it. A
+     second box would be two places to say one thing, and the one nobody
+     typed into would be the one the next person reads.
+
+     NOTHING WAS TAKEN AWAY TO DO IT. A call with no note was refused before
+     and is refused now; every pick it fills in is the same pick, in the same
+     place, one click from being changed; and a rep who would rather tick the
+     boxes and write the note last can still do exactly that. Both ways are
+     the same form.
+
+     AiMY DOES NOT REWRITE WHAT YOU WROTE. The note stored on the touchpoint
+     is the rep's own sentence — the reading lands on the CHIPS, marked as
+     AiMY's, where it is visible and correctable. Paraphrasing somebody's
+     words and then filing them under that person's name is the one thing a
+     system that logs on your behalf must never do; it is the same rule that
+     keeps `by: 'aimy'` off a touchpoint a person made.
+
+     AND IT REFUSES RATHER THAN GUESSES, which is `readGoal`'s rule on the
+     other reader in this file: an axis with nothing behind it in the
+     sentence is left empty and SAID to be empty, because a default nobody
+     noticed is a decision nobody took. The confirm still will not log a call
+     that does not say how it ended — it just no longer insists you say it
+     twice. */
+
+  /* ORDERED, AND THE ORDER IS THE RANKING — first match wins, so the
+     specific phrasings sit above the general ones. "Spoke to reception" is a
+     gatekeeper and not a conversation; "do not call again" is not merely
+     disinterest; a wrong number is not a call nobody picked up. Same rule
+     `TAX` states about its own lists, and for the same reason: a ranking has
+     to live somewhere, and a lexicon sorted by accident ranks by accident. */
+  const READ_DISP = [
+    [/\b(do not call|do not ring|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
+    [/\b(wrong number|wrong extension|number is wrong|not her number|not his number|not their number|no longer in service|dead line)\b/, 'wrong-number'],
+    [/\b(gatekeeper|reception|receptionist|switchboard|front desk|secretary|assistant|pa|screened|not put me through|get past)\b/, 'gatekeeper'],
+    [/\b(no answer|no one answered|nobody answered|nobody picked up|did not answer|did not pick up|voicemail|voice mail|answerphone|answering machine|rang out|busy tone|engaged tone|left a message|no show|no-show|did not show)\b/, 'no-answer'],
+    [/\b(call back|called back|callback|call me back|ring back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
+    [/\b(not interested|no thanks|not for us|not a fit|declined|hung up|brushed me off|no appetite)\b/, 'not-interested'],
+    [/\b(spoke|talked|chatted|got through|reached her|reached him|reached them|good|good chat|good conversation|went well|positive|keen|interested|promising|receptive|open to)\b/, 'reached'],
+  ];
+
+  /* IN `TAX.proposal`'s OWN ORDER, because the FIRST proposal is the one that
+     names the next step — so the order this reads in is the order that
+     decides what lands on the record, and a second ranking invented here
+     would schedule a different follow-up than the chips imply. */
+  const READ_PROP = [
+    [/\b(meeting|meet|sit down|in the diary|book a time|coffee)\b/, 'meeting'],
+    [/\b(demo|demonstration|walkthrough|walk through|show them|see it working)\b/, 'demo'],
+    [/\b(proposal|quote|quotation|statement of work|sow|rate card)\b/, 'proposal'],
+    [/\b(deck|case study|one pager|one-pager|brochure|price list|pricing page|materials|send the|send her|send him|send them|send it|send over|email over|forward it)\b/, 'info'],
+    [/\b(call back|callback|ring back|call again|another call|try again|call her back|call him back|call them back)\b/, 'callback'],
+  ];
+
+  const READ_OBJ = [
+    [/\b(feature|features|does not do|cannot do|can not do|no api|does not support|not able to|functionality|integration)\b/, 'feature'],
+    [/\b(we do not offer|we do not provide|out of scope|not something we do|no capacity|we cannot cover)\b/, 'service'],
+    [/\b(price|prices|pricing|cost|costs|expensive|budget|too much|cheaper|day rate|rates)\b/, 'pricing'],
+    [/\b(timing|not now|next quarter|next year|later in the year|too early|busy period|revisit|already committed|freeze|q1|q2|q3|q4)\b/, 'timing'],
+    [/\b(pushed back|objected|not convinced|reservations|hesitant)\b/, 'other'],
+  ];
+
+  const READ_OPP = [
+    [/\b(raised|funding|funded|series a|series b|series c|series d|investment round|new investor|closed a round)\b/, 'funding'],
+    [/\b(moved to|new role|left for|joining|changed jobs|has moved|starts at)\b/, 'job-change'],
+    [/\b(promoted|promotion|stepped up|now heads|took over as)\b/, 'promotion'],
+    [/\b(new cto|new cio|new coo|new head of|new director|new vp|new manager|just hired|joined last month)\b/, 'new-hire'],
+    [/\b(hiring|recruiting|vacancy|vacancies|job ad|growing the team|headcount|taking on)\b/, 'job-posting'],
+    [/\b(on our site|visited our|our website|downloaded|looked at our|read our)\b/, 'web-visit'],
+    [/\b(renewal|renew|contract ends|contract is up|notice period|up for renewal)\b/, 'renewal'],
+  ];
+
+
+  /* ══ WHEN NOTHING ON THE LIST FITS, THE LIST GROWS ═════════════════════
+
+     The lexicons above read a sentence for values this product already has a
+     name for. Real calls produce things it does not: their legal team wants
+     to see a DPA first, they asked for a reference from a bank the same size,
+     the blocker is an internal system nobody has heard of. All of that used
+     to land nowhere — the reading came back empty on that axis, the chips sat
+     untouched, and the only trace was the note.
+
+     THESE READ THE FRAME, NOT THE VALUE. A lexicon asks "does the sentence
+     contain 'pricing'". These ask "does the sentence say somebody pushed back
+     on SOMETHING", and take the something. That is what makes it a reading
+     rather than a guess: the sentence itself says which axis it is talking
+     about — "pushed back on X" is an obstacle whatever X turns out to be, and
+     "asked me for X" is a proposal. Nothing is inferred from a bare phrase,
+     because a bare phrase does not say which axis it belongs to and inventing
+     one would be exactly the guess this reader refuses everywhere else.
+
+     They fire ONLY where the axis came back empty. A sentence that says
+     "pushed back on the price" has already been read as Pricing; adding a
+     second chip saying "the price" would be the same fact twice, once in a
+     shape nothing can count.
+
+     WHERE THE WORDS GO. Each axis has a "Something else" chip — obstacle
+     always did, proposal and opportunity now do — and the chip takes the
+     words as its label. So the filters and the counts see a real axis value
+     they can add up, and the rep sees what was actually said. A free-text key
+     on an axis would have given the second and destroyed the first. */
+  const READ_FRAME = [
+    ['objection', /\b(?:pushed back on|push back on|objected to|worried about|concerned about|nervous about|stuck on|blocked by|the (?:problem|issue|blocker|sticking point|hold ?up) (?:is|was)|not happy (?:with|about))\s+([^.,;—–]+)/i],
+    ['proposal', /\b(?:asked (?:me )?(?:for|to)|asked whether we could|wants us to|wanted us to|would like us to|requested|i offered to|offered to|promised to|agreed to)\s+([^.,;—–]+)/i],
+    /* Tighter than the other two, and deliberately. "They are" and "they just"
+       open a good-news clause and a bad-news one equally well, so only the
+       cues that cannot be anything but news are here. The guard below does
+       the rest. */
+    ['opportunity', /\b(?:good news[:,]?|worth knowing[:,]?|they (?:have )?just|they are about to|they told me they(?:'| a)re)\s+([^.,;—–]+)/i],
+  ];
+
+  /* A phrase only becomes a chip if it is short enough to BE one and long
+     enough to mean something. Four words is where a captured clause stops
+     being a label and starts being a sentence somebody has to read twice, so
+     it is trimmed there and the whole of it stays in the note either way. */
+  const saidPhrase = (s) => {
+    const w = String(s || '').trim().replace(/\s+/g, ' ').split(' ');
+    if (w.length < 2) return null;
+    const cut = w.slice(0, 6);
+    return (cut.join(' ') + (w.length > 6 ? '…' : '')).replace(/^./, (c) => c.toUpperCase());
+  };
+  /* THE READING, AND IT IS THE ONLY ONE IN THIS FILE. `readTouch` — the float
+     bar's reader, which has turned a sentence into a touchpoint since v3 — is
+     now a projection of this rather than a second lexicon beside it. Two
+     parsers over one language is two parsers that drift, and the drift is
+     invisible: the same sentence logged through two doors would quietly
+     produce two different records. */
+  function readCall(text) {
+    /* Contractions are expanded before anything is matched, so "wouldn't put
+       me through" and "would not put me through" are the same sentence. A
+       lexicon carrying both spellings of every negation is a lexicon that
+       will one day carry only one of them. */
+    const t = ' ' + String(text || '').toLowerCase()
+      .replace(/[’‘]/g, "'")
+      .replace(/n't\b/g, ' not')
+      .replace(/\s+/g, ' ') + ' ';
+
+    const first = (lex) => { const hit = lex.filter(([re]) => re.test(t))[0]; return hit ? hit[1] : null; };
+    const all = (lex) => lex.filter(([re]) => re.test(t)).map(([, k]) => k);
+
+    const disp = first(READ_DISP);
+    const props = all(READ_PROP);
+    const opps = all(READ_OPP);
+    let objs = all(READ_OBJ);
+    /* `other` is the fallback and behaves like one — it means an obstacle
+       that is none of the four above, so it only stands when none of them
+       did. "Pushed back on pricing" is pricing, once. */
+    if (objs.length > 1) objs = objs.filter((k) => k !== 'other');
+
+    /* TWO DISPOSITIONS CANNOT HAVE PRODUCED A PROPOSAL, and both of them
+       contain the words that name one. "Do not call again" carries "call
+       again"; a wrong number is a call that never reached anybody to ask
+       anything of. Read literally, the first was recording that the rep had
+       proposed another call to somebody who had just told them never to ring
+       back — a chip that contradicts the disposition beside it, ticked by the
+       same sentence that set it. */
+    if (disp === 'do-not-call' || disp === 'wrong-number') props.length = 0;
+
+    /* ══ THE TWO FIELDS THAT RETURN WORDS, NOT KEYS ═══════════════════════
+
+       Everything above resolves to a KEY, and a key read out of a lowercased
+       sentence is the same key. The next step and the line to remember are
+       different in kind: they are WORDS, and they go on the record for the
+       next person to read — "call marije in the hague" is what the lowercased
+       copy produces, and `remember` in particular is read back at the top of
+       the next brief. So both are matched case-insensitively against the
+       original sentence, and only the day-of-the-week test is handed the
+       lowercase form, because `readWhen` compares against lowercase names. */
+    const raw = ' ' + String(text || '').replace(/[’‘]/g, "'").replace(/n't\b/gi, ' not').replace(/\s+/g, ' ') + ' ';
+
+    /* The next step, read exactly as the float bar has always read it. */
+    const m = raw.match(/next step(?: is)?[: ]+([^.,;—–]+)/i) || raw.match(/\b(?:then|follow up with|send)\b[: ]+([^.,;—–]+)/i);
+    /* THE DATE COMES OUT OF THE CLAUSE THAT NAMES THE NEXT STEP, and out of
+       nowhere else. "She is back Thursday" is a fact about her; reading a day
+       out of it and scheduling our follow-up on it would be the surface
+       inventing an appointment from a sentence about somebody's diary.
+       `readWhen` answers 7 for anything it cannot place, which is a sensible
+       default and a useless signal — so whether a day was NAMED is tested
+       separately from which day it was. */
+    const when = m && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(m[1])
+      ? readWhen(m[1].toLowerCase()) : null;
+    let next = null;
+    if (m) {
+      const what = m[1].trim();
+      next = {
+        what: what
+          .replace(/\b(on|next|this)?\s*(monday|tuesday|wednesday|thursday|friday|week|month)\b/gi, '')
+          /* Drop the leading article. "Next step: a demo" is how somebody
+             writes it and "A demo" is not how a next step is named. */
+          .replace(/^\s*(a|an|the)\s+/i, '')
+          .trim()
+          .replace(/^./, (c) => c.toUpperCase()) || 'Follow up',
+        due: iso(shift(TODAY, when == null ? readWhen(what.toLowerCase()) : when)),
+        by: me().id,
+      };
+    }
+
+    /* ON AN EXPLICIT CUE ONLY. `remember` is the one field AiMY writes WORDS
+       into rather than ticking, and it goes on the RECORD rather than on the
+       call — it outlives everything else on this form. So it is read when
+       somebody says "remember: …" and never inferred from an ordinary
+       sentence: a durable fact nobody meant to state is a durable fact nobody
+       will think to correct. */
+    const rm = raw.match(/\b(?:remember|note that|worth knowing|for next time)\b[:, ]+([^.;]+)/i);
+    const remember = rm ? rm[1].trim().replace(/^./, (c) => c.toUpperCase()) : null;
+
+    /* ── And what the sentence said that no list has a name for ──
+
+       Only where the axis came back empty, and only where the frame that
+       fired belongs on that axis at all. Two guards beyond that:
+
+       · A PHRASE THAT IS ALREADY A KNOWN VALUE IS DROPPED. "They just told me
+         they are not interested" trips the news frame and the phrase reads
+         back as a disposition — recording it as an opening would be the
+         reading contradicting itself in the same breath.
+
+       · NOTHING OPENS ON A CALL THAT REACHED NOBODY, and nothing is asked for
+         on one that ended in "never ring again". Both are the same rule the
+         proposal guard above states: a chip that contradicts the disposition
+         beside it is worse than an empty axis. */
+    const said = {};
+    const known = (phrase) => {
+      const p = ' ' + phrase.toLowerCase() + ' ';
+      return [READ_DISP, READ_PROP, READ_OBJ, READ_OPP].some((lex) => lex.some(([re]) => re.test(p)));
+    };
+    const spoke = !disp || disp === 'reached' || disp === 'callback' || disp === 'gatekeeper';
+    const asked = disp !== 'do-not-call' && disp !== 'wrong-number';
+    const empty = { objection: !objs.length, proposal: !props.length, opportunity: !opps.length };
+    for (const [axis, re] of READ_FRAME) {
+      if (!empty[axis]) continue;
+      if (axis === 'opportunity' && !spoke) continue;
+      if (axis === 'proposal' && !asked) continue;
+      const hit = raw.match(re);
+      if (!hit) continue;
+      const phrase = saidPhrase(hit[1]);
+      if (!phrase || known(phrase)) continue;
+      said[axis] = phrase;
+    }
+    /* The axis value is `other` — a real value the filters and the counts can
+       add up — and the words ride beside it. A free-text key on the axis
+       would have shown the rep what was said and made it uncountable. */
+    if (said.objection) objs.push('other');
+    if (said.proposal) props.push('other');
+    if (said.opportunity) opps.push('other');
+
+    /* THE FOUR-VALUE AXIS, PROJECTED HERE ONCE. `callToOutcome` already maps
+       the seven a caller picks onto the four every channel shares; two
+       readings fall outside it and are read on their own terms. A meeting
+       AGREED is an outcome no disposition carries — "spoke to them" and
+       "booked a demo" are the same disposition and very different news — and
+       a sentence can be plainly sour without the call having ended badly
+       ("they liked it, no budget until Q3"). */
+    const booked = /\b(booked|scheduled|agreed to meet|set up a call|set up a demo|set up a meeting|in the diary)\b/.test(t);
+    const sour = /\b(negative|no budget|pushed back|declined|went badly)\b/.test(t);
+    const outcome = booked ? 'meeting-booked'
+      : disp ? callToOutcome(disp)
+      : sour ? 'negative' : 'neutral';
+
+    return { disp, props, objs, opps, next, when, remember, outcome, said };
+  }
+
+  /* ── The reading, on the controls ──
+
+     WHERE THE LAST READING LANDED, kept rather than re-derived. The confirm
+     writes the next step's date and the effect line above the chips states
+     it; parsing the sentence twice and hoping the two agreed is how a surface
+     ends up promising one date and writing another. */
+  let CALL_READ = null;
+
+  /* The date the proposal's follow-up lands on: the one the sentence named,
+     or a week out. Read by the effect line and by `run()`, so what you were
+     shown before you pressed and what got written cannot differ. */
+  const callNextDue = () => iso(shift(TODAY, CALL_READ && CALL_READ.r.when != null ? CALL_READ.r.when : 7));
+
+  /* What the proposal chips schedule, rewritten as they move — by hand or by
+     AiMY. It was inline in the click handler, which meant a chip ticked by
+     anything other than a click left the line stating the last state it
+     happened to see. */
+  function paintPropNext() {
+    const line = $('[data-effect="propNext"]');
+    if (!line) return;
+    /* Reads the whole set, because they are checkboxes: the FIRST ticked
+       names the next step, and the line says how many others were asked for
+       so the difference between "and nothing else happens" and "and two more
+       are in the summary" is on screen before you commit. */
+    const picked = $$('.s-prop-pick:checked').map((i) => i.value);
+    const first = picked[0] && BY.proposal[picked[0]];
+    line.textContent = !first ? 'Nothing was asked for, so nothing is scheduled.'
+      : picked.length === 1 ? `“${first.next}” goes on the record, due ${fmtDate(callNextDue())}.`
+      : `“${first.next}” goes on the record, due ${fmtDate(callNextDue())}. The other ${picked.length - 1} ${picked.length === 2 ? 'stays' : 'stay'} on the call.`;
+  }
+
+  /* ══ THE PROMISE THE PROPOSAL FIELD HAS BEEN MAKING SINCE IT WAS ADDED ══
+
+     Its own comment says the chips are "pre-selected from the disposition
+     where the disposition already implies it: a booked callback IS another
+     call, so the surface says so rather than making you say it twice" — and
+     no code ever did it. The chips rendered empty whatever the radio said, so
+     the one place this surface claimed to save a decision was the one place
+     it did not.
+
+     ONE DISPOSITION IMPLIES A PROPOSAL AND NO MORE. A callback booked is
+     another call; the other six say how the call ended and nothing about what
+     was asked for. Implying a demo from "spoke to them" would be the
+     invention this file keeps taking out. */
+  function callImply() {
+    const out = ($('input[name="callout"]:checked') || {}).value;
+    if (out !== 'callback') return 0;
+    const el = $('.s-prop-pick[value="callback"]');
+    if (!el || el.dataset.hand || el.checked) return 0;
+    el.checked = true;
+    const lab = el.closest('label');
+    if (lab) lab.classList.add('is-aiset');
+    return 1;
+  }
+
+  function callReadApply(text) {
+    if (!$('#commitHost .s-callsay-in')) return null;
+    const r = readCall(text);
+    CALL_READ = { text: String(text || ''), r };
+
+    /* AiMY MAY CORRECT AiMY; ONLY YOU CORRECT YOU. `data-hand` is stamped on
+       any control a person moves and never comes off, so a second reading
+       replaces its own ticks and leaves yours exactly where you put them.
+       Level 6 read from the other end: AiMY's work is not disguised as the
+       rep's, and it does not quietly undo the rep's either. */
+    const tick = (el, on) => {
+      if (!el || el.dataset.hand) return false;
+      el.checked = on;
+      const lab = el.closest('label');
+      if (lab) lab.classList.toggle('is-aiset', on);
+      return on;
+    };
+
+    let n = 0;
+    /* A RADIO IS A GROUP, so one hand-set option protects all seven: checking
+       any radio unchecks the rest whatever flag they carry, so the flag has
+       to be read across the group or it protects nothing. */
+    const disps = $$('input[name="callout"]');
+    if (!disps.some((el) => el.dataset.hand)) disps.forEach((el) => { if (tick(el, el.value === r.disp)) n++; });
+    [['.s-prop-pick', r.props], ['.s-obj-tick', r.objs], ['.s-opp-tick', r.opps]]
+      .forEach(([sel, keys]) => $$(sel).forEach((el) => { if (tick(el, keys.indexOf(el.value) >= 0)) n++; }));
+
+    /* ── THE "SOMETHING ELSE" CHIP TAKES THE WORDS ──
+
+       The tick above already ticked it: `readCall` pushes `other` onto the
+       axis when the sentence named something no chip covers, so nothing here
+       decides anything. This only renames the chip to what was actually said,
+       because "Something else" is a category and the rep needs the sentence.
+
+       IT RESTORES THE NAME when there are no words for it — a corrected
+       sentence takes its phrase back off the chip rather than leaving the
+       last reading's label on an untouched control. `data-name` holds what
+       the chip is called when nobody has said anything more specific.
+
+       A chip somebody has touched is left alone, name and all, by the same
+       rule that governs the ticks. */
+    const saidChip = (sel, axis) => {
+      const el = $(sel + '[value="other"]');
+      if (!el || el.dataset.hand) return;
+      const name = el.closest('label') && el.closest('label').querySelector('.s-obj-name');
+      const words = r.said[axis];
+      if (name) name.textContent = words || el.dataset.name || 'Something else';
+      if (words) el.dataset.said = words; else delete el.dataset.said;
+    };
+    saidChip('.s-obj-tick', 'objection');
+    saidChip('.s-prop-pick', 'proposal');
+    saidChip('.s-opp-tick', 'opportunity');
+
+    /* The one field it writes words into, so the one it is most careful with:
+       never over something already on the record, and never over anything you
+       typed. */
+    const rem = $('.s-remember');
+    if (rem && !rem.dataset.hand && (rem.classList.contains('is-aiset') || !rem.value.trim())) {
+      rem.value = r.remember || '';
+      rem.classList.toggle('is-aiset', !!r.remember);
+      if (r.remember) n++;
+    }
+
+    n += callImply();
+    paintPropNext();
+
+    /* WHAT IT DID NOT GET, because the chips below already say what it did.
+       Repeating the values here would be the same fact twice, eight pixels
+       apart — so this line carries the two things the chips cannot: how much
+       of the sentence landed, and the one axis that has no default and no way
+       through without you. */
+    const line = $('.s-callsay-read');
+    if (line) {
+      const said = String(text || '').trim();
+      line.textContent = !said ? ''
+        : !n ? 'Nothing in that lands on any of these. Say what happened to them and what you asked for — or tick it in below.'
+        : r.disp ? `AiMY ticked ${plural(n, 'thing')} below. Change anything it read wrong.`
+        : `AiMY ticked ${plural(n, 'thing')} below — but nothing that says how the call ended. Pick that one.`;
+      line.hidden = !said;
+    }
+    return r;
+  }
+
+  /* READ ON A PAUSE, not on every keystroke. A form that rearranges itself
+     under somebody mid-sentence is a form they stop trusting; 600ms is about
+     the length of a comma, and the button beside the box is there for the
+     press that means "now". */
+  let SAY_TICK = null;
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el || !el.classList) return;
+    /* Typing into a field AiMY filled makes it yours from then on. */
+    if (el.classList.contains('s-remember')) { el.dataset.hand = '1'; el.classList.remove('is-aiset'); return; }
+    if (!el.classList.contains('s-callsay-in')) return;
+    const said = el.value;
+    if (SAY_TICK) clearTimeout(SAY_TICK);
+    SAY_TICK = setTimeout(() => { SAY_TICK = null; callReadApply(said); }, 600);
+  });
+
+  /* The keystroke for people who do not wait. Enter alone stays a newline —
+     the box takes three lines of prose, and swallowing the return key in it
+     would cost more than it saved. */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
+    if (!e.target || !e.target.classList || !e.target.classList.contains('s-callsay-in')) return;
+    e.preventDefault();
+    if (SAY_TICK) { clearTimeout(SAY_TICK); SAY_TICK = null; }
+    callReadApply(e.target.value);
+  });
+
   /* ── After: what happened, in the canvas ── */
   function callReview(c, rec) {
     const said = c.lines.length;
     commit({
       title: `What happened with ${rec.name}?`,
       body: `<p class="s-commit-quote">${esc(fmtClock(c.secs))} on the call${said ? `, ${plural(said, 'line')} recorded` : ', nothing recorded'}.</p>
+        ${/* ══ THE SENTENCE, AND THEN THE PICKS IT FILLED ═══════════════════
+
+              FIRST, because it is what a person does first: they have just
+              put the phone down and there is a sentence in their head, not a
+              taxonomy. Everything under it is that same sentence itemised,
+              which is the order the reading works in and the order it should
+              be read in.
+
+              IT IS THE NOTE. Not a box that feeds a box — this textarea IS
+              the required note, moved up, and what AiMY reads out of it lands
+              on the controls below rather than instead of them.
+
+              THE BUTTON IS THE DISCLOSURE. The box reads itself on a pause,
+              which is what makes it worth typing into; but a field that
+              quietly does something has no way of saying that it can, and
+              somebody who has just corrected the sentence needs a way to ask
+              for the reading again rather than re-ticking by hand. */ ''}
+        <div class="s-field s-callsay">
+          <span class="s-field-label" id="callSayLabel">What happened<span class="s-field-note">say it however you would say it — AiMY fills in the rest</span></span>
+          <textarea class="ds-textarea s-why s-callsay-in" rows="3" spellcheck="false" aria-labelledby="callSayLabel"
+            placeholder="Reception wouldn't put me through, she's back Thursday. Asked me to send the QA deck — pricing came up.">${esc(c.note)}</textarea>
+          <div class="s-callsay-foot">
+            <button class="btn btn-ghost btn-sm s-ai-btn" type="button" data-say-read>${aiMark()}Read it</button>
+            <p class="s-callsay-read" hidden></p>
+          </div>
+        </div>
         ${/* ══ NO "COUNTS AS REACHING THEM" ═════════════════════════════════
               Seven rows, and six of them carried the same six words. It was
               there to explain that a disposition drives the status — but it
@@ -3471,7 +3984,7 @@
           <span class="s-field-label">Proposal</span>
           <div class="s-camps">
             ${TAX.proposal.filter((o) => o.k !== 'none').map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
-              <input type="checkbox" class="s-prop-pick" value="${esc(o.k)}" /> ${esc(o.label)}
+              <input type="checkbox" class="s-prop-pick" value="${esc(o.k)}" data-name="${esc(o.label)}" /> <span class="s-obj-name">${esc(o.label)}</span>
             </label>`).join('')}
           </div>
           ${/* `none` is no longer a chip. With checkboxes, "nothing" is the
@@ -3484,7 +3997,7 @@
           <span class="s-field-label">Obstacle</span>
           <div class="s-camps">
             ${TAX.objection.map((o) => `<label class="chip default s-obj-chip" title="${esc(o.blurb)}">
-              <input type="checkbox" class="s-obj-tick" value="${esc(o.k)}" /> ${esc(o.label)}
+              <input type="checkbox" class="s-obj-tick" value="${esc(o.k)}" data-name="${esc(o.label)}" /> <span class="s-obj-name">${esc(o.label)}</span>
             </label>`).join('')}
           </div>
         </div>
@@ -3508,15 +4021,10 @@
           <span class="s-field-label">Opportunity</span>
           <div class="s-camps">
             ${TAX.signalKind.map((o) => `<label class="chip default s-obj-chip">
-              <input type="checkbox" class="s-opp-tick" value="${esc(o.k)}" /> ${esc(label('opportunity', o.into))}
+              <input type="checkbox" class="s-opp-tick" value="${esc(o.k)}" data-name="${esc(label('opportunity', o.into))}" /> <span class="s-obj-name">${esc(label('opportunity', o.into))}</span>
             </label>`).join('')}
           </div>
         </div>
-        <label class="ds-field s-field">
-          <span class="s-field-label">Note</span>
-          <textarea class="ds-textarea s-why" rows="2" spellcheck="false"
-            placeholder="In your words. This is what the next person to open this record will read.">${esc(c.note)}</textarea>
-        </label>
         ${/* ══ AND ONE LINE THAT OUTLIVES THE CALL ═══════════════════════════
 
               `What was said` is about this call and reads as history the
@@ -3529,20 +4037,28 @@
               the person rather than of the call — and it is read back at the
               top of the next brief, which is the only thing that makes
               writing it worth doing. */ ''}
-        <label class="ds-field s-field">
+        <label class="ds-field s-field s-callmem">
           <span class="s-field-label">Remember<span class="s-field-note">optional</span></span>
           <input class="input s-remember" type="text" spellcheck="false"
             value="${esc((rec.remember && rec.remember.text) || '')}"
             placeholder="Anything true of them next month — timing, who decides, what they care about." />
         </label>`,
       effects: [['warn', 'A non-contact outcome leaves the status alone.']],
-      needs: '.s-why', needsSay: 'Say what was said.',
+      needs: '.s-why', needsSay: 'Say what happened.',
       reversible: 'Undoable',
       who: `${me().name} is recording this.`,
       confirm: 'Log it',
       run() {
-        const out = ($('input[name="callout"]:checked') || {}).value;
+        /* THE SENTENCE, READ ONE LAST TIME. Somebody can type the whole call
+           into the box and press Log it inside the 600ms pause, and a reading
+           that has not run yet is a form that looks empty — so the confirm
+           reads what is in front of it rather than refusing something that
+           was plainly said. It cannot overrule anybody: `callReadApply` fills
+           only what no hand has touched, so ticking first and writing the
+           note afterwards still leaves the ticks where they were put. */
         const why = (($('.s-why') || {}).value || '').trim();
+        if (!CALL_READ || CALL_READ.text !== why) callReadApply(why);
+        const out = ($('input[name="callout"]:checked') || {}).value;
         /* Sets now, not single values. `objection` and `proposal` become
            arrays on the touchpoint; the FIRST of each is what the axes read,
            so every filter, count and reading that has ever asked `t.objection`
@@ -3550,8 +4066,25 @@
         const objs = $$('.s-obj-tick:checked').map((i) => i.value);
         const opps = $$('.s-opp-tick:checked').map((i) => i.value);
         const props = $$('.s-prop-pick:checked').map((i) => i.value);
+        /* ── And the words behind a "Something else" ──
+           Read off the chip rather than out of `CALL_READ`, so a phrase the
+           rep edited or a chip they unticked is what gets written — the same
+           rule everything else in this `run` follows. The axis value stays
+           `other`, which is what the counts add up; this is what the reader
+           sees where the count says "something else". */
+        const said = {};
+        [['objection', '.s-obj-tick'], ['proposal', '.s-prop-pick'], ['opportunity', '.s-opp-tick']]
+          .forEach(([axis, sel]) => {
+            const el = $(sel + '[value="other"]:checked');
+            if (el && el.dataset.said) said[axis] = el.dataset.said;
+          });
         const remember = (($('.s-remember') || {}).value || '').trim();
-        if (!out) { toast('Nothing picked, so nothing was logged.'); return false; }
+        /* NAMES WHICH ONE IS MISSING, and both ways of supplying it. The old
+           line — "Nothing picked, so nothing was logged" — was true of a form
+           with one empty field and a form with seven, and now that AiMY fills
+           most of them the one it cannot always reach is the one worth
+           naming. */
+        if (!out) { toast('Nothing there says how the call ended, so nothing was logged. Say it, or pick one.'); return false; }
         if (!why) { toast('A call with no note is a call nobody else can read. Nothing was logged.'); return false; }
         const row = BY.callOutcome[out];
         const t = {
@@ -3572,6 +4105,10 @@
           reply: null, objection: objs[0] || null, objections: objs,
           callOutcome: out,
           proposal: props[0] || 'none', proposals: props,
+          /* The words behind whichever axes came out as `other`. Null when
+             there are none, so a touchpoint carrying nothing extra looks
+             exactly like every one written before this field existed. */
+          said: Object.keys(said).length ? said : null,
           /* ══ THE TRANSCRIPT SURVIVES THE CALL ═══════════════════════════
 
              R5.2 derives the obstacle insight from "analysis of dispositions
@@ -3599,7 +4136,11 @@
         /* One signal per opportunity ticked, so two openings recorded on one
            call arrive as two facts the rail and the filters can each find. */
         const sigs = opps.map((k, n) => ({ id: 'sg-said-' + Date.now() + '-' + n, on: rec.id, acc: accOf(rec).id,
-          kind: k, at: iso(TODAY), detail: why, by: me().id }));
+          /* The detail is the note, except where the opening IS a phrase
+             the rep gave — then it is that phrase, because `nameOfSignal`
+             and the timeline both print `detail` as the reason, and a whole
+             call note printed as a reason says everything except the reason. */
+          kind: k, at: iso(TODAY), detail: (k === 'other' && said.opportunity) || why, by: me().id }));
         sigs.forEach((x) => DB.signal.push(x));
 
         /* ══ WHAT YOU PROPOSED BECOMES WHAT IS DUE ═══════════════════════
@@ -3610,7 +4151,14 @@
 
            Only where there is nothing already scheduled: overwriting a next
            step somebody else set, on the strength of a chip, is the kind of
-           quiet write this product keeps taking out. */
+           quiet write this product keeps taking out.
+
+           AND ON THE DAY THE SENTENCE NAMED, where it named one. "Next step:
+           demo Tuesday" is a date somebody gave; putting that on the record
+           as "due in a week" is the surface hearing a specific thing and
+           writing a generic one. `callNextDue` is what the effect line above
+           the chips has already stated, so the date you read before pressing
+           is the date that gets written. */
         /* The first proposal names the follow-up. Several proposals do not
            mean several next steps — a next step is the ONE thing due, and
            the rest are in the summary. */
@@ -3618,7 +4166,7 @@
         const wantNext = firstProp && BY.proposal[firstProp] && BY.proposal[firstProp].next;
         const prevNext = rec.next;
         if (wantNext && !rec.next) {
-          rec.next = { what: wantNext, due: iso(shift(TODAY, 7)), by: me().id };
+          rec.next = { what: wantNext, due: callNextDue(), by: me().id };
         }
         /* On the record, not the touchpoint — it is true of the person. */
         const prevRemember = rec.remember;
@@ -3650,6 +4198,20 @@
         callSummary(t, rec);
       },
     });
+    /* ── WHAT WAS TYPED DURING THE CALL IS ALREADY A SENTENCE ──
+
+       The call panel has a Notes box and it writes to the same `c.note` this
+       form opens with, so a rep who took notes while they were talking has
+       already said most of this. Reading it on open means the surface arrives
+       filled in rather than waiting to be told a second time what it is
+       holding — and it costs nothing, because the reading is the same one the
+       box would run the moment they touched it.
+
+       `CALL_READ` is cleared first. It is per-surface state, and a reading
+       left over from the last call would make the confirm think this
+       sentence had already been read. */
+    CALL_READ = null;
+    if (String(c.note || '').trim()) callReadApply(c.note);
   }
 
   /* ══ WHAT THE CALL PRODUCED, IN ONE BLOCK ══════════════════════════════
@@ -3680,8 +4242,16 @@
       const set = (list && list.length ? list : (one ? [one] : []));
       return set.map(fmt).filter(Boolean);
     };
-    const props = many(t.proposals, t.proposal === 'none' ? null : t.proposal, (k) => (BY.proposal[k] || {}).label);
-    const objs = many(t.objections, t.objection, (k) => label('objection', k));
+    /* ── `other` IS A CATEGORY; THE WORDS ARE THE FACT ──
+       Where the touchpoint carries what was actually said, that is what the
+       row prints. "Something else" told the reader only that the rep had
+       looked at the list and not found it — which is the least useful thing
+       on a summary whose whole job is to say what happened. Falls back to the
+       axis label, so every call logged before the field existed reads exactly
+       as it did. */
+    const say = (axis, k, fallback) => (k === 'other' && t.said && t.said[axis]) || fallback;
+    const props = many(t.proposals, t.proposal === 'none' ? null : t.proposal, (k) => say('proposal', k, (BY.proposal[k] || {}).label));
+    const objs = many(t.objections, t.objection, (k) => say('objection', k, label('objection', k)));
     /* The openings are on the record as signals — read back rather than
        stored twice, so correcting a signal corrects this. */
     const sigs = (DB.signalOn[t.on] || []).filter((x) => x.at === t.at && x.by === t.by);
@@ -3693,7 +4263,11 @@
        field existed. */
     rows.push(['Proposal', props.length ? props.join(' · ') : 'nothing asked for', props.length ? 'ok' : 'neutral']);
     if (objs.length) rows.push(['Obstacle', objs.join(' · '), 'warn']);
-    if (sigs.length) rows.push(['Opportunity', sigs.map((x) => label('opportunity', (BY.signalKind[x.kind] || {}).into || x.kind)).join(' · '), 'ok']);
+    /* The signal's own `detail` where the kind is the catch-all — read off
+       the signal rather than off `t.said`, so correcting the signal corrects
+       this, which is the rule the row above it already follows. */
+    if (sigs.length) rows.push(['Opportunity', sigs.map((x) => (x.kind === 'other' && x.detail)
+      || label('opportunity', (BY.signalKind[x.kind] || {}).into || x.kind)).join(' · '), 'ok']);
     if (rec && rec.next) rows.push(['Next', `${rec.next.what}, due ${fmtDate(rec.next.due)}`, 'neutral']);
     return rows;
   }
@@ -9431,7 +10005,7 @@
     if (go) go.textContent = opt.dataset.say;
   });
 
-  function closeCommit() { $('#commitHost').innerHTML = ''; commitRun = null; commitAlt = null; chPickRec = null; }
+  function closeCommit() { $('#commitHost').innerHTML = ''; commitRun = null; commitAlt = null; chPickRec = null; CALL_READ = null; }
 
   /* ── Toast ──
      A receipt, not feedback. The action highlights what it changed; this is
@@ -15842,25 +16416,46 @@
       return;
     }
 
+    /* ── Read what I just wrote ──
+       The box reads itself on a pause; this is the press that says "now",
+       and the thing on screen that says the box reads at all. It is also how
+       you get the reading back after correcting the SENTENCE rather than the
+       chips — which is the cheaper correction when three of them are wrong. */
+    if (e.target.closest('[data-say-read]')) {
+      const box = $('.s-callsay-in');
+      if (box) callReadApply(box.value);
+      return;
+    }
+
+    /* ── A control somebody moved is theirs from then on ──
+
+       No `return`. The stamp is a side effect of the click and not the
+       handling of it: the proposal branch below still has to rewrite the line
+       it owns, and it can only do that if this one falls through to it.
+
+       A RADIO STAMPS ITS WHOLE GROUP. Checking one unchecks the other six
+       whatever flag they carry, so a flag on the one you pressed protects
+       nothing — the group is the control, and the group is what gets marked
+       as yours. */
+    if ((el = e.target.closest('input[name="callout"], .s-prop-pick, .s-obj-tick, .s-opp-tick'))) {
+      const own = (x) => { x.dataset.hand = '1'; const l = x.closest('label'); if (l) l.classList.remove('is-aiset'); };
+      own(el);
+      if (el.name === 'callout') {
+        $$('input[name="callout"]').forEach(own);
+        /* The disposition implies at most one proposal, and picking it by
+           hand has to imply it as surely as reading it out of a sentence
+           does — or the same two facts would produce two different forms
+           depending on which door you came through. */
+        callImply();
+        paintPropNext();
+      }
+    }
+
     /* What the proposal schedules, rewritten as you pick it. The same
        bargain the channel picker keeps above: a line stating a consequence
        has to track the control that decides it, or it is read once and then
        it lies. */
-    if (e.target.closest('.s-prop-pick')) {
-      /* Reads the whole set, because they are checkboxes now: the FIRST
-         ticked names the next step, and the line says how many others were
-         asked for so the difference between "and nothing else happens" and
-         "and two more are in the summary" is on screen before you commit. */
-      const picked = $$('.s-prop-pick:checked').map((i) => i.value);
-      const first = picked[0] && BY.proposal[picked[0]];
-      const line = $('[data-effect="propNext"]');
-      if (line) {
-        line.textContent = !first ? 'Nothing was asked for, so nothing is scheduled.'
-          : picked.length === 1 ? `“${first.next}” goes on the record, due in a week.`
-          : `“${first.next}” goes on the record, due in a week. The other ${picked.length - 1} ${picked.length === 2 ? 'stays' : 'stay'} on the call.`;
-      }
-      return;
-    }
+    if (e.target.closest('.s-prop-pick')) { paintPropNext(); return; }
 
     /* ── The briefing rail. Every item is a filter link. ── */
     if ((el = e.target.closest('[data-brief]'))) {
@@ -16233,9 +16828,29 @@
     if ((el = e.target.closest('[data-listrun]'))) { findCompanies(null, el.dataset.listrun); return; }
     if ((el = e.target.closest('[data-listassign]'))) { assignList(el.dataset.listassign); return; }
     if (e.target.closest('[data-findco]')) { findCompanies(); return; }
-    if (e.target.closest('[data-call-notice]')) { if (DB.call) { DB.call.notice = true; paintCall(); } return; }
+    /* ── The consent question, raised by Record and answered here ──
+       "Not yet" is a real answer and the only honest one to leave on the
+       button: it closes the question and starts nothing, which is what
+       somebody who has not told them needs. Saying yes both records the
+       notice and starts the recording — the press was a press of Record, and
+       making them press it again would be the surface asking twice for one
+       decision. */
+    if ((el = e.target.closest('[data-call-consent]'))) {
+      if (DB.call) {
+        if (el.dataset.callConsent === 'yes') { DB.call.notice = true; DB.call.recording = true; }
+        DB.call.asking = false;
+        paintCall();
+      }
+      return;
+    }
     if (e.target.closest('[data-call-rec]')) {
-      if (DB.call && DB.call.notice) { DB.call.recording = !DB.call.recording; paintCall(); }
+      /* Told once, told for the call. After that this is an ordinary toggle
+         and the question does not come back. */
+      if (DB.call) {
+        if (DB.call.notice) DB.call.recording = !DB.call.recording;
+        else DB.call.asking = true;
+        paintCall();
+      }
       return;
     }
     if (e.target.closest('[data-call-mute]')) { if (DB.call) { DB.call.muted = !DB.call.muted; paintCall(); } return; }
@@ -16462,6 +17077,11 @@
      that leave you in different places is one of them being wrong. */
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    /* The consent question is the topmost thing on screen while it is up, so
+       it is the first thing Escape answers — and Escape means "not yet",
+       never "yes". A question about recording somebody is not one a stray
+       keystroke may agree to. */
+    if (DB.call && DB.call.asking) { DB.call.asking = false; paintCall(); return; }
     if ($('#commitHost').innerHTML) { closeCommit(); return; }
     if (surfacesOpen().includes('canvas')) { cancelSurface(); return; }
     if (S.lead) go({ lead: '' });
@@ -16486,35 +17106,25 @@
     return `${article(l)} ${l} touchpoint on ${rec.name}, dated today, by you.`;
   };
 
-  /* What the rep typed, read for the three things a touchpoint needs beyond
-     its channel: how it went, and what happens next, and when. This is the
-     same parse the float bar runs — one lexicon, not two. */
-  function readTouch(text) {
-    const t = text.toLowerCase();
-    let outcome = 'neutral';
-    if (/\b(booked|scheduled|agreed to meet|set up a (call|demo|meeting))\b/.test(t)) outcome = 'meeting-booked';
-    else if (/\b(positive|good|keen|interested|went well|promising)\b/.test(t)) outcome = 'positive';
-    else if (/\b(negative|not interested|no budget|pushed back|declined)\b/.test(t)) outcome = 'negative';
-    else if (/\b(no answer|voicemail|did not (answer|show)|no-show)\b/.test(t)) outcome = 'no-answer';
+  /* What the rep typed, read for the two things a touchpoint needs beyond
+     its channel: how it went, and what happens next.
 
-    let next = null;
-    const m = t.match(/next step(?: is)?[: ]+([^.,;]+)/) || t.match(/\b(?:then|follow up with|send)\b[: ]+([^.,;]+)/);
-    if (m) {
-      const what = m[1].trim();
-      const when = readWhen(what);
-      next = {
-        what: what
-          .replace(/\b(on|next|this)?\s*(monday|tuesday|wednesday|thursday|friday|week|month)\b/g, '')
-          /* Drop the leading article. "Next step: a demo" is how somebody
-             writes it and "A demo" is not how a next step is named. */
-          .replace(/^\s*(a|an|the)\s+/, '')
-          .trim()
-          .replace(/^./, (c) => c.toUpperCase()) || 'Follow up',
-        due: iso(shift(TODAY, when)),
-        by: me().id,
-      };
-    }
-    return { outcome, next };
+     ONE LEXICON, AND THIS IS ITS PROJECTION. The comment above this function
+     has claimed "the same parse the float bar runs — one lexicon, not two"
+     since the float bar was built, and it was true only because the float bar
+     called THIS. The call surface then grew a second reading of the same
+     English — seven dispositions, five proposals, five obstacles — and the
+     claim quietly stopped being true: "no budget" would have counted as an
+     obstacle typed into one door and as nothing at all typed into the other.
+
+     So `readCall` is the reading and this is the four-value view of it. The
+     projection lives in `readCall` beside the axes it projects between,
+     because a mapping written twice is a mapping that drifts — which is the
+     note `callToOutcome` already carries, one function up from where it is
+     now used. */
+  function readTouch(text) {
+    const r = readCall(text);
+    return { outcome: r.outcome, next: r.next };
   }
 
   function readWhen(s) {

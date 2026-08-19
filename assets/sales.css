@@ -3615,28 +3615,42 @@ body {
 .call-num { font-size: var(--fs-xs); color: var(--d500); font-variant-numeric: tabular-nums; margin-top: 4px; }
 
 /* ── Recording, and the notice that gates it ──
-   The control does not exist until the notice has been given. Not disabled —
-   a disabled record button still says "you could record this", which is the
-   thing that should require having told somebody first. */
-.call-rec {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 12px; border-radius: var(--r-lg);
-  background: rgba(var(--accent-rgb), 0.06);
-  border: 1px solid rgba(var(--accent-rgb), 0.16);
+
+   The notice is a question the Record button raises rather than a panel
+   standing on screen for the length of the call — the reasoning is beside it
+   in `callPanel`. It sits directly above the row that raised it and is
+   raised off the surface, because it is the one thing here waiting on an
+   answer.
+
+   Its two answers go UNDER the sentence rather than beside it: "Not yet" and
+   "I have told them" are different lengths, and a row of two unequal buttons
+   beside a paragraph reads as one button and an afterthought.
+
+   `margin-top: auto` moves from the tools to whichever of the two is first,
+   or the free space in the column would be split between two auto margins
+   and float the question away from the row it belongs to. The adjacent
+   sibling is the whole rule — no `:has()` needed for a thing that is
+   literally the element before. */
+.call-consent {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 12px; margin-top: auto; margin-bottom: 12px;
+  border-radius: var(--r-lg);
+  background: var(--card-bg-raised);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-md);
 }
-.call-rec-btn {
-  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
-  min-height: 24px; padding: 8px 12px; border-radius: var(--r-pill);
-  font-size: var(--fs-xs); font-weight: var(--fw-bold);
-  color: var(--d200); background: transparent;
-  border: 1px solid var(--card-border); cursor: pointer;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+.call-consent-say { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-relaxed); }
+.call-consent-acts { display: flex; gap: 8px; justify-content: flex-end; }
+.call-consent + .call-tools { margin-top: 0; }
+/* ON AIR, IN THE COLOUR THE LIVE DOT ALREADY USES. `is-on` is the accent
+   state the other tools carry for "this is doing something"; recording is
+   doing something to somebody else, so it takes the same red as the timer's
+   live dot and the End button rather than the surface's own accent. */
+.call-tool.is-rec {
+  color: var(--err); border-color: rgba(240, 68, 56, 0.4); background: var(--err-bg);
 }
-.call-rec-btn:hover { border-color: var(--card-border-hover); color: var(--d50); }
-.call-rec-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.call-rec-btn.is-on { color: var(--err); border-color: rgba(240, 68, 56, 0.4); background: var(--err-bg); }
-.call-rec-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.call-rec-note { font-size: var(--fs-xs); color: var(--d500); line-height: var(--lh-relaxed); }
+.call-tool.is-rec:hover { background: var(--err-bg); color: var(--err); }
+.call-tool.is-rec svg { fill: currentColor; }
 
 /* ── The transcript ── */
 .call-lines {
@@ -3746,9 +3760,75 @@ body.is-calling .overlay-chats { display: none; }
 .s-obj-chip:has(input:checked) {
   background: var(--accent-dim); border-color: var(--accent); color: var(--d50);
 }
+/* ── AND THE SAME THING IN LIGHT, WHERE IT HAS NEVER PAINTED ──
+
+   `:root[data-theme="light"] .chip.default` is (0,4,0) — two simple selectors
+   in `:root[data-theme="light"]`, two more in `.chip.default` — and the rule
+   above is (0,2,1). So on the light theme every ticked chip on this surface
+   has been rendering as an unticked one: the 15px box filled and the chip
+   around it stayed grey, which is the state the chip exists to show.
+
+   Measured, not reasoned about: `background-color` on a ticked chip reads
+   `rgba(16,24,40,0.04)` with `data-theme="light"` set and `rgba(139,79,244,0.15)`
+   without it.
+
+   The fix is the theme's own idiom rather than `!important` — the same
+   prefix, so this lands at (0,4,1) and wins by one. The values are tokens and
+   the tokens are already themed, so there is nothing to restate. */
+:root[data-theme="light"] .s-obj-chip:has(input:checked) {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--d50);
+}
 /* Same 15px box as every other pick on a commit surface. */
 .s-prop-pick { width: 15px; height: 15px; accent-color: var(--accent); }
 .s-remember { width: 100%; }
+
+/* ══ SAY IT, AND THE FORM FILLS IN ═════════════════════════════════════
+   The sentence sits above the picks it fills, at the top of the surface,
+   because it is the first thing a person does after hanging up and the
+   picks are that sentence itemised. Three rows deep: enough for the two or
+   three clauses a call actually produces, and short enough that the
+   disposition rows stay above the fold on a laptop. */
+.s-callsay { margin-bottom: 20px; }
+.s-callsay .s-callsay-in { width: 100%; resize: vertical; margin-bottom: 8px; max-width: none; }
+/* The button and what the reading said, on one line — the press and its
+   answer belong together, and stacking them would put 20px between a
+   control and the only feedback it has. Wraps rather than crushing the
+   sentence: the line is prose and prose needs its own width. */
+.s-callsay-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.s-callsay-read {
+  flex: 1 1 220px; min-width: 0;
+  font-size: var(--fs-xs); line-height: var(--lh-base); color: var(--d500);
+}
+.s-callsay-read[hidden] { display: none; }
+/* ── The line that outlives the call needs air before it ──
+   Three chip rows run at 16px apart, and Remember was landing at the same
+   16px under the last of them — so a field that belongs to the RECORD rather
+   than to the call read as a fourth row of the same group. The step is
+   bigger than the rhythm inside the group because the boundary is real: the
+   things above are what happened on this call, and this is the one thing on
+   the form that is still true next month. */
+.s-callmem { margin-top: 28px; }
+
+/* ── WHAT AiMY TICKED LOOKS LIKE WHAT YOU TICKED ──
+
+   `is-aiset` used to paint: an AI-blue tint on the chips, a blue rule down
+   the edge of the radio row, a blue border on Remember. It came out.
+
+   A TICKED OPTION IS A TICKED OPTION. Two visual states for one meaning made
+   the form read as two forms — an inset rule down half the rows and a
+   different colour on half the chips is a lot of decoration for a fact the
+   reader already has from the sentence above, which says how many AiMY
+   filled in and asks them to correct what is wrong. And it is a fact with a
+   short life: the moment anybody touches a control the marking on it goes,
+   so the surface would be quietly changing colour under a person doing
+   nothing but reading it.
+
+   Level 6 is not weakened by this. AiMY's work is still declared — in the
+   reading line, which says it and stays honest about the count — and what is
+   WRITTEN carries `by: me().id` because the person pressed Log it. The class
+   stays because the code needs it: it is how a second reading knows which
+   ticks are its own to replace, and how the Remember field knows whether the
+   words in it are AiMY's or yours. */
 
 /* ══ WHAT A CALL PRODUCED ═══════════════════════════════════════════════
    One block, drawn in two places — the canvas the moment you hang up, and
