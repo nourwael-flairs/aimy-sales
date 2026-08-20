@@ -15189,6 +15189,7 @@
   function openCanvas() {
     const ov = $('#aimyOverlay');
     if (ov) ov.classList.add('open');
+    closeRailDrawer();
     unseen = 0;
     paintFloatBadge();
     /* No body lock here, and no `scrollTo`. Both were added last pass on the
@@ -15418,6 +15419,34 @@
     return on;
   };
 
+  /* THE SCALE, READ BACK OUT OF THE ENGINE RATHER THAN OUT OF THE SCRIPT.
+
+     `currentCSSZoom` on a body child is what the browser ACTUALLY applied, so a
+     browser that ignores `zoom` reads 1 here and says so, instead of reporting
+     the number aimy-viewport.js hoped for. The layout size is the viewport
+     divided by it: the width the CSS in this file is really laying out against.
+
+     Live while the panel is open, because the whole point of it is to be
+     watched while a window is dragged or a browser is zoomed out. */
+  function protoScale() {
+    const el = $('#protoScale');
+    if (!el) return;
+    const k = document.body.currentCSSZoom || 1;
+    const lw = Math.round(innerWidth / k), lh = Math.round(innerHeight / k);
+    const anchor = (window.aimyViewport && window.aimyViewport.anchor) || 1536;
+    el.innerHTML = `Scale <strong>${k.toFixed(2)}×</strong> · viewport ${innerWidth}×${innerHeight}`
+      + ` · layout <strong>${lw}×${lh}</strong>`
+      + (lw === anchor ? '' : ` · anchor ${anchor}`);
+  }
+  /* Same event, same reason as the drawer below: a bare `resize` listener can
+     miss a browser-zoom change entirely, and a readout that silently stops
+     updating is worse than no readout — it reports a scale the page is not
+     using. */
+  addEventListener('aimy:viewport', () => {
+    const p = $('#protoPanel');
+    if (p && !p.hidden) protoScale();
+  });
+
   function proto() {
     const shell = $('#proto');
     if (shell) shell.hidden = !protoOn();
@@ -15457,6 +15486,19 @@
          so the stamp cannot disagree with the file it came from: a constant
          says what the source claims, this says what the browser loaded. */
       `<div class="proto-build">Build <strong>${esc(BUILD)}</strong> · ${esc(location.protocol)}</div>` +
+
+      /* AND WHICH VIEWPORT IT THINKS IT IS ON.
+
+         The UI scale is anchored to one number — UI_ANCHOR_W in
+         assets/aimy-viewport.js — and if that number is wrong for a machine, the
+         only symptom is that everything is quietly a few percent off. There is
+         nothing to see. This says it out loud: at the width this product is
+         designed at, the scale reads 1.00, and any other value is the anchor
+         disagreeing with the browser rather than the layout being wrong.
+
+         Same argument as the build stamp above it, which is why it is the same
+         row: a prototype has to be able to tell you what it actually is. */
+      `<div class="proto-build" id="protoScale"></div>` +
       sec('One record in each status', byStatus) +
       sec('One record per channel', byChannel) +
       sec('The four input routes', [
@@ -16912,6 +16954,7 @@
       const p = $('#protoPanel');
       p.hidden = !p.hidden;
       el.setAttribute('aria-expanded', String(!p.hidden));
+      if (!p.hidden) protoScale();
       return;
     }
     if ((el = e.target.closest('[data-proto-in]'))) {
@@ -19279,6 +19322,136 @@
   }
 
   /* ═══════════════════════════════════════════════
+     THE RAIL AS A DRAWER
+
+     Ported from AiMY Knowledge's `makeDrawer` (knowledge.js §THEY ARE DRAWERS
+     NOW), because the argument there is the argument here: a narrow screen is
+     not a reason to delete the product's index, and the CSS can do the showing
+     but not the four things a drawer owes you beyond opening.
+
+       · Escape closes it, and only it — the guard checks `open` first, so this
+         does not eat the Escape that closes the canvas, the peek or a panel.
+       · Focus goes in on open and comes back to the button on close. A drawer
+         you can open from the keyboard and not read from it is worse than no
+         drawer.
+       · Acting on a row closes it. Every row in this rail SETS THE SURFACE
+         — opens a campaign, a list, a record — so leaving the drawer over the
+         result you just asked for hides the answer.
+       · Widening past the breakpoint closes it. Otherwise `is-open` survives
+         into a layout where the rail is a column again and the scrim is still
+         over the page, with nothing left on screen to dismiss it.
+
+     THE MEDIA STRING IS THE SCALED ONE and it has to match the stylesheet's to
+     the digit. 917.98 is 1080 layout px at the 0.85 floor — the derivation is
+     at sales.css §EVERY WIDTH BREAKPOINT. A drawer whose script and sheet
+     disagree about where it exists is a drawer that opens invisibly.
+  ═══════════════════════════════════════════════ */
+  const RAIL_DRAWER_MQ = '(max-width: 917.98px)';
+
+  function makeDrawer(cfg) {
+    const btn = $(cfg.btn);
+    const panel = $(cfg.panel);
+    if (!btn || !panel) return null;
+
+    /* Declared before `d` so `set()` can consult it on every open. */
+    const mq = window.matchMedia(cfg.media);
+
+    const d = {
+      open: false,
+      /* What had focus before the drawer took it. */
+      returnTo: null,
+      set(next) {
+        const want = next === undefined ? !this.open : !!next;
+        if (want === this.open) return;
+        /* A drawer cannot be opened at a width where it is not a drawer. The
+           listener below closes it on the way up, and this refuses to open it
+           on the way down — two guards, because the listener depends on the
+           browser firing a media-query change and this one does not. */
+        if (want && !mq.matches) return;
+        this.open = want;
+        cfg.apply(want);
+        btn.setAttribute('aria-expanded', String(want));
+        btn.setAttribute('aria-label', want ? cfg.labelClose : cfg.labelOpen);
+        if (want) {
+          /* Where focus goes back to. `document.activeElement` is <body> when
+             the drawer was opened by anything other than a real click on the
+             button, and returning focus to <body> is the same as dropping it.
+             The button is always a correct answer, so it is the fallback. */
+          const prev = document.activeElement;
+          this.returnTo = (prev && prev !== document.body) ? prev : btn;
+          /* A closed drawer is `visibility: hidden`, and a hidden element does
+             not take focus. The class has landed but the style has not been
+             recomputed yet, so force it. rAF would also work in a live tab and
+             does NOT work in one that is not compositing frames, which is a
+             real state (a background tab) and not only a test rig. */
+          void panel.offsetWidth;
+          const first = panel.querySelector('button, a[href], input, [tabindex]:not([tabindex="-1"])');
+          (first || panel).focus({ preventScroll: true });
+        } else if (this.returnTo && document.contains(this.returnTo)) {
+          this.returnTo.focus({ preventScroll: true });
+          this.returnTo = null;
+        }
+      },
+      close() { this.set(false); }
+    };
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); d.set(); });
+
+    /* Acting on a row is the end of the drawer's job. Capture, because this
+       file's own delegated handler sits on document and repaints the rail out
+       from under the click — by the time it bubbles here, `e.target` can be
+       detached and `closest` finds nothing. */
+    panel.addEventListener('click', (e) => {
+      if (e.target.closest && e.target.closest('button, a[href]')) d.close();
+    }, true);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && d.open) { e.stopPropagation(); d.close(); }
+    });
+
+    /* Above the breakpoint the CSS is already neutral — `.app-rail.is-open`
+       says nothing there and `.rail-scrim` is `display: none` — so a stale
+       class cannot leak visually even if this never runs. It runs to keep the
+       STATE honest: aria-expanded, and where focus goes on the way back down.
+
+       TWO SOURCES, BECAUSE ONE OF THEM DOES NOT ALWAYS FIRE. Measured here:
+       widening 900 → 1024 crossed this query and produced no `change` event at
+       all, leaving aria-expanded="true" on a button that is display:none. It is
+       the same unreliability assets/aimy-viewport.js documents for `resize` and
+       ResizeObserver, and that file already polls for it — so this listens to
+       what it publishes rather than growing a second poll. `mq.matches` is read
+       fresh either way, so a duplicate call is a no-op. */
+    const onChange = () => { if (!mq.matches) d.close(); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else mq.addListener(onChange);
+    addEventListener('aimy:viewport', onChange);
+
+    return d;
+  }
+
+  let railDrawer = null;
+  function initRailDrawer() {
+    const scrim = $('#railScrim');
+    railDrawer = makeDrawer({
+      btn: '#railToggle',
+      panel: '#appRail',
+      media: RAIL_DRAWER_MQ,
+      labelOpen: 'Open what is here',
+      labelClose: 'Close what is here',
+      apply(on) {
+        $('#appRail').classList.toggle('is-open', on);
+        if (scrim) scrim.classList.toggle('is-open', on);
+      }
+    });
+    if (scrim && railDrawer) scrim.addEventListener('click', () => railDrawer.close());
+  }
+  /* The canvas is `position: fixed` over the whole window and the drawer sits
+     above it, so a drawer left open when the canvas opens is a panel floating
+     over a surface that has already taken the screen. Knowledge closes its
+     drawers when a document opens, for the same reason. */
+  function closeRailDrawer() { if (railDrawer) railDrawer.close(); }
+
+  /* ═══════════════════════════════════════════════
      BOOT
   ═══════════════════════════════════════════════ */
 
@@ -19289,6 +19462,7 @@
   parse();
   paint();
   paintChrome();
+  initRailDrawer();
 
   window.addEventListener('popstate', () => { parse(); paint(); paintChrome(); });
 })();
