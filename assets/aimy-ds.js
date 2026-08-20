@@ -297,10 +297,19 @@ document.addEventListener('keydown', function (e) {
     if (!opt) return;
     opt.classList.add('is-active');
     panel.setAttribute('aria-activedescendant', opt.id);
-    /* keep the active row in view without scrolling the page */
+    /* keep the active row in view without scrolling the page.
+
+       Divided by the zoom. getBoundingClientRect reports VISUAL px; scrollTop is
+       LAYOUT px. Those are the same number until something above this element
+       carries a `zoom`, and assets/aimy-responsive.css puts one on <body> — so
+       on a 2560 monitor at scale 1.667 every keyboard step through a dropdown
+       overshot by two thirds. currentCSSZoom is the conversion between the two
+       spaces, and is 1 wherever there is no scale, which makes the correctness
+       here a fact rather than a coincidence. */
+    const k = panel.currentCSSZoom || 1;
     const pr = panel.getBoundingClientRect(), or = opt.getBoundingClientRect();
-    if (or.bottom > pr.bottom) panel.scrollTop += or.bottom - pr.bottom;
-    else if (or.top < pr.top)  panel.scrollTop -= pr.top - or.top;
+    if (or.bottom > pr.bottom) panel.scrollTop += (or.bottom - pr.bottom) / k;
+    else if (or.top < pr.top)  panel.scrollTop -= (pr.top - or.top) / k;
   }
 
   function open(dd) {

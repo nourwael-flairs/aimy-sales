@@ -620,9 +620,52 @@ button {
 }
 
 /* ═══════════════════════════════════════════════
+   EVERY WIDTH BREAKPOINT IN THIS FILE IS MULTIPLIED BY 0.85, AND HERE IS WHY
+
+   assets/aimy-responsive.css scales the whole shell with `zoom` on <body>, at a
+   factor assets/aimy-viewport.js publishes as --ui-scale. A media query does not
+   see that. It reads the REAL viewport, in real px, while every rule inside it
+   applies to a LAYOUT that is --ui-scale times smaller or larger. A threshold
+   written for the layout therefore has to be converted into the viewport width
+   that PRODUCES that layout, or it fires at the wrong moment — measured before
+   this change: at a real 1024 the layout is 1205px wide and `max-width: 1080px`
+   hid the rail anyway, on a screen with 125px of room to spare for it.
+
+   THE CONVERSION IS ONE MULTIPLICATION, AND IT IS EXACT, NOT APPROXIMATE.
+
+     • The scale is min(vw / 1536, vh / 720), floored at 0.85.
+     • Below a real vw of 1306 the width term is already under the floor, so the
+       scale is EXACTLY 0.85 there whatever the height does — a constant.
+     • So for any threshold T in layout px: real_T = 0.85 × T.
+     • The largest threshold in this file is 1180, and 0.85 × 1180 = 1003, which
+       is below 1306. Every converted threshold therefore lands inside the
+       constant-scale region. There is no gap and no rounding drift.
+     • Between a real 1306 and 1490 the scale is vw/1536, so the layout is
+       EXACTLY 1536 wide and nothing here should fire — and nothing does, because
+       the real width in that band is already above 1180.
+
+   THE .98. Windows at 125% display scaling gives a FRACTIONAL viewport: an
+   `innerWidth` reported as 1099 is really 1099.1844 CSS px, so `max-width:
+   1099px` does not match and the rule misses at exactly the width it was written
+   for. innerWidth rounds; the media query does not. .98 clears the fraction
+   without reaching the next whole pixel. `min-width` needs no such adjustment —
+   a fractional viewport is above its integer threshold, not below it.
+
+   EACH QUERY KEEPS ITS DESIGN NUMBER IN A TRAILING COMMENT. The number that was
+   reasoned about is the layout one; the number in the parentheses is machinery.
+   Change UI_MIN_SCALE in aimy-viewport.js and every one of these moves with it.
+═══════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
    SHELL — topnav → sidebar → scrollable main
 ═══════════════════════════════════════════════ */
 body {
+  /* SUPERSEDED, AND KEPT AS THE FALLBACK. assets/aimy-responsive.css re-declares
+     this as `height: 100%` against an <html> that is `100dvh` and outside the
+     zoom — 100vh inside `zoom: k` is k viewports tall, which puts the float bar
+     off the bottom of the screen, and on iPad Safari 100vh is the LARGE viewport
+     even at k = 1. This line is what the page falls back to if that sheet does
+     not load, so it stays; it is not what the page uses. */
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -790,7 +833,8 @@ body {
 }
 .topnav-right > * { flex-shrink: 0; }
 
-.topnav-bell {
+.topnav-bell,
+.rail-toggle {
   width: 34px; height: 34px; border-radius: var(--r-md);
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
@@ -798,17 +842,42 @@ body {
   color: var(--d400); cursor: pointer; position: relative;
   transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
-.topnav-bell:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
-.topnav-bell:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.topnav-bell svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+.topnav-bell:hover,
+.rail-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.topnav-bell:focus-visible,
+.rail-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.topnav-bell svg,
+.rail-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 .bell-dot {
   position: absolute; top: 6px; right: 6px;
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--err); border: 1.5px solid var(--body-bg);
 }
 .bell-dot[hidden] { display: none; }
-:root[data-theme="light"] .topnav-bell { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
-:root[data-theme="light"] .topnav-bell:hover { background: rgba(16,24,40,0.07); }
+:root[data-theme="light"] .topnav-bell,
+:root[data-theme="light"] .rail-toggle { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .topnav-bell:hover,
+:root[data-theme="light"] .rail-toggle:hover { background: rgba(16,24,40,0.07); }
+
+/* ── THE RAIL'S TOGGLE, AND IT IS THE BELL'S SKIN ──
+
+   Not a new control shape. The bell above is already the masthead's icon
+   button — same 34px box, same wash, same border, same both-theme pair — and a
+   second definition of it is the thing that drifts. This adds the two
+   declarations that are actually different: it is not painted above the drawer
+   breakpoint, and it needs the gap the logo's own `gap: 10px` does not give it
+   against the mark.
+
+   Hidden by DISPLAY rather than by the `hidden` attribute, so the media query
+   below is the only thing that decides whether it exists, and no script has to
+   remember to un-hide it. */
+.rail-toggle { display: none; margin-right: 2px; }
+
+/* Present at every width, painted at none of them until the drawer exists.
+   `display` rather than `hidden`, so opening is one class and the fade has
+   something to transition from — toggling `hidden` in the same frame as the
+   class would skip the transition and need a rAF to work around it. */
+.rail-scrim { display: none; }
 
 .topnav-user {
   display: flex;
@@ -859,7 +928,7 @@ body {
 
 /* Below this the six ecosystem tabs and a full user pill cannot both fit.
    The avatar survives; the name is the thing that can be dropped. */
-@media (max-width: 1120px) {
+@media (max-width: 951.98px) { /* 1120 layout px */
   .topnav-user-info { display: none; }
   .topnav-user { padding: 4px; }
 }
@@ -885,7 +954,7 @@ body {
 /* The flanks split what the six tabs leave, and the right one runs out first.
    V1 is the only thing in the topnav that goes somewhere else rather than
    carrying state, so it is the one that drops. */
-@media (max-width: 1000px) {
+@media (max-width: 849.98px) { /* 1000 layout px */
   .ver-link { display: none; }
 }
 
@@ -900,8 +969,8 @@ body {
 
 .ntf-panel {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 940;
-  width: 360px; max-width: calc(100vw - 32px);
-  max-height: min(70vh, 520px); overflow-y: auto;
+  width: 360px; max-width: calc(var(--vp-w) - 32px);
+  max-height: min(calc(var(--vp-h) * 0.7), 520px); overflow-y: auto;
   padding: 8px; text-align: left;
   background: var(--panel-bg); border: 1px solid var(--glass-border);
   border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
@@ -989,7 +1058,7 @@ body {
    it runs off the LEFT of the screen before the viewport is narrow enough
    for max-width to catch it — the constraint is measured from the wrong
    side. Below that width, pin the panel to the window instead. */
-@media (max-width: 520px) {
+@media (max-width: 441.98px) { /* 520 layout px */
   .ntf-panel {
     position: fixed;
     top: calc(var(--topbar-height) + 4px);
@@ -1200,7 +1269,7 @@ body {
 
 /* Below this the column and a readable thread cannot both fit, and the
    thread is what you came for. */
-@media (max-width: 900px) {
+@media (max-width: 764.98px) { /* 900 layout px */
   .overlay-chats { display: none; }
 }
 
@@ -1209,9 +1278,59 @@ body {
    110px, and visible the moment you look for it. */
 .aimy-float-wrap {
   position: fixed; bottom: 20px; top: auto;
-  left: 50%; right: auto; transform: translateX(-50%);
-  width: min(760px, calc(100vw - 48px));
+  right: auto; transform: none;
+
+  /* ══ IT IS CENTRED ON THE WINDOW UNTIL THAT WOULD PUT IT ON SOMETHING ══
+
+     Window-centring is right, and it is only right while there is room for it.
+     The bar is 760 wide and the rail is 320, so its left edge clears the rail by
+     (L - 760) / 2 - 320: sixty-eight pixels at the 1536 anchor, sixteen at 1432,
+     zero at 1400, and below that the input sits ON the rail — measured at a
+     1205px layout, ninety-seven pixels of overlap, with .aimy-float-wrap's
+     z-index 200 winning, so the input covered the campaign rows underneath it.
+     The call panel is the same defect mirrored: `body.is-calling` offsets the
+     canvas (see --call-width) and never offset this, so a live call put the
+     dialer under the input at every width where both were on screen.
+
+     Neither is new and neither is caused by the UI scale. The scale is what
+     makes them REACHABLE, because a 1024 tablet now renders a 1205px layout
+     instead of a 1024px one.
+
+     ── WHY THIS IS ONE EXPRESSION AND NOT A BREAKPOINT ──
+
+     The obvious fix — hand the bar the main column below some width — steps it
+     sideways by half the rail (160px, at every width; the offset is constant)
+     the moment the query flips. This clamps instead: the ideal position, held
+     back off the rail on one side and off the call panel on the other. Above
+     the anchor every term is slack and it resolves to exactly the centring that
+     shipped before — measured at 1536, at 1920 and at 3440, the bar lands on
+     (layout - 760) / 2 to the pixel, which is why the anchor diff is empty.
+
+     THE WIDTH GOES FIRST because both bounds are stated against it. It is the
+     760 the design system caps the bar at, or whatever the column has left. */
+  --fb-w: min(760px, calc(var(--vp-w) - var(--rail-w) - var(--fb-reserve) - 48px));
+
+  /* The bar is a flex row that centres its child (aimy-ds.css:1101-1104), so
+     the wrap has to BE the bar's box for the arithmetic below to place the bar
+     rather than the box around it. */
+  width: var(--fb-w);
+
+  left: max(
+    /* never left of the rail, plus a gutter */
+    calc(var(--rail-w) + 24px),
+    min(
+      /* the ideal: centred on the window */
+      calc((var(--vp-w) - var(--fb-w)) / 2),
+      /* never right of what the call panel and a gutter leave */
+      calc(var(--vp-w) - var(--fb-reserve) - 24px - var(--fb-w))
+    )
+  );
 }
+/* What is parked on the right and must not be covered. Zero until a call is
+   live, so the whole clamp above collapses to the centring on every ordinary
+   screen. */
+:root { --fb-reserve: 0px; }
+body.is-calling { --fb-reserve: var(--call-width); }
 
 /* The scope tray belongs TO the float bar — it is the bar's scope, not a
    floating pill above it. The design system's .filter-tray-inner has no
@@ -1354,7 +1473,7 @@ body {
 .proto-toggle svg { width: 16px; height: 16px; }
 .proto-panel {
   order: -1;
-  width: 320px; max-height: min(70vh, 560px); overflow-y: auto;
+  width: 320px; max-height: min(calc(var(--vp-h) * 0.7), 560px); overflow-y: auto;
   padding: 12px;
   /* The dashed border already says "scaffolding, not the product" — and says
      it better than a second typeface did, since the border cannot be mistaken
@@ -1366,7 +1485,7 @@ body {
 }
 .proto-panel[hidden] { display: none; }
 /* Below this the panel and the input band fight for the same corner. */
-@media (max-width: 900px) {
+@media (max-width: 764.98px) { /* 900 layout px */
   .proto { bottom: 76px; }
 }
 
@@ -1660,7 +1779,7 @@ body {
 .s-result-count.is-sub {
   font-size: var(--fs-2xl); font-weight: var(--fw-extrabold); color: var(--d200);
 }
-@media (max-width: 620px) {
+@media (max-width: 526.98px) { /* 620 layout px */
   .s-listhead { grid-template-columns: minmax(0, 1fr); }
 }
 /* ══ ONE ANCHOR PER SURFACE, AND IT IS THE H1 ══════════════════════════════
@@ -1950,7 +2069,7 @@ body {
 }
 .s-more-panel {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 940;
-  width: 460px; max-width: calc(100vw - 32px); padding: 16px;
+  width: 460px; max-width: calc(var(--vp-w) - 32px); padding: 16px;
   background: var(--panel-bg); border: 1px solid var(--glass-border);
   border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
   backdrop-filter: blur(12px);
@@ -2114,7 +2233,7 @@ body {
 /* Below 620 there is no room beside the identity, so the pill takes the row
    above it. `order` rather than markup, because the reading order on a wide
    screen is the right one and only the placement is wrong. */
-@media (max-width: 620px) {
+@media (max-width: 526.98px) { /* 620 layout px */
   .s-card-line { flex-wrap: wrap; row-gap: 4px; }
   .s-card-idy { flex: 1 1 100%; order: 3; }
   .s-card-line .s-meta-st { order: 2; margin-left: auto; }
@@ -2355,7 +2474,7 @@ body {
 
 /* Under 900px the caption goes above its content. A 112px column against a
    200px content column is not a two-column layout, it is a squeeze. */
-@media (max-width: 900px) {
+@media (max-width: 764.98px) { /* 900 layout px */
   .s-rec-block, .s-rec-why { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 
@@ -2653,7 +2772,7 @@ body {
    consequence you did not read.
 ═══════════════════════════════════════════════ */
 .s-commit-back { display: flex; align-items: center; justify-content: center; }
-.s-commit { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; }
+.s-commit { width: min(520px, calc(var(--vp-w) - 32px)); max-height: calc(var(--vp-h) - 48px); overflow-y: auto; }
 /* A block quotation — what the rep actually typed. It had a background, a
    left rule and a radius, which is three devices saying "this is quoted"
    where one does. Butterick's rule for a block quote is indent and reduced
@@ -2828,9 +2947,24 @@ body {
   grid-template-columns: 1fr;
   gap: 32px;
   align-items: start;
+
+  /* CAPPED AND CENTRED, AND THE SECOND HALF IS NOT OPTIONAL.
+
+     This is the only content cap above the 1536 anchor, so it is the only one
+     the UI scale can reach: the scale resolves 16:9 and 16:10 to exactly 1536
+     of layout and the cap never binds, but an ultrawide gives back its extra
+     width — measured on a 5120x1300 32:9 panel, a 2835px layout, and the home
+     page stopped at 1560 with 886px of dead space down the right-hand side.
+
+     That is the defect §THE MEASURE CAP BELONGS TO PROSE argues out above, in
+     the same words the report used ("everything is left aligned, what is
+     this?"), and the answer there is the answer here. The cap is right — two
+     columns of blocks do not want 2400px — and a cap without an auto margin is
+     not a cap, it is a left-pin. */
   max-width: 1560px;
+  margin-inline: auto;
 }
-@media (min-width: 1100px) {
+@media (min-width: 935px) { /* 1100 layout px */
   .s-home { grid-template-columns: 1fr 1fr; }
 }
 .s-block { display: flex; flex-direction: column; min-width: 0; }
@@ -2911,8 +3045,14 @@ body {
    through Find a slot with four universities" across five lines.
 
    Still not wide enough for prose, which is why nothing here is prose. */
+/* A TOKEN, BECAUSE THE FLOAT BAR HAS TO CLEAR THIS AND MUST NOT GUESS IT.
+   The bar is fixed and centred on the window; below the anchor it has to step
+   out of the rail's way, and the width it steps by is this one. Two literals
+   that have to agree is how they stop agreeing. --sidebar-width is not this
+   token: that is the design system's, overridden above and read by nothing. */
+:root { --rail-w: 320px; }
 .app-rail {
-  width: 320px; flex-shrink: 0;
+  width: var(--rail-w); flex-shrink: 0;
   display: flex; flex-direction: column;
   padding: 24px 16px;
   overflow-y: auto;
@@ -3654,7 +3794,7 @@ body {
 
 /* ── The transcript ── */
 .call-lines {
-  flex: 1; min-height: 80px; max-height: 40vh; overflow-y: auto;
+  flex: 1; min-height: 80px; max-height: calc(var(--vp-h) * 0.4); overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px;
 }
 .call-line { font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-relaxed); }
@@ -3934,7 +4074,74 @@ body.is-calling .overlay-chats { display: none; }
    the campaign rail, complete and repainting, drew nothing on screen. That
    is the second time a `:has()` exception has silently un-shown this panel;
    there is no third, because there is no exception. */
-@media (max-width: 1080px) { .app-rail { display: none; } }
+/* ═══════════════════════════════════════════════
+   THE RAIL, ON A NARROW SCREEN — A DRAWER, NOT A DELETION
+
+   This was `display: none`, and the rail's own comment two screens up is the
+   argument against it: it holds "a short, complete index of the containers —
+   what campaigns there are, what is running, and the pool everything else sits
+   in", and it came BACK from being deleted once already because "with no rail
+   there was nowhere to SEE what exists. Campaigns could only be reached by
+   asking for them, which is a fine way to reach a thing you already know the
+   name of and a poor way to learn there are seven."
+
+   Removing it below 1080 removed exactly that, on exactly the screens with the
+   least room to discover anything. Same defect, narrower window.
+
+   So it becomes a drawer, which is what AiMY Knowledge does with its briefing
+   at 1040 (knowledge.css §THE BRIEFING, ON A NARROW SCREEN) — same mechanism,
+   same scrim, same `is-open` class, and the same reason. It stops taking room
+   in the row and starts opening over it.
+
+   --rail-w GOES TO 0 AND THAT IS THE WHOLE RECENTRING. The float bar's clamp
+   reads it, so the bar reclaims the room the rail gave up without a second
+   rule that has to remember this one exists. Knowledge zeroes --sidebar-width
+   in the same place for the same reason.
+═══════════════════════════════════════════════ */
+@media (max-width: 917.98px) { /* 1080 layout px */
+  :root { --rail-w: 0px; }
+
+  .rail-toggle { display: inline-flex; }
+
+  .app-rail {
+    position: fixed; z-index: 700;
+    top: var(--topbar-height); bottom: 0; left: 0;
+    /* --vp-w, not 100dvw. Inside `zoom: k` a viewport unit is k viewports wide
+       — see §EVERY WIDTH BREAKPOINT. The 56px it leaves is the strip of the
+       page behind that says the drawer is over something, not the page. */
+    width: min(320px, calc(var(--vp-w) - 56px));
+    /* The column sits on the ambient layer and draws no ground of its own,
+       which is right for a column and wrong for a panel over content. */
+    background: var(--panel-bg);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-xl);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    /* visibility, not display: it keeps the closed drawer out of the tab order
+       AND leaves something for the transform to animate. */
+    transform: translateX(-100%); visibility: hidden;
+  }
+  .app-rail.is-open { transform: none; visibility: visible; }
+
+  .rail-scrim {
+    display: block;
+    position: fixed; z-index: 690;
+    top: var(--topbar-height); right: 0; bottom: 0; left: 0;
+    background: rgba(10, 14, 18, 0.5);
+    opacity: 0; pointer-events: none;
+  }
+  .rail-scrim.is-open { opacity: 1; pointer-events: auto; }
+}
+:root[data-theme="light"] .rail-scrim { background: rgba(16, 24, 40, 0.28); }
+
+/* The start state lives inside the motion query and the end state outside it,
+   which is this file's own pattern (§ENTRY STAGGER): a surface that never
+   animates is a surface that is simply there. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-rail { transition: transform 220ms var(--ease-out), visibility 220ms; }
+  .app-rail.is-open { transition: transform 220ms var(--ease-out), visibility 0s; }
+  .rail-scrim { transition: opacity 220ms var(--ease-out); }
+}
 
 /* ══ YOUR CAMPAIGNS ════════════════════════════════════════════════════════
 
@@ -4034,7 +4241,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-camp-row:hover .s-camp-row-go { color: var(--accent); }
 /* Under 900 the reason is the first thing to go — the name and the stage are
    what the row is for, and a truncated reason is worse than none. */
-@media (max-width: 900px) {
+@media (max-width: 764.98px) { /* 900 layout px */
   .s-camp-row { grid-template-columns: minmax(0, 1fr) auto 13px; }
   .s-camp-row-why { display: none; }
 }
@@ -4189,8 +4396,8 @@ body.is-calling .overlay-chats { display: none; }
    lines are what get squeezed when it does. */
 /* 16 between against 12 inside — the card-grid rule, argued at `.s-campos`. */
 .s-starts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-@media (max-width: 1180px) { .s-starts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px)  { .s-starts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1002.98px) { /* 1180 layout px */ .s-starts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 526.98px) { /* 620 layout px */ .s-starts { grid-template-columns: minmax(0, 1fr); } }
 
 .s-start {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
@@ -4284,7 +4491,7 @@ body.is-calling .overlay-chats { display: none; }
   /* The thread's own height, less its padding and the turns above. Capping
      against the viewport keeps this honest on short windows, which is where
      the defect was worst. */
-  max-height: min(72vh, 520px);
+  max-height: min(calc(var(--vp-h) * 0.72), 520px);
 }
 .s-work-head, .s-work-actions { flex: none; }
 .s-work-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -4359,7 +4566,7 @@ body.is-calling .overlay-chats { display: none; }
   margin-left: auto; flex: none; text-align: right;
   font-size: var(--fs-base); color: var(--d400); max-width: 22ch;
 }
-@media (max-width: 520px) { .s-seed-con-why { display: none; } }
+@media (max-width: 441.98px) { /* 520 layout px */ .s-seed-con-why { display: none; } }
 
 /* ── Add contacts ── */
 /* 16, not 12: the stack's own rows sit 8 apart, so 12 below it left the tools
@@ -4988,7 +5195,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 /* Two columns for six short fields. One column made a six-field correction
    as tall as the dialog it sits in, and every one of these is a word. */
 .s-fix-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 560px) { .s-fix-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 475.98px) { /* 560 layout px */ .s-fix-grid { grid-template-columns: minmax(0, 1fr); } }
 .s-fix-grid .s-field { max-width: none; }
 .s-fix-at, .s-fix-dir { width: 100%; }
 .s-sheet-kind .s-camp-state { margin-left: 8px; }
@@ -5299,7 +5506,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   margin-left: auto; flex: none;
 }
-@media (max-width: 900px) {
+@media (max-width: 764.98px) { /* 900 layout px */
   .s-camp-acts { margin-left: 0; flex: 1 1 100%; margin-top: 12px; }
 }
 /* ══ THE STAGE STRIP ═══════════════════════════════════════════════════════
@@ -5423,7 +5630,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 /* Under 620 the four-column head cannot hold a name, a function and a
    figure on one line. The figure keeps the right edge and the function
    drops under the name, which is the order they are read in anyway. */
-@media (max-width: 620px) {
+@media (max-width: 526.98px) { /* 620 layout px */
   .s-node-head { grid-template-columns: 20px minmax(0, 1fr) auto 9ch; }
   .s-node-who { grid-column: 2 / -1; grid-row: 2; }
   .s-node-fig { grid-column: 3; grid-row: 1; }
@@ -5555,7 +5762,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    must never leave — so it should not have its own answer to the same
    question. */
 .s-commit {
-  max-height: min(88vh, 900px);
+  max-height: min(calc(var(--vp-h) * 0.88), 900px);
   display: flex; flex-direction: column;
   padding: 0;
 }
@@ -5638,7 +5845,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    a horizontal scrollbar on the body means every vertical scroll is
    fighting a sideways drift.
 ═══════════════════════════════════════════════ */
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   /* Five tabs at 14px of side padding each will not fit 375px, and wrapping
      them puts the underline on two levels — a tab strip with a second row is
      no longer a strip. It scrolls, on the same rule the ecosystem strip
@@ -5737,7 +5944,7 @@ body.is-record .filter-tray { display: none; }
    canvas that was squeezed, and until this pass the canvas held one confirm
    block. It now holds the main flow in the product, so it gets a real box.
    Fixed to the VIEWPORT, because a canvas you cannot read is not a surface. ══ */
-@media (max-width: 720px) {
+@media (max-width: 611.98px) { /* 720 layout px */
   .aimy-overlay { position: fixed; inset: 0; }
   .s-build, .s-aud, .s-work, .s-work-body { min-width: 0; }
   /* An account name longer than the panel breaks rather than pushing it. */
@@ -5907,7 +6114,7 @@ body.is-record .filter-tray { display: none; }
    this has to come after every rule it overrides. Placed with the anchor
    comment further up, it lost to `.s-rec-name` and `.s-sheet-name` and did
    nothing at all. */
-@media (max-width: 620px) {
+@media (max-width: 526.98px) { /* 620 layout px */
   .s-rec-name, .s-sheet-name, .s-result-count { font-size: var(--fs-2xl); }
   /* The head, not the title: the mark is sized in `em` off it, so stepping
      the container down takes the mark with it and the pair stays in

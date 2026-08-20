@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) report anything
+       other than 0 on iOS: without it the float bar cannot clear a home
+       indicator, because the page is never told there is one.
+       interactive-widget=resizes-content makes the soft keyboard shrink the
+       LAYOUT viewport rather than only the visual one, so a fixed composer is
+       lifted by the browser instead of being left underneath the keyboard.
+       assets/aimy-viewport.js measures the keyboard as well, and the two
+       cannot double-compensate — see the note at --kb. Matches AiMY QA. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>AiMY Sales</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,7 +30,20 @@
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
   <link rel="stylesheet" href="assets/aimy-ds.css" />
-  <link rel="stylesheet" href="assets/sales.css?v=390" />
+  <link rel="stylesheet" href="assets/sales.css?v=392" />
+
+  <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
+
+       The sheet declares `zoom: var(--ui-scale)` on <body>; the script publishes
+       the number. Both are in <head> and the script is BLOCKING, so the scale is
+       applied before first paint — a 2560 monitor that got these at the end of
+       <body> would paint the unscaled layout and snap.
+
+       After sales.css, so the shell rules it supersedes are already in the
+       cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
+       is at the top of the sheet. -->
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=2" />
+  <script src="assets/aimy-viewport.js?v=2"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -95,6 +116,22 @@
 ══════════════════════════════════════════════ -->
 <div class="app-topnav">
   <div class="topnav-logo">
+    <!-- Opens the rail. Only exists below the drawer breakpoint, where the rail
+         is a drawer rather than a column; above that it would offer to reveal
+         something already on screen.
+
+         Inside .topnav-logo, not beside it: this masthead is three flex regions
+         with the tab strip pinned to the window's centre, and the flanks are
+         what the two .topnav-spacer divs balance. A fourth sibling would move
+         the centre the spacers exist to hold. Knowledge places it in the same
+         element for the same reason. -->
+    <button class="rail-toggle" id="railToggle" type="button"
+            aria-expanded="false" aria-controls="appRail"
+            aria-label="Open what is here" title="What is here">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>
+      </svg>
+    </button>
     <div class="topnav-logo-mark">
       <svg width="140" height="43" viewBox="0 0 418.18 147.66" aria-label="AiMY"><use href="#aimy-logo-full"/></svg>
     </div>
@@ -226,7 +263,14 @@
        the pool everything else sits in. Names and counts — nothing here is
        prose, so nothing here needs a measure.
   ══════════════════════════════════════════════ -->
-  <nav class="app-rail" id="appRail" aria-label="What is here"></nav>
+  <!-- tabindex="-1" so the drawer can take focus when it opens. A drawer you
+       can open from the keyboard and not read from it is worse than no drawer. -->
+  <nav class="app-rail" id="appRail" aria-label="What is here" tabindex="-1"></nav>
+
+  <!-- Dismiss surface for the drawer. Sibling of the rail so the two share one
+       stacking context and their z-indexes mean something relative to each
+       other. Inert and out of the tree until the drawer opens. -->
+  <div class="rail-scrim" id="railScrim"></div>
 
   <!-- ══════════════════════════════════════════════
        THE DOCKED CONVERSATION IS GONE, AND ITS ARGUMENT WITH IT.
@@ -441,6 +485,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/sales.js?v=390"></script>
+<script src="assets/sales.js?v=392"></script>
 </body>
 </html>
