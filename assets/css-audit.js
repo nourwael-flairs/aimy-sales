@@ -105,21 +105,31 @@ const unused = [...defined]
   .filter((c) => !composed(c))
   .sort();
 
-/* ── Control characters ── */
+/* ── Control characters ──
+
+   BOTH FILES, and it used to be one. The check exists because a tooling
+   round-trip once ate a character, and a tooling round-trip does not know
+   which file it is editing: an encoding slip put an em-dash through as a
+   lone 0x14 in `sales.js` and this caught it, then did the same thing in
+   `sales.css` twice and it went straight past — because the scan only ever
+   read the JS. A guard against a class of accident has to cover everywhere
+   the accident happens. */
 const ctrl = [];
-js.split(/\r?\n/).forEach((line, i) => {
+const scanCtrl = (src, name) => src.split(/\r?\n/).forEach((line, i) => {
   for (const ch of line) {
     const c = ch.codePointAt(0);
     if (c < 9 || (c > 10 && c < 32)) {
-      ctrl.push([i + 1, c, line.trim().slice(0, 70)]);
+      ctrl.push([name, i + 1, c, line.trim().slice(0, 70)]);
       break;
     }
   }
 });
+scanCtrl(js, 'sales.js');
+scanCtrl(fs.readFileSync(path.join(here, 'sales.css'), 'utf8'), 'sales.css');
 
 if (ctrl.length) {
   console.error('\n  ' + ctrl.length + ' line(s) hold a control character:\n');
-  ctrl.forEach((r) => console.error('    sales.js:' + r[0] + '  0x' + r[1].toString(16) + '  ' + r[2]));
+  ctrl.forEach((r) => console.error('    ' + r[0] + ':' + r[1] + '  0x' + r[2].toString(16) + '  ' + r[3]));
   console.error('\n  0x08 is almost always a word boundary that was eaten in transit.\n');
   process.exit(1);
 }
@@ -256,6 +266,27 @@ if (unused.length) {
 const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
 
 const declared = new Set([...cssCode.matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]));
+
+/* ── AND THE THIRD STYLESHEET, WHICH THIS CHECK COULD NOT SEE ──
+
+   `index.html` loads three: `aimy-ds.css`, `sales.css` and
+   `aimy-responsive.css`. Two were read here and the viewport layer was not,
+   so every consumer of `--vp-w` and `--vp-h` in this file was reported as
+   reading a token nothing defines — thirteen declarations that are correct,
+   on a check whose entire job is to find the one that is not. Thirteen
+   false positives is not a noisy check, it is a check nobody can run.
+
+   It was invisible because this audit stops at its first failing check, and
+   two other findings sat above it. One defect hiding another is the shape
+   §39 already recorded for this file: a scale enforced on product CSS says
+   nothing about what the screen actually shows.
+
+   ITS DECLARATIONS ONLY. Its rules stay out of check 1 — that check asks
+   what `sales.css` draws, and a responsive override for a shell component
+   this product never renders is the shell's business, not deadwood. */
+const responsiveCode = fs.readFileSync(path.join(here, 'aimy-responsive.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ');
+for (const m of responsiveCode.matchAll(/(--[a-z0-9-]+)\s*:/gi)) declared.add(m[1]);
 
 /* Some are set at RUNTIME — `style="--i:${i}"` on a card, the two bar-fill
    properties — so they are declared by the product, just not in a stylesheet.
@@ -488,7 +519,15 @@ stacks.forEach((rule) => {
       !/grid-auto-flow\s*:\s*column/.test(rule) &&
       !/grid-template-columns/.test(rule));
   if (!column) return;
-  if (/border-bottom\s*:\s*(?!0)/.test(rule)) return;
+  /* ── THE EXEMPTION WAS NARROWER THAN THE RULE IT IMPLEMENTS ──
+     The note above says a drawn boundary is exempt because Common Region
+     outranks Proximity, and then tested for `border-bottom` alone — a
+     SEPARATOR. A full `border` is the stronger case of the same thing: a
+     rule with a border, a raised ground and a shadow is a card, and a card
+     has already said where it ends far louder than a hairline does.
+     `.call-consent` is that case, flagged for a 12px margin under a 12px
+     gap while sitting inside its own drawn box. */
+  if (/(?<![-\w])border(?:-bottom)?\s*:\s*(?!0)/.test(rule)) return;
   const g = rule.match(/(?<![-\w])(?:row-)?gap\s*:\s*([0-9]+)px/);
   const mb = rule.match(/(?<![-\w])margin-bottom\s*:\s*([0-9]+)px/);
   if (!g || !mb) return;

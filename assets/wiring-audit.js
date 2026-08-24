@@ -587,7 +587,7 @@ try {
        `[data-init]` claims the click and returns. Checking those would be
        checking a string nothing can reach, which is a different defect and
        one this file should not confuse with an unanswerable question. */
-    const DIRECT = new Set(['draft-campaign', 'find-lookalikes', 'enrich']);
+    const DIRECT = new Set(['draft-campaign', 'find-lookalikes', 'enrich', 'keep-list']);
     (API.initiatives() || []).forEach((it) => {
       if (it.ask && !DIRECT.has(it.k)) asks.push([`initiative ${it.k}`, it.ask]);
       if (it.altAsk) asks.push([`initiative ${it.k} (alt)`, it.altAsk]);
