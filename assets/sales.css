@@ -230,6 +230,26 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
   padding: 4px 8px; line-height: 16px;
 }
+/* ══ THE EIGHTH STATE ══════════════════════════════════════════════════════
+
+   The library ships six and names them "six values, required on every
+   surfaced item". This product needs eight: `reading` — AiMY having compared
+   a thing against the book — and `ongoing`, work that has not finished and
+   is not going to. Neither is a library concern, so neither goes in there.
+
+   `reading` has never had a rule at all and draws as a transparent chip in
+   whatever colour it inherits. That is a real hole; it is filed rather than
+   fixed here, because fixing it means deciding what a comparison looks like
+   and that is not this change.
+
+   AiMY blue, because the work is AiMY's and `.ws-drafted` already settled
+   that colour for it. What separates the two is the dot: drafted hollows it
+   out because nothing has happened yet, and this one leaves it solid,
+   because something is happening right now. */
+.ws-ongoing {
+  background: rgba(0, 102, 255, 0.1); color: var(--ai-text);
+  border-color: rgba(0, 102, 255, 0.24);
+}
 .s-meta-st { line-height: 16px; }
 /* ══ ONE BUTTON FAMILY ═══════════════════════════════════════
 
@@ -572,7 +592,7 @@ button {
   .btn, .entry-action, .filter-chip, .seg-btn, .bcard-ack-btn, .overlay-sugg-chip,
   .audit-revert, .cite-action, .td-action, .icon-btn,
   .topnav-bell, .ds-theme-toggle, .aimy-float-icon, .aimy-float-send, .overlay-send, .overlay-close,
-  .agg-more, .ss-clear, .tab, .nav-item, .bcard-dismiss-reason {
+  .agg-more, .ss-clear, .tab, .nav-item, .bcard-dismiss-reason, .s-sess-row {
     transition: transform var(--t-press) var(--ease-out),
                 background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
   }
@@ -582,7 +602,7 @@ button {
   .icon-btn:active, .topnav-bell:active, .ds-theme-toggle:active,
   .aimy-float-icon:active, .aimy-float-send:active, .overlay-send:active, .overlay-close:active,
   .agg-more:active, .ss-clear:active, .tab:active,
-  .nav-item:active, .bcard-dismiss-reason:active { transform: scale(0.97); }
+  .nav-item:active, .bcard-dismiss-reason:active, .s-sess-row:active { transform: scale(0.97); }
 
   /* Large surfaces move less — the same 3% reads as a lurch at card scale. */
   .type-card, .list-row {
@@ -1926,7 +1946,72 @@ body.is-calling { --fb-reserve: var(--call-width); }
   line-height: var(--lh-tight);
 }
 .s-task-num.is-fail b { color: var(--err); }
+/* Skipped is neither done nor left. Folding it into either would make the
+   figures stop adding up to the run they describe. */
+.s-task-num.is-skip b { color: var(--warn); }
 .s-task-num.is-left b { color: var(--d400); }
+
+/* ══ WHAT A SESSION CAME TO ═══════════════════════════════════════════════
+
+   Rows, not a chart. Five outcomes is not a distribution worth drawing, and
+   the doctrine's block budget spends charts on things a sentence cannot
+   say. Every row is a DOOR — the figure and the word are one button —
+   because a count you can read and cannot open is exactly what v5 took off
+   this product. */
+/* The wrapper, because this block is read in two places now — the run
+   sheet, where a heading sits above it, and the canvas, where it is the
+   last turn of the session's own thread. One gap rather than a margin-top
+   per child, so it does not need a different first-child rule in each. */
+.s-sess { display: flex; flex-direction: column; gap: 12px; }
+.s-sess-head { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
+.s-sess-head b {
+  font-family: var(--font-display); font-weight: var(--fw-extrabold);
+  color: var(--d100); font-variant-numeric: tabular-nums;
+}
+.s-sess-rows { display: flex; flex-wrap: wrap; gap: 8px; }
+.s-sess-row {
+  display: flex; align-items: baseline; gap: 8px; text-align: left;
+  padding: 8px 12px; border-radius: var(--r-md); cursor: pointer;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+}
+.s-sess-row:hover { border-color: var(--card-border-hover); }
+.s-sess-n {
+  font-family: var(--font-display); font-size: var(--fs-lg);
+  font-weight: var(--fw-extrabold); color: var(--d100);
+  font-variant-numeric: tabular-nums; line-height: var(--lh-tight);
+}
+.s-sess-lab { font-size: var(--fs-xs); line-height: 16px; }
+/* The way back off a skip. It names them, because "Ring these 3" over three
+   people nobody can see is a control asking to be trusted. */
+.s-sess-skips { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+
+/* ══ THE THREE QUESTIONS, AND THE CALLS UNDER THEM ════════════════════════
+
+   Sections separated by a hairline and a caption rather than by four boxes.
+   The figures at the top are already a group and these are readings OF that
+   group, so boxing each one would put a border between a count and the
+   sentence explaining it — Common Region working against the thing it is
+   supposed to hold together.
+
+   The caption is the caption step every block on this surface uses, so a
+   reader who knows the record page knows this. */
+.s-sess-sec {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding-top: 16px; border-top: 1px solid var(--hairline);
+}
+.s-sess-cap {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+}
+.s-sess-say { font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base); }
+
+/* One call and its log. The name and the disposition read as a heading over
+   the card rather than as a row of the card, which is what keeps a run of
+   three of these from reading as one long table. */
+.s-sess-call { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.s-sess-call + .s-sess-call { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+.s-sess-call-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.s-sess-skip-say { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
 .s-task-next { margin-top: 8px; font-size: var(--fs-xs); color: var(--d400); }
 .s-task-block { margin-bottom: 16px; }
 .s-task-choice { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
@@ -2335,6 +2420,18 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-meta-st.tone-ok    { color: var(--ok-text);   background: var(--ok-bg);   border-color: rgba(23,178,106,0.26); }
 .s-meta-st.tone-neutral { color: var(--d300); background: var(--card-bg-raised); border-color: var(--card-border); }
 
+/* ══ SKIPPED IS NOT A STATUS, AND MUST NOT LOOK LIKE ONE ══════════════════
+
+   It borrows the warn tone and none of the pill's ground, so it cannot be
+   read as the computed status sitting eight pixels to its right. The
+   difference is the whole point: the status is derived from the record and
+   outlives every session, and this is true of ONE run and leaves with it. */
+.s-meta-skip {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--warn-text); line-height: 16px; flex-shrink: 0;
+}
+
 /* On the record it is the headline fact, so it is sized as one. */
 .s-rec-status .s-meta-st {
   font-size: var(--fs-sm); padding: 4px 12px 4px 8px; letter-spacing: normal;
@@ -2509,9 +2606,13 @@ body.is-calling { --fb-reserve: var(--call-width); }
    middle of a sentence — the mark that says who is speaking, drifting away
    from where the speaking starts. Measured spread: 64px.
 
-   Top-aligned, with the mark dropped onto the first line's centre: the line
-   box is 21px (14px text × 1.5) and the glyph is 16px, so 4px of top margin
-   leaves it half a pixel off centre and on the spacing grid. */
+   Top-aligned, with the mark's box made exactly one line tall so the glyph
+   centres itself on that line: `xMidYMid meet` letterboxes the 18×20 viewBox
+   inside it and puts the optical centre on the line's centre, with no margin
+   left to go stale when the type scale moves. The margin this replaces was
+   4px, derived against a 1.5 line-height and a 16px glyph — the file says
+   1.45 and the box was 18px tall, so the mark sat 2.85px below its own
+   sentence. Derive it, do not measure it once and write the number down. */
 .s-insight {
   display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px;
   margin-top: 12px; padding: 12px;
@@ -2519,13 +2620,28 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: rgba(var(--accent-rgb), 0.06);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
 }
-.s-insight-mark { width: 16px; height: 18px; flex-shrink: 0; margin-top: 4px; }
+.s-insight-mark { width: 16px; height: calc(var(--fs-base) * var(--lh-base)); flex-shrink: 0; }
 /* The state pill sits on the same first line as the mark. Without this it
    top-aligns against the block and the two marks disagree by the difference
    between an 18px glyph and a 24px pill. */
 .s-insight .work-state { flex: none; align-self: flex-start; }
+/* ══ THE MARK LEADS THE SENTENCE, IT DOES NOT SIT ABOVE IT ════════════════
+
+   This was `flex: 1 1 100%`, which forced the text onto a row of its own and
+   left the mark alone on the one above it — a 16px glyph with a whole line
+   to itself, and a gap between AiMY's signature and the thing it is
+   signing. It read as a header over a paragraph rather than as AiMY saying
+   something.
+
+   `1 1 200px` puts the mark and the first line together and lets the text
+   take the rest of the row, so wrapped lines align to the text column and
+   the glyph reads as what starts the sentence. The basis is what keeps a
+   compact card honest: below about 200px the text still wraps to its own
+   line rather than being squeezed into a column three words wide.
+
+   The actions stay at `1 1 100%` — they are a row, not a continuation. */
 .s-insight-txt {
-  flex: 1 1 100%; min-width: 0;
+  flex: 1 1 200px; min-width: 0;
   font-size: var(--fs-base); color: var(--d200);
   line-height: var(--lh-base);
 }
@@ -2688,6 +2804,28 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-inline-btn:focus-visible, .s-straight-act:focus-visible, .s-hist-sum:focus-visible {
   outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px;
 }
+/* ══ AN INLINE ACTION THAT CANNOT BE TAKEN ═══════════════════════════════
+
+   The family had no disabled state because nothing had ever disabled one:
+   these are sentence verbs, and a sentence verb was always either drawn or
+   not. `Skip this one` is the first that has to stay on the page while
+   being unpressable — the brief it sits in is an append-only block that
+   cannot re-render when the call it describes starts ringing, so the button
+   outlives the moment it was valid.
+
+   Greyed to body colour rather than dimmed to a ghost. It is still part of
+   a sentence you are meant to read, and 45% of an accent is a colour that
+   reads as broken rendering rather than as a decision — which is why the
+   one existing precedent, `[data-commit-go][disabled]`, can afford opacity
+   and this cannot: that one is a filled button in a modal you are looking
+   at, this one is three words inside a paragraph.
+
+   The underline goes with the hover, because an underline that appears
+   under a control which does nothing is the affordance lying twice. */
+.s-inline-btn[disabled] {
+  color: var(--d500); cursor: not-allowed; text-decoration: none;
+}
+.s-inline-btn[disabled]:hover { color: var(--d500); text-decoration: none; }
 
 .s-people { display: flex; flex-direction: column; gap: 2px; }
 .s-person {
@@ -3553,6 +3691,21 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-group-count { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); max-width: 72ch; }
 .s-group-count b { color: var(--d50); font-variant-numeric: tabular-nums; }
 
+/* The blocked figure, beside the heading it is about. In the caption step
+   rather than at heading weight: "20 of 31" is what the rows underneath add
+   up to, and a second thing at heading size reads as a second heading. */
+.s-camp-count {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--d500); font-variant-numeric: tabular-nums; line-height: 16px;
+}
+
+/* `.s-offer-say` was the reading, set under its own evidence at caption
+   weight — the one sentence on that block anybody was meant to act on,
+   styled as a footnote. It is an `.s-insight` now: AiMY's mark, the accent
+   panel, the action last. A conclusion that looks quieter than the counts it
+   was drawn from is a conclusion nobody reads. */
+
 /* ── Lead lists, for Marketing ── */
 /* 24 between lists against 4 inside one — the ratio rule, and it is what
    stops four lists reading as one paragraph of criteria. */
@@ -3721,14 +3874,32 @@ body.is-calling { --fb-reserve: var(--call-width); }
    change, because `DB.call` is not URL state: a call is not a view.
 ═══════════════════════════════════════════════ */
 :root { --call-width: 300px; }
+/* ══ THE PANEL ITSELF NEVER SCROLLS ═══════════════════════════════════════
+
+   It was `overflow-y: auto`, and the moment the brief was added the panel
+   grew past the viewport and took `End` with it — the one irreversible
+   control here, the one whose mispress costs you the call, below the fold
+   on a surface used by somebody who is talking to another person and has
+   about a second of attention to spare. A control you have to go looking
+   for is not a control on a live call.
+
+   So the panel is a fixed column and exactly ONE thing inside it scrolls:
+   the transcript, which is the only part that grows without bound. Head,
+   name, brief, session controls, note and the handset row are all fixed,
+   and `End` is pinned by `.call-tools { margin-top: auto }`. */
 .app-call {
   width: var(--call-width); flex-shrink: 0;
   display: flex; flex-direction: column; gap: 16px;
   padding: 20px 16px;
-  overflow-y: auto;
+  overflow: hidden;
   border-left: 1px solid var(--hairline);
   background: var(--card-bg);
 }
+/* Everything that is not the transcript keeps its own height. Without this
+   a flex item's `min-height: auto` refuses to shrink below its content, and
+   the column overflows again with the scrollbar simply removed — which is
+   worse than scrolling, because then `End` is unreachable. */
+.app-call > * { flex-shrink: 0; }
 .app-call[hidden] { display: none; }
 
 .call-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -3753,6 +3924,44 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .call-name { font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50); line-height: var(--lh-tight); }
 .call-sub { font-size: var(--fs-xs); color: var(--d400); margin-top: 4px; }
 .call-num { font-size: var(--fs-xs); color: var(--d500); font-variant-numeric: tabular-nums; margin-top: 4px; }
+
+/* ══ IT RINGS BEFORE IT IS LIVE ═══════════════════════════════════════════
+
+   The dot changes COLOUR rather than shape, because red already means a
+   call that is happening and amber already means something not settled
+   everywhere else on this surface — the status tones, the run states, the
+   effect lines. Slower, too: a ringtone is slower than a heartbeat, and the
+   rhythm is the only thing distinguishing the two states without a word.
+
+   No reduced-motion rule of its own. `.call-live` already has one twelve
+   lines up, and `animation: none` there clears the name — a duration on a
+   nameless animation animates nothing, which is the correct answer here. */
+.call-live.is-dialing { background: var(--warn); animation-duration: 2.2s; }
+/* READY IS THE ONE STATE THAT DOES NOT PULSE. Nothing is happening yet —
+   the phone has not been picked up and no line is open — and a dot beating
+   on a call nobody has placed is the surface claiming activity it does not
+   have. Grey, still, and waiting for a person, which is what it is. */
+.call-live.is-ready { background: var(--d500); animation: none; }
+
+/* WHICH ONE OF HOW MANY. The only figure in this head that is about the RUN
+   rather than about the call, so it sits apart from the clock, in the
+   caption step. A session counter at the timer's weight would make the
+   panel look like it is counting two things at once. */
+.call-of {
+  margin-left: auto; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--d500); font-variant-numeric: tabular-nums; line-height: 16px;
+}
+
+/* PP THE BRIEF AND THE RUN CONTROLS LEFT THIS PANEL PPPPPPPPPPPPPPPPPPPPPPP
+
+   `.call-brief`, `.call-brief-row`, `.call-brief-cap` and `.call-sess` were
+   here and are gone. The brief is preparation and lives in the canvas with
+   the rest of the preparation; the run's controls live on that brief, under
+   a sentence naming the run, because in this panel they had no visible
+   object and read as pausing or stopping the call in front of you.
+
+   The rail is one call again: who, what is being said, and the handset. */
 
 /* ── Recording, and the notice that gates it ──
 
@@ -3793,8 +4002,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .call-tool.is-rec svg { fill: currentColor; }
 
 /* ── The transcript ── */
+/* THE ONE SCROLLER. `flex: 1 1 0` with `min-height: 0` so it takes exactly
+   the space the fixed rows leave and no more — the `max-height: 40vh` it
+   carried was a cap on the wrong thing: it bounded the transcript and let
+   everything else push the panel past its own edge. `min-height: 0` is what
+   lets a flex item shrink at all; without it the transcript refuses to go
+   below its content height and the overflow moves back up to the panel. */
 .call-lines {
-  flex: 1; min-height: 80px; max-height: calc(var(--vp-h) * 0.4); overflow-y: auto;
+  flex: 1 1 0; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px;
 }
 .call-line { font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-relaxed); }
@@ -3856,6 +4071,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .call-end:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
+/* ══ START CALL TAKES END'S PLACE, AND ITS SHAPE ══════════════════════════
+
+   Same geometry, opposite tone. It is the same slot in the same row doing
+   the opposite job, and the pair reads as one control with two states
+   rather than as two controls that happen to be the same size — which is
+   what it is: the only thing this rail can do, before and after.
+
+   Brand rather than error, because opening a line is not the irreversible
+   half. Ending one is. */
+.call-go, .call-go:hover { border-color: var(--brand); }
+.call-go { background: var(--brand); }
+.call-go:hover { background: color-mix(in srgb, var(--brand) 88%, #fff); }
+
 /* ── What the rest of the shell does while a call is up ──
    The canvas clears the panel rather than covering it: the prep thread and
    the call have to be legible together, which is the reason they are in two
@@ -3871,6 +4099,26 @@ body.is-calling .overlay-chats { display: none; }
 /* The brief AiMY writes before the call. */
 .s-brief-call { display: flex; flex-direction: column; gap: 8px; }
 .s-callp { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); }
+
+/* ══ THE RUN, ON THE BRIEF THAT BELONGS TO IT ═════════════════════════════
+
+   A rule down the left rather than a box, the same device `.s-straight`
+   uses for a count with an action: the brief above it is already a group,
+   and boxing three buttons inside a block is a container around content
+   that is contiguous with what it sits under.
+
+   The sentence is the point. `Pause after this call` in the call panel had
+   no object on screen and read as pausing the call; here it sits directly
+   beneath "Call 3 of 25 on Calling 25 people", and the buttons inherit the
+   noun from the line above them. */
+.s-brief-run {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 16px; padding-left: 12px;
+  border-left: 2px solid var(--accent);
+}
+.s-brief-run-say { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
+.s-brief-run-say b { color: var(--d100); font-variant-numeric: tabular-nums; }
+.s-brief-run-acts { display: flex; flex-wrap: wrap; gap: 12px; }
 .s-callp b {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
@@ -3878,97 +4126,23 @@ body.is-calling .overlay-chats { display: none; }
 /* Who said to remember it. Quieter than the line, because the judgement is
    the thing you read and the attribution is what you check afterwards. */
 .s-callp-who { color: var(--d500); }
-.s-obj-pick { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-/* ── A pick inside a chip ──
-   The input is the affordance and the chip is the target, so the box is
-   sized and coloured like every other pick on a commit surface rather than
-   left at the browser default. Checkbox and radio both: a call has one
-   disposition and any number of obstacles, so the two shapes sit side by
-   side on one surface and have to look like they belong to it. */
-.s-obj-chip { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-.s-obj-chip input, .s-obj-tick, .s-opp-tick, .s-prop-pick {
-  width: 15px; height: 15px; accent-color: var(--accent); flex: none;
-}
-/* The chip follows its own input, so a ticked one reads as chosen at a
-   glance rather than only by the 15px box inside it.
+/* PP THE FORM THAT USED TO BE HERE PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 
-   `:has()` here despite this file's history with it — the two rules that
-   silently stopped matching keyed on a CLASS that a later pass stopped
-   rendering (`.rail-camp`, and a `.s-pick-role` that emptied). This one keys
-   on `input:checked`, a DOM state that cannot be refactored away while there
-   is an input inside the chip, and if the input ever goes so does the chip. */
-.s-obj-chip:has(input:checked) {
-  background: var(--accent-dim); border-color: var(--accent); color: var(--d50);
-}
-/* ── AND THE SAME THING IN LIGHT, WHERE IT HAS NEVER PAINTED ──
+   `.s-obj-pick`, `.s-obj-chip`, `.s-obj-name`, `.s-obj-tick`, `.s-opp-tick`,
+   `.s-prop-pick`, `.s-callsay` and its foot and reading line, `.s-callmem`,
+   and the whole `is-aiset` argument, are gone with the modal they dressed.
 
-   `:root[data-theme="light"] .chip.default` is (0,4,0) — two simple selectors
-   in `:root[data-theme="light"]`, two more in `.chip.default` — and the rule
-   above is (0,2,1). So on the light theme every ticked chip on this surface
-   has been rendering as an unticked one: the 15px box filled and the chip
-   around it stayed grey, which is the state the chip exists to show.
+   Logging a call is a conversation now: AiMY says what it read, the card
+   underneath is the one the record will carry, and a correction is a
+   sentence rather than a tick. There is nothing left to style because there
+   is nothing left to fill in.
 
-   Measured, not reasoned about: `background-color` on a ticked chip reads
-   `rgba(16,24,40,0.04)` with `data-theme="light"` set and `rgba(139,79,244,0.15)`
-   without it.
-
-   The fix is the theme's own idiom rather than `!important` — the same
-   prefix, so this lands at (0,4,1) and wins by one. The values are tokens and
-   the tokens are already themed, so there is nothing to restate. */
-:root[data-theme="light"] .s-obj-chip:has(input:checked) {
-  background: var(--accent-dim); border-color: var(--accent); color: var(--d50);
-}
-/* Same 15px box as every other pick on a commit surface. */
-.s-prop-pick { width: 15px; height: 15px; accent-color: var(--accent); }
-.s-remember { width: 100%; }
-
-/* ══ SAY IT, AND THE FORM FILLS IN ═════════════════════════════════════
-   The sentence sits above the picks it fills, at the top of the surface,
-   because it is the first thing a person does after hanging up and the
-   picks are that sentence itemised. Three rows deep: enough for the two or
-   three clauses a call actually produces, and short enough that the
-   disposition rows stay above the fold on a laptop. */
-.s-callsay { margin-bottom: 20px; }
-.s-callsay .s-callsay-in { width: 100%; resize: vertical; margin-bottom: 8px; max-width: none; }
-/* The button and what the reading said, on one line — the press and its
-   answer belong together, and stacking them would put 20px between a
-   control and the only feedback it has. Wraps rather than crushing the
-   sentence: the line is prose and prose needs its own width. */
-.s-callsay-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.s-callsay-read {
-  flex: 1 1 220px; min-width: 0;
-  font-size: var(--fs-xs); line-height: var(--lh-base); color: var(--d500);
-}
-.s-callsay-read[hidden] { display: none; }
-/* ── The line that outlives the call needs air before it ──
-   Three chip rows run at 16px apart, and Remember was landing at the same
-   16px under the last of them — so a field that belongs to the RECORD rather
-   than to the call read as a fourth row of the same group. The step is
-   bigger than the rhythm inside the group because the boundary is real: the
-   things above are what happened on this call, and this is the one thing on
-   the form that is still true next month. */
-.s-callmem { margin-top: 28px; }
-
-/* ── WHAT AiMY TICKED LOOKS LIKE WHAT YOU TICKED ──
-
-   `is-aiset` used to paint: an AI-blue tint on the chips, a blue rule down
-   the edge of the radio row, a blue border on Remember. It came out.
-
-   A TICKED OPTION IS A TICKED OPTION. Two visual states for one meaning made
-   the form read as two forms — an inset rule down half the rows and a
-   different colour on half the chips is a lot of decoration for a fact the
-   reader already has from the sentence above, which says how many AiMY
-   filled in and asks them to correct what is wrong. And it is a fact with a
-   short life: the moment anybody touches a control the marking on it goes,
-   so the surface would be quietly changing colour under a person doing
-   nothing but reading it.
-
-   Level 6 is not weakened by this. AiMY's work is still declared — in the
-   reading line, which says it and stays honest about the count — and what is
-   WRITTEN carries `by: me().id` because the person pressed Log it. The class
-   stays because the code needs it: it is how a second reading knows which
-   ticks are its own to replace, and how the Remember field knows whether the
-   words in it are AiMY's or yours. */
+   `is-aiset` is worth one line of epitaph. It existed to mark what AiMY had
+   filled in, was stripped of every visual treatment on the argument that a
+   ticked option is a ticked option, and survived only because the code
+   needed it to know which of its own ticks it could replace. With no ticks,
+   that bookkeeping has no subject — the same rule now holds over VALUES, in
+   `callLogCorrect`, where an axis you have spoken to is yours. */
 
 /* ══ WHAT A CALL PRODUCED ═══════════════════════════════════════════════
    One block, drawn in two places — the canvas the moment you hang up, and
@@ -4237,6 +4411,15 @@ body.is-calling .overlay-chats { display: none; }
   font-variant-numeric: tabular-nums; letter-spacing: 0;
 }
 .s-camp-row-why { font-size: var(--fs-base); color: var(--d400); min-width: 0; }
+/* WHY IT IS THIS FAR UP, on the rows that have a reason. Amber rather than
+   red: a closing window is a reason to look, and `is-mine` already owns red
+   for the rows you are personally holding up.
+
+   It declares its own colour rather than inheriting, so it survives
+   `.is-mine .s-camp-row-why` recolouring the clause beside it — whose move
+   it is and how long it has been theirs are two facts, and letting the first
+   repaint the second would merge them into one. */
+.s-camp-row-when { margin-left: 8px; color: var(--warn); font-weight: var(--fw-semibold); }
 .s-camp-row-go { width: 13px; height: 13px; color: var(--d600); flex: none; }
 .s-camp-row:hover .s-camp-row-go { color: var(--accent); }
 /* Under 900 the reason is the first thing to go — the name and the stage are
@@ -4542,7 +4725,7 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base);
   margin-bottom: 20px; max-width: 72ch;
 }
-.s-seed-say .s-insight-mark { width: 14px; height: 16px; flex: none; margin-top: 2px; }
+.s-seed-say .s-insight-mark { width: 14px; height: calc(var(--fs-base) * var(--lh-base)); flex: none; }
 
 /* ── The contacts it would start with ──
    A row per person: the tick, who they are, and why they are on this list.
@@ -4634,6 +4817,10 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    compared on one axis is a list, and six rectangles would make each of them
    a decision of its own. */
 .s-ring { display: flex; flex-direction: column; }
+/* The session control sits under the six it will work through, not over
+   them: you read who is in the queue and then decide to work it, which is
+   the order the block is already written in. */
+.s-ring-foot { display: flex; margin-top: 12px; }
 .s-ring-row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; gap: 4px 12px;
@@ -4836,6 +5023,17 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
   border-left: 2px solid var(--accent);
   font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
   max-width: 60ch;
+}
+/* ══ A QUESTION THAT SHOWS ITS WORKING ════════════════════════════════════
+
+   The proposed call log is the record's own card, drawn inside the turn that
+   asks whether it is right. It gets a ground and a rule of its own so it
+   reads as the THING being asked about rather than as more of the sentence
+   asking — the same device `.s-work-evidence` uses to put a record's history
+   above a decision about it. */
+.s-callsum-in-turn {
+  margin-top: 12px; padding: 12px; border-radius: var(--r-md);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
 }
 .s-cb-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .s-cb-opt {
