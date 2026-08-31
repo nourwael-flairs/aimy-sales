@@ -92,7 +92,10 @@ const FN_IDS = S.REPS.map((p) => p.id);
    person with no surface.
 
    Checked first and hard, because every check below reads these. */
-const NEEDED = ['label', 'rule', 'sees', 'writes', 'home'];
+/* `grain` joins the list so a new function cannot be declared without
+   somebody deciding whether it reads records at all. It is the field a
+   c-level needed and every function before it defaulted into. */
+const NEEDED = ['label', 'rule', 'sees', 'writes', 'home', 'grain'];
 /* GUARDED, because "the model does not exist" is a finding and a crash is
    not. An audit that throws on the thing it audits reports a stack trace to
    somebody who wanted a sentence. */
@@ -261,6 +264,43 @@ function checkReadOnly() {
   }));
 }
 
+/* ── 4b · A read-only tier's one control touches no record ──
+
+   `data-raise` passes check 4 because it is not on `WRITE_KEYS`. That is
+   passing by omission, which is what check 4's own note argues against — a
+   list that grows silently grows wrong. So the claim gets a check rather
+   than an exemption.
+
+   Snapshot the corpus, run the raise path as every read-only person, and
+   assert it comes back byte-identical with exactly one more question on the
+   pile. The day somebody wires this to something that mutates, this fails
+   instead of shrugging. */
+function checkRaise() {
+  const shape = () => JSON.stringify([S.DB.acc, S.DB.con, S.DB.camp, S.DB.touch, S.DB.task]);
+  READ_ONLY.forEach((id) => as(id, (who) => {
+    const rec = S.DB.acc.filter((a) => S.entitled(a, who))[0];
+    if (!rec) return;
+    const before = shape();
+    const n = S.DB.raised.length;
+    S.DB.raised.push({ id: 'audit', on: rec.id, by: id, at: '2026-08-05', text: 'audit probe' });
+    if (shape() !== before) note(`${id} (${who.fn}): recording a question changed the corpus`);
+    if (S.DB.raised.length !== n + 1) note(`${id} (${who.fn}): recording a question did not land on the pile`);
+    S.DB.raised.pop();
+  }));
+
+  /* And the inverse. A tier that CAN write must not be offered it — a
+     weaker duplicate beside ten real controls is the CTA defect, not a
+     feature. */
+  S.REPS.filter((p) => S.FUNCTIONS[p.fn].writes).forEach((p) => as(p.id, (who) => {
+    const rec = S.DB.acc.filter((a) => S.entitled(a, who))[0];
+    if (!rec) return;
+    S.S.lead = rec.id;
+    const html = S.recordPage(rec);
+    S.S.lead = '';
+    if (html.indexOf('data-raise') >= 0) note(`${p.id} (${who.fn}): writes, and is still offered the read-only ask control`);
+  }));
+}
+
 /* ── 5 · Nothing describes what is withheld ──
    INVERTED. This used to assert that "53 accounts not shown to you" equalled
    what was actually removed — the disclosure had to be arithmetically true.
@@ -305,7 +345,7 @@ function checkCampaigns() {
       if (wrong.length) note(`${id} (client): sees ${wrong.length} campaign(s) not run for ${who.client} — e.g. ${wrong[0].name}`);
       const mine = S.DB.camp.filter((c) => c.client === who.client);
       if (seen.length !== mine.length) note(`${id} (client): sees ${seen.length} of their ${mine.length} campaigns`);
-    } else if (who.fn !== 'admin' && who.fn !== 'stakeholder') {
+    } else if (who.fn !== 'admin') {
       /* ══ THE TEST IS THE BOUNDARY, NOT THE IMPLEMENTATION ═══════════════
 
          This read `!c.members.some(entitled)` — byte-identical to the line
@@ -343,7 +383,7 @@ function checkCampaigns() {
 function checkTeam() {
   FN_IDS.forEach((id) => as(id, (who) => {
     const board = S.filteredTeam();
-    const mayLook = ['admin', 'marketing', 'sales-manager', 'stakeholder'].includes(who.fn);
+    const mayLook = ['admin', 'sdr-manager', 'sales-manager'].includes(who.fn);
     if (!mayLook && board.length) {
       note(`${id} (${who.fn}): gets a team board of ${board.length}, but only sees a slice of a peer's work`);
     }
@@ -372,7 +412,85 @@ function checkClients() {
   }));
 }
 
-[checkRecords, checkTouchpoints, checkTasks, checkReadOnly, checkDisclosure, checkCampaigns, checkTeam, checkClients]
+/* ── 7 · An aggregate tier reaches figures, and never a record ──
+
+   THE CHECK THIS FILE COULD NOT MAKE BEFORE, AND THE REASON `grain` EXISTS.
+
+   A c-level was first written with `sees: () => true` and a dashboard-only
+   `home`, and every check above passed it — while `?lead=a0` opened the
+   record, `?on=leads` listed 118 rows and `?camp=q3-nl` rendered the whole
+   campaign page. Entitlement had nothing to say about it, because the
+   question is not WHICH records but WHETHER records, and `home` is a
+   composition list that no URL consults.
+
+   So the assertion is two-sided, and both sides matter. Every door that
+   returns records must return none — otherwise the role is a permission
+   with no enforcement. And `maySee` must still return the WHOLE book —
+   otherwise the aggregates are computed over a subset and every figure on
+   the page is quietly wrong, which is the failure that looks like it is
+   working. */
+function checkGrain() {
+  const admin = as('nour', () => S.maySee(S.DB.acc).length);
+  S.REPS.filter((p) => (S.FUNCTIONS[p.fn].grain || 'record') !== 'record').forEach((p) => as(p.id, (who) => {
+    const shut = [
+      ['filtered', S.filtered().length],
+      ['filteredCampaigns', S.filteredCampaigns().length],
+      ['filteredTasks', S.filteredTasks().length],
+      ['filteredTeam', S.filteredTeam().length],
+    ];
+    shut.forEach(([name, n]) => {
+      if (n) note(`${p.id} (${who.fn}): ${name}() returns ${n} — an aggregate tier must hold no records`);
+    });
+
+    /* The URL hole specifically. Every check above walks what a surface
+       chose to draw; this walks what a pasted link can reach. */
+    const leaked = [];
+    allRecords().forEach((r) => {
+      S.S.lead = r.id;
+      if (S.openRec()) leaked.push(r.id);
+      S.S.lead = '';
+    });
+    if (leaked.length) note(`${p.id} (${who.fn}): ?lead= opens ${leaked.length} record(s) — e.g. ${leaked[0]}`);
+
+    const basis = S.maySee(S.DB.acc).length;
+    if (basis !== admin) note(`${p.id} (${who.fn}): the aggregate basis is ${basis} of ${admin} accounts — every figure on the page is over a subset`);
+
+    /* And it has something to say. A dashboard whose derivations return
+       nothing is a page that passes every permission check by being empty. */
+    const m = S.bookMoney(S.maySee(S.DB.acc).filter((a) => !a.arch), S.periodOf('r12'), S.workingHeads());
+    if (!m.spend.total) note(`${p.id} (${who.fn}): the money model returns no spend at all over a rolling year`);
+    if (!m.funnel.some((f) => f.n)) note(`${p.id} (${who.fn}): every stage of the funnel is nought over a rolling year`);
+
+    /* ══ EVERY PERIOD, NOT JUST THE DEFAULT ══════════════════════════════
+
+       This check rendered `homePage` once, at whatever `S.period` happened
+       to be — which is the default — and the page threw on `lq`, where
+       nothing closed and a ratio guarded on the wrong half of itself read
+       `null.toFixed`. A blank page behind a chip nobody in the audit ever
+       pressed.
+
+       The four periods are the whole state space of this surface's one
+       control, and three of them put the corpus into a shape the default
+       never does: a window that booked nothing, one that is complete, one
+       whose prior window is empty. Cheap to walk, and the only way a
+       render-time throw in any of them is visible from here. */
+    const held = S.S.period;
+    ['q', 'lq', 'y', 'r12'].forEach((k) => {
+      S.S.period = k;
+      try {
+        const html = S.homePage();
+        if (!html || html.indexOf('s-att-track') < 0) {
+          note(`${p.id} (${who.fn}): ?period=${k} renders no attainment track — the page is empty for that window`);
+        }
+      } catch (e) {
+        note(`${p.id} (${who.fn}): ?period=${k} threw while rendering — ${e.message}`);
+      }
+    });
+    S.S.period = held;
+  }));
+}
+
+[checkRecords, checkTouchpoints, checkTasks, checkReadOnly, checkRaise, checkDisclosure, checkCampaigns, checkTeam, checkClients, checkGrain]
   .forEach((fn) => { try { fn(); } catch (e) { note(`${fn.name} threw: ${e.message}`); } });
 
 if (fail.length) {

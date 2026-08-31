@@ -630,25 +630,66 @@ try {
      markup, and whose name appears nowhere else, is dead — and the failure
      mode is not a crash but a feature that is quietly missing, which is the
      hardest kind to notice and the easiest kind to promise. */
+/* ══ AND A RENDERER IS NOT ALWAYS A `function` ═════════════════════════════
+
+   This read `function name(` only, and half the renderers on this surface
+   are `const name = (o) => \`<div…\``. Measured: `tile()` drew every card on
+   the executive page, its last call site was deleted with the bento, and
+   this check walked straight past it — while `css-audit` did flag the rules
+   underneath it. An audit that catches a dead component's STYLES and not
+   the component is an audit that reports the smaller half of the defect.
+
+   The arrow form also breaks the `return` test, because a concise body has
+   no `return` in it at all — the template follows the arrow directly. So
+   the markup test runs against the body INCLUDING its opening, and matches
+   either shape.
+
+   Both kinds are gathered first and share everything after, so the next
+   declaration form somebody uses is one regex rather than a third copy of
+   the logic. */
 {
-  const declared = [...src.matchAll(/\n\s*function\s+([A-Za-z_$][\w$]*)\s*\(/g)];
-  declared.forEach((m) => {
-    const name = m[1];
-    /* Where the body starts, and roughly where it ends — the next
-       declaration at the same or lower indentation. Crude, and it only has
-       to be good enough to see a `return \`<`. */
-    const from = m.index + m[0].length;
-    const next = src.indexOf('\n  function ', from);
-    const body = src.slice(from, next === -1 ? src.length : next);
-    if (!/return\s+`\s*<|return\s+`[^`]*<\w/.test(body)) return;
+  const decls = [];
+  [...src.matchAll(/\n([ \t]*)function\s+([A-Za-z_$][\w$]*)\s*\(/g)].forEach((m) => {
+    decls.push({ name: m[2], indent: m[1], at: m.index, from: m.index + m[0].length, kind: 'function' });
+  });
+  /* `const x = (a, b) => …` and `const x = a => …`. A parenthesised list may
+     hold a destructure or a default with its own parens, so the arrow is
+     found by scanning rather than by a nested-paren regex. */
+  [...src.matchAll(/\n([ \t]*)const\s+([A-Za-z_$][\w$]*)\s*=\s*(?=[(A-Za-z_$])/g)].forEach((m) => {
+    const head = src.slice(m.index + m[0].length, m.index + m[0].length + 400);
+    const arrow = head.indexOf('=>');
+    if (arrow < 0) return;
+    /* Anything before the arrow that cannot be a parameter list means this
+       is an assignment, not a function — `const a = b.c` or a call. */
+    if (/[;{}`]|\breturn\b/.test(head.slice(0, arrow))) return;
+    decls.push({ name: m[2], indent: m[1], at: m.index, from: m.index + m[0].length + arrow + 2, kind: 'arrow' });
+  });
+
+  /* Reported in source order. They are gathered by declaration KIND, and a
+     report that lists every `function` before every `const` reads as two
+     unrelated lists rather than one walk down the file. */
+  decls.sort((x, y) => x.at - y.at).forEach((d) => {
+    /* Where the body ends: the next declaration at the same indentation.
+       Crude, and it only has to be good enough to see the markup. Erring
+       short can only cause a miss, never a false accusation. */
+    const ends = ['function ', 'const ', 'let ']
+      .map((k) => src.indexOf(`\n${d.indent}${k}`, d.from))
+      .filter((i) => i >= 0);
+    const body = src.slice(d.from, ends.length ? Math.min.apply(null, ends) : src.length);
+
+    /* A concise arrow returns its template with no `return` in front of it,
+       so the opening of the body counts as a return position. */
+    const draws = /^\s*`\s*<|^\s*`[^`]*<\w|return\s+`\s*<|return\s+`[^`]*<\w/.test(body);
+    if (!draws) return;
 
     /* Called, referenced, or handed somewhere — any mention that is not the
        declaration itself counts, because a renderer passed by name is still
-       reachable. */
-    const uses = [...src.matchAll(new RegExp(`\\b${name}\\b`, 'g'))].length;
+       reachable. `metricCard` is reached only as `const card = metricCard`,
+       and that is a real mount. */
+    const uses = [...src.matchAll(new RegExp(`\\b${d.name}\\b`, 'g'))].length;
     if (uses <= 1) {
-      const line = src.slice(0, m.index).split(/\r?\n/).length + 1;
-      problems.push(`UNMOUNTED      ${name}() at sales.js:${line} returns markup and is never called — the surface it draws cannot be reached`);
+      const line = src.slice(0, d.at).split(/\r?\n/).length + 1;
+      problems.push(`UNMOUNTED      ${d.name}() at sales.js:${line} returns markup and is never called — the surface it draws cannot be reached`);
     }
   });
 }
