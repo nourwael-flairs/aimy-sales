@@ -121,6 +121,14 @@ input, select, textarea { font-family: inherit; }
    CARD BODY IS 13px AT WEIGHT 600, NOT 14 AT 400 — QA's lesson, and the one
    thing that stops a card of small text reading as grey mush: at these sizes
    weight carries hierarchy and size carries role. */
+/* macOS renders text heavier than the design intends, and nothing in this
+   product or the design system had ever turned that off. Once, on the root,
+   never per component. A no-op on Windows and Linux, correct on a Mac. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 :root {
   --fs-2xs:  11px;   /* caption — ALL CAPS AND TRACKED, never lowercase */
   --fs-xs:   13px;   /* meta, and card body at weight 600 */
@@ -2945,7 +2953,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-pick-row:hover { background: rgba(255,255,255,0.04); }
 :root[data-theme="light"] .s-pick-row:hover { background: rgba(16,24,40,0.04); }
 .s-pick-role { color: var(--d500); font-size: var(--fs-xs); }
-.s-why { width: 100%; resize: vertical; margin-bottom: 16px; }
+/* Two textareas inside a commit dialog, and one rule. `.s-raise` is the
+   read-only tier's question; `.s-why` is a disqualification reason. Same
+   box, same behaviour — separate class names because the audits read the
+   names to find the paths, and one name on two flows makes a leak in either
+   of them unfindable. */
+.s-why, .s-raise { width: 100%; resize: vertical; margin-bottom: 16px; }
 .s-commit .decision-zone { margin-bottom: 16px; }
 
 .s-toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); z-index: 960; }
@@ -4383,11 +4396,16 @@ body.is-calling .overlay-chats { display: none; }
   transition: background-color var(--t-fast);
 }
 .s-camp-row:hover { background: var(--accent-dim); }
-/* YOUR OWN MOVE READS AS YOURS. A left edge rather than a background, so a
-   run of your rows at the top of the list still reads as one list — the
-   ordering already groups them, and colouring the whole row as well would be
-   saying it twice. */
-.s-camp-row.is-mine { box-shadow: inset 2px 0 0 var(--err); }
+/* YOUR OWN MOVE READS AS YOURS, AND THE WHY LINE ALREADY SAYS IT.
+
+   This carried a red left edge as well, on the argument that a background
+   would be saying it twice. The edge was the third thing saying it: the
+   ordering puts your rows at the top, the why line is already red and
+   semibold, and a red rule down the side of a row nobody has asked about
+   reads as an alert rather than as ownership.
+
+   Same rule as the disclosure line and the read-only tiers — one signal per
+   fact. The colour and weight on the sentence carry it. */
 .s-camp-row.is-mine .s-camp-row-why { color: var(--err); font-weight: var(--fw-semibold); }
 .s-camp-row.is-nobody .s-camp-row-why { color: var(--warn); }
 .s-camp-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
@@ -6096,6 +6114,237 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    count what they narrow, and the corpus-wide tray is not on screen at all
    while a page is. ══ */
 body.is-record .filter-tray { display: none; }
+
+/* ══ A PAGE OF FIGURES DRAWS NO DOOR INTO THE BOOK ═══════════════════════
+   The executive surface refuses every filter and every drill. The MASTHEAD
+   is not one of those: its tab strip switches products, not records, and
+   the identity control beside it is how a person stops being the CEO. The
+   first cut hid the whole bar and took a way out along with a way in —
+   there was then no control anywhere that could change who you looked as.
+
+   So the cut is by what a control points AT, not by which bar it sits on.
+   The rail is an index of the book and goes. Two things inside the
+   masthead point at what the rail held, and go with it:
+
+     · `.rail-toggle` opens a rail that is not there. A control that cannot
+       do its one thing is worse than an absent one — the same rule that
+       gives a read-only tier no button rather than a disabled one.
+     · the bell enumerates records waiting on a person, and this tier holds
+       none. `bell()` already returns early at aggregate grain, so leaving
+       the button up would leave a door onto a panel that can never fill.
+
+   `is-figures` is set by `paintChrome` off the declared grain, the same way
+   `is-record` above is set off what is open. --rail-w to 0 is the
+   recentring the drawer breakpoint already uses: one variable, read by the
+   float bar's own clamp, so nothing has to remember this rule exists. */
+body.is-figures { --rail-w: 0px; }
+body.is-figures .app-rail,
+body.is-figures .rail-toggle,
+body.is-figures .topnav-bell,
+body.is-figures .filter-tray { display: none; }
+
+/* ═══════════════════════════════════════════════
+   THE EXECUTIVE SURFACE — A BOUNDED GRID OF TILES
+
+   ══ WHY IT IS NOT FULL WIDTH, AND WHY THAT WAS THE WHOLE PROBLEM ═══════
+
+   The pass before this ran six sections down the full 1560px column. At
+   that width a breakdown row put its name at the far left and its figure
+   twelve hundred pixels away on the right — reading one row meant crossing
+   the screen twice, and the eye lost the line on the way back. Stacking six
+   of those produces a REPORT: a thing you sit down with, scroll through,
+   and read in order. This surface is read standing up, once, by somebody
+   who will not scroll twice.
+
+   So the layout is capped at 1180px and composed of tiles, each holding one
+   fact. Nothing stretches to fill. A tile is a quarter of that grid, which
+   is a width a caption and a figure can be read across in one movement —
+   and the grid can be scanned in any order because no tile depends on the
+   one before it.
+
+   THIS IS THE ONE PLACE ON THE SURFACE THAT USES CARDS. The rest of the
+   product groups with rules and negative space, correctly — a workbench row
+   is one of forty and a border around each would be noise. Here there are
+   eight things, they are unrelated to each other, and the border is what
+   says where one fact ends and the next begins.
+═══════════════════════════════════════════════ */
+
+.s-exec { gap: 0; max-width: 1180px; margin-inline: auto; width: 100%; }
+
+.s-exec-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap; margin-bottom: 20px;
+}
+/* Left-aligned, never centred. Reading starts here and the control that
+   changes what is read sits opposite, which is where a control belongs. */
+.s-exec-h {
+  font-family: var(--font-display); font-size: var(--fs-2xl);
+  font-weight: var(--fw-extrabold); letter-spacing: -0.02em;
+  line-height: var(--lh-tight); margin: 4px 0 0;
+}
+/* ══ ONE FAMILY, AND THE MONO WAS NEVER LOADED ═════════════════════════
+
+   Every caption and figure on this surface asked for `--font-mono`, and
+   this product loads exactly one family — Urbanist. So the request fell
+   through JetBrains Mono to whatever the machine calls `monospace`:
+   Consolas on Windows, Menlo on a Mac. A different typeface per operating
+   system, at 32px, on the one number the page is about.
+
+   It should not have been mono in any case. The only thing it was buying
+   was digits that do not reflow when a period switches, and
+   `font-variant-numeric: tabular-nums` does that on ANY face — it is a
+   property, not a reason for a third family. index.html records why Poppins
+   was dropped: two geometric sans separated nothing. A monospace would have
+   separated too much, in the wrong direction, adding a terminal register to
+   a page about money.
+
+   So hierarchy comes from weight and size within Urbanist, which loads
+   400 through 800. Captions sit at 600 because the skill's floor is 400 or
+   heavier below 18px and 11px uppercase needs the extra body. */
+.s-exec-eyebrow {
+  font-family: var(--font-sans); font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--d400);
+}
+.s-exec-top .s-tabcuts { margin-bottom: 0; }
+
+/* ══ ATTAINMENT — THE ONE THING ON THE PAGE THAT ANSWERS THE QUESTION ═══
+
+   Booked runs from zero. AiMY's projection continues it in a lighter tone,
+   so the two are one length and obviously not one fact. Two markers cross
+   the track: where the target is, and where booked should have reached by
+   today. The track is scaled to the widest of the three, never to the
+   target — a bar whose track IS the target cannot draw a projection that
+   beats it, and this quarter's does. */
+.s-att { margin-bottom: 32px; }
+.s-att-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.s-att-lead {
+  font-family: var(--font-sans); font-size: var(--fs-3xl);
+  font-weight: var(--fw-extrabold); letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; line-height: var(--lh-none); color: var(--d50);
+}
+/* The unit is a separate phrase from the figure and sat hard against it —
+   32px at 800 beside 16px at 500 needs more than a word space to read as
+   two things. `nowrap` keeps "of €300k" from ever breaking across lines. */
+.s-att-of {
+  font-size: var(--fs-lg); font-weight: var(--fw-medium); color: var(--d400);
+  letter-spacing: 0; white-space: nowrap; margin-left: 4px;
+}
+.s-att-pc { font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
+.s-att-pc.tone-ok { color: var(--ok-text); }
+
+.s-att-track {
+  position: relative; display: flex; height: 20px;
+  border-radius: var(--r-sm); overflow: hidden;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.s-att-booked { background: var(--accent); }
+/* The projection has to read as NOT YET REAL from across the room. A flat
+   tint of the same hue reads as more of the same bar; the hatch says it is
+   a different kind of claim without introducing a second colour. */
+.s-att-fcast {
+  background: repeating-linear-gradient(115deg,
+    rgba(var(--accent-rgb), 0.30) 0 4px, transparent 4px 8px);
+}
+/* Markers sit ON the track, not under it — a legend two rows down cannot
+   say "here", and here is the whole of what they are for. */
+.s-att-target, .s-att-pace {
+  position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: var(--r-pill);
+}
+.s-att-target { background: var(--d50); }
+.s-att-pace { background: var(--d300); }
+
+.s-att-keys { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--d400); }
+.s-att-key { display: inline-flex; align-items: center; gap: 8px; }
+.s-att-key::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-sm); flex-shrink: 0; }
+.s-att-key.is-booked::before { background: var(--accent); }
+.s-att-key.is-fcast::before { background: rgba(var(--accent-rgb), 0.28); }
+.s-att-key.is-target::before { background: var(--d50); width: 2px; height: 12px; border-radius: var(--r-pill); }
+.s-att-key.is-pace::before { background: var(--d300); width: 2px; height: 12px; border-radius: var(--r-pill); }
+.s-att-key svg { color: var(--ai-text); flex-shrink: 0; }
+
+/* The supporting four. Divided, never boxed. */
+.s-afs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-bottom: 32px; }
+.s-af { display: flex; flex-direction: column; gap: 4px; padding-top: 16px; border-top: 1px solid var(--card-border); min-width: 0; }
+.s-af-cap {
+  font-family: var(--font-sans); font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d400);
+}
+.s-af-val {
+  font-family: var(--font-sans); font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold); letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; color: var(--d50); line-height: var(--lh-none);
+}
+.s-af-val.tone-ok { color: var(--ok-text); }
+.s-af-val.tone-warn { color: var(--warn-text); }
+.s-af-sub { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); text-wrap: pretty; }
+
+/* ── Where the projection comes from ── */
+.s-odds {
+  padding: 20px; border-radius: var(--r-lg);
+  background: rgba(var(--accent-rgb), 0.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.10);
+  margin-bottom: 24px;
+}
+.s-odds-cap {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-sans); font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d300);
+}
+.s-odds-cap svg { color: var(--ai-text); }
+.s-odds-rows { display: flex; flex-direction: column; margin-top: 12px; }
+.s-odds-row { display: flex; align-items: baseline; gap: 16px; padding: 8px 0; border-top: 1px solid var(--card-border); }
+.s-odds-row:first-child { border-top: 0; }
+.s-odds-p {
+  font-family: var(--font-sans); font-size: var(--fs-base);
+  font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
+  color: var(--d50); min-width: 56px; text-align: right;
+}
+.s-odds-say { font-size: var(--fs-xs); color: var(--d200); flex: 1 1 auto; min-width: 0; }
+.s-odds-n { font-size: var(--fs-xs); color: var(--d400); white-space: nowrap; }
+/* `pretty` rather than `balance`: this is a description, and the thing worth
+   preventing is one word alone on the last line. */
+.s-odds-note { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
+
+/* The three standing facts, as a sentence row rather than three more tiles. */
+.s-exec-facts { display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: var(--fs-xs); color: var(--d400); }
+.s-exec-facts b { color: var(--d100); font-weight: var(--fw-semibold); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  .s-att-fcast { animation-delay: 220ms; }
+  .s-exec .s-af { animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+}
+@keyframes s-att-wipe { from { transform: scaleX(0); } }
+
+@media (max-width: 1002.98px) {
+  .s-afs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+}
+@media (max-width: 526.98px) {
+  .s-afs { grid-template-columns: 1fr; }
+  .s-att-lead { font-size: var(--fs-2xl); }
+}
+
+/* ══ THE DOOR, NOT THE NARRATOR ═══════════════════════════════════════
+   AiMY writes nothing on this page. What it offers is three questions the
+   figures above invite and cannot answer — a trade-off, a cause, a
+   forecast — which stage into the canvas on press. They sit under the grid
+   because they are what you do AFTER reading it, and they use the chip the
+   rest of the surface uses so they read as offers rather than as claims. */
+.s-asks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 20px; }
+.s-asks-cap {
+  font-family: var(--font-sans); font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d400);
+  margin-right: 4px;
+}
+.s-ask { display: inline-flex; align-items: center; gap: 8px; }
+.s-ask svg { color: var(--ai-text); flex-shrink: 0; }
+
+@keyframes s-exec-rise { from { opacity: 0; transform: translateY(8px); } }
 
 /* NOT space-between. With seven status chips it looked deliberate; with one
    it threw a lone "Untouched 6" to the opposite edge of the page, a filter
