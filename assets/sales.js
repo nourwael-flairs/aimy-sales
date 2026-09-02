@@ -464,9 +464,23 @@
       { k: 'ent',   label: '5,000+',      lo: 5001,  hi: Infinity },
     ],
 
-    /* Where the lead came from. `aimy` is the scrape V1 already runs. */
+    /* Where the lead came from. `aimy` is the scrape V1 already runs.
+
+       ══ LINKEDIN IS A SOURCE, NOT ONLY A SUPPLIER ══════════════════════
+
+       It was in `PROVIDERS.emp` — a vendor asked for a headcount, at 71%
+       and €0.30 — and nowhere else. The managers put it first among the
+       ways a lead is found at all, and every role that can build a list
+       starts there. A channel that produces leads and cannot be named as
+       the source of one is a channel the book cannot account for: no
+       filter, no cost, no list to open.
+
+       Both facts stay true. Sourcing and enriching are different jobs, and
+       LinkedIn does both — it finds you the person, and it will also tell
+       you how big the company is. */
     src: [
       { k: 'scrape',   label: 'AiMY scrape' },
+      { k: 'linkedin', label: 'LinkedIn' },
       { k: 'inbound',  label: 'Inbound' },
       { k: 'referral', label: 'Referral' },
       { k: 'event',    label: 'Event' },
@@ -1687,6 +1701,20 @@
         crit: 'Named introductions, dropped in as a file', found: 0 },
       { k: 'src-event', name: 'QA Summit Rotterdam — attendee list', by: 'omar', at: -110, auto: false,
         crit: 'Everyone on the delegate list, deduped against the book', found: 0 },
+      /* ══ WHAT A SALES NAVIGATOR SEARCH ACTUALLY HANDS YOU ═══════════════
+
+         `found: 820` against 13 imported is not a rounding error — it is
+         what the channel is like. A saved search matches hundreds and you
+         take the ones you can act on.
+
+         `auto: false`, and that is a decision rather than an oversight.
+         Sales Navigator alerts on a saved search, so `auto: true` would be
+         defensible — but `autoLog` starts empty on every fixture, and a
+         list that claims to run itself with no cycle behind it is the
+         invented-runs defect the note above already refuses. It runs when
+         somebody runs it. */
+      { k: 'src-li', name: 'LinkedIn — Netherlands, 200+ staff', by: 'sara', at: -33, auto: false,
+        crit: 'Netherlands · 200+ staff · saved search on Sales Navigator · profiles found, addresses not included', found: 820 },
     ];
     /* A list that arrives running itself has been doing so since it was made
        — that is what the flag means on a fixture — so `autoAt` is its own
@@ -1709,6 +1737,32 @@
         ? (a.emp != null && a.emp >= 5000 ? 'src-nl-ent' : 'src-ams')
         : (SRC_OF[a.src] || 'src-ams');
     });
+
+    /* ══ SOME OF THE SCRAPE WAS ALWAYS LINKEDIN ════════════════════════════
+
+       THIS RUNS AFTER EVERY DRAW AND MOVES NO DICE. `hashId` is a pure hash
+       of the account's own id — `openRoll`'s shape, for `openRoll`'s reason
+       — so it consumes nothing from `r` and the corpus above it is
+       byte-identical. Adding `'linkedin'` to the `pick` array at the top of
+       `build()` would have been the obvious way to do this and would have
+       reshuffled all 118 accounts, because every later draw lands on a
+       different element even though the cursor never moves.
+
+       WHY 30%. Measured, not chosen: 25, 30 and 35 all select the same 13
+       accounts, so the number sits in the middle of a plateau rather than
+       on an edge where one more character in an id would change the book.
+
+       AND THE RESULT IS COHERENT WITHOUT BEING ARRANGED. Those 13 hold 26
+       contacts: 22 have a profile, 12 have an email, 8 have a phone. That
+       is exactly what Sales Navigator gives you — the person, not the way
+       to reach them — and it is why Enrich is a real stage for this list
+       and nearly a formality for the event one. Nothing was written to make
+       that true; it falls out of the scrape-tier reach the corpus already
+       had. */
+    DB.acc.forEach((a) => {
+      if (a.src === 'scrape' && hashId(a.id) % 100 < 30) { a.src = 'linkedin'; a.srcRef = 'src-li'; }
+    });
+
     DB.source.forEach((s) => {
       s.imported = DB.acc.filter((a) => a.srcRef === s.k).length;
       /* A search states how many it FOUND and how many you took. An import
@@ -2597,11 +2651,25 @@
      `ask` went with the sentences — a node called Enrich showing `13 no way
      in` does not need "Do we know enough about them to make contact?" over
      it. `verb` stays; the runs list conjugates it. */
+  /* ══ `does` — WHAT THE STAGE IS, IN ONE LINE ═══════════════════════════════
+
+     A stage head read `Find  BDR`: its own name, and the acronym of the
+     function that owns it. Neither says what the stage is for, and `BDR` is
+     org vocabulary being asked to do the explaining. Four tabs, four names,
+     no statement of what any of them holds — which is the same fault the
+     sections had before they got decks, one level down.
+
+     One line each, in the product's plain voice, saying what the tab is
+     about. It costs a row and it removes the question. */
   const CAMP_STAGE = [
-    { k: 'find',    n: 1, label: 'Find',    verb: 'Finding',   fn: 'bdr',           scope: 'camp' },
-    { k: 'enrich',  n: 2, label: 'Enrich',  verb: 'Filling in', fn: 'bdr',          scope: 'member' },
-    { k: 'reach',   n: 3, label: 'Reach',   verb: 'Reaching',  fn: 'bdr',           scope: 'member' },
-    { k: 'measure', n: 4, label: 'Measure', verb: 'Measuring', fn: 'sales-manager', scope: 'member' },
+    { k: 'find',    n: 1, label: 'Find',    verb: 'Finding',   fn: 'bdr',           scope: 'camp',
+      does: 'Who this campaign goes to.' },
+    { k: 'enrich',  n: 2, label: 'Enrich',  verb: 'Filling in', fn: 'bdr',          scope: 'member',
+      does: 'What we know about them, and what is missing.' },
+    { k: 'reach',   n: 3, label: 'Reach',   verb: 'Reaching',  fn: 'bdr',           scope: 'member',
+      does: 'What gets sent, in what order, and who is next.' },
+    { k: 'measure', n: 4, label: 'Measure', verb: 'Measuring', fn: 'sales-manager', scope: 'member',
+      does: 'What came back.' },
   ];
   const STAGE_BY = Object.create(null);
   CAMP_STAGE.forEach((s) => (STAGE_BY[s.k] = s));
@@ -5476,6 +5544,20 @@
     const geo = GOAL_GEO.filter(([re]) => re.test(g))[0];
     if (geo) out.push({ k: 'geo', label: geo[1], on: true });
 
+    /* ══ WHERE TO LOOK IS NOT WHAT TO LOOK FOR ═════════════════════════
+
+       Every criterion above narrows the SET. This one names the supplier
+       to ask, which is a different kind of instruction and is why it
+       carries its own key rather than being folded in with the rest.
+
+       It earns the chip by changing the result: `via` below is read at
+       save time, so switching it off puts the search back on the full
+       waterfall and switching it on bills one seat instead of three
+       lookups. A criterion that only relabelled the list would be a
+       control that does nothing, which this surface has removed before. */
+    const via = /linked-?in|sales navigator/.test(g) ? 'LinkedIn Sales Navigator' : null;
+    if (via) out.push({ k: 'via', label: `Source: ${via}`, via, on: true });
+
     /* A moment worth catching them at. These read as timing, not as an
        attribute, so they are named as timing. */
     const sig = [[/hiring|recruit|vacanc/, 'Hiring right now'],
@@ -5654,8 +5736,15 @@
             enrichment surface has named its suppliers and their hit rates
             since v4; this one asserted a number from nowhere. Same shape,
             same reading — the supplier and how often it answers. */ ''}
-      <p class="s-find-via"><span class="s-plan-cap">Asked</span>${FINDERS
-        .map(([who, pct]) => `${esc(who)} <span class="s-find-hit">${pct}%</span>`).join(' · ')}</p>
+      ${/* NAMING ALL FOUR WHEN THE SEARCH ASKED ONE would be the same defect
+            one layer up: the line claims a waterfall, the list records a
+            single seat, and the cost model bills the second. It reads what
+            the criteria say, like everything else on this sheet. */ ''}
+      <p class="s-find-via"><span class="s-plan-cap">Asked</span>${(() => {
+        const named = (FIND_CRIT.filter((c) => c.on && c.via)[0] || {}).via;
+        const asked = named ? FINDERS.filter(([who]) => who === named) : FINDERS;
+        return asked.map(([who, pct]) => `${esc(who)} <span class="s-find-hit">${pct}%</span>`).join(' · ');
+      })()}</p>
       ${/* ══ THE PREVIEW IS THE SET ═══════════════════════════════════════
 
             Six name chips, and the confirm imported eight. It was a SAMPLE
@@ -5781,6 +5870,10 @@
         const wereMembers = camp ? camp.members.slice() : null;
         const wasList = again ? { name: again.name, crit: again.crit, found: again.found, imported: again.imported, by: again.by } : null;
         const crit = FIND_CRIT.filter((c) => c.on).map((c) => c.label).join(' · ');
+        /* Which supplier the search named, if it named one. Read once: it
+           decides what the list is billed for AND how the rows record their
+           arrival, and those two must not be able to disagree. */
+        const liFind = (FIND_CRIT.filter((c) => c.on && c.via)[0] || {}).via || null;
         if (again) {
           /* A re-run may hand the list on. It is the same surface asking the
              same question, and refusing to honour the answer on a continuation
@@ -5794,7 +5887,9 @@
                row, because a query goes to all three and the rows come back
                merged — claiming a vendor per company would be a precision
                the flow does not have. */
-            via: FINDERS.map(([n]) => n),
+            /* Unless a `via` criterion named one, in which case that is
+               the only supplier asked and the only one billed. */
+            via: liFind ? [liFind] : FINDERS.map(([n]) => n),
             /* Which campaign's search made this, so the next press of Find
                them continues it instead of forking a twin. */
             for: camp ? camp.k : null,
@@ -5811,7 +5906,11 @@
                list on at the moment of saving would have given somebody a
                list of records owned by you — and `standing()`, the team
                board and every "mine" filter read that owner. */
-            src: 'scrape', srcRef: key, owner: by, shared: [],
+            /* The arrival matches the supplier that produced it. A search
+               run on Sales Navigator that saved its rows as "AiMY scrape"
+               would put the cost on one channel and the credit on another,
+               and the source filter would then never find them. */
+            src: liFind ? 'linkedin' : 'scrape', srcRef: key, owner: by, shared: [],
             next: null, outcome: null, outcomeWhy: null, arch: false,
             enrich: { emp: { conf: 'high', src: 'Company register', at: iso(TODAY) }, founded: null, rev: null },
           });
@@ -5908,7 +6007,12 @@
      axis folded into `BY` and never read. The slot existed and nothing ever
      filled it — so `src.via` fills it with what the brief asked for, and the
      two that described a shape of arrival rather than a supplier are gone. */
-  const FINDERS = [['Apollo', 74], ['ZoomInfo', 58], ['Exa/Serper', 41]];
+  /* LinkedIn joins them, and its hit rate is the honest one: a saved search
+     answers more often than a database lookup because you are reading a
+     profile the person maintains themselves. What it does NOT hand over is
+     the address, which is why it is a finder here and still a provider for
+     `emp` below — two jobs, one supplier, both true. */
+  const FINDERS = [['LinkedIn Sales Navigator', 81], ['Apollo', 74], ['ZoomInfo', 58], ['Exa/Serper', 41]];
   const FIELD_LABEL = { emp: 'Headcount', rev: 'Revenue', email: 'Email', phone: 'Phone' };
   const ACC_FIELDS = ['emp', 'rev'];
   const CON_FIELDS = ['email', 'phone'];
@@ -7326,7 +7430,14 @@
     /* Per company returned. `crawl` is our own and `file` is a list
        somebody handed us — both free at the margin, which is the whole
        point of the comparison the executive page draws. */
-    find: Object.freeze({ Apollo: 0.38, ZoomInfo: 0.75, 'Exa/Serper': 0.22, crawl: 0.03, file: 0 }),
+    /* Sales Navigator is a SEAT, not a metered call — so its per-lead figure
+       is a division rather than a price list: a seat against the leads one
+       rep actually pulls from it in a month. It lands between Apollo and
+       ZoomInfo, which is about right for a channel you pay for whether or
+       not you search. Priced explicitly because `srcSpend` guards missing
+       keys with `|| 0`, so the alternative to a number is not an error — it
+       is LinkedIn silently reading as free on the executive page. */
+    find: Object.freeze({ 'LinkedIn Sales Navigator': 0.45, Apollo: 0.38, ZoomInfo: 0.75, 'Exa/Serper': 0.22, crawl: 0.03, file: 0 }),
     /* Per attempt on one field. */
     enrich: Object.freeze({
       'Company register': 0.12, LinkedIn: 0.30, 'AiMY crawl': 0.02,
@@ -7420,7 +7531,13 @@
      than letting three channels read as free money. */
   const SRC_VIA = {
     scrape: ['crawl'], list: ['Apollo', 'ZoomInfo'], event: [], inbound: [], referral: [],
+    /* One supplier, not a waterfall. You do not ask three vendors and merge
+       — you run a search on the one seat you pay for. */
+    linkedin: ['LinkedIn Sales Navigator'],
   };
+  /* `linkedin` is deliberately NOT here. The three below cost nothing per
+     lead because a person brought them; a seat costs money whether anybody
+     searches or not, which is the opposite case. */
   const UNPRICED_SRC = ['inbound', 'referral', 'event'];
 
   /* ══ THE PRICE BOOK — MOCK, AND THE ONLY INPUT IN THE MODEL ════════════
@@ -8536,9 +8653,41 @@
     return true;
   }
 
+  /* ══ WORKING INSIDE ONE CAMPAIGN IS A SCOPE, NOT A FILTER ══════════════════
+
+     A gate on the campaign page — "show me the 4 that are stuck" — lands
+     here with `campaign=q3-nl` set, and `campaign` is an ordinary axis in
+     `MULTI`. So the surface treated the thing you came WITH as one of the
+     things you came to change, and three separate controls threw it away:
+
+       THE VIEW TABS. `data-view` blanks every key in `MULTI` before applying
+       its own, and `campaign` is in `MULTI` — so pressing `Overdue` on a
+       four-account campaign set landed on eighteen accounts across all one
+       hundred and eighteen, campaign gone, obstacle gone. Measured.
+
+       THEIR COUNTS WERE NEVER SCOPED EITHER. `pool` is `records()`, the
+       whole book, so the numbers offering you those views described a set
+       you were not in — `All 118` beside a heading reading `4 accounts in
+       Q3 Netherlands`. The invitation and the destination were both global
+       while the surface claimed to be campaign work.
+
+       AND `Clear all` cleared it, alongside the axes you actually chose.
+
+     `campScope` names the state instead: exactly one campaign, on the leads
+     list, which is what arriving from a gate produces. Inside it the
+     campaign survives everything the surface does to the axes, and leaving
+     is its own labelled act rather than a side effect of pressing a count.
+
+     One campaign, not many: two campaigns is a comparison, and a comparison
+     has no single scope to preserve. */
+  const campScope = () => (onLeads() && S.campaign.length === 1 ? S.campaign[0] : null);
+
   function viewChips() {
     if (!onLeads()) return '';
-    const pool = maySee(records()).filter((r) => !r.arch);
+    const scope = campScope();
+    /* Counted inside the scope, so a view offers the set it will actually
+       land you on. */
+    const pool = maySee(records()).filter((r) => !r.arch && (!scope || campsOf(r).includes(scope)));
     const rows = VIEWS.map((v) => ({ v, n: pool.filter(v.test).length })).filter((r) => r.n);
     if (!rows.length) return '';
     /* WHICH ONE IS LIT, and the default is lit without being in the axes.
@@ -8706,9 +8855,13 @@
        campaign and nothing to press to leave it, and `reply` would have
        landed in the same hole. Asking `reads` instead keeps the Team case
        argued above — an axis that narrows nothing there still says nothing. */
+    /* The scope is drawn separately, ahead of the axes, so it is not one of
+       them — see `.s-scope-chip` below. */
+    const scope = campScope();
     for (const key of MULTI) {
       if (key === 'ids' || key === 'inc' || key === 'exc') continue;
       if (!axesHere.has(key)) continue;
+      if (key === 'campaign' && scope) continue;
       const vals = S[key] || [];
       const from = ROW_AXES().includes(key) ? 1 : 0;
       vals.slice(from).forEach((v) => add(key, v, chipText(key, v)));
@@ -8721,8 +8874,14 @@
 
     const inc = kw ? S.inc : [];
     const exc = kw ? S.exc : [];
-    if (!chips.length && !inc.length && !exc.length) return '';
+    if (!chips.length && !inc.length && !exc.length && !scope) return '';
     return `<div class="s-chips" role="group" aria-label="Active filters">
+      ${/* A `.s-scope-chip` stood here for one pass — the campaign named as a
+            scope rather than drawn as another axis chip. It is gone with the
+            whole bar: inside a campaign this surface renders no filter row
+            and no chips at all, so there is nothing left for a scope to
+            distinguish itself FROM. The way out is the back button in the
+            header, which is what a navigated page has. */ ''}
       ${inc.map((w) => keywordChip('inc', w)).join('')}
       ${exc.map((w) => keywordChip('exc', w)).join('')}
       ${chips.map((c) => `<button class="chip active s-chip" type="button"
@@ -9080,21 +9239,46 @@
     const st = taskState(t);
     const ex = taskExit(t);
     const pct = t.take ? Math.round(((t.done + t.failed) / t.take) * 100) : 0;
+    /* ══ THE STATE DECIDES WHETHER YOU ACT, SO IT LEADS ════════════════════
+
+       It was the first item of the meta run — `Needs you · Enriching ·
+       Financial services · Omar Fathy started it yesterday` — which set the
+       one fact that decides whether this card is your problem at the same
+       size and weight as when somebody pressed go. `orderedTasks` already
+       ranks the list by exactly this (`TASK_URGENCY`), so the ranking was
+       real and the card was hiding what it ranked on.
+
+       Out of the run and onto the head, opposite AiMY's mark: the same move
+       the worklist row made with its urgency column, and for the same
+       reason — it is what a reader scans down.
+
+       What is left in the run is provenance: what kind of work, on what, by
+       whom, when. Four facts of one kind, which is what a meta run is for. */
     const meta = [
-      `<span class="s-meta-st tone-${esc(TASK_STATE[st].tone)}">${esc(TASK_STATE[st].label)}</span>`,
       esc(TASK_KIND[t.kind].label),
       t.camp ? esc(campName(t.camp)) : 'no campaign',
       `${esc(actor(t.by).name)} started it ${esc(fmtAgo(t.at))}`,
     ];
     return `<article class="type-card s-card s-task-card st-${esc(TASK_STATE[st].tone)}" style="--i:${i || 0}" data-row="${esc(t.id)}">
-      <div class="tc-head">
+      <div class="tc-head s-task-head">
         <span class="tc-type">${aiMark()}AiMY</span>
+        <span class="s-task-st tone-${esc(TASK_STATE[st].tone)}">${esc(TASK_STATE[st].label)}</span>
       </div>
       <button class="tc-title s-card-title" type="button" data-task="${esc(t.id)}">${esc(t.title)}</button>
       <p class="tc-summary s-card-snip">${esc(taskProgress(t))}</p>
-      ${t.take ? `<div class="s-prog" role="img" aria-label="${esc(taskProgress(t))}">
-        <span class="s-prog-done" style="width:${pct}%"></span>
-        ${t.failed ? `<span class="s-prog-fail" style="width:${Math.round((t.failed / t.take) * 100)}%"></span>` : ''}
+      ${/* ══ AND THE BAR GETS THE NUMBER IT WAS DRAWING ═══════════════════
+            The bar's own note argues that a bar alone is a shape you have to
+            guess at and that the sentence above carries the fact. True — and
+            the fact was `18 of 42 done, 2 failed` set at the meta step,
+            third clause of a sentence, while the bar drawing it took the
+            full width. The figure sits ON the bar's line now, so the glance
+            and the fact are the same glance. */ ''}
+      ${t.take ? `<div class="s-task-prog">
+        <div class="s-prog" role="img" aria-label="${esc(taskProgress(t))}">
+          <span class="s-prog-done" style="width:${pct}%"></span>
+          ${t.failed ? `<span class="s-prog-fail" style="width:${Math.round((t.failed / t.take) * 100)}%"></span>` : ''}
+        </div>
+        <span class="s-task-count"><b>${t.done}</b> of ${t.take}${t.failed ? `<span class="s-task-fail"> · ${t.failed} failed</span>` : ''}</span>
       </div>` : ''}
       <div class="tc-gov s-card-meta">${meta.join('<span class="tc-gov-sep"> · </span>')}</div>
       ${ex && canWrite() ? `<div class="tc-action"><button class="entry-action em-review" type="button" data-taskgo="${esc(t.id)}">${esc(ex.label)}</button></div>` : ''}
@@ -9118,183 +9302,220 @@
     return bits.join(', ') + '.';
   }
 
-  function card(rec, i, inGroup) {
+  /* ══ A WORKLIST ROW, NOT A CARD ════════════════════════════════════════════
+
+     You arrive here from a gate on the campaign page — "show me the 4 that
+     have had three messages and answered none" — so you already know which
+     four and why. What you came to decide is WHICH ONE FIRST and what to do
+     about it, and the card answered neither:
+
+       THE RANK WAS INVISIBLE. IMC Trading led the set because it is forty
+       days overdue, the worst of them, and nothing on the card said so.
+       Three cards, no order stated, in a two-column grid that asks the eye
+       to compare across and down at once.
+
+       THE HIERARCHY WAS INVERTED. `Banking & finance · 1.1k staff ·
+       Amsterdam · 2 people` held the primary line beside the name, and
+       `Site visit 40 days overdue` — the reason the row exists — sat under
+       it in the meta run, smaller and dimmer. Firmographics are also the
+       one thing that CANNOT vary here: the campaign's own criteria selected
+       for them, so every row says enterprise, Netherlands, over 1,000 staff.
+       A column of identical facts is a column carrying no information.
+
+       AND INSIDE A GROUP IT HAD NO VERB AT ALL. `insightBlock` is suppressed
+       when `inGroup`, so the only controls were the group's bulk pair and
+       acting on one meant navigating to its record.
+
+     Rows, ranked, urgency first. Every analytics worklist worth copying does
+     this — Zoho files overdue activities under a red `Overdue` header with
+     the date in error tone, GitHub groups by `Urgent (1)`, Airtable and Asana
+     lead each row with its status and keep the row near thirty pixels. None
+     of the four shows firmographics in a worklist.
+
+     What the row carries: how urgent, who, what state, who owns it, and the
+     one thing to do. The firmographics are on the record, one press away, on
+     a surface that has room for them. */
+  /* ══ A WORKLIST ROW, NOT A CARD ════════════════════════════════════════════
+
+     You arrive here from a gate on the campaign page — "show me the 4 that
+     have had three messages and answered none" — so you already know which
+     four and why. What you came to decide is WHICH ONE FIRST and what to do
+     about it, and the card answered neither:
+
+       THE RANK WAS INVISIBLE. IMC Trading led the set because it is forty
+       days overdue, the worst of them, and nothing said so. Three cards, no
+       order stated, in a two-column grid that asks the eye to compare across
+       and down at once.
+
+       THE HIERARCHY WAS INVERTED. `Banking & finance · 1.1k staff ·
+       Amsterdam · 2 people` held the primary line beside the name, and the
+       reason the row exists sat under it, smaller and dimmer. Firmographics
+       are also the one thing that CANNOT vary here: the campaign's criteria
+       selected for them, so every row says enterprise, Netherlands, 1,000+
+       staff. A column of identical facts carries no information.
+
+       AND NO ROW SAID WHAT WAS HAPPENING TO IT. `Awaiting us` is a status,
+       not a situation. The group heading explains the SET once; nothing
+       explained any individual lead, so three rows that are stuck for three
+       different lengths of time read identically.
+
+       AND INSIDE A GROUP IT HAD NO VERB AT ALL — `insightBlock` is
+       suppressed when `inGroup`, so acting on one meant navigating away.
+
+     Four things, in the order a reader needs them: where it ranks, who it
+     is, what is happening, and the one thing to do. Zoho files overdue work
+     under a red header with the date in error tone, GitHub groups by
+     `Urgent (1)`, Airtable and Asana lead each row with its state — none of
+     them shows firmographics in a worklist, and none of them makes you open
+     a record to find out why a row is there. */
+  /* ══ A WORKLIST ROW ════════════════════════════════════════════════════════
+
+     Two aligned columns and nothing else. What each one holds is fixed, so
+     the eye can go straight down either of them:
+
+         Signify                                   30 days late
+         what we sent 7 weeks ago never arrived    Sara Nabil       [Fix it]
+
+     LEFT is who and what happened. RIGHT is how bad and whose. Every
+     analytics list worth copying is built this way — Copilot Money puts the
+     merchant over its account and the amount over its category, Evernote the
+     task over its note and the due date in its own column, Better Stack the
+     incident over its detail and the length at the edge. It is the shape
+     because it is the only one you can read DOWN.
+
+     Three passes got here, and the two failures are worth keeping:
+
+       THE CARD (88-109px) led with firmographics — `Banking & finance ·
+       1.1k staff · Amsterdam` — beside the name, and put the reason the row
+       existed underneath in the meta run. Firmographics are also the one
+       thing that cannot vary here: the campaign's criteria selected for
+       them, so every row said enterprise, Netherlands, 1,000+ staff.
+
+       THE FIRST ROW (60px) fixed the ranking and kept everything else. Name,
+       status pill, ICP chip, urgency, situation, owner and a verb, in two
+       flowing lines with nothing aligned to anything — so no two rows could
+       be compared without reading both in full.
+
+     What went, and why each one was safe to lose:
+
+       THE STATUS PILL. Every row inside a group carries the same one, under
+       a heading that already says what they have in common. ClickUp settles
+       this: the group header is the state, the rows are the members.
+
+       THE ICP CHIP. Same argument, harder — it was on all four rows of a
+       campaign whose criteria are an ICP.
+
+       THE RANK NUMBER. Adding `1` to each of three groups numbered nothing.
+       The urgency column is sorted, so the ranking is the column. */
+  /* ══ HOW LONG, AND OF WHAT ═══════════════════════════════════════════════
+
+     Lifted out of the row so the LIST CAN SORT BY WHAT THE ROW SHOWS. It
+     rendered `30 days late / 1 day late / 40 days late` down a column that
+     reads like a ranking and was not one: `ordered()` sorts on status
+     urgency, then obstacle rank, then the due date, so the figure in the
+     column and the order of the column were two different questions. A
+     column that looks ranked and is not is worse than one that does not
+     look ranked at all.
+
+     SILENCE IS MEASURED FROM THEIR LAST WORD, NOT OUR LAST MESSAGE. An
+     earlier cut counted days since the last touchpoint, and on this surface
+     that is the wrong clock: arriving from "three messages and nobody
+     answered", two of three rows had been mailed that morning and read `on
+     time` under a heading saying they were stuck. Sending into silence does
+     not reset it, which is the point.
+
+     `score` is the sort key and the bands are deliberately far apart: a step
+     that came due and was not taken outranks any amount of silence, because
+     it is a promise broken rather than a conversation cooling. */
+  function leadUrgency(rec) {
+    const ts = touchesFor(rec);
+    if (rec.next) {
+      const over = daysAgo(rec.next.due);
+      if (over > 0) return { text: `${plural(over, 'day')} late`, tone: 'err', score: 3000 + over };
+    }
+    const back = ts.filter((t) => t.dir === 'in')[0];
+    if (back) {
+      const quiet = daysAgo(back.at);
+      if (quiet >= 7) return { text: `${plural(quiet, 'day')} silent`, tone: quiet >= 45 ? 'err' : 'warn', score: 2000 + quiet };
+      return { text: 'answered recently', tone: null, score: 0 };
+    }
+    /* Never answered at all. `ts.length` separates the two reasons: a lead we
+       have written to that never replied is a different problem from one
+       nobody has contacted, and both used to read the same. */
+    return ts.length
+      ? { text: 'never answered', tone: 'warn', score: 1500 }
+      : { text: 'never contacted', tone: 'warn', score: 1000 };
+  }
+
+  /* No `inGroup` any more: the list is flat, so there is no heading above any
+     row to carry its state and every row states its own. What decides now is
+     whether the record HAS a finding — one that does says what happened,
+     one that does not says where it stands. */
+  function leadRow(rec, i) {
     const acc = accOf(rec);
     const st = statusOf(rec);
     const ts = touchesFor(rec);
-    const last = ts[0];
-    const exit = exitFor(rec);
+    const ex = exitFor(rec);
+    const ask = ex && FLAG_ASK[ex.k];
+    const flag = topFlag(rec);
 
-    /* One line, and it is the most identifying fact this type has. For an
-       account that is what it is and how big; for a contact it is the role
-       and where. V1 printed twelve fields and answered neither. */
-    /* An account states its people; a contact already states its account.
-       Without the first, the two lead lists read as unrelated tables rather
-       than two ways into one book — and "236 contacts" next to "118
-       accounts" gives no clue that the first sits inside the second.
+    const urg = leadUrgency(rec);
 
-       `maySee`-bounded, so it never counts a person the looker may not
-       open. */
-    const people = rec.kind === 'acc'
-      ? maySee(DB.con.filter((c) => c.acc === acc.id && !c.arch)).length : 0;
-    const snippet = rec.kind === 'acc'
-      ? [label('industry', acc.industry), fmtSize(acc.emp), acc.city,
-         people ? plural(people, 'person') : null].filter(Boolean).join(' · ')
-      : [rec.role, acc.name].filter(Boolean).join(' · ');
+    /* What happened to THIS one, in the flag's own words. `whyFlag` already
+       writes it for the record page, and the row was making a reader open
+       the record to get it — so three leads stuck for three different
+       lengths of time read identically. Outside a group there is no heading
+       to carry the state, so the status stands in. */
+    const say = flag ? whyFlag(rec, flag.k)
+      : rec.kind === 'acc' ? '' : [rec.role, acc.name].filter(Boolean).join(' · ');
 
-    const meta = [];
-    /* No override dot any more, because there are no overrides. Every
-       status on this surface is what the evidence says it is.
-
-       THE STATUS MOVED UP A LINE. It was the first item of the meta run,
-       which put the card's most-scanned fact at the start of a middle-dot
-       list of four — the same weight as who owns it. It sits beside the name
-       now, where a status belongs, and the meta line carries only the three
-       facts that qualify it. */
-    if (rec.next) {
-      const over = daysAgo(rec.next.due);
-      meta.push(`<span class="${over > 0 ? 's-meta-due' : ''}">${esc(rec.next.what)} ${over > 0 ? `${plural(over, 'day')} overdue` : fmtIn(-over)}</span>`);
-    }
-    meta.push(esc(actor(rec.owner).name));
-    /* Who moved last, not just when. "Called 3 days ago" and "they called 3
-       days ago" are the difference between waiting and owing, and that is
-       the difference the status above is made of — a meta line that hides
-       it makes the status look arbitrary. */
-    meta.push(last ? esc(touchPhrase(last)) : 'never contacted');
-
-    /* `data-row`, the same key the table uses, so the card and the row open
-       the record through one handler. It matters more since the CTA left:
-       a card whose only opening target is its own title is a card that looks
-       clickable everywhere and answers in one place. The ICP peek and the
-       title button are handled earlier in the chain, so they still win. */
-    /* ══ TWO LINES ═══════════════════════════════════════════════════════
-         163px per card, 247 of them: 25.7 screens of scroll before the
-         grouping, 37.7 after it, because grouping fixed what the cards SAID
-         and not how much room each took to say it.
-
-         Four things went. The type label — "Organization" beside a name, on
-         a surface whose heading already reads "247 contacts", said nothing
-         the reader did not know. The title, the sub-line and the head row
-         were three stacked blocks that are one line of information. And the
-         status left the meta run for the name's line, which is where the eye
-         goes first and where a status is worth reading.
-
-         What is left is a name with its qualifier and its state, then one
-         line of facts. Everything on the card is still on the card. */
-    return `<article class="type-card s-card st-${toneOf(st)}${SEL.has(rec.id) ? ' is-picked' : ''}" style="--i:${i || 0}" data-row="${esc(rec.id)}">
-      <div class="tc-head s-card-line">
-        ${/* THE TICK LIVED IN THE TABLE, AND THE TABLE IS GONE.
-
-              Deleting it took every bulk operation with it: `SEL` still
-              existed, the scope bar still rendered off it, `doEnrichMany`
-              and `createCampaign` still read it — and nothing on the surface
-              could put an id into it. Four working operations behind a
-              control that no longer existed, and no error anywhere, because
-              an empty Set is a valid Set.
-
-              Clay does this against a spreadsheet. The operations are right
-              and the grid is not: none of them asks you to compare values
-              down a column, they ask "which of these", and a card answers
-              that as well as a row does. */ ''}
-        ${canWrite() ? `<label class="s-pick-tick">
-          <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${SEL.has(rec.id) ? ' checked' : ''}
-            aria-label="Pick ${esc(rec.name)}" />
-        </label>` : ''}
-        ${/* THE IDENTITY IS ONE SLOT, so it can wrap inside itself without
-              taking the status pill with it. Name, qualifier and ICP were
-              loose in the row beside the pill, which left one choice
-              between two wrong answers: let the row wrap, and the pill
-              lands alone on a second line at whatever x the qualifier
-              ended; or forbid wrapping, and the qualifier ellipsises facts
-              a reader needs. Wrapped, the identity grows downward in its
-              own column and the pill keeps the right edge. */ ''}
-        <div class="s-card-idy">
-          <button class="tc-title s-card-title" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
-          <span class="tc-summary s-card-snip">${esc(snippet)}</span>
-          ${acc.icp ? `<button class="s-icp" type="button" data-kb="${esc(acc.icp)}" title="${esc(KB_BY[acc.icp].title)}">ICP</button>` : ''}
-        </div>
-        ${/* ══ SKIPPED, AND IT IS NOT A STATUS ═══════════════════════════
-
-              The ticket asks for skipped contacts to be flagged in the list,
-              and the flag has to come from the RUN rather than from the
-              record. This product has refused a typed status since v3:
-              writing `skipped` onto a person would be a value somebody set,
-              indistinguishable from a fact, decaying from the day it was
-              typed — and it would still be sitting there in November on
-              somebody who was skipped because the office was shut one
-              Tuesday.
-
-              So it reads off the live session and leaves with it. It says
-              what is true right now — this run passed over them — and when
-              the run ends the person is exactly who they were. Their real
-              status is still in the pill beside it, unmoved. */ ''}
+    return `<article class="s-lrow st-${toneOf(st)}${SEL.has(rec.id) ? ' is-picked' : ''}" style="--i:${i || 0}" data-row="${esc(rec.id)}">
+      ${canWrite() ? `<label class="s-pick-tick">
+        <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${SEL.has(rec.id) ? ' checked' : ''}
+          aria-label="Pick ${esc(rec.name)}" />
+      </label>` : '<span class="s-lrow-nopick"></span>'}
+      <span class="s-lrow-body">
+        <button class="s-lrow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
+        ${say ? `<span class="s-lrow-say">${esc(say)}</span>` : ''}
+        ${/* The state, only where there is no finding to say something more
+              specific. A row with a finding already carries what happened;
+              adding "Awaiting us" under it is the weaker of two facts,
+              repeated down the column. */ ''}
+        ${flag ? '' : `<span class="s-lrow-st tone-${toneOf(st)}">${esc(label('status', st))}</span>`}
         ${(() => {
           const s = callSession();
           return s && (s.skipped || []).includes(rec.id)
-            ? '<span class="s-meta-skip" title="Skipped on the run you are working now">Skipped</span>' : '';
+            ? '<span class="s-lrow-skip" title="Skipped on the run you are working now">Skipped on this run</span>' : '';
         })()}
-        <span class="s-meta-st tone-${toneOf(st)}">${esc(label('status', st))}</span>
-      </div>
-      ${/* ══ THE BAND WAS A PROGRESS BAR CARRYING A COMPOSITION ═════════════
-
-            It was here to say what the status word cannot — that three
-            contacts, one replied and two never rung, is a different account
-            from three who all replied. A real gap. This was not an answer to
-            it.
-
-            **The form promises the wrong reading.** A 4px full-width bar at
-            the foot of a card means one thing in every product anybody uses:
-            how far along this is. Two segments read as 72% done, not as two
-            people in two states.
-
-            **Nothing on the card decoded it.** No legend, no counts, no
-            labels — the `aria-label` carried the whole answer (`1 awaiting
-            us, 1 awaiting them`), so a screen reader got the fact and a
-            sighted reader got two colours. When the assistive text is the
-            richer of the two, the visual form is not carrying the content.
-
-            **And it fired irregularly**: 13 of 32 cards on one screen,
-            because it needs two contacts across two statuses. Scanning a
-            list, the absence of a bar reads as no progress rather than as no
-            spread.
-
-            Cut, not relocated. The card already prints `2 people`, and the
-            record one press away lists them with their statuses — which is
-            the same information in a form that states which is which. */ ''}
-      ${/* THE META RUN IS ONE THING, SO IT IS ONE ELEMENT. It was three
-            spans and two separators loose in a wrapping flex row beside the
-            flag chip — so when the run got long the CHIP wrapped, landing
-            alone on a second line at whatever x the run happened to end at.
-            That is the stranded "ADDRESS BOUNCED" a reader sees.
-
-            Wrapped, the run is a single flex item that can shrink and
-            ellipsis, and the chip keeps its slot at the right edge. */ ''}
-      <div class="tc-gov s-card-meta">
-        <span class="tc-gov-run">${meta.join('<span class="tc-gov-sep"> · </span>')}</span>
-        ${inGroup ? flagChip(rec) : ''}
-      </div>
-      ${/* NOT A CTA. This was `.tc-action` holding one `.entry-action`
-            button — a filled, bordered control that was the loudest thing
-            on the card and said only a verb. The reader met the affordance
-            before the reason.
-
-            It is AiMY's insight now: mark, work state, what it found in its
-            own voice, and the action last as a link. The card is read
-            top-to-bottom as facts and ends in a suggestion, which is the
-            order a person actually decides in.
-
-            ── AND INSIDE A GROUP IT IS NOT HERE AT ALL ──
-
-            The group above already said it, once, for every card under it.
-            Repeating it per member is what made the contacts surface 25.7
-            screens: the same paragraph, thirty-one times, each with its own
-            pair of buttons. What the card keeps is the FLAG — the two words
-            naming which finding it belongs to — because a card that has left
-            its group's heading behind on scroll still has to say what it is
-            doing there. */ ''}
-      ${inGroup ? '' : insightBlock(rec, { compact: true })}
+      </span>
+      <span class="s-lrow-side">
+        <span class="s-lrow-urg${urg.tone ? ` tone-${esc(urg.tone)}` : ''}">${esc(urg.text)}</span>
+        <span class="s-lrow-own">${esc(actor(rec.owner).name)}</span>
+      </span>
+      ${/* ── ONE VERB, ON THE ROW ──
+            `exitFor` already knows what the flag implies — reschedule it,
+            fix the address, find a new champion — and the card threw that
+            away inside a group, so acting on one meant navigating to its
+            record. Ghost, not filled: a filled control on every row is nine
+            primaries, which is the defect the group heading's own note
+            argues against. */ ''}
+      ${canWrite() && ex ? `<button class="s-lrow-go" type="button" data-exit="${esc(rec.id)}"
+        data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
+        data-aimy-topic="${esc(ex.k)}"
+        ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${esc(ex.label)}</button>` : '<span></span>'}
     </article>`;
   }
+
+  /* `card()` is gone with the two-column lead grid. It rendered a name, its
+     firmographics, a status pill and a meta run at 88-109px apiece, two
+     across, with no verb inside a group and no statement of why one came
+     before another. `leadRow` above replaces it: same record, same handlers
+     (`data-row`, `data-open`, `data-exit`, the tick), ranked and one line.
+
+     `taskCard` and `campCard` keep their grid. A task and a campaign are
+     things you compare against each other, which is what a card grid is
+     for; a filtered set of leads arrived at from a gate is a worklist, and
+     you read it in one direction. */
 
   /* The card's whole share of the insight when its group carries the
      sentence: which finding put it here, in the finding's own tone. */
@@ -9383,34 +9604,12 @@
      per-record version did, not worse: an insight that owns a named set can
      offer a bulk next step, where 186 copies could each only offer the same
      single-record one. */
-  const FLAG_SAY_MANY = {
-    'address-bounced': (n) => ({ state: 'detected',
-      text: `I sent to <b>${n}</b> of these and nothing arrived. The addresses on the records do not work.` }),
-    stalled: (n) => ({ state: 'detected',
-      text: `<b>${n}</b> have a next step that came due and nothing has moved since. I have not rescheduled any of them.` }),
-    'gone-quiet': (n) => ({ state: 'recommended',
-      text: `Nothing has passed between us and <b>${n}</b> of these in months, and there is nothing scheduled that would change it.` }),
-    'no-reply': (n) => ({ state: 'recommended',
-      text: `<b>${n}</b> have had messages go out since they last replied and none came back. What we are sending is not landing.` }),
-    'no-champion': (n) => ({ state: 'detected',
-      text: `The person we were talking to has gone at <b>${n}</b> of these. Nobody has taken their place.` }),
-    'wrong-person': (n) => ({ state: 'detected',
-      text: `<b>${n}</b> told us we are talking to the wrong person. I have not worked out who it should be.` }),
-    funded: (n) => ({ state: 'recommended',
-      text: `<b>${n}</b> have just raised. Nothing has gone out to any of them since it happened.` }),
-    'job-change': (n) => ({ state: 'detected',
-      text: `Our contact has moved on at <b>${n}</b> of these. I have not checked whether where they went is worth a conversation.` }),
-    promotion: (n) => ({ state: 'detected',
-      text: `Our contact has been promoted at <b>${n}</b> of these. They have more room to decide than when we last spoke.` }),
-    'visited-site': (n) => ({ state: 'recommended',
-      text: `Somebody from <b>${n}</b> of these has been on our site. Nobody has reached out.` }),
-    'new-hire': (n) => ({ state: 'detected',
-      text: `<b>${n}</b> have a new decision-maker we have never been introduced to.` }),
-    hiring: (n) => ({ state: 'detected',
-      text: `<b>${n}</b> are hiring into the team that would buy this.` }),
-    'renewal-near': (n) => ({ state: 'recommended',
-      text: `<b>${n}</b> are coming up for renewal and nothing is scheduled before it.` }),
-  };
+  /* `FLAG_SAY_MANY` wrote AiMY's paragraph per finding — first person, a
+     count, and what it meant — for a heading that introduced that finding's
+     rows. There are no per-finding headings now: `grid()` accumulates every
+     finding into one block and the list under it is flat and ranked. What
+     the block needs is a clause per line with the count in its own column,
+     which is `FLAG_SUM`. The paragraphs went with the headings. */
 
   /* ══ THE GRID, GROUPED BY WHAT AiMY FOUND ══════════════════════════════
 
@@ -9441,7 +9640,37 @@
      navigation because it is about where you are looking right now, not
      about what you are looking at. Cleared on every filter change, for the
      same reason. */
-  const GROUP_PAGE = 3;
+  /* Was `GROUP_PAGE = 3`, three per finding — so a set of twenty showed
+     three of each and had no control anywhere that would show it whole. One
+     list, one cap, one way to see the rest. */
+  const LIST_PAGE = 12;
+  /* Five findings drawn, the rest named in a line. Nine rows of AiMY above a
+     list is the wall this block was built to remove. */
+  const FINDINGS_SHOWN = 5;
+
+  /* ── A FINDING, IN ITS SHORTEST HONEST FORM ──
+
+     `FLAG_SAY_MANY` writes AiMY's paragraph about a group — first person, a
+     count, and what it means — which is right when the sentence is a heading
+     introducing rows. In the accumulated block the count is its own column
+     and there are three to five of these stacked, so the paragraph becomes
+     a wall. These are the same findings as clauses: no count, no first
+     person, and readable down a column. */
+  const FLAG_SUM = {
+    'address-bounced': 'The address is wrong, so nothing we send arrives.',
+    stalled: 'A next step came due and nobody took it.',
+    'gone-quiet': 'Gone quiet, with nothing scheduled to bring them back.',
+    'no-reply': 'Messages out, and none of them answered.',
+    'no-champion': 'The person who wanted this has gone, with no replacement.',
+    'wrong-person': 'We are talking to somebody who cannot decide.',
+    funded: 'They have just raised, and the sequence does not know.',
+    'job-change': 'Our contact has moved somewhere new.',
+    promotion: 'Our contact was promoted.',
+    'visited-site': 'They have been on the site and nobody has reached out.',
+    'new-hire': 'A new decision-maker has started.',
+    hiring: 'They are hiring, which says what they are building.',
+    'renewal-near': 'A renewal is coming up.',
+  };
   let OPEN_GROUPS = new Set();
 
   function grid(list) {
@@ -9449,60 +9678,164 @@
     if (onTasks()) return `<div class="s-grid s-stagger">${list.map((r, i) => taskCard(r, i)).join('')}</div>`;
     if (onCamps()) return `<div class="s-grid s-stagger">${list.map((r, i) => campCard(r, i)).join('')}</div>`;
 
+    /* ══ ONE READING, THEN ONE LIST ════════════════════════════════════════
+
+       This drew a full-width AiMY bar per finding, each with its own `Pick`
+       and `Ask` pair, with that finding's rows underneath it. On the sets
+       this surface is actually reached with, the bars outnumbered the
+       records: two findings of one lead each rendered two paragraphs and
+       four buttons to introduce two rows, and the list was cut into
+       fragments too short to be a list.
+
+       It also spent the ranking. `ordered()` sorts the whole set by what
+       costs most to ignore; grouping re-sorted it into buckets by taxonomy
+       order, so a lead ninety-seven days silent could sit below one that was
+       one day late because their findings happened to rank that way.
+
+       Accumulated instead: everything AiMY has to say about the set, once,
+       at the top — then one uninterrupted list in the order `ordered()`
+       already put it. This is the shape the campaign page's own sections
+       use, and the shape NN/g's structure asks for: the reading, the
+       summary that qualifies it, then the evidence.
+
+       Every row still says which finding put it there — `whyFlag` writes it
+       into the row itself — so flattening loses no attribution. What it
+       loses is the same sentence repeated as a heading above every group. */
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
-    const rest = [];
+    let flagged = 0;
     for (const rec of list) {
       const flag = topFlag(rec);
-      if (!flag) { rest.push(rec); continue; }
+      if (!flag) continue;
       if (!groups.has(flag.k)) groups.set(flag.k, []);
       groups.get(flag.k).push(rec);
+      flagged++;
     }
+    const found = order.filter((k) => groups.has(k));
 
-    const blocks = order.filter((k) => groups.has(k)).map((k) => {
-      const recs = groups.get(k);
-      const row = BY.status[k];
-      const say = FLAG_SAY_MANY[k] ? FLAG_SAY_MANY[k](recs.length)
-        : { state: 'detected', text: `<b>${recs.length}</b> ${recs.length === 1 ? 'is' : 'are'} ${esc(row.label.toLowerCase())}.` };
-      const allPicked = recs.every((r) => SEL.has(r.id));
-      const open = OPEN_GROUPS.has(k);
-      const page = open ? recs : recs.slice(0, GROUP_PAGE);
-      return `<section class="s-group" aria-label="${esc(`${row.label} — ${recs.length}`)}">
-        <div class="s-group-head tone-${esc(row.tone)}">
-          <span class="s-group-mark">${aiMark()}</span>
-          ${stateChip(say.state)}
-          <span class="s-group-txt">${say.text}</span>
-          <span class="s-group-acts">
-            ${/* SECONDARY, because there are nine of these. A surface gets one
-                  primary and a list of findings has no single one — you are
-                  choosing which finding to work, and nine filled buttons is
-                  the same as none. The primary appears once you have chosen:
-                  it is the scope bar's, and it is about the set you picked. */ ''}
-            ${canWrite() ? `<button class="s-insight-lnk" type="button" data-pickgroup="${esc(k)}">${allPicked ? 'Unpick' : `Pick ${recs.length === 1 ? 'it' : `these ${recs.length}`}`}</button>` : ''}
-            <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
-              data-aimy-topic="group-${esc(k)}"
-              data-aimy-ask="${esc(`${recs.length} of the leads on screen are ${row.label.toLowerCase()}. Show me what they have in common and what to do about them.`)}">Ask about ${recs.length === 1 ? 'it' : 'them'}</button>
-          </span>
-        </div>
-        <div class="s-grid s-stagger">${page.map((r, i) => card(r, i, true)).join('')}</div>
+    /* Findings ranked by how many they hold, not by taxonomy order — the
+       block is a summary and the biggest thing in it should read first. */
+    const ranked = found.slice().sort((a, b) => groups.get(b).length - groups.get(a).length);
+
+    /* ══ SORTED BY WHAT THE COLUMN SHOWS ═══════════════════════════════════
+
+       `ordered()` ranks by status urgency, then obstacle rank, then the due
+       date — a considered order, and not the one the row displays. Rendered
+       flat it read `30 days late · 1 day late · 40 days late` down a column
+       that looks like a ranking, which is a worse fault than not ranking at
+       all: the reader trusts the column and the column is answering a
+       different question.
+
+       Re-sorted on `leadUrgency`, the figure IS the order. `ordered()` still
+       does the work everywhere else and breaks ties here, so two leads with
+       the same lateness stay in its considered order rather than in whatever
+       order the filter happened to produce.
+
+       Its own function because both shapes of the block above render it —
+       the accumulation and the single-finding line lead to the same list. */
+    function listOf(recs) {
+      const ranks = new Map(recs.map((r, n) => [r.id, n]));
+      const sorted = recs.slice().sort((a, b) =>
+        leadUrgency(b).score - leadUrgency(a).score || ranks.get(a.id) - ranks.get(b.id));
+      /* Capped, with one way to see the rest — the per-group `Show the other
+         N` could only ever reveal one finding's tail, so a set of twenty
+         showed three of each and no way to see it whole. */
+      const open = OPEN_GROUPS.has('_all');
+      const page = open ? sorted : sorted.slice(0, LIST_PAGE);
+      return `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>
         ${recs.length > page.length
-          ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="${esc(k)}">Show the other ${recs.length - page.length}</button>`
-          : open && recs.length > GROUP_PAGE
-            ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="${esc(k)}">Show fewer</button>` : ''}
-      </section>`;
-    });
-
-    if (rest.length) {
-      const open = OPEN_GROUPS.has('_rest');
-      blocks.push(`<section class="s-group" aria-label="Nothing in the way — ${rest.length}">
-        <div class="s-group-head is-quiet">
-          <span class="s-group-txt">${esc(plural(rest.length, 'lead'))} with nothing in the way and nothing open. ${rest.length === 1 ? 'It is' : 'They are'} here so the count adds up.</span>
-          <button class="s-inline-btn" type="button" data-opengroup="_rest">${open ? 'Hide them' : 'Show them'}</button>
-        </div>
-        ${open ? `<div class="s-grid s-stagger">${rest.map((r, i) => card(r, i, true)).join('')}</div>` : ''}
-      </section>`);
+          ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${recs.length - page.length}</button>`
+          : open && recs.length > LIST_PAGE
+            ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show fewer</button>` : ''}`;
     }
-    return blocks.join('');
+
+    /* ══ THE SET IS OFTEN THE FINDING, AND THEN THIS SAYS NOTHING ══════════
+
+       Arriving from a gate — "show me the 4 that have gone quiet" — every
+       record here has that finding BY CONSTRUCTION. So `1 of the 1 needs
+       something doing` restates the filter, the findings list restates it
+       again, and the row underneath restates it a third time. The block was
+       built to accumulate several findings; with one it accumulates nothing
+       and charges four lines for it.
+
+       Two shapes, and which one applies is a fact about the set rather than
+       a setting: several findings gets the accumulation, one gets a single
+       line and the bulk verbs. The one-line form is the old group heading —
+       which was never wrong, only wrong REPEATED, and there is exactly one
+       of it here.
+
+       The ratio goes too when it is vacuous. `16 of the 24` is a real
+       finding; `16 of the 16` is arithmetic about a filter. */
+    const one = found.length === 1;
+    const allFlagged = flagged === list.length;
+    const share = allFlagged
+      ? `<b>All ${flagged}</b>`
+      : `<b>${flagged} of the ${list.length}</b>`;
+
+    if (one) {
+      const k = found[0];
+      const clause = FLAG_SUM[k] || BY.status[k].label;
+      const recs = groups.get(k);
+      const allPicked = recs.every((r) => SEL.has(r.id));
+      return `<div class="s-findings is-one">
+        <p class="s-lead-mark">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          AiMY reads it
+        </p>
+        <p class="s-findings-say">${share} — ${esc(clause.charAt(0).toLowerCase() + clause.slice(1))}</p>
+        <p class="s-findings-acts">
+          ${canWrite() ? `<button class="s-insight-lnk" type="button" data-pickgroup="${esc(k)}">${
+            allPicked ? 'Unpick' : `Pick ${recs.length === 1 ? 'it' : `these ${recs.length}`}`}</button>` : ''}
+          <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
+            data-aimy-topic="findings"
+            data-aimy-ask="${esc(`${recs.length} of the leads on screen are ${BY.status[k].label.toLowerCase()}. Show me what they have in common and what to do about them.`)}">Ask about ${recs.length === 1 ? 'it' : 'them'}</button>
+        </p>
+      </div>
+      ${listOf(list)}`;
+    }
+
+    const readBlock = `<div class="s-findings">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY reads it
+      </p>
+      <p class="s-findings-say">${allFlagged
+        ? `<b>${plural(found.length, 'different reason')}</b> between them.`
+        : `${share} ${flagged === 1 ? 'needs' : 'need'} something doing, for <b>${plural(found.length, 'different reason')}</b>.`}</p>
+      ${/* ══ AND THE TAIL IS A LINE, NOT NINE ROWS ═════════════════════════
+            A full campaign turns up nine findings, four of them holding one
+            lead each — and a block built to stop the page being a wall of
+            AiMY bars became a wall of AiMY rows. The ones worth a row are
+            the ones with a set behind them; a finding of one is a lead, and
+            the list below already has it.
+
+            Five is the cut because it is what fits without scrolling past
+            the block that is meant to orient you, and the tail still states
+            its own size so nothing is hidden. */ ''}
+      <div class="s-findings-list">
+        ${ranked.slice(0, FINDINGS_SHOWN).map((k) => {
+          const recs = groups.get(k);
+          const row = BY.status[k];
+          const allPicked = recs.every((r) => SEL.has(r.id));
+          return `<div class="s-finding">
+            <span class="s-finding-n">${recs.length}</span>
+            <span class="s-finding-say">${esc(FLAG_SUM[k] || row.label)}</span>
+            ${canWrite() ? `<button class="s-finding-pick${allPicked ? ' is-on' : ''}" type="button" data-pickgroup="${esc(k)}">${
+              allPicked ? 'Unpick' : `Pick ${recs.length === 1 ? 'it' : `these ${recs.length}`}`}</button>` : '<span></span>'}
+          </div>`;
+        }).join('')}
+        ${ranked.length > FINDINGS_SHOWN ? `<p class="s-findings-tail">and <b>${ranked.length - FINDINGS_SHOWN} more</b>, ${
+          ranked.slice(FINDINGS_SHOWN).every((k) => groups.get(k).length === 1) ? 'one lead each' : 'smaller'} — ${
+          esc(ranked.slice(FINDINGS_SHOWN).map((k) => BY.status[k].label.toLowerCase()).join(', '))}.</p>` : ''}
+      </div>
+      <p class="s-findings-acts">
+        <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
+          data-aimy-topic="findings"
+          data-aimy-ask="${esc(`${flagged} of the ${list.length} leads on screen have something in the way. Show me what they have in common and what to do about them.`)}">Ask about them</button>
+      </p>
+    </div>`;
+
+    return `${readBlock}${listOf(list)}`;
   }
 
   /* ═══════════════════════════════════════════════
@@ -10079,7 +10412,28 @@
     return firstUnsent && firstUnsent.n === s.n ? 'staged' : 'detected';
   }
 
-  const STEP_WORD = { completed: 'sent', staged: 'next', drafted: 'written', detected: 'not written' };
+  /* ══ A CALL IS NOT SENT ════════════════════════════════════════════════════
+
+     One word table for four channels: a Call step reported `SENT 11` and an
+     Online meeting `SENT 8`, because the vocabulary was written for email
+     and applied to everything the sequence can do. Eleven calls were made
+     and eight meetings were held; neither was sent anywhere.
+
+     Same fault as `Touchpoints` in the tally, one level down, and the same
+     fix: the step carries `ch`, so the word can come off the channel instead
+     of off a single default. `detected` and `drafted` move with it — "not
+     written" is the right absence for an email and the wrong one for a call,
+     where what is missing is a plan rather than a draft.
+
+     `staged` stays `next` for every channel: what is next is next. */
+  const STEP_DONE = { aimy: 'sent', phone: 'called', meeting: 'met', physical: 'visited' };
+  const STEP_PREP = { aimy: 'written', phone: 'ready', meeting: 'ready', physical: 'ready' };
+  function stepWord(st, ch) {
+    if (st === 'completed') return STEP_DONE[ch] || 'sent';
+    if (st === 'drafted') return STEP_PREP[ch] || 'written';
+    if (st === 'detected') return ch === 'aimy' ? 'not written' : 'not planned';
+    return 'next';
+  }
 
   function trailBlock(l) {
     return `<div class="s-trail" role="list">
@@ -10088,13 +10442,26 @@
         const evs = (DB.eventsOf[l.k] || []).filter((e) => e.step === s.n);
         const went = evs.filter((e) => e.kind === 'sent').length;
         const here = String(S.step) === String(s.n);
-        return `${i ? `<span class="s-trail-wait" aria-hidden="true">${s.wait}d</span>` : ''}
-          <button class="s-trail-step${here ? ' is-here' : ''}" type="button" role="listitem"
+        /* ── THE WAIT SAYS IT IS A WAIT ──
+           `3d` between two cards is three days of WHAT: since the last one,
+           until the next, how old it is. Spelled out, with the direction in
+           the word, it is one reading instead of a guess. */
+        const wait = i ? `<span class="s-trail-wait" aria-hidden="true">${s.wait} ${s.wait === 1 ? 'day' : 'days'} later</span>` : '';
+        /* ── AND THE COUNT SAYS WHAT IT COUNTED ──
+           `SENT 6` is six of something, on a block whose other two cards say
+           11 and 8. The unit is people: six of them have had this step. */
+        const done = went ? `${stepWord(st, s.ch)} to ${went}` : stepWord(st, s.ch);
+        return `${wait}
+          <button class="s-trail-step${here ? ' is-here' : ''}${st === 'staged' ? ' is-next' : ''}" type="button" role="listitem"
                   data-step="${esc(l.k)}|${s.n}"
-                  aria-label="Step ${s.n}, ${esc(s.name)}, ${esc(STEP_WORD[st])}">
-            <span class="s-trail-n">${s.n}</span>
+                  aria-label="Step ${s.n}, ${esc(s.name)}, on ${esc(label('channel', s.ch))}, ${esc(done)}${st === 'staged' ? ', goes next' : ''}">
+            <span class="s-trail-top">
+              <span class="s-trail-n">${s.n}</span>
+              <span class="s-trail-ch">${chIcon(s.ch)}${esc(label('channel', s.ch))}</span>
+              ${st === 'staged' ? '<span class="s-trail-next">Next</span>' : ''}
+            </span>
             <span class="s-trail-name">${esc(s.name)}</span>
-            <span class="work-state ws-${esc(st)}" data-work-state="${esc(st)}">${esc(went ? `${STEP_WORD[st]} ${went}` : STEP_WORD[st])}</span>
+            <span class="work-state ws-${esc(st)}" data-work-state="${esc(st)}">${esc(done)}</span>
           </button>`;
       }).join('')}
     </div>
@@ -10167,11 +10534,102 @@
        actually sent, not from who is on the list") over a figure nobody
        disputed, and `first.size` was computed for it and read nowhere else
        in the file. */
-    return `<div class="s-metrics">
-      ${card(sent, 'Sent', replied ? plural(replied, 'reply', 'replies') + ' back' : 'nothing back yet')}
-      ${card(rate(bounced, sent + bounced), 'Never arrived', bounced ? 'addresses to fix' : 'everything got through', bounced ? 'warn' : null)}
-      ${card(rate(opened, sent), 'Open rate', 'email only')}
-    </div>`;
+    /* ══ AND THREE CARDS WERE THREE ISOLATED FACTS ═════════════════════════
+
+       Boxed, evenly weighted, side by side, interpreting nothing — the shape
+       that says "here are some numbers" and leaves the ranking to the
+       reader. The tally in Progress had the same three-cards-in-a-row
+       problem and `.s-afs` fixed it there: divided, never boxed, one rule
+       above each figure and the space doing the grouping.
+
+       Same component here, so the two figure rows on this page are the same
+       figure row. `metricCard` survives for the executive surface, which is
+       the one place on the product that argues FOR cards.
+
+       The reading is what the block never had. Three percentages with no
+       sentence is the "unexplained numbers" the doctrine's Level 5 fails a
+       surface on, and the one that matters is not the largest — it is the
+       one with something to do about it. */
+    /* ══ THIS WAS NOT MEASURING THE CAMPAIGN ═══════════════════════════════
+
+       `Sent 25 · Never arrived 11% · Open rate 12%` are three facts about
+       MESSAGES. The campaign's goal, written at the top of its own page, is
+       "a scoping call with whoever owns quality" — and nothing on the tab
+       that exists to measure it said how many scoping calls there are.
+
+       Worse, the three could not be read together. `Sent` counted EVENTS —
+       25 of them across 24 organizations — so it does not divide into
+       anything else on the surface, and `Open rate` measured one of three
+       channels on a campaign that is 11 calls and 8 meetings against 6
+       emails: a quarter of the traffic, presented beside two campaign-wide
+       figures with the caveat set smaller than the number it disqualified.
+
+       A campaign is measured as ONE POPULATION NARROWING. Twenty-four
+       organizations went in; some were reached, fewer replied, fewer booked
+       the call the goal names, fewer closed. Counting organizations at every
+       step is what makes those comparable, and what makes the drop between
+       any two of them a real number rather than two unrelated ones.
+
+       `never arrived` survives outside the funnel, because it is not a stage
+       anybody passes through — it is a data fault, and the one figure here
+       with a cheap fix attached. */
+    const members = campMembers(l);
+    const ts = campSent(l);
+    const byAcc = {};
+    ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
+    const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
+
+    const steps = [
+      { k: 'in', label: 'On the campaign', set: members,
+        say: 'organizations it went out to' },
+      { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
+        say: 'had at least one thing sent to them' },
+      { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
+        say: 'answered at least once' },
+      { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
+        say: 'the goal of this campaign' },
+      { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
+        say: 'closed' },
+    ];
+    const top = steps[0].set.length || 1;
+
+    /* ── THE BIGGEST DROP IS THE FINDING ──
+       Where a campaign loses its people is the one thing the funnel is for,
+       and it is a comparison between adjacent rows rather than any row's own
+       number — so nothing in a list of five figures states it. */
+    let worst = null;
+    for (let i = 1; i < steps.length; i++) {
+      const lost = steps[i - 1].set.length - steps[i].set.length;
+      if (!worst || lost > worst.lost) worst = { lost, from: steps[i - 1], to: steps[i] };
+    }
+    const booked = steps[3].set.length;
+    const read = !ts.length
+      ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
+      : `<b>${booked === 0 ? 'No one' : plural(booked, 'organization')}</b> ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
+          worst && worst.lost ? ` It loses most of them between <b>${esc(worst.from.label.toLowerCase())}</b> and <b>${esc(worst.to.label.toLowerCase())}</b> — <b>${worst.lost}</b> of them.` : ''}`;
+
+    return `${stageRead(read)}
+    <div class="s-funnel">
+      ${steps.map((s, i) => {
+        const n = s.set.length;
+        const prev = i ? steps[i - 1].set.length : n;
+        const drop = i && prev ? prev - n : 0;
+        return `<div class="s-fn-row${s.k === 'booked' ? ' is-goal' : ''}">
+          <span class="s-fn-name">${esc(s.label)}${s.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
+          <span class="s-fn-track" aria-hidden="true"><span class="s-fn-fill" style="width:${Math.max(1, Math.round((n / top) * 100))}%"></span></span>
+          <span class="s-fn-n">${n}</span>
+          <span class="s-fn-pct">${i ? `${Math.round((n / top) * 100)}%` : `of ${top}`}</span>
+          <span class="s-fn-say">${esc(s.say)}${drop ? ` · <b>${drop} lost here</b>` : ''}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    ${bounced ? `<div class="s-fn-note">
+      ${/* Not a funnel step — nobody passes THROUGH a bounce. A fault in the
+            list, stated beside the funnel it distorts, with the fix on it. */ ''}
+      <span><b>${rate(bounced, sent + bounced)}</b> of what went out never arrived. That is the list, not the copy.</span>
+      <button class="s-inline-btn" type="button"
+        data-quick2="${esc(`on=leads&who=contacts&campaign=${l.k}&obstacle=address-bounced&status=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">Show me the ${bounced === 1 ? 'one' : bounced}</button>
+    </div>` : ''}`;
   }
 
   /* ══ THE STRIP — NAVIGATION AND PROGRESS AT ONCE ═══════════════════════
@@ -10204,6 +10662,37 @@
      standing in, otherwise where the weight is. Reusing it is what makes
      the campaign row on home and the campaign page agree about what this
      campaign wants; two answers to that question is how they drift. */
+  /* ══ THE PIPELINE, AND THE WORK IT LEADS TO ════════════════════════════════
+
+     What this replaced was one `<ol>` in which the four stages and the open
+     stage's body were the same list: Find, Enrich, Reach, then five hundred
+     pixels of Copy, Sequence and a call queue, then Measure — orphaned at the
+     bottom, a screen and a half below the three rows it belongs with.
+
+     An overview that is interrupted by the thing it is an overview OF is not
+     an overview. You could not compare the four figures without scrolling
+     past the work, and the work never got a heading of its own because the
+     row above it was doing that job while also being a list item.
+
+     So they separate. The strip is the whole pipeline, always four cells
+     wide, always comparable at a glance. The stage under it is the working
+     surface, at the full width of the column, with its own name and owner.
+     Selecting a cell changes what is underneath — which is what the row
+     already did, so no handler changes: `data-stage` is the same contract.
+
+     ── THE TRACK, AND WHERE IT HONESTLY APPLIES ──
+
+     Only two of the four stages HOLD work. `Find` reports how many are in
+     the campaign at all and `Measure` reports a reply rate — a population
+     and a ratio, neither of them a queue, and neither comparable to "3
+     waiting" on the same axis. Drawing all four against one scale would be
+     the mistake the ranked rows were rebuilt to remove: a bar that looks
+     like a comparison and is not one.
+
+     So the track is drawn only where something is queued, scaled to the
+     campaign's own size, and the cells that queue nothing keep the space and
+     draw nothing in it. The uneven result is the honest one: it says which
+     stages hold work, which is the question the section exists to answer. */
   function campFlow(l) {
     /* ══ THE REPORT DOES NOT OPEN ONTO THE WORK ════════════════════════════
        A read-only viewer's flow is four figures and one body. `?stage=` is a
@@ -10213,57 +10702,91 @@
     const report = !canWrite();
     const here = report ? 'measure' : STAGE_BY[S.stage] ? S.stage : campHeadline(l).stage;
     const at = campStage(l);
-    return `<ol class="s-flow">
-      ${CAMP_STAGE.map((st) => {
-        const open = st.k === here;
-        /* Nothing to press where nothing would happen: on the report every
-           head but Measure is a readout, so it is not a button. A disabled
-           control offers something and then refuses it; this offers nothing
-           and is honest about having nothing to offer. */
-        const flat = report && !open;
-        const f = stageFigure(l, st.k);
-        const crew = stageCrew(l, st.k);
-        const mine = crew.includes(me().id);
-        /* CLEAR, NOT DONE. Nothing is finished on a campaign that keeps
-           taking leads in — a stage with nobody standing at it is clear,
-           and eight new leads tomorrow put people back in it. */
-        const n = st.scope === 'member' && st.k !== 'measure' ? stageMembers(l, st.k).length : 0;
-        const clear = st.scope === 'member' && st.k !== 'measure' && !n;
-        /* ══ THE FUNCTION, AND ONLY WHERE IT IS A FINDING ══════════════════
+    const total = campMembers(l).length;
 
-           Whose it is, and only where somebody is standing in it — naming an
-           owner over a clear stage is an obligation nobody has.
+    /* Which stages are holding work, worst first — the deck's subject, and
+       the set that earns a track. */
+    const held = CAMP_STAGE
+      .filter((st) => st.scope === 'member' && st.k !== 'measure')
+      .map((st) => ({ st, n: stageMembers(l, st.k).length }))
+      .filter((x) => x.n)
+      .sort((a, b) => b.n - a.n);
 
-           NAMES ARE GONE. `Sales · Sara, Omar` restated the Team row twenty
-           pixels up, where the same people are grouped by function and carry
-           the control that changes them — and it printed our staffing to a
-           client, on the very surface whose header hides the Team row from
-           them on purpose. What survives is the two things the row above
-           cannot say: that this step is YOURS, and that nobody is on it. */
-        const who = !n ? '' : mine ? 'you' : crew.length ? '' : 'nobody on it';
-        const tag = flat ? 'div' : 'button';
-        return `<li class="s-node${open ? ' is-open' : ''}${clear ? ' is-clear' : ''}${st.k === at ? ' is-at' : ''}${n && mine ? ' is-mine' : ''}${n && !crew.length ? ' is-nobody' : ''}">
-          <${tag} class="s-node-head${flat ? ' is-flat' : ''}"${flat ? '' : ` type="button" data-stage="${esc(st.k)}" aria-expanded="${open ? 'true' : 'false'}"`}
-            aria-label="${esc(st.label)} — ${esc(stageSay(l, st.k))}${who ? `, ${esc(who === 'you' ? 'waiting on you' : 'nobody is on it')}` : ''}">
-            ${/* DOM ORDER IS READING ORDER: step, name, whose, figure, unit.
-                  It is also the grid's auto-placement order, so no child
-                  needs an explicit column — and getting that wrong is what
-                  put the figure and the owner in one cell and made every
-                  head two lines tall. */ ''}
-            <span class="s-node-n">${st.n}</span>
-            <span class="s-node-name">${esc(st.label)}</span>
-            <span class="s-node-who">${esc(FUNCTIONS[st.fn].label)}${who ? ` &middot; ${esc(who)}` : ''}</span>
-            <span class="s-node-fig${f.state ? ' is-state' : ''}">${esc(f.fig)}</span>
-            <span class="s-node-unit">${esc(f.unit || '')}</span>
-          </${tag}>
-          ${open ? `<div class="s-node-body">${
-            st.k === 'find' ? stageFind(l)
-              : st.k === 'enrich' ? stageEnrich(l)
-              : st.k === 'reach' ? stageReach(l)
-              : stageMeasure(l)}</div>` : ''}
-        </li>`;
-      }).join('')}
-    </ol>`;
+    /* The figure beside it already states the count, so the deck does not
+       repeat it — "13 of 24 · 13 organizations are waiting at Reach" said
+       thirteen twice and ran to two lines doing it. */
+    const deck = held.length
+      ? `waiting at ${held[0].st.label}${held.length > 1 ? ', more than any other step' : ''}.`
+      : total ? 'Nothing is waiting at any step.' : null;
+
+    const hereSt = STAGE_BY[here] || CAMP_STAGE[0];
+    const hereCrew = stageCrew(l, hereSt.k);
+    const hereMine = hereCrew.includes(me().id);
+    const hereN = hereSt.scope === 'member' && hereSt.k !== 'measure' ? stageMembers(l, hereSt.k).length : 0;
+
+    const strip = CAMP_STAGE.map((st) => {
+      const open = st.k === here;
+      /* Nothing to press where nothing would happen: on the report every
+         cell but Measure is a readout, so it is not a button. A disabled
+         control offers something and then refuses it; this offers nothing
+         and is honest about having nothing to offer. */
+      const flat = report && !open;
+      const f = stageFigure(l, st.k);
+      const crew = stageCrew(l, st.k);
+      const mine = crew.includes(me().id);
+      /* CLEAR, NOT DONE. Nothing is finished on a campaign that keeps taking
+         leads in — a stage with nobody standing at it is clear, and eight
+         new leads tomorrow put people back in it. */
+      const queues = st.scope === 'member' && st.k !== 'measure';
+      const n = queues ? stageMembers(l, st.k).length : 0;
+      const clear = queues && !n;
+      const pct = queues && total ? Math.max(2, Math.round((n / total) * 100)) : 0;
+      const tag = flat ? 'div' : 'button';
+      const say = `${st.label} — ${stageSay(l, st.k)}${
+        n && mine ? ', waiting on you' : n && !crew.length ? ', nobody is on it' : ''}`;
+      return `<${tag} class="s-pipe-cell${open ? ' is-here' : ''}${clear ? ' is-clear' : ''}${st.k === at ? ' is-at' : ''}${n && mine ? ' is-mine' : ''}${n && !crew.length ? ' is-nobody' : ''}"${
+        flat ? '' : ` type="button" data-stage="${esc(st.k)}" aria-current="${open ? 'step' : 'false'}"`}
+        aria-label="${esc(say)}">
+        <span class="s-pipe-top">
+          <span class="s-pipe-n">${st.n}</span>
+          <span class="s-pipe-name">${esc(st.label)}</span>
+        </span>
+        <span class="s-pipe-fig${f.state ? ' is-state' : ''}">${esc(f.fig)}${
+          f.unit ? `<span class="s-pipe-unit">${esc(f.unit)}</span>` : ''}</span>
+        ${/* The space is kept whether or not a track is drawn in it, so the
+              four cells stay one height and the figures stay on one line. */ ''}
+        <span class="s-pipe-track${pct ? '' : ' is-none'}" aria-hidden="true">${
+          pct ? `<span class="s-pipe-fill" style="width:${pct}%"></span>` : ''}</span>
+      </${tag}>`;
+    }).join('');
+
+    /* ── WHOSE STAGE THIS IS ──
+       The two things the Team row above cannot say: that this step is YOURS,
+       and that nobody is standing in it. Naming an owner over a clear stage
+       is an obligation nobody has, so it only speaks where there is work. */
+    const who = !hereN ? '' : hereMine ? 'waiting on you' : hereCrew.length ? '' : 'nobody on it';
+
+    return `${campSectHead('Where the work is', deck,
+      held.length ? { n: held[0].n, of: total } : null,
+      held.length ? 'Organizations, at the step that is holding the most.' : null)}
+    <nav class="s-pipe" aria-label="Campaign stages">${strip}</nav>
+    ${/* The stage gets a heading of its own now that it is not a list item.
+          `h3` under the section's `h2`, which puts the blocks inside it back
+          at `h4` where they belong — Copy and Queue are parts of Reach, not
+          siblings of the section that contains it. */ ''}
+    <section class="s-stage" aria-label="${esc(hereSt.label)}">
+      <header class="s-stage-head">
+        <h3 class="s-stage-name">${esc(hereSt.label)}</h3>
+        <span class="s-stage-fn">${esc(FUNCTIONS[hereSt.fn].label)}</span>
+        ${who ? `<span class="s-stage-who">${esc(who)}</span>` : ''}
+        <p class="s-stage-does">${esc(hereSt.does)}</p>
+      </header>
+      <div class="s-stage-body">${
+        hereSt.k === 'find' ? stageFind(l)
+          : hereSt.k === 'enrich' ? stageEnrich(l)
+          : hereSt.k === 'reach' ? stageReach(l)
+          : stageMeasure(l)}</div>
+    </section>`;
   }
 
   /* ══ A CAMPAIGN IS A PROCESS ═══════════════════════════════════════════
@@ -10432,6 +10955,87 @@
      campaign somebody has been calling for a fortnight would be the surface
      confidently wrong. Where there is no sequence it counts the touchpoints
      themselves and says which it counted. */
+  /* ══ ELEVEN NUMBERS IN A PARAGRAPH ═══════════════════════════════════════
+
+     What this returned was one sentence carrying every figure the campaign
+     has: "Day 52 of 107, 56 days left. 25 messages out and 6 replies back.
+     3 settled, 2 won; 21 organizations still live. 4 organizations have had
+     three messages and answered none of them. That is the biggest drag on
+     it." Eleven numbers, 14px, one paragraph — a paragraph doing a
+     dashboard's job, and the only way to learn that 6 came back out of 25 is
+     to read the whole thing and hold both in your head.
+
+     `campProgress` returns the same arithmetic as PARTS, so the page can set
+     a figure as a figure and keep the prose for the one thing prose is
+     better at: naming the drag. Nothing is recomputed — the sentence builder
+     below now reads this, so the paragraph and the figures cannot disagree
+     about a campaign the way `campSay` and `campAnalytics` once did about
+     "sent".
+
+     The window comes back too, because the header states it as a date range
+     and this states it as a day count, and those were the same fact twice. */
+  function campProgress(l) {
+    const st = campState(l);
+    const members = campMembers(l);
+    const n = members.length;
+    const ev = DB.eventsOf[l.k] || [];
+    const sent = ev.filter((e) => e.kind === 'sent').length;
+    const back = ev.filter((e) => e.kind === 'replied').length;
+    const done = members.filter((a) => ENDINGS.includes(statusOf(a)));
+    const won = done.filter((a) => a.outcome === 'won').length;
+    const lost = done.length - won;
+    const live = n - done.length;
+
+    const left = l.to ? -daysAgo(l.to) : null;
+    const span = l.from && l.to ? Math.max(1, dayOf(l.to) - dayOf(l.from)) : null;
+    const gone = l.from ? Math.max(0, daysAgo(l.from)) : null;
+    const day = span != null && gone != null ? { day: Math.min(gone + 1, span), span, left } : null;
+
+    /* Hand-logged touchpoints, for the campaigns with no sequence on them —
+       the branch the sentence builder has always had, kept so a figure of
+       zero sent does not silently mean "nothing happened". */
+    const byHand = sent ? 0 : campSent(l).filter((t) => t.dir === 'out').length;
+
+    /* ══ IT IS NOT ALL EMAIL ═══════════════════════════════════════════════
+
+       `sent` counts every outbound step in the sequence, and this campaign's
+       sequence is an opening email, a CALL and an ONLINE MEETING — so "25
+       sent" was reporting eleven phone calls and eight video meetings as
+       though somebody had emailed them. The channel is the difference
+       between a campaign that is being worked and one that is being mailed
+       at, and the figure was flattening it away.
+
+       `DB.event` deliberately carries no channel — it holds `step`, and the
+       step's channel lives on `c.trail`, which is the one place a sequence's
+       shape is written down. So the mix is read through the step rather than
+       copied onto the event: still one source, and a channel change on a
+       step cannot leave a stale count behind it. */
+    const stepCh = {};
+    (l.trail || []).forEach((s) => { stepCh[s.n] = s.ch; });
+    const byCh = {};
+    ev.filter((e) => e.kind === 'sent').forEach((e) => {
+      const ch = stepCh[e.step];
+      if (ch) byCh[ch] = (byCh[ch] || 0) + 1;
+    });
+    /* ── NAMED AS THE THING THAT HAPPENED ──
+
+       `TAX.channel`'s labels are picker labels: `Phone`, `Online`, `AiMY`.
+       They answer "which channel" in a filter, and they read as a settings
+       list when what the line is reporting is work that was DONE — 11 phone,
+       8 online, 6 aimy. These are the nouns for the events themselves.
+
+       `AiMY emails`, not `emails`. The taxonomy's own note is that AiMY "is
+       never disguised as one of the other three", and a mix reading "6
+       emails" beside "11 calls" implies a person wrote them. The channel is
+       named the way it was asked for and the sender stays visible. */
+    const mix = ['phone', 'meeting', 'aimy', 'physical']
+      .filter((k) => byCh[k])
+      .map((k) => ({ k, n: byCh[k], noun: CH_NOUN[k](byCh[k]) }));
+
+    return { st, members, n, sent, back, byHand, done: done.length, won, lost, live, day,
+             mix, inWay: inWayOf(members) };
+  }
+
   function campProgressSay(l) {
     const st = campState(l);
     const members = campMembers(l);
@@ -10483,14 +11087,137 @@
     return bits.join(' ');
   }
 
+  /* ══ THE SAME NUMBERS, SET AS NUMBERS ═════════════════════════════════════
+
+     Four figures, one bar and one sentence, in that order — headline figures
+     first because they are what a glance can take, the bar because a
+     proportion is a shape and not a pair of integers, and the sentence last
+     because by then it is the only thing left that prose is better at.
+
+     `.s-afs` / `.s-af` is the executive surface's row (`sales.css:6410`),
+     already argued there as "the supporting four, divided, never boxed" — a
+     top rule and space instead of a card each. It is the right shape here
+     for the same reason, so this reuses it rather than adding a second way
+     to draw four numbers.
+
+     WON IS A FIGURE, NOT A CLAUSE. It read ", 2 won" inside "3 settled, 2
+     won; 21 organizations still live" — the only good news on the surface,
+     eleven words into a sentence about drag. A campaign is read to decide
+     whether to keep spending on it, and that decision needs both directions
+     at the same rank. */
+  function campTally(l) {
+    const p = campProgress(l);
+    if (!p.n || p.st === 'draft') return '';
+
+    /* `statFig` takes value-first, like every other figure helper; this
+       wrapper keeps the caption-first call sites below readable. */
+    const fig = (cap, val, sub) => statFig(val, cap, sub);
+
+    /* ── `Sent` WAS AN EMAIL WORD ──
+       Eleven of these were phone calls and eight were online meetings.
+       `Touchpoints` is the product's own noun for the set — it is what the
+       float bar offers to log and what the rail counts — and it is the only
+       one of the candidates that does not quietly claim a channel. The mix
+       under it says which, so the honest word costs no detail.
+
+       A campaign with no sequence on it has hand-logged touchpoints and a
+       sent count of zero, and a bare 0 would report that as nothing done. */
+    const outCap = p.sent ? 'Touchpoints' : 'Logged by hand';
+    const outVal = p.sent || p.byHand;
+    const outSub = p.mix.length ? p.mix.map((c) => `${c.n} ${c.noun}`).join(' · ') : null;
+
+    const seg = (k, v, label) => (v ? `<span class="s-tally-seg is-${k}" style="flex-grow:${v}" title="${esc(`${v} ${label}`)}"></span>` : '');
+    const key = (k, v, label) => (v ? `<span class="s-tally-key is-${k}">${esc(`${v} ${label}`)}</span>` : '');
+
+    /* The drag, in the words the block below uses. Borrowed rather than
+       reworded, so the sentence and the rows cannot describe one obstacle
+       two ways — the reason the paragraph builder borrows it too. */
+    const w = p.inWay[0];
+    const drag = w
+      ? `${IN_WAY_SAY[w.k] ? IN_WAY_SAY[w.k](w.n) : `${plural(w.n, 'organization')} — ${w.label.toLowerCase()}.`} That is the biggest drag on it.`
+      : 'Nothing is standing in the way of any of them.';
+
+    return `<div class="s-tally">
+      <div class="s-afs s-tally-figs">
+        ${fig(outCap, outVal)}
+        ${fig('Replied', p.back)}
+        ${fig('Won', p.won)}
+        ${fig('Still live', p.live)}
+        ${/* The mix spans the grid rather than sitting in the Touchpoints
+              cell. In the cell it is a three-part list inside one quarter of
+              the column and it wrapped to two lines on every width — and a
+              breakdown that wraps mid-item reads as two facts, not one.
+              Full width, on the same left edge as the figure it breaks
+              down, it is one line at every size the grid takes. */ ''}
+        ${outSub ? `<p class="s-tally-mix">${esc(outSub)}</p>` : ''}
+      </div>
+      ${/* The proportion as a shape. "3 settled, 2 won; 21 still live" is
+            three integers a reader has to divide; this is the division,
+            drawn. Segments grow by their own count, so the bar cannot round
+            away a campaign whose whole story is one lost deal. */ ''}
+      <div class="s-tally-bar" role="img"
+           aria-label="${esc(`Of ${p.n} organizations: ${p.live} still live, ${p.won} won, ${p.lost} lost.`)}">
+        ${seg('live', p.live, 'still live')}
+        ${seg('won', p.won, 'won')}
+        ${seg('lost', p.lost, 'lost')}
+      </div>
+      <p class="s-tally-keys" aria-hidden="true">
+        ${key('live', p.live, 'still live')}
+        ${key('won', p.won, 'won')}
+        ${key('lost', p.lost, 'lost')}
+      </p>
+      ${/* ══ IT IS A READING, SO IT IS ATTRIBUTED ══════════════════════════
+
+            Four figures and a bar are FACTS — the campaign's own arithmetic,
+            and nobody's opinion. "Three messages and no answer is the
+            biggest drag on it" is a different kind of claim: it ranks five
+            obstacles, picks one, and calls it the thing holding the campaign
+            back. That is AiMY reading the data, and the doctrine's rule is
+            that AiMY's work is never presented as though it were the
+            product's own plain output.
+
+            Set as bare prose under the bar it was indistinguishable from the
+            legend above it — an unattributed conclusion sitting in the same
+            block as the numbers it was drawn from. Same treatment as the
+            offering block's reading, because it is the same kind of thing:
+            AiMY's mark, then what it makes of the figures. */ ''}
+      <div class="s-insight is-quote" data-aimy-item="drag-${esc(l.k)}">
+        <p class="s-lead-mark">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          AiMY reads it
+        </p>
+        <span class="s-insight-txt">${esc(drag)}</span>
+      </div>
+    </div>`;
+  }
+
   function campIdentity(l) {
     const crew = l.crew || {};
     const internal = canWrite();
     const person = (id) => `<span class="s-assignee"><span class="avatar avatar-sm">${esc(actor(id).initials)}</span>${esc(actor(id).name)}</span>`;
+    /* ══ ONE ANATOMY FOR ALL FIVE ROWS ═════════════════════════════════════
+
+       The block held five rows in three different shapes. A caption floating
+       in a 76px gutter, values in a wrapping run beside it, and the control
+       shoved to the far right by `margin-left: auto` — so `Add` sat level
+       with the first offering and `Change` level with the middle of Team,
+       both of them a couple of hundred pixels from anything they touched,
+       and none of the three ever lined up with each other.
+
+       Every row is now: a titled bar, then the values under it. The bar
+       holds the row's name, a rule out to the control, and the control —
+       which is the same device the section kickers use one rank up, so the
+       page has one way of introducing a group rather than three.
+
+       The rule is what makes the control belong to the title: it draws the
+       span the control acts over, instead of leaving it stranded at an edge
+       the row has no other reason to reach. */
     const row = (cap, body, act, stack) => `<div class="s-crew-row${stack ? ' is-stacked' : ''}">
-      <span class="s-crew-cap">${esc(cap)}</span>
-      <span class="s-id-vals${stack ? ' is-stacked' : ''}">${body}</span>
-      ${act || ''}
+      <div class="s-crew-head">
+        <span class="s-crew-cap">${esc(cap)}</span>
+        ${act || ''}
+      </div>
+      <div class="s-id-vals${stack ? ' is-stacked' : ''}">${body}</div>
     </div>`;
     /* ══ A GROUP INSIDE A ROW GETS A LINE, NOT A RUN ═══════════════════════
 
@@ -10507,19 +11234,48 @@
        BDR" is a glance rather than a parse. The function label drops to
        sentence case: only four things in this block are captions now, and
        they are the four rows. */
+    /* ══ THE FUNCTION SITS ABOVE ITS PEOPLE ═══════════════════════════════
+
+       It was a fixed 68px column, flush right, on the argument that
+       left-aligned it left 40-odd pixels of dead air between "Owner" and the
+       name it labels. True — and flush right buys that at the price of a
+       ragged left edge on the only three labels in the row, so `OWNER`,
+       `SALES MANAGER` and `BDR` each started at a different x and the block
+       had no left margin at all.
+
+       Above, like every other title on this page. The names then start at
+       one edge, the labels start at the same edge, and the row reads as
+       three named groups rather than three indented sentences. */
     const line = (fn, body) => `<div class="s-id-line">
       <span class="s-id-fn">${esc(fn)}</span>
       <span class="s-id-people">${body}</span>
     </div>`;
 
     return `<div class="s-camp-id s-crew">
-      ${row('Goal', `<span class="s-goal-text">${editField(l, 'goal')}</span>`)}
+      ${/* THE GOAL IS THE THESIS, AND IT WAS SET AS A FIELD VALUE.
+
+            Five rows, one suit: a three-line statement of what this campaign
+            is for, a paragraph of figures, two chips, four avatars and the
+            single word "us", every one of them 14px against an 11px caption.
+            Identical treatment says identical importance, so the row a
+            reader actually needs to understand the page carried exactly as
+            much weight as the row that says "us".
+
+            The rows all stay — this is where they belong and moving them
+            would only relocate the problem. What changes is that each one is
+            now set as the KIND OF THING it is. The goal leads, at the deck
+            step, because everything below is judged against it. */ ''}
+      ${row('Goal', `<span class="s-goal-text is-lede">${editField(l, 'goal')}</span>`)}
       ${/* UNDER THE GOAL, because the goal is what it is FOR and this is how
             far it has got — the two read as one thought and separating them
             with the staffing would put a fact about people between a claim
             and its result. Everyone sees it: how a campaign is doing is the
             one thing a client is entitled to more than we are. */ ''}
-      ${row('Progress', `<span class="s-goal-text">${esc(campProgressSay(l))}</span>`)}
+      ${/* Figures where there are figures; the sentence where there are not.
+            An empty or unstarted campaign has nothing to tally and a row of
+            four zeroes would be a worse answer than the sentence that says
+            nobody is on it yet. */ ''}
+      ${row('Progress', campTally(l) || `<span class="s-goal-text">${esc(campProgressSay(l))}</span>`)}
 
       ${/* ══ ONE OFFERING PER LINE, FOR THE SAME REASON AS TEAM ═══════════
             Two products, each carrying a `Knowledge` link and a remove `×`,
@@ -10528,16 +11284,35 @@
             no boundary between the things they belong to, so which `×`
             removes which offering was a question you had to work out from
             spacing. A line each, and the pairing is structural. */ ''}
-      ${internal ? row('Selling',
+      ${/* ══ `Selling` NAMED THE ACTIVITY, NOT THE THING ═══════════════════
+
+            Every other row on this block titles a noun — the goal, the team,
+            the client — and this one titled a verb, so the row that answers
+            "what are we actually offering them" read as a status. `Products`
+            names what the row holds; each item then declares whether it is a
+            service or a solution, which is a distinction the model carries
+            (`x.kind`) and the row had been throwing away.
+
+            AND THEY ARE OBJECTS, SO THEY LOOK LIKE OBJECTS. Two names in a
+            wrapping run, each trailed by a link and a `×`, is a sentence
+            with controls in it: nothing said where one offering ended and
+            the next began except the gap between them. A pill has an edge,
+            so the offering and its two controls are visibly one thing, and
+            "which × removes which" stops being a question. */ ''}
+      ${internal ? row('Products',
         l.sells && l.sells.length
-          ? l.sells.map((x, i) => `<div class="s-id-item">
-              <span class="s-assignee">${esc(x.name)}</span>
+          ? l.sells.map((x, i) => `<span class="s-sell-pill">
+              ${/* NOT `.s-sell-name`: that selector is the Add-offering
+                    modal's text input (`$('.s-sell-name').value`), and a
+                    span answering it first would break the form. */ ''}
+              <span class="s-sell-pill-kind">${esc(SELL_KIND[x.kind] || x.kind)}</span>
+              <span class="s-sell-pill-name">${esc(x.name)}</span>
               ${x.kb && KB_BY[x.kb] ? `<button class="s-inline-btn" type="button" data-kb="${esc(x.kb)}">Knowledge</button>` : ''}
               ${canWrite() ? `<button class="s-camp-out" type="button" data-unsell="${esc(l.k)}|${i}" aria-label="Take ${esc(x.name)} off">&times;</button>` : ''}
-            </div>`).join('')
-          : '<span class="s-crew-none">nothing recorded</span>',
+            </span>`).join('')
+          : '<span class="s-crew-none">Nothing recorded yet.</span>',
         canWrite() ? `<button class="s-inline-btn" type="button" data-addsell="${esc(l.k)}">Add</button>` : '',
-        !!(l.sells && l.sells.length)) : ''}
+        false) : ''}
 
       ${/* ══ THE OWNER IS LABELLED, AND NOBODY IS LISTED TWICE ═════════════
             This read `ES Engy Saleh · MARKETING LH Lina Haddad · BDR ES Engy
@@ -10590,8 +11365,35 @@
             With `Who else can read it` removed as decorative, nothing writes
             the field, and a row nothing can change is the open loop this pass
             keeps closing. `For` is one value again: whose campaign this is. */ ''}
-      ${row('For',
-        l.client ? `<span class="s-assignee">${esc(clientName(l.client))}</span>` : '<span class="s-crew-none">us</span>',
+      ${/* `For` was the row title, which reads as a preposition waiting for
+            an object rather than as the name of a field — and left the value
+            "us" to carry the whole meaning on its own. `Client` names what
+            the row holds, and "us" then reads correctly as the answer: this
+            one is not for anybody outside. */ ''}
+      ${/* ══ "us" WAS NOT AN ANSWER ═══════════════════════════════════════
+
+            Lowercase, italic, at the meta step, under a title reading
+            CLIENT — so the row rendered as a heading with nothing legible
+            under it, and a reader looking for which client this is for found
+            a two-letter word they could not tell from a rendering fault.
+
+            Both branches say the whole thing now. A client is named at the
+            weight a name deserves; no client is a STATEMENT that there isn't
+            one, which is the actual fact and is worth a sentence. */ ''}
+      ${/* Both branches lead with the VALUE, at the same weight, and the
+            qualifier follows it. Running them as one sentence buried "Us"
+            mid-line at caption ink, so the answer to "which client" was the
+            least visible thing in its own row. */ ''}
+      ${row('Client',
+        l.client
+          ? `<span class="s-client-name">${esc(clientName(l.client))}</span>`
+          /* "Us" is not a name. The row asks WHO this campaign is for, and
+             the answer when it is not a client is the company running it —
+             so it says so. A reader scanning campaigns then sees FlairsTech
+             beside Kestrel beside Upland and reads one column of clients,
+             rather than a column of names with "us" dropped into it. */
+          : `<span class="s-client-name">FlairsTech</span>
+             <span class="s-client-note">Our own campaign, not a client's.</span>`,
         canWrite() ? `<button class="s-inline-btn" type="button" data-reportto="${esc(l.k)}">Change</button>` : '')}
     </div>`;
   }
@@ -10667,24 +11469,78 @@
              draw: the chips above and the per-row status say it already. */
           const spread = TAX.status.filter((x) => by[x.k]);
           if (spread.length < 2) return '';
-          return `<div class="s-camp-spread">${spread.map((x) => `<button class="s-ans-row s-ans-hit${S.in === x.k ? ' is-on' : ''}" type="button" data-cstatus="${esc(x.k)}">
-            <span class="s-ans-name tone-${esc(x.tone)}">${esc(x.label)}</span>
-            <span class="s-ans-bar tone-${esc(x.tone)}" role="presentation"><span style="width:${Math.round((by[x.k] / members.length) * 100)}%"></span></span>
-            <span class="s-ans-fact">${by[x.k]}</span>
-          </button>`).join('')}</div>`;
+          /* ══ THE SAME ROW AS EVERY OTHER COUNT ON THE PAGE ═══════════════
+             This drew its own thing — a name, a tinted bar and a figure at
+             the far right — while three other lists on the same page each
+             drew a different one. It is a count and a door like all of them,
+             so it is `.s-reason` like all of them; and the tinted bar goes
+             with the argument the ranked rows already settled, that statuses
+             running 9/6/5/3/1 against a total of 24 draw as five stubs and
+             the figure says it better.
+
+             It keeps the one thing none of the others need: `is-on`, so the
+             status you are currently filtered to is marked. */
+          /* ══ A COMPOSITION IS ONE SHAPE, NOT SEVEN ═══════════════════════
+
+             Every organization on the campaign is in exactly one status, so
+             these counts are PARTS OF ONE WHOLE — and the question a reader
+             brings is what the whole looks like: mostly working, mostly
+             stalled, mostly closed. Seven separate rows make that a sum you
+             have to do; seven separate bars make it seven comparisons you
+             have to hold. One stacked bar makes it a shape.
+
+             This is the tally bar from Progress, on the same argument and
+             the same component. The list under it stays, because the bar
+             answers "what does it look like" and the list is how you get
+             into any part of it — and because status has to be carried by
+             text as well as colour. */
+          /* The BAR keeps taxonomy order, because a composition is read
+             left to right as a pipeline and shuffling the segments by size
+             would break the one thing it is for. The LIST ranks by count,
+             because a list is read top-down and the biggest group is the one
+             worth opening first. Two orders, two jobs. */
+          const segs = spread.map((x) => `<span class="s-tally-seg tone-${esc(x.tone)}" style="flex-grow:${by[x.k]}" title="${esc(`${by[x.k]} ${x.label.toLowerCase()}`)}"></span>`).join('');
+          const ranked = [...spread].sort((a, b) => by[b.k] - by[a.k]);
+          const top = ranked[0];
+          return `${stageRead(
+              `<b>${by[top.k]} of the ${members.length}</b> are <b>${esc(top.label.toLowerCase())}</b>, more than any other state. ${
+                top.k === 'untouched' ? 'Nothing has gone to them yet.'
+                  : top.k === 'awaiting-us' ? 'They answered and the campaign has not.'
+                  : 'That is where most of this campaign currently stands.'}`,
+              S.in === top.k ? null : readAct(`Show me the ${by[top.k]}`, `data-cstatus="${esc(top.k)}"`))}
+            <div class="s-tally-bar" role="img"
+              aria-label="${esc(`Of ${members.length} organizations: ${spread.map((x) => `${by[x.k]} ${x.label.toLowerCase()}`).join(', ')}.`)}">${segs}</div>
+            <div class="s-reasons">
+            <p class="s-reasons-head">Orgs</p>
+            ${ranked.map((x) => reasonRow(
+              by[x.k], x.label, `data-cstatus="${esc(x.k)}"`,
+              S.in === x.k ? `Showing ${x.label.toLowerCase()} only — show all ${members.length}`
+                : `Show only the ${plural(by[x.k], 'organization')} that are ${x.label.toLowerCase()}`,
+              S.in === x.k)).join('')}
+          </div>`;
         })()}
-        ${/* ROWS, NOT CARDS. Six cards cost twenty-four controls — four each,
-              for comparing one organization against another, which is the
-              leads surface's job and not this stage's. Find asks who we are
-              going after; a name and where it stands answers that, at one
-              control apiece, and the room the cards were taking pays for
-              twice as many names being visible at once. */ ''}
-        ${shown.length
-          ? `<div class="s-mrows">${shown.slice(0, MEMBER_PAGE).map((r) => memberRow(r, l)).join('')}</div>
-             ${shown.length > MEMBER_PAGE ? `<button class="s-inline-btn s-tab-more" type="button"
-               data-quick2="${esc(`on=leads&who=&campaign=${l.k}&status=${S.in || ''}&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">
-               Show all ${shown.length}</button>` : ''}`
-          : `<p class="s-none">None of them are ${esc(label('status', S.in).toLowerCase())}.</p>`}
+        ${/* ══ AND THEN THE WORKBENCH STOPPED BEING INLINED ═════════════════
+
+              Twelve rows, 579px — fifty-five per cent of this tab — each one
+              a name, a headcount, a last-touched and a status, opening the
+              record when pressed. Which is the leads workbench, rendered
+              inside a campaign tab, one click from the real one.
+
+              The argument for it was that Find asks who we are going after
+              and a list of names answers that. It does, and so does the
+              block directly above it: a composition bar for the shape and
+              five ranked rows that each open their own slice. Those are the
+              same twenty-four organizations, described rather than
+              enumerated, in 223px instead of 802.
+
+              A previous pass had already made this cut once, from cards to
+              rows, on the reasoning that comparing one organization against
+              another is the leads surface's job and not this stage's. That
+              reasoning finishes here: it is not this stage's job at any row
+              height. The door stays, carrying whatever narrowing is on. */ ''}
+        <button class="s-inline-btn s-tab-more" type="button"
+          data-quick2="${esc(`on=leads&who=&campaign=${l.k}&status=${S.in || ''}&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">
+          ${narrowed ? `Open the ${shown.length} in the workbench` : `Open all ${members.length} in the workbench`}</button>
       `}`;
   }
 
@@ -10726,19 +11582,51 @@
     const thinAcc = members.filter((a) => a.emp == null || a.rev == null);
     const gapIds = [...new Set(thinAcc.map((a) => a.id).concat(noWay.map((p) => p.acc)))];
 
-    const rows = [
-      { n: noWay.length, say: (n) => `${n === 1 ? 'has' : 'have'} no way to reach them at all`,
-        ids: noWay.map((p) => p.id), who: 'contacts', worst: true },
-      { n: noPhone.length, say: (n) => `${n === 1 ? 'has' : 'have'} no phone number, so ${n === 1 ? 'they cannot' : 'they cannot'} be rung`,
-        ids: noPhone.map((p) => p.id), who: 'contacts' },
-      { n: noEmail.length, say: (n) => `${n === 1 ? 'has' : 'have'} no email address`,
-        ids: noEmail.map((p) => p.id), who: 'contacts' },
-      { n: thinAcc.length, say: (n) => `${n === 1 ? 'is' : 'are'} missing headcount or revenue, so ${n === 1 ? 'it cannot' : 'they cannot'} be sorted or scored`,
-        ids: thinAcc.map((a) => a.id), who: '' },
-    ].filter((r) => r.n);
+    /* ══ THE CLAUSES STAND ALONE NOW ═══════════════════════════════════════
 
-    return `${(gapIds.length || members.length) && canWrite() ? `<div class="s-stage-acts">
-      ${gapIds.length ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-enrichcamp="${esc(l.k)}">Fill in what is missing on ${gapIds.length}</button>` : ''}
+       They were verb phrases agreeing with a count that opened them — "have
+       no phone number, so they cannot be rung" — because the count was the
+       first word of the sentence. With the figure lifted into its own column
+       the sentence has to start somewhere, and a capitalised verb phrase
+       ("Have no phone number…") is not a sentence, it is a fragment wearing
+       a capital.
+
+       Written as what they are: the gap itself, named. No number agreement
+       left to get wrong either, which is why the plural helpers are gone. */
+    const rows = [
+      { n: noWay.length, say: 'No way to reach them at all.', of: people.length,
+        ids: noWay.map((p) => p.id), who: 'contacts', worst: true },
+      { n: noPhone.length, say: 'No phone number, so they cannot be rung.', of: people.length,
+        ids: noPhone.map((p) => p.id), who: 'contacts' },
+      { n: noEmail.length, say: 'No email address.', of: people.length,
+        ids: noEmail.map((p) => p.id), who: 'contacts' },
+      { n: thinAcc.length, say: 'Missing headcount or revenue, so they cannot be sorted or scored.', of: members.length,
+        ids: thinAcc.map((a) => a.id), who: '' },
+    ].filter((r) => r.n)
+      /* ══ WORST FIRST, BY SHARE ═══════════════════════════════════════════
+         They were in the order they happened to be written — no way to reach,
+         phone, email, thin — which put a gap affecting a tenth of the
+         campaign above one affecting half of it whenever that was how the
+         data fell. Ranked by SHARE rather than count, because the four rows
+         count against two different totals: nine of thirty-one people and
+         nine of twenty-four organizations are not the same finding, and
+         sorting on the raw number silently claims they are.
+
+         `noWay` keeps its place at the top when it exists regardless — it is
+         not a thin field, it is a lead that cannot be worked at all, and it
+         is a subset of the two rows under it. */
+      .sort((a, b) => (b.worst ? 1 : 0) - (a.worst ? 1 : 0)
+        || (b.n / (b.of || 1)) - (a.n / (a.of || 1)));
+
+    /* ══ THE VERB RENDERS ONCE ═══════════════════════════════════════════
+       `Fill in what is missing on 11` was the stage's primary button AND the
+       reading's action, twelve pixels apart, both landing on
+       `data-enrichcamp`. `campPage` already solved this for the header's
+       lifecycle control — a control whose verb the recommendation carries
+       does not render — and the reading keeps it for the same reason: it is
+       the one that also says why. The row above keeps the secondary, which
+       is a different job, and disappears when that is all it would hold. */
+    return `${members.length && canWrite() ? `<div class="s-stage-acts">
       ${/* ══ THE OTHER HALF OF R7.8 ═══════════════════════════════════════
 
             The brief's enrichment arrow has four branches — phone, email,
@@ -10757,12 +11645,62 @@
 
       ${!people.length ? `<p class="s-none">Nobody is on it yet, so there is nothing to fill in. Find some first.</p>`
         : !rows.length ? `<p class="s-none">Everybody on it has a way to reach them and every organization is sized. Nothing to do here.</p>`
-        : `<div class="s-straights">
-          ${rows.map((r) => `<div class="s-straight${r.worst ? ' tone-err' : ''}">
-            <p class="s-straight-say">${esc(plural(r.n, r.who === 'contacts' ? 'person' : 'organization'))} ${esc(r.say(r.n))}.</p>
-            <button class="s-straight-act" type="button"
-              data-quick2="${esc(`on=leads&who=${r.who}&ids=${r.ids.join(',')}&status=&obstacle=&opp=&campaign=&srcref=&loose=&due=&q=&camp=&in=`)}">Show me the ${r.n}</button>
-          </div>`).join('')}
+        : `${/* ══ ENRICH IS COVERAGE, NOT A RANKING ═══════════════════════════
+
+              The other three lists on this page rank things against each
+              other: which obstacle is biggest, which reason loses most. Those
+              rows carry no bar, because obstacle counts running 4/4/3/3/2
+              draw as five identical stubs and the figure says it better.
+
+              This list is a different question. "9 have no phone number" is
+              not competing with "3 have no email" — each one is a GAP IN A
+              KNOWN TOTAL, and what a reader needs is how much of the
+              campaign it costs. Nine of thirty-one is a third of everybody
+              you might ring; three of thirty-one is a rounding error. The
+              denominator is the finding, and a count alone hides it.
+
+              So this one is drawn: the share as a length against the whole,
+              the way Apollo's data-health centre and Fresha's completion
+              meters both do it. The bar is honest here for exactly the
+              reason it was dishonest there — there is a real whole to be a
+              part of. */ ''}
+        ${(() => {
+          /* The reading names the widest gap and says what it COSTS, which
+             is the thing a list of four percentages does not: a phone number
+             missing on half the campaign matters because the sequence rings
+             people, and that connection is not in the data. */
+          const w = rows[0];
+          const pct = w.of ? Math.round((w.n / w.of) * 100) : 0;
+          const noun = w.who === 'contacts' ? 'the people' : 'the organizations';
+          /* Why it costs what it costs: a missing phone number only stops
+             the work if the sequence rings anybody, and the campaign's own
+             channel plan is what says whether it does. */
+          const rings = (l.plan || []).includes('phone');
+          const cost = w.worst
+            ? '<b>Nothing in the sequence can reach them.</b>'
+            : rings && w.say.indexOf('phone') > -1
+              ? '<b>The sequence rings people</b>, so this is what stops it.'
+              : 'Filling it in is what lets the rest of the campaign run.';
+          const said = w.worst
+            ? `<b>${pct}%</b> of ${noun} here have no way to reach them at all. ${cost}`
+            : `<b>${pct}%</b> of ${noun} here are missing something — ${esc(w.say.charAt(0).toLowerCase() + w.say.slice(1, -1))}. ${cost}`;
+          return stageRead(said, gapIds.length && canWrite()
+            ? readAct(`Fill in what is missing on ${gapIds.length}`, `data-enrichcamp="${esc(l.k)}"`)
+            : null);
+        })()}
+        <div class="s-covers">
+          ${rows.map((r) => {
+            const pct = r.of ? Math.round((r.n / r.of) * 100) : 0;
+            const noun = r.who === 'contacts' ? 'people' : 'organizations';
+            return `<button class="s-cover${r.worst ? ' is-worst' : ''}" type="button"
+              data-quick2="${esc(`on=leads&who=${r.who}&ids=${r.ids.join(',')}&status=&obstacle=&opp=&campaign=&srcref=&loose=&due=&q=&camp=&in=`)}"
+              aria-label="${esc(`${r.n} of ${r.of} ${noun} — ${r.say} Show them.`)}">
+              <span class="s-cover-say">${esc(r.say)}</span>
+              <span class="s-cover-fig">${r.n}<span class="s-cover-of">of ${r.of} ${esc(noun)}</span></span>
+              <span class="s-cover-track" aria-hidden="true"><span class="s-cover-fill" style="width:${Math.max(2, pct)}%"></span></span>
+              <span class="s-cover-pct" aria-hidden="true">${pct}%</span>
+            </button>`;
+          }).join('')}
         </div>`}`;
   }
 
@@ -10797,29 +11735,47 @@
      and the second one — agreed, then overtaken by news — is the mechanic
      the README calls the product's best, so it is stated on its own rather
      than folded into "needs copy". */
-  function writeBlock(l) {
-    /* Copy is preparation for a send. A closed campaign has nothing to
-       prepare for, so the block does not draw at all. */
+  /* ══ COPY WAS A BLOCK; IT IS THE READING ═══════════════════════════════════
+
+     A `Copy` heading over one or two rows, each a sentence and a `Draft all
+     N` — sitting above a Queue whose every row already states its own draft
+     state ("AiMY drafted a line" / "Write one"). So the block was the
+     AGGREGATE of the list underneath it, given a heading of its own and the
+     first position on the tab.
+
+     That aggregate is worth having: the queue shows six of thirteen, so the
+     rows you cannot see are exactly the ones a count catches. What it is
+     NOT is a separate subject. A finding over the stage's own evidence, with
+     the bulk verb attached, is a reading — and Reach was the one stage on
+     this page that did not have one.
+
+     So it becomes the reading, and the tab goes from four blocks to three:
+     what AiMY makes of it, what gets sent, who is next. */
+  function reachRead(l) {
     if (campOver(l)) return '';
     const unwritten = reachBy(l, 'unwritten');
     const stale = reachBy(l, 'stale');
-    if (!unwritten.length && !stale.length) return '';
-    const rows = [
-      { n: unwritten.length, say: 'nothing agreed to say yet', set: unwritten, worst: true },
-      { n: stale.length, say: 'something agreed before the news changed it', set: stale },
-    ].filter((r) => r.n);
+    const queue = ringQueue(campPeople(l)).all;
 
-    return `<div class="s-sheet-block">
-      <h4 class="s-sub-h">Copy</h4>
-      <div class="s-straights">
-        ${rows.map((r) => `<div class="s-straight${r.worst ? ' tone-err' : ''}">
-          <p class="s-straight-say">${esc(plural(r.n, 'lead'))} ${r.n === 1 ? 'has' : 'have'} ${esc(r.say)}.</p>
-          ${canWrite()
-            ? `<button class="s-straight-act" type="button" data-writeset="${esc(l.k)}|${esc(r.set.map((a) => a.id).join(','))}">Draft ${r.n === 1 ? 'it' : `all ${r.n}`}</button>`
-            : ''}
-        </div>`).join('')}
-      </div>
-    </div>`;
+    /* Ranked by what stops a send. Nothing agreed at all cannot go out;
+       agreed-then-overtaken can, and will say something the news has already
+       contradicted — which is worse than late but not worse than absent. */
+    if (unwritten.length) {
+      return stageRead(
+        `<b>${plural(unwritten.length, 'lead')}</b> ${unwritten.length === 1 ? 'has' : 'have'} <b>nothing agreed to say</b> yet, so the sequence has nothing to send ${unwritten.length === 1 ? 'them' : 'them'}.${
+          stale.length ? ` Another <b>${stale.length}</b> ${stale.length === 1 ? 'was' : 'were'} written before news landed that changes it.` : ''}`,
+        canWrite() ? readAct(`Draft ${unwritten.length === 1 ? 'it' : `all ${unwritten.length}`}`,
+          `data-writeset="${esc(l.k)}|${esc(unwritten.map((a) => a.id).join(','))}"`) : null);
+    }
+    if (stale.length) {
+      return stageRead(
+        `<b>${plural(stale.length, 'lead')}</b> ${stale.length === 1 ? 'has' : 'have'} a line that was <b>agreed before the news changed it</b>. Sending it as written says something we now know is out of date.`,
+        canWrite() ? readAct(`Redraft ${stale.length === 1 ? 'it' : `all ${stale.length}`}`,
+          `data-writeset="${esc(l.k)}|${esc(stale.map((a) => a.id).join(','))}"`) : null);
+    }
+    if (!queue.length) return '';
+    return stageRead(
+      `Everybody due a step has <b>a line agreed</b>. <b>${plural(queue.length, 'person')}</b> ${queue.length === 1 ? 'is' : 'are'} waiting on the next one.`);
   }
 
   /* Write or rewrite, for one lead or for everybody standing at the stage.
@@ -10855,26 +11811,34 @@
     const ranked = ringQueue(campPeople(l));
     const queue = ranked.all.map((p) => ({ p }));
 
-    return `${writeBlock(l)}
+    return `${reachRead(l)}
 
       <div class="s-sheet-block">
-        ${/* ══ THE CHANNEL PLAN, WHERE THE SEQUENCE IT GOVERNS LIVES ══════
-              `c.plan` is what a campaign is allowed to send on. It was set
-              by `Start it` and then displayed in exactly one place — a line
-              in the rail's history, under "The plan was set" — with NO
-              control anywhere on the campaign to see it or change it. A
-              campaign could be sending on the wrong channels forever and
-              the only evidence was an entry in its own past tense.
+        ${/* ══ THE SEQUENCE STAYS, AND SAYS WHAT IT IS ═══════════════════════
 
-              The heading names the thing; whether there is one yet is the
-              block's own content to say, not its title's. */ ''}
+              `c.plan` is what a campaign is allowed to send on, and this is
+              the only surface anywhere that shows it or changes it — before
+              the block existed it lived as one line in the rail's history,
+              under "The plan was set", with no control on the campaign at
+              all. So it does not get cut.
+
+              What it got wrong was legibility. `SEQUENCE`, three cards, and
+              `3d` between them: nothing said these were steps that go out in
+              order, nothing said `3d` was a WAIT rather than an age, and
+              `SENT 6 / CALLED 11 / MET 8` gave three counts without saying
+              six of what. A reader who did not already know the model could
+              not learn it from the block.
+
+              Now it states what it is, labels the waits as waits, names each
+              step's channel, and marks the one that goes next — which is the
+              only thing on it that changes day to day and was the one thing
+              it never said. */ ''}
         <div class="s-camp-list-head">
           <h4 class="s-sub-h">Sequence</h4>
           ${canWrite() && !campOver(l) && l.plan && l.plan.length
             ? `<button class="s-inline-btn" type="button" data-plan="${esc(l.k)}">Change the channels</button>` : ''}
         </div>
-        ${l.plan && l.plan.length
-          ? `<p class="s-plan-on"><span class="s-plan-cap">Sends on</span>${esc(l.plan.map((k) => label('channel', k)).join(' · '))}</p>` : ''}
+        <p class="s-block-say">What this campaign sends, in order, and how long it waits between each one.</p>
         ${l.trail && l.trail.length
           ? trailBlock(l)
           : `<p class="s-none">Nobody has decided how to work this yet, so nothing sends. Choose the channels and a window to start it &mdash; after that AiMY works the plan, and anything it sends is logged as AiMY&rsquo;s.</p>`}
@@ -10895,10 +11859,39 @@
                 one at a time or handed the lot to AiMY. Scoped to the
                 campaign, so what it writes carries `list` and lands in this
                 campaign's own analytics. */ ''}
-          ${canWrite() && !campOver(l) && queue.length ? `<button class="s-inline-btn" type="button"
-            data-callthrough="${esc(queue.map(({ p }) => p.id).join(','))}|${esc(l.k)}">Call all ${queue.length}</button>` : ''}
-          ${canWrite() && !campOver(l) && queue.length ? `<button class="s-inline-btn" type="button"
-            data-autocall="${esc(queue.slice(0, 12).map(({ p }) => p.id).join(','))}|${esc(l.k)}">Let AiMY call ${Math.min(queue.length, 12)}</button>` : ''}
+          ${/* ══ TWO OF THESE ARE ONE DECISION ═══════════════════════════════
+
+                `Call all 3`, `Let AiMY call 3` and `Log what happened` sat in
+                a row at equal weight, above six rows each carrying their own
+                `Call` — eight call-shaped targets on one block, and no
+                indication that two of the three header verbs are the SAME
+                ACTION with a different hand on it.
+
+                They are not three options. Two are a choice of actor for one
+                job, and the third is about the past. So the pair is grouped
+                and the odd one is not: 8px inside the pair against the head's
+                16px between groups, which is the two-to-one ratio
+                `css-audit.js` checks for and the only thing that says these
+                two belong together.
+
+                The icons carry the actor. A phone glyph on `Call all` pairs
+                it with the six row buttons — same verb, all of them — and
+                AiMY's mark on the other says who is holding the phone, which
+                is the whole difference between them and was previously
+                carried by the word "AiMY" alone, at the end of a link, in a
+                row of links that all started with a capital letter.
+
+                A menu would collapse this properly. The design system has
+                `.menu-anchor/.menu/.menu-item` in its inventory and NONE of
+                it is in the extracted stylesheet, so building one here would
+                be the parallel component §11 forbids. Filed rather than
+                invented; ranking is what is available. */ ''}
+          ${canWrite() && !campOver(l) && queue.length ? `<span class="s-queue-who">
+            <button class="s-inline-btn" type="button"
+              data-callthrough="${esc(queue.map(({ p }) => p.id).join(','))}|${esc(l.k)}">${chIcon('phone')}Call all ${queue.length}</button>
+            <button class="s-inline-btn" type="button"
+              data-autocall="${esc(queue.slice(0, 12).map(({ p }) => p.id).join(','))}|${esc(l.k)}"><svg class="s-queue-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>Let AiMY call ${Math.min(queue.length, 12)}</button>
+          </span>` : ''}
           ${/* LOGGING SURVIVES THE DEADLINE. A reply can land the week after a
                 campaign closes, and refusing to record it would make the
                 campaign's own history wrong — which is the opposite of what
@@ -11000,19 +11993,41 @@
 
       ${reps.length ? `<div class="s-sheet-block">
         <h4 class="s-sub-h">Replies</h4>
-        <div class="s-replies">
-          ${TAX.replyCat.filter((c) => byCat[c.k]).map((c) => `<button class="s-reply-row" type="button"
-              data-quick2="${esc(`on=leads&who=&campaign=${l.k}&reply=${c.k}&status=&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">
-            <span class="s-reply-name tone-${esc(c.tone)}">${esc(c.label)}</span>
-            <span class="s-reply-n">${byCat[c.k]}</span>
-          </button>`).join('')}
-        </div>
+        ${/* The fourth of the four count-and-a-door lists, now the same row
+              as the other three. It ran name-left, figure-right, which put
+              the ranking on the edge a text-heavy page is not read down. */ ''}
+        ${(() => {
+          /* ══ WHAT CAME BACK, NOT JUST HOW MUCH ═══════════════════════════
+             The rail already carries the campaign's reply RATE against its
+             peers, and Measure repeating it would undo the pass that moved
+             it there. What nothing says is what the replies actually SAID —
+             six came back and the split between interested and not is the
+             whole question the block exists to answer. */
+          const cats = TAX.replyCat.filter((c) => byCat[c.k]).sort((a, b) => byCat[b.k] - byCat[a.k]);
+          const good = cats.filter((c) => c.tone === 'ok').reduce((n, c) => n + byCat[c.k], 0);
+          const t = cats[0];
+          return `${stageRead(
+            `<b>${plural(reps.length, 'reply', 'replies')}</b> came back, and <b>${good ? `${good} of them` : 'none of them'}</b> ${
+              good ? 'went somewhere worth following' : 'were positive'}. Most were <b>${esc(t.label.toLowerCase())}</b>.`)}
+          <div class="s-reasons">
+            <p class="s-reasons-head">Replies</p>
+            ${cats.map((c) => reasonRow(
+              byCat[c.k], c.label,
+              `data-quick2="${esc(`on=leads&who=&campaign=${l.k}&reply=${c.k}&status=&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}"`,
+              `Show the ${plural(byCat[c.k], 'reply', 'replies')} filed as ${c.label.toLowerCase()}`)).join('')}
+          </div>`;
+        })()}
       </div>` : ''}
 
-      ${kb ? `<div class="s-sheet-block">
-        <h4 class="s-sub-h">Brief</h4>
-        ${kbCard(kb)}
-      </div>` : ''}`;
+      ${/* ══ THE BRIEF WAS REFERENCE ON A TAB ABOUT RESULTS ═══════════════
+            A Knowledge card, 181px, a quarter of this tab — and the only
+            block on it that is not a reading with a door. The ICP it shows
+            is already reachable from the campaign's `Products` row, where
+            each offering carries its own Knowledge link and where a reader
+            asking "what were we selling" actually looks.
+
+            Measure is Results and Replies now: two readings, each over the
+            evidence it was drawn from. */ ''}`;
   }
 
   /* ══ WHAT THE NUMBERS MEAN ═════════════════════════════════════════════
@@ -11464,8 +12479,19 @@
       case 'wrong-person': return 'they told us they are not the one to talk to';
       case 'no-champion': { const s = sig('job-change'); return s ? `${nameOfSignal(s)} ${s.detail.toLowerCase().replace(/\.$/, '')}, ${fmtAgo(s.at)}` : 'our contact has moved on'; }
       case 'no-reply': {
-        const since = []; for (const t of ts) { if (t.dir === 'in') break; since.push(t); }
-        return `${plural(since.length, 'message')} out since they last replied, and nothing back`;
+        /* ══ "SINCE THEY LAST REPLIED" ASSUMES THEY EVER DID ═══════════════
+           The loop walks back from the newest touchpoint and stops at the
+           first inbound one, so on a lead that has NEVER replied it counts
+           every message ever sent and then describes them as the ones sent
+           since a reply that does not exist. Invisible while the phrase sat
+           in a card's meta run; the worklist row puts it beside a badge
+           reading `never answered`, and the two contradict each other on the
+           same line. `ever` is what the loop actually found out. */
+        const since = []; let ever = false;
+        for (const t of ts) { if (t.dir === 'in') { ever = true; break; } since.push(t); }
+        return ever
+          ? `${plural(since.length, 'message')} out since they last replied, and nothing back`
+          : `${plural(since.length, 'message')} out and they have never replied`;
       }
       default: {
         const row = TAX.signalKind.filter((s) => s.into === k)[0];
@@ -13293,10 +14319,27 @@
       { k: 'noreach',   label: 'No way to reach them', test: (r) => !r.phone && !r.email },
       { k: 'cold',      label: 'Never contacted', test: (r) => statusOf(r) === 'untouched' },
     ],
+    /* ══ THE CHIPS SAY WHAT THE READINGS SAY ═════════════════════════════
+
+       `Half-filled` tested `listCover(s) < 80` and matched NOTHING on the
+       whole book — the least-filled list in it is 89% sized. Meanwhile the
+       card for that same list reads "1 of 19 have no headcount or revenue,
+       so they cannot be sorted or scored", because `listReading` fires on
+       any gap at all. So a reader who took a card at its word and pressed
+       the chip that names the same finding got an empty surface. One
+       threshold, and it is the reading's: a gap is a gap.
+
+       `More still out there` is new, and it is the finding this surface had
+       no way to state. Measured across the six: 2,509 organizations matched
+       these criteria and 118 are in the book, with three lists accounting
+       for 2,440 of the match and 49 of the take. Nothing said so, because
+       `found` and the membership count sat in different sentences in
+       different type sizes and the subtraction was left to the reader. */
     lists: [
-      { k: 'auto',      label: 'Runs itself',    test: (s) => !!s.auto },
-      { k: 'thin',      label: 'Half-filled',    test: (s) => listCover(s) < 80 },
+      { k: 'short',     label: 'More still out there', test: (s) => listShort(s) },
+      { k: 'thin',      label: 'Gaps in it',     test: (s) => listThin(s) > 0 },
       { k: 'unused',    label: 'No campaign uses it', test: (s) => !listUsedBy(s).length },
+      { k: 'auto',      label: 'Runs itself',    test: (s) => !!s.auto },
     ],
   };
 
@@ -13307,6 +14350,60 @@
     return Math.round((mine.filter((a) => a.emp != null && a.rev != null).length / mine.length) * 100);
   }
   const listUsedBy = (s) => DB.camp.filter((c) => campMembers(c).some((a) => a.srcRef === s.k));
+
+  /* ══ WHAT A LIST FOUND, AGAINST WHAT IT HOLDS ══════════════════════════
+
+     Two numbers this product has always had and never once put beside each
+     other. `s.found` is what the criteria matched; `listPool(s).length` is
+     what came in and you may see. On three of the six lists the second is
+     under a twentieth of the first:
+
+       Amsterdam & Randstad     1,240 matched      18 in it     1.5%
+       LinkedIn — Netherlands     820 matched      13 in it     1.6%
+       Netherlands enterprise     380 matched      18 in it     4.7%
+
+     and the card for the largest of them concluded "nothing new has come
+     in", which is the surface reporting a 1,222-organization shortfall as
+     everything being fine. Unfavourable data that is in the model and off
+     the page is the one thing a reading may not do.
+
+     THE FLOOR IS 50. A list that matched twelve and took two has a ratio
+     and not a finding — the gap has to be worth a verb before it is worth
+     a sentence, and at this threshold the three above are the three that
+     fire. */
+  const LIST_SHORT_MIN = 50;
+  const LIST_SHORT_TAKE = 0.2;
+  const listThin = (s) => listPool(s).filter((a) => a.emp == null || a.rev == null).length;
+  const listGap = (s) => Math.max(0, s.found - listPool(s).length);
+  function listShort(s) {
+    const held = listPool(s).length;
+    return !!held && s.found >= LIST_SHORT_MIN && held < s.found * LIST_SHORT_TAKE;
+  }
+
+  /* ══ AND THE INDEX IS RANKED BY IT ═════════════════════════════════════
+
+     Campaigns went through `orderedCamps`, organizations and contacts
+     through `ordered`, and lists through nothing at all — `DB.source`
+     order, which is the order the fixture was typed in. So the one list
+     with a write verb on it sat fourth of six, between two that were
+     finished, and the three carrying a 2,391-organization shortfall landed
+     first, second and sixth by coincidence.
+
+     THE CHAIN IS `listReading`'S CHAIN. A ranking that disagrees with the
+     sentence on the card is worse than no ranking, so this walks the same
+     branches in the same order and scores them; the gap breaks ties inside
+     the top band, so the biggest miss leads. */
+  function listScore(s) {
+    const pool = listPool(s);
+    if (!pool.length) return 5000;
+    if (listShort(s)) return 4000 + Math.min(listGap(s), 900);
+    if (s.auto) return autoDry(s) ? 1500 : 200;
+    if (listThin(s)) return 3000;
+    if (!listUsedBy(s).length) return 2000;
+    return 0;
+  }
+  const orderedLists = (pool) => pool.slice()
+    .sort((a, b) => listScore(b) - listScore(a) || b.found - a.found);
 
   /* What a tab is looking at, before any cut is applied.
 
@@ -13330,7 +14427,7 @@
 
        `s.by === me().id` keeps a list you just made and have not imported
        into yet, which has no members to be entitled through. */
-    return DB.source.filter((s) => s.by === me().id || listPool(s).length);
+    return orderedLists(DB.source.filter((s) => s.by === me().id || listPool(s).length));
   }
 
   /* HOW MANY ARE DRAWN BEFORE YOU HAVE TO ASK FOR MORE. Twelve, because the
@@ -13420,6 +14517,11 @@
     const cut = cuts.find((c) => c.k === S.cut);
     const shown = cut ? pool.filter(cut.test) : pool;
     const page = shown.slice(0, TAB_PAGE);
+    /* The accumulated reading, and it REPLACES the chips rather than sitting
+       above them: its rows open the same cuts, with the finding and the size
+       of it attached, so the surface offers one narrowing control and not
+       two that say the same three words. */
+    const reading = open === 'lists' ? listsReading(pool) : '';
 
     return `<section class="s-block s-block-wide s-tabs-block" aria-label="Everything">
       <div class="s-tabstrip" role="tablist">
@@ -13445,7 +14547,8 @@
         <button class="s-inline-btn s-tab-shut" type="button" data-tab="">Close</button>
       </div>
 
-      ${cuts.length ? `<div class="s-tabcuts" role="group" aria-label="Narrow these">
+      ${reading}
+      ${cuts.length && !reading ? `<div class="s-tabcuts" role="group" aria-label="Narrow these">
         ${cuts.map((c) => `<button class="chip${c.k === (cut && cut.k) ? ' active' : ' default'}" type="button" data-cut="${esc(c.k)}">${esc(c.label)} <span class="s-cut-n">${c.n}</span></button>`).join('')}
         ${cut ? `<button class="s-inline-btn" type="button" data-cut="">Show all ${pool.length}</button>` : ''}
       </div>` : ''}
@@ -13628,6 +14731,88 @@
     </header>`;
   }
 
+  /* ══ WHAT IS TRUE OF THE LISTS, ONCE, ABOVE THEM ═══════════════════════
+
+     Six cards, six readings, twelve controls — and nothing at all about the
+     six as a set. Every other ranked surface in this pass opens with one
+     accumulated statement over the whole set before the evidence under it,
+     because that is the shape NN/g's structure asks for and the shape the
+     leads worklist was rebuilt into: the reading, the summary that qualifies
+     it, then the records.
+
+     THE STATEMENT THIS SURFACE COULD NOT MAKE. 2,509 organizations matched
+     these criteria and 118 of them are in the book. That number exists
+     nowhere on the old page — not because it was hidden, but because it is
+     a sum across six cards and no element on the surface was about more
+     than one card.
+
+     AND IT CARRIES THE NARROWING. The chips under the tab strip said the
+     same three things in three words with no counts of what is inside them
+     and no reason to press any of them; these rows say the finding, the
+     size of it, and open the same cut. So the strip does not draw on this
+     tab — one control, not two, for one narrowing. */
+  function listsReading(pool) {
+    if (pool.length < 2) return '';
+    const sum = (list, f) => list.reduce((n, x) => n + f(x), 0);
+    const matched = sum(pool, (s) => s.found);
+    const held = sum(pool, (s) => listPool(s).length);
+
+    const short = pool.filter((s) => listShort(s));
+    const thin = pool.filter((s) => listThin(s));
+    const unused = pool.filter((s) => !listUsedBy(s).length);
+
+    /* Ranked by how many lists each holds, so the biggest finding reads
+       first — the same order the accumulated block on the leads worklist
+       uses, and the reason neither of them is in taxonomy order.
+
+       Each clause reads on from the count in the column beside it, so it
+       does not restate it: `3` · `matched 2,440 between them and brought in
+       49`. The first cut wrote the number twice and the row read "3 3 lists
+       matched", which is what a count column is for not being. */
+    const gapless = sum(thin, (s) => listThin(s));
+    const finds = [
+      short.length ? { k: 'short', n: short.length,
+        say: `matched <b>${sum(short, (s) => s.found).toLocaleString('en-GB')}</b>${
+          short.length === 1 ? '' : ' between them'} and brought in <b>${sum(short, (s) => listPool(s).length)}</b>` } : null,
+      thin.length ? { k: 'thin', n: thin.length,
+        say: `${thin.length === 1 ? 'holds' : 'hold'} <b>${plural(gapless, 'organization')}</b> with no headcount or revenue, so ${
+          gapless === 1 ? 'it cannot' : 'they cannot'} be sorted or scored` } : null,
+      unused.length ? { k: 'unused', n: unused.length,
+        say: unused.length === 1
+          ? `is complete and <b>no campaign draws on it</b>`
+          : `are complete and <b>no campaign draws on them</b>` } : null,
+    ].filter(Boolean).sort((a, b) => b.n - a.n);
+    if (!finds.length) return '';
+
+    const flagged = new Set([].concat(short, thin, unused)).size;
+    const clear = pool.length - flagged;
+
+    return `<div class="s-findings">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY reads it
+      </p>
+      <p class="s-findings-say"><b>${held} organizations are in the book</b> from criteria that matched <b>${matched.toLocaleString('en-GB')}</b>.</p>
+      <div class="s-findings-list">
+        ${finds.map((f) => {
+          const on = S.cut === f.k;
+          return `<div class="s-finding">
+            <span class="s-finding-n">${f.n}</span>
+            <span class="s-finding-say">${f.say}</span>
+            <button class="s-finding-pick${on ? ' is-on' : ''}" type="button" data-cut="${esc(on ? '' : f.k)}">${
+              on ? `Show all ${pool.length}` : f.n === 1 ? 'Show it' : `Show these ${f.n}`}</button>
+          </div>`;
+        }).join('')}
+      </div>
+      ${clear ? `<p class="s-findings-tail"><b>${clear}</b> of the ${pool.length} ${clear === 1 ? 'has' : 'have'} nothing in the way of ${clear === 1 ? 'it' : 'them'}.</p>` : ''}
+      <p class="s-findings-acts">
+        <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
+          data-aimy-topic="lists"
+          data-aimy-ask="${esc(`My lists matched ${matched} organizations and ${held} are in the book. Which of them is worth bringing in more of, and what would that change?`)}">Ask about them</button>
+      </p>
+    </div>`;
+  }
+
   /* ── A LEAD LIST, WITH THE OPERATIONS ON IT ──
 
      A list used to be a name and a count in the rail, which is a list you
@@ -13668,6 +14853,7 @@
        derives nothing now. It asks `listReading` and renders the answer,
        which is the whole point of the change. */
     const read = listReading(s).card;
+    const held = listPool(s).length;
     return `<article class="s-listrow" style="--i:${i || 0}" data-aimy-item="${esc(s.k)}">
       ${/* ══ THE WHOLE CARD OPENS THE LIST ═══════════════════════════════
 
@@ -13685,7 +14871,21 @@
             its own tab stop. Three controls, one card, no nesting — which is
             the same construction `.s-inline-btn::after` already uses to grow
             a hit area without growing the ink. */ ''}
-      <button class="s-listrow-name" type="button" data-quick="${esc(listQuery(s.k))}">${esc(s.name)}</button>
+      ${/* ══ AND THE STATE SITS ON THE HEAD LINE, NOT ABOVE THE SENTENCE ══
+
+            `stateChip` was drawn inside the reading block, on its own line
+            above the sentence — so across a six-card grid the states did not
+            line up with each other, they lined up with whatever length of
+            criteria happened to precede them. The one thing on these cards
+            worth reading DOWN a column was the one thing that could not be.
+
+            It moves to the head line, right-aligned against the name, which
+            is where the task card's state went in this same pass and for the
+            same reason. */ ''}
+      <div class="s-listrow-top">
+        <button class="s-listrow-name" type="button" data-quick="${esc(listQuery(s.k))}">${esc(s.name)}</button>
+        ${stateChip(read.state)}
+      </div>
       ${/* ══ THE CARD READS, IT DOES NOT WRITE ═══════════════════════════
 
             The criteria were an `editField` here, so a list's definition —
@@ -13700,38 +14900,36 @@
             selected. Same rule the record cards keep — the grid opens a
             record, it does not let you retype its name in passing. */ ''}
       <p class="s-listrow-crit">${esc(s.crit)}</p>
-      ${/* ══ THE FACTS THE READING DOES NOT ALREADY STATE ══════════════════
+      ${/* ══ THE TWO NUMBERS, FINALLY ON ONE LINE ═════════════════════════
 
-            This line was `25 brought in of 1,240 found · 92% complete · 3
-            campaigns draws on it · runs itself`, and once the reading landed
-            beside it THREE OF THE FOUR WERE SAID TWICE — the reading counts
-            the organizations, names the coverage gap and names the campaigns
-            using it, which is the same three facts in sentences.
+            This card carried "1,240 matched the criteria" inside a run of
+            faint 13px prose whose only emphasis was the OWNER'S NAME, and
+            the count of what is actually in the list appeared — where it
+            appeared at all — inside the reading below it, in a different
+            sentence at a different size. Two numbers about one list, never
+            adjacent, never labelled, and the subtraction between them left
+            to a reader with no reason to attempt it. On Amsterdam &
+            Randstad the answer to that subtraction is 1,222.
 
-            Worse, two of them disagreed. Measured on the BDR's home:
+            One line, both labelled, the held count leading because it is the
+            one that says what pressing this card will show you. Where the
+            two are equal the ratio would divide a number by itself, so it
+            says so in words instead — the same suppression `.s-findings`
+            already makes when a set is its own finding. */ ''}
+      <p class="s-listrow-fig">${held === s.found
+        ? `<b>${held.toLocaleString('en-GB')}</b> in it — everything its criteria matched`
+        : `<b>${held.toLocaleString('en-GB')}</b> in it, of <b>${s.found.toLocaleString('en-GB')}</b> matched`}</p>
+      <p class="s-listrow-say">${read.text}</p>
+      ${/* WHOSE IT IS, AND WHETHER IT KEEPS ITSELF. What is left once the
+            figure holds the counts and the chip holds the state: two
+            clauses, both attribution rather than finding, so they sit under
+            the sentence they qualify at the smallest step on the card.
 
-              facts    "25 brought in"    `s.imported`, what the RUN fetched
-              reading  "1 of 12"          `listPool`, what YOU may see
-
-            Both true, one word, no label — the P1 overdue defect again, and
-            I put it here by moving the reading in. `imported` is a property
-            of the run and not of the list as you can see it, so it goes; the
-            reading's count is the one that matches what pressing the name
-            will show you.
-
-            What is left is what the reading never says: how many the search
-            matched, who owns it, and whether it runs itself. Owner is new
-            here and was on `listHead` only — "whose list is this" is the
-            question a page of several lists raises and one list does not. */ ''}
-      <p class="s-listrow-facts">
-        ${s.found.toLocaleString('en-GB')} matched the criteria ·
-        <b>${esc(actor(s.by).name)}</b> owns it ·
-        ${s.auto ? 'runs itself' : 'run by hand'}
-      </p>
-      <div class="s-listrow-read">
-        ${stateChip(read.state)}
-        <p class="s-listrow-say">${read.text}</p>
-      </div>
+            "run by hand" is gone. It was drawn on four of six cards to say
+            that the fifth thing was NOT true of them, which is a default
+            printed as a fact — the standing ones say so and the rest say
+            nothing, the same reduction `stateChip` makes two screens up. */ ''}
+      <p class="s-listrow-facts">${esc(actor(s.by).name)} owns it${s.auto ? ' · runs itself' : ''}</p>
       ${/* ══ WHAT AiMY WOULD DO, AND WHAT IT WOULD ANSWER ══════════════════
 
             Two controls, both AiMY's, where there were four: its recommended
@@ -14148,6 +15346,31 @@
              correctly for the same reason. */
           act: 'Open the lists', quick: 'srcref=&tab=&on=',
           alt: 'Ask who owns it', altAsk: `${s.name} holds nothing I am entitled to see. Who owns it and what is in it?` }
+      /* ══ AND A LIST THAT LEFT ALMOST ALL OF IT BEHIND ANSWERS FIRST ══════
+
+         Every branch under this one reads a list as if what it holds is what
+         its criteria were worth. On three of six that is off by a factor of
+         twenty. Amsterdam matched 1,240 and holds 18, and it reached the
+         standing branch below, which told the reader "nothing new has come
+         in" — true of the last three weeks and false about the list. The
+         same chain put "Find more like these" on LinkedIn, offering a NEW
+         search over 807 organizations the existing one already matched and
+         nobody ever fetched.
+
+         So it hoists above the standing branch too. A list that fills itself
+         and is still a twentieth of its own criteria is not a list that is
+         fine, and `findCompanies(null, k)` continues THIS search rather than
+         minting another — which is exactly the verb the finding asks for.
+
+         The figure on the card carries the ratio, so this sentence carries
+         only what a ratio cannot: the subtraction, and the claim that the
+         rest was never taken. */
+      : listShort(s)
+        ? { state: 'recommended',
+            text: `<b>${listGap(s).toLocaleString('en-GB')} more</b> match its criteria and were <b>never brought in</b>.`,
+            act: 'Bring in more of them', attr: `data-listrun="${esc(s.k)}"`,
+            alt: 'Ask what is out there',
+            altAsk: `${s.name} matched ${s.found.toLocaleString('en-GB')} organizations and ${pool.length} of them are in the book. What is in the rest, and which of it is worth bringing in first?` }
       /* ══ A LIST THAT RUNS ITSELF ANSWERS BEFORE THE BRANCHES BELOW ════════
          Thin, unused, healthy — the three readings under this one all end in
          a verb AiMY would perform, and on a standing list AiMY is already
@@ -14540,11 +15763,70 @@
     const members = campMembers(l);
     const inWay = inWayOf(members);
     const stuck = members.filter((a) => obstaclesOf(a).length).length;
+    /* ── THE DECK SAYS WHAT THE LEAD DOES NOT ──
+
+       The obvious summary here is "12 of 24 are stuck", and on most
+       campaigns the lead at the top of the page has already said exactly
+       that — `campSay`'s blocked branch is this same walk. A section whose
+       headline repeats the page's headline has spent its most legible line
+       on nothing.
+
+       So the deck names the SHAPE of the blockage rather than its size:
+       which reason leads, and by how much. That is the thing the rows below
+       are sorted by and the one fact this block owns. */
+    const top = inWay[0];
+    /* ══ ONE LINE, SO THE FIGURE CAN LEAD IT ═══════════════════════════════
+
+       The headline ran to two lines and the figure sat baseline-aligned
+       beside it, which wrapped the pair into an L — the number level with
+       the first line and a second line hanging under it, neither reading
+       first. A figure can only open a sentence if the sentence is a line.
+
+       So the deck says the one thing, and the working moves to the
+       qualifier under it. */
+    const deck = top
+      ? (inWay.length === 1
+        ? `blocked, all of it ${top.label.toLowerCase()}.`
+        /* NOT "X is the biggest reason". The tally above already names the
+           biggest drag, in more words, at the same size — and a section
+           headline that repeats the page's previous headline has spent its
+           most legible line saying nothing new.
+
+           What this block owns is the SPREAD: whether twelve blocked
+           organizations are one problem or five, and therefore whether any
+           single fix is worth doing. */
+        : `blocked, for ${plural(inWay.length, 'different reason')}.`)
+      : null;
+    /* ── THE FIGURE STAYS EVEN WHEN THE LEAD REPEATS IT ──
+       The first cut dropped it whenever `campSay` had already said "12 of
+       24" at the top of the page, which is sound on redundancy and wrong on
+       the page. The section figure is a fixed column: drop it from one
+       section and that section's kicker starts twenty pixels left of the
+       next one's, so the two headings no longer share an edge. Alignment is
+       what makes a run of sections read as a run, and a repeated figure four
+       hundred pixels apart costs less than a ragged left margin. */
+    /* ══ THE QUALIFIER CARRIES THE WORKING ═════════════════════════════════
+
+       One line under the headline, where NN/g's order puts a qualifier —
+       after the finding, before the evidence. It used to run BEFORE the
+       section said anything at all, which is a note about arithmetic read by
+       somebody not yet told there was any.
+
+       It also states the UNIT once. Every row counted organizations and
+       every row wore a caption saying so, five times over — and the one
+       reading `ADDRESSES` was wrong as well as repetitive: `inWayOf` walks
+       accounts, so that row is three organizations with a bad address, not
+       three addresses. One noun, stated here, and every row is free to be a
+       single line. */
+    const sum = inWay.length
+      ? `Organizations, counted by reason.${
+          inWay.reduce((t, o) => t + o.n, 0) > stuck
+            ? ` Some are blocked by more than one thing, so these add to more than ${stuck}.` : ''}${
+          top ? ` Clearing the biggest would free <b>${top.n}</b>.` : ''}`
+      : null;
+
     return `<section class="s-sheet-block" aria-label="In the way">
-      <div class="s-camp-list-head">
-        <h3 class="s-sub-h">In the way</h3>
-        ${stuck ? `<span class="s-camp-count">${stuck} of ${members.length}</span>` : ''}
-      </div>
+      ${campSectHead('In the way', deck, stuck ? { n: stuck, of: members.length } : null, sum)}
       ${/* A SECTION THAT VANISHES WHEN IT IS CLEAN is one you cannot trust
             to have looked. Every other empty state on this page says what it
             found; so does this. */ ''}
@@ -14561,14 +15843,26 @@
             sentence would be explaining a discrepancy nobody could see. */ ''}
       ${!members.length ? '<p class="s-none">Nobody is on it yet, so nothing can be in the way.</p>'
         : !inWay.length ? '<p class="s-none">Nothing is blocked. Every organization on it is either moving or waiting on them.</p>'
-        : `${inWay.reduce((t, o) => t + o.n, 0) > stuck
-            ? `<p class="s-group-count">Some are blocked by more than one thing, so these count <b>reasons</b> and add to more than ${stuck}.</p>` : ''}
-        <div class="s-straights">
-          ${inWay.map((o) => straightRow(
-            IN_WAY_SAY[o.k] ? IN_WAY_SAY[o.k](o.n) : `${plural(o.n, 'organization')} — ${o.label.toLowerCase()}.`,
-            showMe(o.n),
-            campQuick(l.k, { obstacle: o.k }),
-            o.tone)).join('')}
+        : `<div class="s-reasons">
+          ${/* ══ WHAT THE NUMBERS ARE ═══════════════════════════════════════
+
+                A bare 4 above a bare 3 above a bare 2 does not say four
+                WHAT. The first cut put the noun under every figure — five
+                repetitions of `ORGS`, and one of them wrong — and the second
+                moved it into the section's qualifier, where it was true but
+                a sentence away from the column it describes.
+
+                A column header is how every analytics breakdown worth
+                copying does it: named once, directly over the numbers, in
+                the caption idiom so it reads as a header and not as a row.
+                The sentence column needs none — a column of sentences is
+                self-evident. */ ''}
+          <p class="s-reasons-head">Orgs</p>
+          ${inWay.map((o) => reasonRow(
+            o.n,
+            IN_WAY_CLAUSE[o.k] || `${o.label}.`,
+            `data-quick="${esc(campQuick(l.k, { obstacle: o.k }))}"`,
+            `Show the ${plural(o.n, 'organization')} — ${IN_WAY_SAY[o.k] ? IN_WAY_SAY[o.k](o.n) : o.label}`)).join('')}
         </div>`}
     </section>`;
   }
@@ -14614,9 +15908,12 @@
          definition. */
       const noWhy = campSent(l).filter((t) => t.outcome === 'negative' && !t.objection).length;
       return `<section class="s-sheet-block" aria-label="What to offer better">
-        <h3 class="s-sub-h">What to offer better</h3>
-        <div class="s-insight" data-aimy-item="offer-${esc(l.k)}">
-          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        ${campSectHead('What to offer better', null, null, null)}
+        <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
+          <p class="s-lead-mark">
+            <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            AiMY reads it
+          </p>
           <span class="s-insight-txt">${noWhy
             ? `<b>${noWhy}</b> ${noWhy === 1 ? 'call on this campaign ended in a no and does' : 'calls on this campaign ended in a no and none of them says'} why. <b>I have nothing to tell you about the offering</b> until somebody writes the reason down.`
             : `Nobody on this campaign has said no yet, so there is <b>nothing to read about the offering</b>. This fills in as reasons get logged — it is not a sign the offering is right.`}</span>
@@ -14675,22 +15972,113 @@
     const whoSay = who.length
       ? `${noun} that raised it ${acc.length === 1 ? 'is' : 'are all'} <b>${esc(listSay(who))}</b>, so <b>the offering is what to change</b>, not the script.`
       : `${noun} that raised it ${acc.length === 1 ? 'has' : 'have'} nothing else in common, so this is about <b>the offering rather than a segment</b>.`;
+
+    /* ══ THE SECTION IS CALLED "WHAT TO OFFER BETTER" ══════════════════════
+
+       And it never said what. It named the reason, counted it, named the
+       segment that raised it, and concluded "the offering is what to change"
+       — then offered `Show me the 2` and `Ask about it`, neither of which
+       changes an offering. A block whose title is a promise to propose
+       something, ending in two doors, is the dead end §11 forbids: pair
+       every insight with a contextual next step, and never use a general
+       verb where the real action has a name.
+
+       `TAX.objection` cannot answer it either. Unlike `TAX.obstacle`, which
+       carries `exit`, `mode` and `opens` so every obstacle knows the move it
+       implies, an objection carries a label and a blurb and stops. So the
+       remedy is declared here, beside the taxonomy it answers, one per kind
+       — because the kinds do not share a fix:
+
+         FEATURE and SERVICE are the offering. Something is missing from what
+         this campaign sells, and the campaign has a control that adds one.
+
+         PRICING is not. The product is not too expensive in the abstract; it
+         is worth less than it costs TO THEM, which is a question about who
+         is being asked, not what is being sold.
+
+         TIMING is neither. Right thing, wrong quarter — nothing to change,
+         something to schedule.
+
+       Where the losers share a segment the proposal says so, because "add a
+       feature" and "stop selling this to manufacturing" are different
+       decisions and the evidence distinguishes them. */
+    const sells = (l.sells || []).map((s) => s.name);
+    const seg = who.length ? listSay(who) : null;
+    const REMEDY = {
+      feature: {
+        say: `Nothing on this campaign answers a feature gap${sells.length ? ` — it sells <b>${esc(listSay(sells))}</b>` : ''}. Either it gains something that does, or it stops going to ${seg ? `<b>${esc(seg)}</b>` : 'the ones asking'}.`,
+        act: 'Add what they are asking for', attr: `data-addsell="${esc(l.k)}"` },
+      service: {
+        say: `They wanted something we do not offer${sells.length ? `, and this campaign sells <b>${esc(listSay(sells))}</b>` : ''}. Put the missing one on it, or take ${seg ? `<b>${esc(seg)}</b>` : 'this segment'} off.`,
+        act: 'Add what they are asking for', attr: `data-addsell="${esc(l.k)}"` },
+      pricing: {
+        say: `Price is not an offering fault — it is worth less than it costs <b>to them</b>. ${seg ? `That is a question about aiming at <b>${esc(seg)}</b>` : 'That is a question about who is being asked'}, not about what is being sold.`,
+        act: 'Look at who this is going to', attr: `data-findfor="${esc(l.k)}"` },
+      timing: {
+        say: `Right thing, wrong quarter — nothing here needs changing. What it needs is a date to come back on, and none of ${acc.length === 1 ? 'it' : 'them'} has one.`,
+        act: null, attr: '' },
+      other: { say: null, act: null, attr: '' },
+    };
+    const fix = REMEDY[top.k] || REMEDY.other;
     const ask = `What should we change about what we sell on ${l.name}? ${top.label} lost us ${top.n} of the ${said} who gave a reason${who.length ? `, and they are ${listSay(who)}` : ''}.`;
     return `<section class="s-sheet-block" aria-label="What to offer better">
-      <h3 class="s-sub-h">What to offer better</h3>
+      ${/* ══ IT MUST NOT LOOK LIKE THE BLOCK ABOVE IT ══════════════════════
 
-      <div class="s-insight" data-aimy-item="offer-${esc(l.k)}">
-        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            Same eleven-pixel label, same accent panel, same striped rows,
+            same purple links — scrolling from "In the way" into this one
+            gave a reader no signal that the subject had changed. Repetition
+            is what says "these are the same kind of thing", and these are
+            not: one counts organizations that are stuck, the other counts
+            people who told us why we lost.
+
+            So this section is the same pattern deliberately reduced —
+            smaller figures, a thinner track, a narrower measure. Repetition
+            with variation reads as "same kind of thing, less of it", which
+            is both true and the ranking this page needs.
+
+            THE SAMPLE SIZE LEADS. "From 4 people" was a grey line beneath
+            the conclusion; it is the qualifier the conclusion depends on, so
+            it sits with the headline where a qualifier belongs. Four is a
+            small number and the block should say so before it is believed,
+            not after. */ ''}
+      ${campSectHead('What to offer better',
+        `gave ${top.label.toLowerCase()} as the reason.`,
+        { n: top.n, of: said },
+        `People who told us why they said no, counted by reason. A lost deal with no reason recorded tells us nothing, so it is left out.`)}
+
+      <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
+        <p class="s-lead-mark">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          AiMY reads it
+        </p>
         ${/* "1 of the 1 who gave a reason" is what the general form produces
               on a campaign where one person has said why, and it reads as a
               statistic about nothing. Where the top reason IS every reason,
               the sentence says so instead of dividing a number by itself. */ ''}
-        <span class="s-insight-txt"><b>${esc(top.label)}</b> is what this campaign loses on — ${
-          said === 1 ? '<b>the only reason anybody has given</b>'
-          : top.n === said ? `<b>every one of the ${said}</b> who gave a reason`
-          : `<b>${top.n} of the ${said}</b> who gave a reason`}. ${whoSay}</span>
+        ${/* The headline above now states the finding and the figure beside
+              it states the share, so the sentence that opened "X is what
+              this campaign loses on — 2 of the 4 who gave a reason" would be
+              saying both again, twelve pixels below, in smaller type. What
+              is left is the part neither can carry: what the organizations
+              that raised it have in common, and therefore what to change. */ ''}
+        <span class="s-insight-txt">${
+          said === 1 ? 'It is <b>the only reason anybody has given</b>. '
+          : top.n === said ? `<b>Every one of the ${said}</b> who gave a reason said the same thing. `
+          : ''}${whoSay}</span>
+        ${/* The proposal, which is the thing the section is named after and
+              the thing it never made. Set apart from the reading above it
+              because they are two different claims — one is what the
+              evidence says, the other is what to do about it, and running
+              them together is how "the offering is what to change" ended up
+              reading as a conclusion rather than as a preamble to one. */ ''}
+        ${fix.say ? `<p class="s-offer-fix"><span class="s-offer-fix-cap">What I would change</span>${fix.say}</p>` : ''}
         <span class="s-insight-acts">
-          <button class="s-insight-lnk${claimPrimary() ? ' primary' : ''}" type="button"
+          ${/* The proposal's own verb takes the emphasis when there is one:
+                a block that proposes a change and then leads with `Show me
+                the 2` has ranked looking above doing. */ ''}
+          ${fix.act && canWrite() ? `<button class="s-insight-lnk${claimPrimary() ? ' primary' : ''}" type="button"
+                  data-aimy-topic="offer-fix-${esc(l.k)}" ${fix.attr}>${esc(fix.act)}</button>` : ''}
+          <button class="s-insight-lnk${!fix.act && claimPrimary() ? ' primary' : ''}" type="button"
                   data-aimy-topic="offer-${esc(l.k)}"
                   data-quick2="${esc(campQuick(l.k, { ids: acc.join(',') }))}">${esc(showMe(acc.length))}</button>
           <button class="s-insight-lnk" type="button"
@@ -14699,15 +16087,29 @@
         </span>
       </div>
 
-      <p class="s-group-count">From <b>${plural(said, 'person')}</b> on this campaign who told us why they said no. A lost deal with no reason recorded tells us nothing, so it is left out.</p>
-      <div class="s-straights">
+      ${/* Same row, same reasons — the figure is what ranks these and the
+            row is what opens them. The container carries `is-quiet`, which
+            steps the figures down: this block reads a fifth of the evidence
+            the one above it does, and repetition WITH variation is what says
+            "same kind of thing, less of it" instead of "here it is again".
+
+            The count is people who gave a reason; the door opens the
+            organizations they were at, and those differ when two people at
+            one company said the same thing. The label says which it is
+            rather than promising a number the destination will not match. */ ''}
+      <div class="s-reasons is-quiet">
+        ${/* People, not organizations — `offeringGaps` counts touchpoints
+              carrying an objection, so two people at one company who both
+              said pricing are two. The header is where that distinction
+              becomes visible instead of being buried in a caveat. */ ''}
+        <p class="s-reasons-head">People</p>
         ${gaps.map((g) => {
           const on = accFor(g.k);
-          return straightRow(
-            `${g.label} lost us ${g.n} of the ${said}. ${g.blurb}`,
-            showMe(on.length),
-            campQuick(l.k, { ids: on.join(',') }),
-            g.k === top.k ? 'err' : null);
+          return reasonRow(
+            g.n,
+            `${g.label} — ${g.blurb}`,
+            `data-quick="${esc(campQuick(l.k, { ids: on.join(',') }))}"`,
+            `Show the ${plural(on.length, 'organization')} where somebody said ${g.label.toLowerCase()}`);
         }).join('')}
       </div>
     </section>`;
@@ -14742,13 +16144,33 @@
        work that has not happened. The two states need different things:
        one needs an audience, the other needs a decision about how to work
        the audience it has. */
+    /* ══ THE SAME SENTENCE, SAID TWICE ═════════════════════════════════════
+
+       `text` is the whole finding in one line, and it is what the campaign
+       CARDS draw — eight of them in a grid, where a sentence is the right
+       shape because there is no room to be anything else.
+
+       The campaign's own page has room, and a sentence spends it badly: the
+       figure the finding is ABOUT ends up as bold 14px prose, indistinguish-
+       able from the eleven other numbers on the surface. So the same finding
+       also arrives in three parts — the figure, the line that reads off it,
+       and the consequence — and the page sets each at its own weight.
+
+       Three fields, one derivation. They cannot disagree because nothing is
+       recomputed: `text` and `fig`/`lead`/`deck` are two renderings of the
+       numbers already in hand, and every caller that wants the sentence
+       still gets exactly the sentence it got before. */
     if (st === 'draft' && !members.length) return { key: 'find', state: 'recommended',
       text: `Written down and <b>nobody found for it yet</b>. I can read the goal and go looking.`,
+      fig: { n: 0, of: null }, lead: 'found for it yet — it is written down and nobody is on it',
+      deck: 'I can read the goal and go looking.',
       act: 'Find them', attr: `data-findfor="${esc(c.k)}"`,
       ask: `What kind of companies would you look for on ${c.name}? Read the goal back to me before you go looking.` };
 
     if (st === 'draft') return { key: 'start', state: 'drafted',
       text: `Assembled and not started. <b>${plural(members.length, 'account')}</b> are on it and <b>nothing has been sent</b> — choosing the channels and a window is what starts it.`,
+      fig: { n: members.length, of: null }, lead: 'accounts are on it, and nothing has been sent',
+      deck: 'Choosing the channels and a window is what starts it.',
       act: 'Start it', attr: `data-plan="${esc(c.k)}"`,
       ask: `Show me the ${c.name} campaign: who is on it, what shape they are in, and what starting it would send.` };
 
@@ -14770,6 +16192,8 @@
     const cands = [
       { key: 'awaiting', w: (back.length / n) * 1.0, has: back.length, state: 'detected',
         text: `<b>${plural(back.length, 'account')}</b> here replied and <b>nobody has answered</b> — that is ${Math.round((back.length / n) * 100)}% of the campaign waiting on us.`,
+        fig: { n: back.length, of: n }, lead: 'replied, and nobody has answered',
+        deck: `That is ${Math.round((back.length / n) * 100)}% of the campaign waiting on us.`,
         act: 'Answer them', quick: campQuick(c.k, { status: 'awaiting-us' }),
         ask: `Show me the ${back.length} accounts on ${c.name} that replied and have not been answered, what each of them said, and what I should say back.` },
       { key: 'blocked', w: (stuck.length / n) * 0.8, has: stuck.length, state: 'recommended',
@@ -14781,10 +16205,14 @@
            one sentence AiMY says about the campaign was wrong about the
            only thing it was reporting. It says what `inWayOf` found. */
         text: `<b>${stuck.length} of ${n}</b> have something in the way — ${esc(inWayClause(inWay))}. <b>The sequence is running past them</b> regardless.`,
+        fig: { n: stuck.length, of: n }, lead: `have something in the way — ${inWayClause(inWay)}`,
+        deck: 'The sequence is running past them regardless.',
         act: 'See what is blocking it', quick: campQuick(c.k, { obstacle: ALL_OBSTACLES }),
         ask: `Show me what is blocking ${c.name}: which accounts are ${inWayClause(inWay)}, and whether the sequence or the audience is the problem.` },
       { key: 'opening', w: (opens.length / n) * 0.6, has: opens.length, state: 'detected',
         text: `<b>${plural(opens.length, 'account')}</b> here have something open — funding, hiring, a champion who moved. <b>The sequence does not know about any of it.</b>`,
+        fig: { n: opens.length, of: n }, lead: 'have something open — funding, hiring, a champion who moved',
+        deck: 'The sequence does not know about any of it.',
         act: 'Use the openings', quick: campQuick(c.k, { opp: ALL_OPPS }),
         ask: `Show me the ${opens.length} accounts on ${c.name} with an opening, and draft a message for each that uses it instead of the sequence copy.` },
     ].filter((x) => x.has).sort((a, b) => b.w - a.w);
@@ -14793,6 +16221,8 @@
 
     return { key: 'fine', state: 'completed',
       text: `Running as planned. <b>${plural(sent, 'message')}</b> sent to <b>${plural(members.length, 'account')}</b>, and <b>nothing is waiting on a person</b>.`,
+      fig: { n: sent, of: null }, lead: `messages sent to ${plural(members.length, 'account')}, running as planned`,
+      deck: 'Nothing is waiting on a person.',
       act: 'Look at how it is doing', quick: campQuick(c.k, {}),
       ask: `How is ${c.name} performing? Show me what has been sent, what came back, and whether it is worth continuing.` };
   }
@@ -14808,6 +16238,55 @@
        in the same paint, which is the class of bug this whole pass is for. */
     const said = (opts && opts.said) || campSay(c);
     const onPage = !!(opts && opts.onPage);
+
+    /* ══ THE LEAD ══════════════════════════════════════════════════════════
+
+       On the campaign's own page this is the one thing the reader came for,
+       and it was drawn as a tinted panel holding a 14px sentence — the same
+       shape, the same weight and the same purple as the offering block four
+       hundred pixels below it. Two panels that look identical and say
+       different kinds of thing is the whole of "everything is condensed":
+       repetition reads as relatedness, so a reader scrolling past learns
+       nothing from the second that the first did not already claim.
+
+       So the page's copy loses the panel and earns its rank the way a front
+       page does — with size and space. The figure goes to `--ty-lead`, the
+       consequence becomes the headline under it, and the tint goes away
+       entirely, which also takes the surface back under the accent budget
+       (`Knowledge/assets/widgets.css:13-20`: the accent belongs on the
+       primary action, and grep before adding one).
+
+       `is-lead` is page-scoped. `.s-insight` is also the campaign card, the
+       lead record and the exec surface; none of them have room for this and
+       none of them change. */
+    if (onPage && said.fig) {
+      return `<div class="s-insight is-lead" data-aimy-item="${esc(c.k)}">
+        <p class="s-lead-mark">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          AiMY
+          ${stateChip(said.state)}
+        </p>
+        ${/* Figure and sentence on ONE BASELINE, not stacked — QA's
+              `.bcard-stat-line` (`QA/index.html:6055-6061`), which is the
+              construction that lets a 60px number and an 18px line read as
+              one statement instead of as a number with a caption under it.
+              The sentence keeps its own wrap column, so a long clause runs
+              under itself rather than under the figure. */ ''}
+        <p class="s-lead-line">
+          <span class="s-lead-n">${esc(String(said.fig.n))}</span>
+          <span class="s-lead-say">${said.fig.of ? `<span class="s-lead-of">of ${esc(String(said.fig.of))}</span> ` : ''}${said.lead}</span>
+        </p>
+        <p class="s-lead-deck">${esc(said.deck)}</p>
+        ${canWrite() ? `<p class="s-lead-acts">
+          <button class="s-insight-lnk${claimPrimary() ? ' primary' : ''}" type="button" data-aimy-topic="camp-${esc(c.k)}"
+                  ${said.attr || `data-quick2="${esc(said.quick)}"`}>${esc(said.act)}</button>
+          <button class="s-insight-lnk" type="button"
+                  data-entry-mode="prompt" data-aimy-topic="camp-${esc(c.k)}-ask"
+                  data-aimy-ask="${esc(said.ask)}">Ask about it</button>
+        </p>` : ''}
+      </div>`;
+    }
+
     return `<div class="s-insight${onPage ? '' : ' is-compact'}" data-aimy-item="${esc(c.k)}">
       <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
       ${stateChip(said.state)}
@@ -15031,6 +16510,49 @@
     'no-reply': (n) => `${plural(n, 'organization')} ${n === 1 ? 'has' : 'have'} had three messages and answered none of them.`,
   };
 
+  /* ══ THE SAME OBSTACLE, WITH ITS COUNT TAKEN OUT ══════════════════════════
+
+     `IN_WAY_SAY` opens with the figure because it is written to stand alone
+     — inside a paragraph, or as the drag line under the tally, it has to say
+     how many. The ranked row draws the figure itself, so a sentence that
+     also opens with it prints the number twice, eight pixels apart.
+
+     These are the predicate only, and they are written to read correctly at
+     any count: no "it/them" that has to agree with a number the clause can
+     no longer see, and the noun carried by the unit under the figure. The
+     two maps stay side by side so a wording change to one is an obvious
+     prompt to make it in the other. */
+  /* The model carries `kind` on every offering and no surface had ever drawn
+     it, so a service and a solution rendered identically. There is no
+     `TAX.offering` axis to read a label from — these are the only two values
+     the seed and the Add form produce (`sellkind`), so the map is here
+     rather than inventing a taxonomy for two words. */
+  const SELL_KIND = { service: 'Service', solution: 'Solution' };
+
+  /* What a touchpoint on each channel IS, as a noun — for counting work that
+     happened, where `TAX.channel`'s picker labels do not read. */
+  const CH_NOUN = {
+    phone: (n) => (n === 1 ? 'call' : 'calls'),
+    meeting: (n) => (n === 1 ? 'meeting' : 'meetings'),
+    aimy: (n) => (n === 1 ? 'AiMY email' : 'AiMY emails'),
+    physical: (n) => (n === 1 ? 'visit' : 'visits'),
+  };
+
+  const IN_WAY_CLAUSE = {
+    'gone-quiet': 'Gone quiet, with nothing scheduled to bring them back.',
+    stalled: 'Stalled — the next step came due and nobody took it.',
+    'address-bounced': 'The address is wrong, so nothing we send arrives.',
+    'no-champion': 'Lost the person who wanted this, and nobody has replaced them.',
+    'wrong-person': 'Talking to somebody who cannot decide.',
+    'no-reply': 'Three messages out, and none of them answered.',
+  };
+
+  /* Addresses bounce; everything else happens to an organization. The unit
+     rides under the figure so the clause does not have to carry it. */
+  const IN_WAY_UNIT = (k, n) => (k === 'address-bounced'
+    ? (n === 1 ? 'address' : 'addresses')
+    : (n === 1 ? 'org' : 'orgs'));
+
   /* The same treatment for what has OPENED. "2 organizations — just funded"
      is a label with a count in front of it; "2 have just been funded" is
      something a person says. Every one of these ends by naming what has not
@@ -15060,11 +16582,165 @@
     </div>`;
   }
 
+  /* ══ THE COUNT COMES OUT OF THE SENTENCE ══════════════════════════════════
+
+     Five rows, each opening with its own figure as a WORD — "4 organizations
+     have...", "4 organizations have...", "3 addresses are...". The ranking
+     was there and unreadable: to learn that the top reason is twice the
+     bottom one you had to read five sentences and hold five numbers, and the
+     rows were sorted by a number the eye never saw as a number.
+
+     Lifted into its own column it is a figure, and beside a track scaled to
+     the largest it is a SHAPE — four against two is one glance instead of
+     five readings. This is QA's ranked bar (`QA/index.html:4986-5072`), and
+     its argument about the goal marker is the reason the track here is
+     scaled to the leader rather than to the total: a set of reasons running
+     4/4/3/3/2 drawn against 24 is five near-identical stubs, and a ranking
+     nobody can read is a ranking that says nothing.
+
+     `is-ranked` is additive. `.s-straight` is also the executive page and the
+     rail, and neither has a count to lift out — they keep the base row, which
+     is why the stripe stays defined there and only stops being drawn here. */
+  /* ══ THE ROW IS THE DOOR ═══════════════════════════════════════════════════
+
+     A pass of this drew four columns — figure, track, sentence, link — and
+     every one of them was a compromise:
+
+       THE TRACK SAID NOTHING. Obstacle counts on a real campaign run 4 / 4 /
+       3 / 3 / 2. Scaled to the leader that is 100 / 100 / 75 / 75 / 50, five
+       bars within a quarter of each other, and scaled to the campaign it is
+       five stubs. A bar is for a spread the eye cannot rank unaided; a
+       single digit against another single digit is not that, and drawing one
+       anyway put a column of travel between the number and its sentence to
+       report what the number had already said.
+
+       THE UNIT REPEATED FIVE TIMES. `ORGS` under every figure, on rows that
+       are all organizations except one.
+
+       THE LINK REPEATED THE FIGURE. "Show me the 4" beside a 4 — the same
+       number twice on one line, and five identical targets down the block
+       with nothing ranking them.
+
+     So the row is the door. One target the full width of the block, the
+     figure at the left where the ranking is read, the sentence beside it,
+     and a chevron saying it opens. Nothing is drawn that a number already
+     says, and there is no second thing to aim at. */
+  /* ══ ONE ROW FOR EVERY COUNT-AND-A-DOOR ═══════════════════════════════════
+
+     Four implementations of the same idea were live on this page at once:
+     `.s-straight` on Enrich and Copy, `.s-ans-row` on Find's status spread,
+     `.s-reply-row` on Measure's replies, and this. Every one of them is a
+     figure, a label, and a way into the set it counts — and each drew it
+     differently, so moving between two tabs of the SAME SECTION meant
+     learning the list again.
+
+     `attr` rather than a hardcoded `data-quick`, because the four lists open
+     their sets by different routes: `data-quick` narrows the workbench,
+     `data-quick2` opens a new one, and Find's spread toggles a local filter
+     with `data-cstatus`. The row does not care which — it is a button with a
+     count in it, and the caller says where it goes.
+
+     `on` marks a row whose set is the one currently shown, which only Find's
+     spread needs and which had no equivalent in the other three. */
+  /* ══ EVERY STAGE SAYS WHAT IT MAKES OF ITSELF ══════════════════════════════
+
+     The four stage bodies were four sets of blocks with no reading on any of
+     them: metric cards that state a number and interpret nothing, lists in
+     taxonomy order rather than worst-first, and no sentence anywhere saying
+     which of it mattered. The page's SECTIONS all lead with AiMY — the lead,
+     the drag under the tally, the offering's reading — and then you open a
+     stage and AiMY stops talking.
+
+     This is that same block, one level down. It reads THIS STAGE'S evidence
+     only: `campReadings` carries the campaign-level diagnosis and the rail
+     renders it beside every step — deliberately, because it used to live on
+     Measure and was therefore invisible to anyone whose trouble was at
+     Reach. Repeating it here would undo that. What each stage owes is what
+     its own block of evidence adds up to, which nothing was saying at all.
+
+     The action is optional: where the stage's own primary already does the
+     thing, a second control saying it again is the dead-end-in-reverse the
+     doctrine warns about. */
+  function stageRead(text, acts) {
+    return `<div class="s-insight is-quote">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY reads it
+      </p>
+      <span class="s-insight-txt">${text}</span>
+      ${acts ? `<span class="s-insight-acts">${acts}</span>` : ''}
+    </div>`;
+  }
+  /* A door on a reading, at the tier the reading sits in. The stage's own
+     primary lives on the reading when the two would say the same verb —
+     `campPage` applies exactly this rule to the header's lifecycle control,
+     and for the same reason: one verb, rendered once, on the thing that also
+     explains itself. */
+  const readAct = (label, attr) => `<button class="s-insight-lnk" type="button" ${attr}>${esc(label)}</button>`;
+
+  function reasonRow(n, text, attr, aria, on) {
+    return `<button class="s-reason${on ? ' is-on' : ''}" type="button" ${attr} aria-label="${esc(aria)}">
+      <span class="s-reason-n">${esc(String(n))}</span>
+      <span class="s-reason-say">${esc(text)}</span>
+      <svg class="s-reason-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+    </button>`;
+  }
+
+  /* ══ THE KICKER AND WHAT IT INTRODUCES ════════════════════════════════════
+
+     Every section on this page opened with an eleven-pixel uppercase label
+     and went straight into evidence — so the reader met "IN THE WAY", then a
+     disclaimer about counting, then five rows, and was never told what the
+     section had FOUND. NN/g's structure for exactly this is headline, then
+     the summary that qualifies it, then the findings, then the data; the
+     label is not a headline, it is a category.
+
+     The label stays, because it is what makes the section findable, and it
+     takes the role a newspaper gives it: a kicker over the line that
+     actually says something. The generated sentence under it is the loudest
+     text in the block, so the layer a reader scans is the finding rather
+     than the filing.
+
+     The figure sits left of both, on the scan path, at the step a section's
+     own number deserves — it was 11px muted at the far right edge, which is
+     the one place on a text-heavy page the eye is documented not to go. */
+  function campSectHead(kicker, deck, fig, sum) {
+    return `<header class="s-sect-head">
+      <h2 class="s-kicker">${esc(kicker)}</h2>
+      <div class="s-sect-main">
+        ${fig ? `<p class="s-sect-fig">
+          <span class="s-sect-fig-n">${esc(String(fig.n))}</span>
+          ${fig.of != null ? `<span class="s-sect-fig-of">of ${esc(String(fig.of))}</span>` : ''}
+        </p>` : ''}
+        ${deck ? `<p class="s-sect-deck">${esc(deck)}</p>` : ''}
+      </div>
+      ${/* Outside the baseline row, not a wrapping item inside it — a
+            `flex-basis: 100%` that has to beat a two-line deck for the wrap
+            is a layout held together by arithmetic. A sibling is on its own
+            line because it is on its own line. */ ''}
+      ${sum ? `<p class="s-sect-sum">${sum}</p>` : ''}
+    </header>`;
+  }
+
   /* Lifted out of `campAnalytics`, which is now its only caller. */
   const metricCard = (v, cap, sub, tone) => `<div class="s-metric${tone ? ' tone-' + esc(tone) : ''}">
     <span class="s-metric-v">${esc(String(v))}</span>
     <span class="s-metric-cap">${esc(cap)}</span>
     ${sub ? `<span class="s-metric-sub">${esc(sub)}</span>` : ''}
+  </div>`;
+
+  /* ── ONE FIGURE, DIVIDED NOT BOXED ──
+     The executive surface's `.s-af` — a rule above, a caption, a figure, and
+     the space doing the grouping. Both figure rows on the campaign page use
+     it: Progress's tally and Measure's results, which were three boxed cards
+     making the same three-isolated-facts shape the tally had already fixed.
+     Declared here beside `metricCard` because it has two callers now, and a
+     second copy of a template is a template that drifts. */
+  const statFig = (v, cap, sub) => `<div class="s-af">
+    <span class="s-af-cap">${esc(cap)}</span>
+    <span class="s-af-val">${esc(String(v))}</span>
+    ${sub ? `<span class="s-af-sub">${esc(sub)}</span>` : ''}
   </div>`;
 
   /* The only control on this surface, and the reason it is allowed here
@@ -19504,8 +21180,27 @@
       const here = new Set(list.map((r) => r.id));
       [...SEL].forEach((id) => { if (!here.has(id)) SEL.delete(id); });
     }
-    $('#filterBar').innerHTML = filterRow();
-    $('#chipBar').innerHTML = chipBar();
+    /* ══ INSIDE A CAMPAIGN THIS IS A PAGE, NOT THE WORKBENCH ══════════════
+
+       Arriving from a gate, the surface carried the whole global apparatus:
+       seven view tabs, five axis dropdowns, a date range, a chip row and
+       `Clear all` — 273px of chrome above 282px of content, for a set of
+       four you had already chosen on the page you came from.
+
+       Scoping the counts fixed them lying and left them pointless. Every one
+       of those controls exists to help somebody FIND a set; you arrive here
+       having been handed one. Offering to re-narrow it is offering to
+       re-answer a question that was asked and settled two clicks ago, and
+       the chip row's only remaining job was undoing the scope — which now
+       has its own control in the header.
+
+       So the chrome comes off, the way the briefing already takes it off for
+       the same reason (doctrine §5.1: lead with a prioritised set, not an
+       inventory). What is left is what a navigated page is: where you came
+       from, what you are looking at, and the work. */
+    const scoped = campScope();
+    $('#filterBar').innerHTML = scoped ? '' : filterRow();
+    $('#chipBar').innerHTML = scoped ? '' : chipBar();
     stage.innerHTML = aiBanner() + resultLine(list) + scopeBar() + grid(list);
 
     const hint = $('.aimy-float-hint');
@@ -19747,6 +21442,12 @@
       const cleared = {};
       for (const k of MULTI) cleared[k] = [];
       for (const k of SCALAR) if (k !== 'on') cleared[k] = '';
+      /* `Clear all` clears the questions you asked, not the campaign you are
+         standing in — which is what `Leave the campaign` is for, next to the
+         scope itself. Clearing both from one control gave no way to widen
+         inside a campaign without also leaving it. */
+      const scope = campScope();
+      if (scope) cleared.campaign = [scope];
       go(cleared);
       return;
     }
@@ -20005,6 +21706,15 @@
       const over = { lead: '', camp: '', tab: '', cut: '' };
       for (const k of MULTI) over[k] = [];
       for (const k of ['q', 'touched', 'due', 'archived', 'srcref', 'loose']) over[k] = '';
+      /* ══ THE SCOPE IS NOT ONE OF THE AXES BEING CLEARED ══════════════════
+         `campaign` is in `MULTI`, so this loop was throwing away the thing
+         the reader arrived with. Pressing `Overdue` inside a four-account
+         campaign landed on eighteen accounts across the whole book, and the
+         only sign was a back-link that quietly changed to "Back to the
+         briefing". Held across, so a view narrows WITHIN the campaign —
+         which is what its count, now also scoped, has just promised. */
+      const scope = campScope();
+      if (scope) over.campaign = [scope];
       /* ══ AND `All` IS A CHOICE, NOT AN EMPTY STATE ══════════════════════
             Clearing a view writes a bare leads URL, and a bare leads URL is
             what `parse` applies the default to — so without `view=all` the
@@ -20309,7 +22019,10 @@
     /* A suggested question runs itself. Offering one that has to be retyped
        is the same defect as a dead control, with extra steps. */
     if ((el = e.target.closest('[data-ask]'))) { runInput(el.dataset.ask); return; }
-    if ((el = e.target.closest('[data-when]'))) { paintWhen(+el.dataset.when); return; }
+    /* `[data-when]` was the reschedule modal's four quick-pick buttons. They
+       went with the modal — nothing renders the attribute now, so a handler
+       for it is a route to code no press can reach. `paintWhen` survives for
+       the date field, which is the edit path. */
 
     /* An answer's records, put on the surface behind the glass. Reversal is
        explicit — the toast's Undo restores the previous filter state
@@ -21168,36 +22881,73 @@
      because nothing is overdue any more" — a stated effect that states a
      change to nothing, which is exactly the kind of line that teaches people
      to stop reading them. */
+  /* ══ RESCHEDULING IS A CANVAS ACTION, NOT A MODAL ══════════════════════════
+
+     It was a `commit()` block: a modal titled `Reschedule "Reply to their
+     question"`, holding a four-button choice list, a date picker, a stated
+     effect, `Cancel` and `Reschedule it`.
+
+     Three things wrong with that, and they compound:
+
+       IT CONFIRMED SOMETHING IT CALLED UNDOABLE. The block's own effect line
+       read `Undoable`, and `run()` already ends in `toast(..., undo)`. So a
+       reader was asked to commit to a change that could be taken back in one
+       press — a confirm in front of an undo is friction charged twice for
+       the same safety.
+
+       IT ASKED TWO QUESTIONS TO GET ONE ANSWER. Four quick buttons AND a
+       date field, either of which sets the same value, so the first decision
+       was which control to use.
+
+       AND IT WAS A MODAL, which is the surface this product routes work
+       AWAY from: doctrine §11 sends workflow confirmation to the canvas, and
+       §7.2 keeps modals for what genuinely needs ordered inputs or a durable
+       record. One date is neither.
+
+     `canvasWork` is the same block in the canvas thread, with the basis
+     visible and the surface behind it still live. AiMY proposes a date and
+     the primary does it in one press; the date field is the EDIT path and
+     opens only if you want one, which keeps doctrine §3's "Accept · Edit ·
+     Reject" without charging the accept case for the edit case's control.
+
+     One press, and the toast still carries the undo it always did. */
   function reschedule(id) {
     if (!canWrite()) return;
     const rec = recBy(id);
     if (!rec || !rec.next) return;
     const over = daysAgo(rec.next.due);
     const to = iso(shift(TODAY, 7));
-    const wouldBe = computedStatus(Object.assign({}, rec, { next: { what: rec.next.what, due: to } }));
     const now = statusOf(rec);
-    commit({
-      title: `Reschedule “${rec.next.what}”`,
-      body: `<p class="s-commit-quote">It was due ${esc(fmtDate(rec.next.due))}${over > 0 ? `, ${esc(plural(over, 'day'))} ago` : ''}.</p>
-        <div class="s-field">
-          <span class="s-field-label">Destination</span>
-          <div class="s-when">
-            <div class="s-when-quick">
-              ${[['Tomorrow', 1], ['In a week', 7], ['In two weeks', 14], ['In a month', 30]]
-                .map(([lab, d], i) => `<button class="btn btn-ghost btn-sm s-when-btn${i === 1 ? ' is-on' : ''}" type="button" data-when="${d}">${lab}</button>`).join('')}
-            </div>
-            <input class="field-input s-when-date" type="date" value="${esc(to)}" min="${esc(iso(TODAY))}" aria-label="A date of your own" />
-          </div>
-        </div>`,
-      effects: [['ok', `Due ${fmtDate(to)} instead.`, 'whenDue']],
-      confirm: 'Reschedule it',
-      run() {
+    const would = computedStatus(Object.assign({}, rec, { next: { what: rec.next.what, due: to } }));
+
+    canvasWork({
+      title: `Move “${rec.next.what}” on ${rec.name}`,
+      lede: over > 0
+        ? `It was due ${fmtDate(rec.next.due)}, ${plural(over, 'day')} ago, and nothing has moved since.`
+        : `It is due ${fmtDate(rec.next.due)}.`,
+      body: `<p class="s-work-say">I would put it a week out, on <b>${esc(fmtDate(to))}</b>. ${
+        now === would
+          ? `It stays ${esc(label('status', now).toLowerCase())} — the date moves, the state does not.`
+          : `That takes it from ${esc(label('status', now).toLowerCase())} to ${esc(label('status', would).toLowerCase())}.`}</p>
+        ${/* The edit path, closed. `<details>` rather than a panel of quick
+              picks: the common case is AiMY's date and pressing the primary,
+              and a reader who wants another one asks for it in one place
+              rather than choosing between two controls that set the same
+              field. */ ''}
+        <details class="s-when-own">
+          <summary>Put it somewhere else</summary>
+          <input class="field-input s-when-date" type="date" value="${esc(to)}" min="${esc(iso(TODAY))}"
+            aria-label="A date of your own" />
+        </details>`,
+      confirm: `Move it to ${fmtDate(to)}`,
+      run(wid) {
         const picked = (($('.s-when-date') || {}).value || to);
         const prev = rec.next.due;
         rec.next.due = picked;
-        paint();
+        paint(); paintChrome();
         markChanged('.s-next, .s-rec-status');
-        toast(`Moved to ${fmtDate(picked)}.`, () => { rec.next.due = prev; paint(); });
+        settleWork(wid, `Moved to ${fmtDate(picked)}.`);
+        toast(`Moved to ${fmtDate(picked)}.`, () => { rec.next.due = prev; paint(); paintChrome(); });
       },
     });
   }
@@ -21206,11 +22956,22 @@
      each keeps the other honest — and the stated effect tracks both, because
      an effect that does not follow the control above it is the defect the
      merge preview was rebuilt to remove. */
+  /* ══ THE BUTTON SAYS THE DATE IT WILL USE ═════════════════════════════════
+
+     The confirm reads `Move it to 12 Aug 2026` — AiMY's proposal, named, so
+     the common case is one press with nothing to read twice. Open the edit
+     path and pick another date and the label has to follow, or the button is
+     announcing a date it is not going to write.
+
+     The quick-pick buttons this also drove are gone with the modal: four
+     controls and a date field all setting one value meant the first decision
+     was which control to use. */
   function paintWhen(days) {
     const inp = $('.s-when-date');
     if (!inp) return;
     if (days != null) inp.value = iso(shift(TODAY, +days));
-    $$('.s-when-btn').forEach((b) => b.classList.toggle('is-on', days != null && +b.dataset.when === +days));
+    const go = $('[data-work-go]');
+    if (go) go.textContent = `Move it to ${fmtDate(inp.value)}`;
     const rec = recBy(S.lead) || null;
     const line = $('[data-effect="whenDue"]');
     if (line) line.textContent = `Due ${fmtDate(inp.value)} instead.`;
@@ -22904,28 +24665,72 @@
   }
 
   /* The briefing reported bounces and offered no way to fix one. */
+  /* ══ AN ACCOUNT DOES NOT HAVE AN ADDRESS; ITS PEOPLE DO ═══════════════════
+
+     This guarded `rec.kind !== 'con'` and returned silently on anything
+     else — and `address-bounced` is an obstacle computed on ACCOUNTS, from
+     the bounces against the contacts inside them. So `exitFor` offered "Fix
+     the address" on an account and the handler refused it without a word.
+
+     It was unreachable until now: the card suppressed its verb inside a
+     group, so the only surface that could produce the press was the record
+     page, where the record is already a contact. Putting the exit on every
+     worklist row made the mismatch pressable, and a control that does
+     nothing and says nothing is the failure this product treats as worse
+     than a missing control.
+
+     Resolved rather than refused: an account hands over the contact whose
+     address actually bounced. Where more than one has, the first is the one
+     with the oldest bounce — `addressBad` reads the touchpoints and
+     `touchesFor` returns them newest-first, so the tail is the longest
+     broken. The block names how many others there are so a fix of one is
+     not mistaken for a fix of all. */
   function fixAddress(id) {
     if (!canWrite()) return;
-    const rec = recBy(id);
-    if (!rec || rec.kind !== 'con') return;
-    commit({
+    let rec = recBy(id);
+    if (!rec) return;
+    let alsoBad = 0;
+    if (rec.kind !== 'con') {
+      const bad = maySee(DB.con.filter((c) => c.acc === rec.id && !c.arch)).filter(addressBad);
+      if (!bad.length) { toast(`Nothing on ${rec.name} has a broken address any more.`); return; }
+      alsoBad = bad.length - 1;
+      rec = bad[0];
+    }
+    if (rec.kind !== 'con') return;
+    /* ══ AND THIS ONE IS A CANVAS ACTION TOO ═══════════════════════════════
+
+       Same three faults as the reschedule modal, for the same reasons: it
+       confirmed a change its own `run()` already undoes with `toast()`, it
+       was a modal for one text field, and §7.2 keeps modals for ordered
+       inputs or a durable record. One address is neither.
+
+       It differs from reschedule in one way worth keeping: there is nothing
+       to propose. AiMY cannot invent an address, so the field is the work
+       rather than an edit path, and `needs` gates the confirm until it
+       carries something — which is the same job the old `run()` did by
+       refusing after the press and toasting an error. Caught before the
+       press instead. */
+    canvasWork({
       title: rec.email ? `Fix ${rec.name}'s address` : `Give ${rec.name} an address`,
       /* Both halves of the same defect. The quote read "`null` — rejected by
          the server" where the field was empty, and the input's placeholder
          was the word null. What is true in that case is that the address is
          gone and the bounce is still on the record. */
-      body: `<p class="s-commit-quote">${rec.email
-          ? `${esc(rec.email)} — nothing sent to this address was delivered.`
-          : 'Nothing on file, and a message to this contact already failed to arrive. Nothing we send gets through.'}</p>
-        <label class="ds-field s-field">
+      lede: `${rec.email
+          ? `${rec.email} — nothing sent to this address was delivered.`
+          : `Nothing on file for ${rec.name}, and a message already failed to arrive.`}${
+          alsoBad ? ` ${plural(alsoBad, 'other')} at ${accOf(rec).name} ${alsoBad === 1 ? 'is' : 'are'} broken too.` : ''}`,
+      body: `<label class="ds-field s-field">
           <span class="s-field-label">${rec.email ? 'Correction' : 'Address'}</span>
           <input class="field-input s-addr" type="text" placeholder="${esc(rec.email || 'name@company.com')}" />
-        </label>`,
-      effects: [['ok', 'The address is corrected and marked as confirmed by a person rather than guessed.']],
+        </label>
+        <p class="s-work-say">Whatever you put here is marked as confirmed by a person rather than guessed.</p>`,
+      needs: '.s-addr',
       confirm: 'Correct it',
-      run() {
+      run(wid) {
         const next = (($('.s-addr') || {}).value || '').trim();
         if (!next || !next.includes('@')) { toast('That is not an address. Nothing was changed.'); return false; }
+        settleWork(wid, `Address corrected to ${next}.`);
         const prev = { email: rec.email, enrich: rec.enrich.email, at: rec.emailAt };
         rec.email = next;
         rec.enrich.email = { conf: 'high', src: `Corrected by ${me().name}`, at: iso(TODAY) };
