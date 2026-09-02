@@ -30,7 +30,21 @@
        read the other way round, hence the note. -->
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
   <link rel="stylesheet" href="assets/aimy-ds.css" />
-  <link rel="stylesheet" href="assets/sales.css?v=399" />
+  <!-- ══ THE TWO STAMPS MOVE TOGETHER, AND THE BUILD PANEL DEPENDS ON IT ══
+
+       `?v=` is what stops a browser serving yesterday's file, and this
+       product carries it on the stylesheet and on the script as two separate
+       literals holding one number. Bump one and not the other and the
+       browser serves new markup against old rules — which is not a visible
+       error, it is a page where some rules apply and some do not, and it
+       cost an afternoon of chasing rules that were correct in the file.
+
+       Worse for the prototype panel: `BUILD` reads the stamp off sales.js
+       alone and prints it as "the build". If the CSS lags, that stamp is a
+       lie told to the one person trying to report what they are looking at.
+
+       So: one number, in both places, every time. -->
+  <link rel="stylesheet" href="assets/sales.css?v=462" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -484,6 +498,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/sales.js?v=399"></script>
+<script src="assets/sales.js?v=462"></script>
 </body>
 </html>

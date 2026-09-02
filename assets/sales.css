@@ -163,6 +163,78 @@ html {
   --ls-wide: 0.06em;
 }
 
+/* ══ ROLES, NOT RUNGS ══════════════════════════════════════════════════════
+
+   The scale above is correct and the audit agrees: 307 sizes, all on it. It
+   also reports the thing the scale cannot fix — "73% on the two smallest
+   steps, 7 at the 32px anchor". A scale is not a hierarchy. Every site that
+   reaches for `--fs-xs` gets 13px whether it is a name, a timestamp or a
+   count, because the token says how BIG, never what FOR.
+
+   AiMY Knowledge solved this two products ago (`knowledge.css:286-306`) and
+   Sales never took the port. A role token names the job, so the decision at
+   the call site is "what is this" rather than "how big is this" — and the
+   answer to "what is this" is the one a reader can actually see.
+
+   Two steps here are new: 18, the sentence under a kicker, and 60, the one
+   figure a page is about. The other six are NAMES FOR SIZES THAT ALREADY
+   EXIST, which is why this port moves nothing that is already shipped.
+
+   `--fs-5xl` stays unadopted on purpose — `css-audit.js:370-374` argues that
+   folding in a library step the product never chose lets the audit call a
+   size legal that nobody picked. `--ty-masthead` lands on the same 46px and
+   that is not an accident: the library was right about where the top of the
+   scale is, and wrong only in shipping it to a product that had no role for
+   it. This declares the role, so the size is chosen rather than inherited.
+
+   ── THE NAME IS THE TOP OF THE SCALE ──
+
+   The first cut of this put the lead figure at 60 and dropped the name to
+   20, on the reasoning that you already know which campaign you opened. That
+   is true and it is not the whole rule: a masthead is not there to inform
+   you, it is there to tell you WHERE YOU ARE, and a page whose largest
+   element is a statistic reads as a chart somebody has misplaced a title on.
+   A newspaper front page is the reference this whole pass is working from,
+   and on one of those the masthead is the largest thing on the page, every
+   time, above a headline that is merely the largest thing in the story.
+
+   So the name leads and nothing on the surface may outrank it. The figure
+   the page is about comes second, clearly and by a visible step. */
+:root {
+  --ty-masthead: 46px;  /* NEW — the name of the campaign. THE CEILING.     */
+  --ty-lead:     34px;  /* NEW — the ONE figure a page is about             */
+  --ty-display:  24px;  /* NEW — a figure a section is about                */
+  --ty-title:    20px;  /* = --fs-2xl — a figure inside a row, a thing named */
+  --ty-deck:     18px;  /* NEW — the sentence under a kicker. The headline. */
+  --ty-heading:  16px;  /* = --fs-lg  — a block heading inside a surface    */
+  --ty-body:     14px;  /* = --fs-base — prose, anything you read           */
+  --ty-meta:     13px;  /* = --fs-xs  — a label, the line under a name      */
+  --ty-micro:    11px;  /* = --fs-2xs — FLOOR. Caps and tracked, or not at all */
+}
+
+/* ══ INK ═══════════════════════════════════════════════════════════════════
+
+   Same argument, applied to colour. `--d50` through `--d600` are rungs on a
+   ramp; they say how light, never what for. So prose landed on `--d100` in
+   one place and `--d200` in another, labels on `--d400` or `--d500` by feel,
+   and the surface came out uniformly grey — which is the second half of "no
+   hierarchy", and the half that spacing and size cannot reach.
+
+   Five ranks, each with a job. Knowledge's rule holds here: a rank differs
+   from its neighbour in at least two of {step, weight, ink}. One axis of
+   difference is what a flat page looks like from the inside.
+
+   Every role resolves THROUGH a `--d*` rung rather than to a hex, so the
+   light-mode inversion at `aimy-ds.css:200-261` carries them for free. There
+   is no light fork below, and there must not be one. */
+:root {
+  --ink-primary:   var(--d50);   /* identity — figures, headlines, a name   */
+  --ink-secondary: var(--d200);  /* substance — prose, the sentence itself  */
+  --ink-quiet:     var(--d300);  /* attribution — who, when, where          */
+  --ink-faint:     var(--d400);  /* ambient — labels, captions, counts      */
+  --ink-rule:      var(--d600);  /* NON-TEXT — hairlines and dots. Never type. */
+}
+
 /* ── One family, not two ──
 
    `--font-display: Poppins` and `--font-sans: Urbanist` are both geometric
@@ -1661,6 +1733,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
    THE CHIP BAR — only what a dropdown cannot say
 ═══════════════════════════════════════════════ */
 .s-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 16px; }
+
+/* A `.s-scope-chip` stood here for one pass, naming the campaign as a scope
+   rather than drawing it as another removable axis. It went with the bar:
+   inside a campaign this surface now renders no filter row and no chips, so
+   there is nothing for a scope to distinguish itself from. */
 .s-chip { cursor: pointer; }
 .s-chip svg { width: 11px; height: 11px; margin-left: 4px; opacity: 0.7; }
 .s-chip:hover svg { opacity: 1; }
@@ -1892,15 +1969,44 @@ body.is-calling { --fb-reserve: var(--call-width); }
 ═══════════════════════════════════════════════ */
 .s-task-card .tc-type { display: inline-flex; align-items: center; gap: 4px; color: var(--ai-text); }
 
+/* ── THE STATE, AT THE HEAD ──
+   `Needs you` decides whether this card is your problem, and it was the
+   first item of a middle-dot meta run — the same size and ink as who
+   started it. `orderedTasks` ranks the whole list on it, so the list was
+   sorted by the one thing the card would not show. */
+.s-task-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.s-task-st {
+  font-size: var(--ty-micro); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  white-space: nowrap;
+}
+.s-task-st.tone-err  { color: var(--err-text); }
+.s-task-st.tone-warn { color: var(--warn-text); }
+.s-task-st.tone-ok   { color: var(--ok-text); }
+.s-task-st.tone-neutral { color: var(--ink-faint); }
+
 /* Progress, under the sentence that already said it in words. The bar is the
    glance; the sentence is the fact. A bar on its own is a shape you have to
-   guess at, and a task list read at a glance is exactly where a guess costs. */
+   guess at, and a task list read at a glance is exactly where a guess costs.
+
+   The figure now sits on the bar's own line rather than inside the sentence
+   above it, so the glance and the fact are one glance. */
+.s-task-prog {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 16px 0;
+}
 .s-prog {
-  display: flex; height: 4px; margin: 8px 16px 0;
+  display: flex; flex: 1; height: 4px;
   border-radius: 2px; overflow: hidden; background: var(--d800);
 }
 .s-prog-done { background: var(--ok); }
 .s-prog-fail { background: var(--err); }
+.s-task-count {
+  font-size: var(--ty-meta); color: var(--ink-faint);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.s-task-count b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+.s-task-fail { color: var(--err-text); }
 
 /* The status distribution band is gone from both cards — a 4px full-width
    bar reads as progress, and neither card carried a legend for it. The task
@@ -2241,6 +2347,189 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
   gap: 16px; align-items: start;
 }
+
+/* ══ THE ACCUMULATED READING ═══════════════════════════════════════════════
+
+   Everything AiMY has to say about this set, once, above one flat list —
+   replacing a full-width bar per finding, each with its own `Pick` and `Ask`
+   pair, with that finding's rows underneath.
+
+   On the sets this surface is reached with, the bars outnumbered the
+   records: two findings of one lead each rendered two paragraphs and four
+   buttons to introduce two rows, and cut the list into fragments too short
+   to be a list. It also spent the ranking — `ordered()` sorts the whole set
+   by what costs most to ignore, and grouping re-sorted it into taxonomy
+   buckets, so a lead ninety-seven days silent could sit below one a single
+   day late.
+
+   Same construction as the campaign page's sections, which is the point:
+   the reading, the summary that qualifies it, then the evidence. */
+.s-findings {
+  background: var(--card-bg-raised); border-radius: var(--r-lg);
+  padding: 16px; margin-bottom: 24px; max-width: 76ch;
+}
+.s-findings-say {
+  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--ink-primary);
+  margin: 8px 0 16px; text-wrap: pretty;
+}
+.s-findings-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+/* One finding means the set IS the finding — arriving from a gate, every
+   record here has it by construction. The block keeps the mark, the sentence
+   and the bulk verbs, and drops the list that would restate the sentence
+   and the ratio that would divide a number by itself. */
+.s-findings.is-one .s-findings-say { margin-bottom: 12px; }
+.s-findings-list { display: flex; flex-direction: column; }
+/* Count, clause, and the one bulk verb — the same left-to-right reading as
+   the campaign page's ranked rows, at a size that stacks five deep without
+   becoming a wall. */
+.s-finding {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: baseline; gap: 12px;
+  padding: 8px 0;
+}
+.s-finding-n {
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+}
+.s-finding-say { font-size: var(--ty-meta); color: var(--ink-secondary); min-width: 0; }
+/* Selection, not navigation — you are already inside the set, so the useful
+   verb is "work these together" rather than another door into them. */
+.s-finding-pick {
+  font-family: inherit; font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint); cursor: pointer; white-space: nowrap;
+  padding: 4px 8px; border-radius: var(--r-pill);
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.s-finding-pick:hover { color: var(--ink-primary); background: var(--card-bg); }
+.s-finding-pick.is-on { color: var(--accent-text); }
+.s-finding-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The findings too small to earn a row, named rather than hidden. */
+.s-findings-tail {
+  font-size: var(--ty-meta); color: var(--ink-faint);
+  padding: 8px 0 0; max-width: 62ch;
+}
+.s-findings-tail b { color: var(--ink-quiet); font-weight: var(--fw-bold); }
+.s-findings-acts { margin-top: 12px; }
+
+/* ══ THE LEAD WORKLIST ═════════════════════════════════════════════════════
+
+   Two aligned columns per row, and the alignment is the whole design: what
+   sits in each is fixed, so the eye reads DOWN a column instead of across
+   each row in turn.
+
+       Signify                                   30 days late
+       what we sent 7 weeks ago never arrived    Sara Nabil      [Fix it]
+
+   LEFT is who and what happened; RIGHT is how bad and whose. Copilot Money
+   puts the merchant over its account and the amount over its category,
+   Evernote the task over its note with the due date in its own column,
+   Better Stack the incident over its detail with the length at the edge.
+   All three are the same shape for the same reason.
+
+   ONE COLUMN of rows, not a grid of cards. A grid is for comparing one thing
+   against another — which is what the campaigns and tasks tabs do, and why
+   they keep theirs — but a set arrived at from "show me the 4 that are
+   stuck" is a worklist, and its order is the answer.
+
+   `gap: 0` and a hover band: rows that touch read as one list, rows with a
+   gap between them read as small cards, which is what these were. */
+.s-lrows { display: flex; flex-direction: column; }
+/* ══ THE LAST TWO TRACKS ARE FIXED, AND THAT IS THE WHOLE POINT ════════════
+
+   With `auto auto` on the right, every row sized its own columns from its
+   own content — and the verb differs by group ("Fix the address",
+   "Reschedule or close", "Find a new one"), so sixteen rows produced NINE
+   different right edges. Measured. A column you cannot read straight down is
+   not a column; it is the flowing two-line block this row replaced, wearing
+   a grid.
+
+   Fixed tracks make every row identical, so `30 days late / 1 day late /
+   never answered` share an edge across group boundaries and the ranking is
+   readable in one movement. 128 fits the longest urgency phrase, 168 the
+   longest exit label the taxonomy can produce. */
+.s-lrow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 128px 168px;
+  align-items: start; column-gap: 20px;
+  padding: 12px; margin-left: -12px; border-radius: var(--r-md);
+  transition: background-color var(--t-fast);
+}
+.s-lrow:hover { background: var(--card-bg-raised); }
+.s-lrow.is-picked { background: var(--accent-dim); }
+
+/* ── LEFT: WHO, AND WHAT HAPPENED ── */
+.s-lrow-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-lrow-name {
+  font-family: inherit; font-size: var(--ty-heading); font-weight: var(--fw-bold);
+  color: var(--ink-primary); cursor: pointer; text-align: left;
+  transition: color var(--t-fast);
+}
+.s-lrow-name:hover { color: var(--accent-text); }
+.s-lrow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+/* What is actually happening to this one — `whyFlag`, which the card made
+   you open the record to read, so three leads stuck for three different
+   lengths of time were indistinguishable. */
+.s-lrow-say { font-size: var(--ty-meta); color: var(--ink-faint); min-width: 0; }
+/* The state, drawn only outside a group. Inside one the heading above says
+   it once for every row under it, and repeating it per row is what made a
+   four-row set carry four identical pills. */
+.s-lrow-st {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  margin-top: 2px;
+}
+.s-lrow-st.tone-err  { color: var(--err-text); }
+.s-lrow-st.tone-warn { color: var(--warn-text); }
+.s-lrow-st.tone-ok   { color: var(--ok-text); }
+/* Warn, not faint. It is true of ONE run and leaves with it, which is
+   exactly why it has to be visible while the run is on — the status beside
+   it is derived from the record and outlives every session. */
+.s-lrow-skip {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--warn-text); margin-top: 2px;
+}
+
+/* ── RIGHT: HOW BAD, AND WHOSE ──
+   Right-aligned so the figures share an edge and the column can be compared
+   at a glance, which is the entire reason for a column. */
+.s-lrow-side {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  text-align: right; white-space: nowrap;
+}
+.s-lrow-urg {
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  color: var(--ink-quiet); font-variant-numeric: tabular-nums;
+}
+.s-lrow-urg.tone-err  { color: var(--err-text); }
+.s-lrow-urg.tone-warn { color: var(--warn-text); }
+.s-lrow-own { font-size: var(--ty-meta); color: var(--ink-faint); }
+
+/* The verb the flag implies. Ghost, not filled: a filled control on every
+   row is nine primaries, which is the defect the group heading argues
+   against two hundred lines up. */
+.s-lrow-go {
+  justify-self: end;
+  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--ink-quiet); cursor: pointer; white-space: nowrap;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); background: none;
+  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
+}
+.s-lrow-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
+.s-lrow-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-lrow-nopick { width: 0; }
+
+@media (max-width: 764.98px) { /* 900 layout px */
+  /* The right column drops under the left, and the verb under both — at this
+     width three columns leave none of them a usable measure. */
+  .s-lrow { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
+  .s-lrow-side { grid-column: 2; align-items: flex-start; text-align: left; }
+  .s-lrow-go { grid-column: 2; justify-self: start; }
+}
 /* ── CARD PROXIMITY, WHICH IS WHAT WAS ACTUALLY WRONG ──
 
    The library stacks a card at 12 / 8 / 6 / 12 — head, title, summary, then
@@ -2295,42 +2584,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
    no baseline to share, so the checkbox sat 3px above the name it belongs to
    and the pill sat lower than both. Centre is what a row of mixed boxes and
    words actually wants. */
-/* Three slots that never break: the tick, the identity, the status. The
-   identity is the only one that gives, and it gives by growing DOWNWARD —
-   see `.s-card-idy`. `flex-start` keeps the tick and the pill on the
-   identity's first line where they belong, rather than centred against a
-   block that may be two lines tall. */
-.s-card-line {
-  display: flex; align-items: flex-start; gap: 8px; flex-wrap: nowrap;
-  padding: 12px 16px; min-width: 0;
-}
-/* ══ NOTHING IS TRUNCATED; IT WRAPS ═══════════════════════════════════════
-   The qualifier used to ellipsise — "Public & education · 7k staff · Amster…"
-   — which drops the city and the headcount, two of the four facts a reader
-   is scanning for. A card is not a table cell: it has a second line
-   available and no column to keep. */
-.s-card-idy {
-  flex: 1 1 auto; min-width: 0;
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
-}
-/* The tick and the pill sit on the identity's FIRST line. The title's line
-   box is 22px, so a 22px minimum on the tick puts its centre at 11px — the
-   same place the title's centre and the 22px pill's centre land. */
-.s-card-line .s-pick-tick { min-height: 22px; }
-/* The library's title and summary carry their own `8px 14px 0` and
-   `4px 14px 0`, which is right when they are stacked blocks and wrong when
-   they are words on a line — it was adding 20px of dead space per card, and
-   there are 247 cards. */
-.s-card-line .tc-title, .s-card-line .tc-summary { padding: 0; }
-
-/* Below 620 there is no room beside the identity, so the pill takes the row
-   above it. `order` rather than markup, because the reading order on a wide
-   screen is the right one and only the placement is wrong. */
-@media (max-width: 526.98px) { /* 620 layout px */
-  .s-card-line { flex-wrap: wrap; row-gap: 4px; }
-  .s-card-idy { flex: 1 1 100%; order: 3; }
-  .s-card-line .s-meta-st { order: 2; margin-left: auto; }
-}
+/* `.s-card-line` and `.s-card-idy` were the lead card's head — a tick, a
+   name with its firmographics, and a status pill on one non-wrapping row,
+   with the identity growing downward so the pill kept the right edge. All of
+   it careful, and all of it in service of a shape this surface no longer
+   uses: `leadRow` is one line with the urgency at its head, and the
+   firmographics that filled the identity slot are on the record. */
 .s-card-title {
   flex: 0 1 auto; min-width: 0; text-align: left; cursor: pointer;
   font-size: var(--fs-lg); font-weight: 700; color: var(--d50);
@@ -2349,8 +2608,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 /* The status is the card's one computed claim, so it never shrinks and never
    wraps — it is the thing the eye is looking for. */
-.s-card-line .s-meta-st { flex: none; }
-.s-card-line .s-icp { flex: none; }
+/* The pill and the ICP chip held their slot against a shrinking identity in
+   the card head. In `.s-lrow-idy` they are wrap items in a flex row that is
+   allowed to wrap, so there is nothing to hold them against. */
 /* Every tier differs from its neighbour in BOTH size and colour, and there
    is no uppercase anywhere on this card. */
 /* THE CARD'S TWO HALVES STOP TOUCHING.
@@ -2378,7 +2638,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
    to be five loose flex items, so a long next-step pushed the FLAG over the
    edge and the flag is the one item that must not move — it is the finding
    the group is named after. One shrinkable item, one fixed. */
-.tc-gov-run { flex: 1 1 auto; min-width: 0; }
+/* `.tc-gov-run` wrapped the card's meta run so it could shrink and ellipsis
+   while the flag chip kept its slot. The row's meta is a grid cell now, so
+   the shrinking is the grid's job. `.tc-gov-sep` stays — the row still
+   separates owner from last-touch with it. */
 /* The flag sits at the end of the facts line rather than on a line of its
    own — it is one more fact about the record, and giving it a row made every
    card in a group 20px taller for two words. */
@@ -2434,11 +2697,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    read as the computed status sitting eight pixels to its right. The
    difference is the whole point: the status is derived from the record and
    outlives every session, and this is true of ONE run and leaves with it. */
-.s-meta-skip {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--warn-text); line-height: 16px; flex-shrink: 0;
-}
+/* Renamed to `.s-lrow-skip` with the row that carries it — the rule survives
+   verbatim, the selector moved. */
 
 /* On the record it is the headline fact, so it is sized as one. */
 .s-rec-status .s-meta-st {
@@ -2450,7 +2710,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-rec-status .s-meta-st { padding: 4px 12px; }
 /* An overdue next step is the one meta fact that outranks the others,
    because it is the one with a date that has already passed. */
-.s-meta-due { color: var(--err); font-weight: var(--fw-semibold); }
+/* `.s-meta-due` reddened "40 days overdue" inside the card's meta run —
+   third of three facts, at caption weight, on the line under the name. The
+   fact survives and led the row instead: `.s-lrow-urg`. */
 /* `.s-override-dot` was here — the mark that said a status had been set by
    hand, so the escape hatch could not be mistaken for a fact. Both are gone.
    Nothing on this surface can be set by hand, so there is nothing to mark. */
@@ -2516,12 +2778,27 @@ body.is-calling { --fb-reserve: var(--call-width); }
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
 }
 .s-rec-kind svg { width: 12px; height: 12px; }
+/* ══ THE MASTHEAD ══════════════════════════════════════════════════════════
+
+   Same move the campaign page took, for the same reason: the name of the
+   thing you have open sets the ceiling, and nothing under it may outrank it.
+   At 32 it was level with the campaign title before that page was rebuilt —
+   which meant two surfaces disagreed about how loud a name is, and a reader
+   moving between them had no fixed point.
+
+   `--ty-masthead` is the top of the scale and this is what it is for.
+   `text-wrap: balance` because an organization name can run long and a
+   46px orphan is the one wrap a masthead cannot take. */
 .s-rec-name {
   font-family: var(--font-display);
-  font-size: var(--fs-3xl); font-weight: var(--fw-extrabold);
-  color: var(--d50); letter-spacing: var(--ls-tighter); line-height: var(--lh-tight);
-  margin-top: 4px;
+  font-size: var(--ty-masthead); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); letter-spacing: var(--ls-tighter);
+  line-height: 1.05; margin-top: 4px; text-wrap: balance;
 }
+@media (max-width: 764.98px) { /* 900 layout px */
+  .s-rec-name { font-size: var(--ty-lead); }
+}
+.s-rec-kind { color: var(--ink-quiet); font-size: var(--ty-meta); }
 /* The status sits beside the name, qualifying the record's identity rather
    than introducing the work. On its own line below it was competing with
    AiMY's insight for the one position on the page that gets read first. */
@@ -2539,20 +2816,38 @@ body.is-calling { --fb-reserve: var(--call-width); }
    what a record page is for — you arrive knowing which of five things you
    came to read, and one eye movement finds it.
 
-   The column is 112px because the longest caption ("What is costing us
-   deals" lives elsewhere; here the longest is "How to reach them") sets it,
-   and a caption that wraps to two lines stops being a landmark. */
+   ── AND THE COLUMN STAYS, WHICH IS A DIVERGENCE FROM THE CAMPAIGN PAGE ──
+
+   That page moved its row titles ABOVE their content. This one keeps the
+   gutter, and the difference is what the two blocks are for: the campaign's
+   identity rows are a narrative preamble read once, top to bottom, where a
+   title above its content is the reading order; a record page is a REFERENCE
+   SHEET you arrive at knowing which field you want, and a shared left edge
+   is how you find it in one eye movement. The campaign block's gutter also
+   failed for a reason this one does not have — `align-items: center` put its
+   caption beside the middle of a tall row, and these are `start`-aligned.
+
+   What was wrong here is the captions themselves, and it is the same fault
+   in both places: 11px at `--d500`, the faintest ink in the product, on the
+   labels carrying the entire wayfinding. Thirteen and extrabold in the quiet
+   ink, and the column widens to 132 to hold them without wrapping — a
+   caption that wraps to two lines stops being a landmark. */
 .s-rec-block, .s-rec-why {
-  display: grid; grid-template-columns: 112px minmax(0, 1fr);
-  gap: 4px 16px; align-items: start;
+  display: grid; grid-template-columns: 132px minmax(0, 1fr);
+  gap: 4px 20px; align-items: start;
   margin-top: 32px;
 }
 .s-rec-why { margin-top: 24px; }
 .s-rec-cap {
   font-family: inherit; margin: 0;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
-  line-height: var(--lh-base); padding-top: 2px;
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
+  line-height: var(--lh-base);
+}
+@media (max-width: 611.98px) { /* 720 layout px */
+  /* Below this the gutter costs more than the scan edge is worth: 132 of a
+     narrow column leaves the content too little to be read. */
+  .s-rec-block, .s-rec-why { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
 .s-rec-why-body, .s-rec-body { display: grid; gap: 4px; min-width: 0; }
 .s-rec-body { gap: 8px; }
@@ -2678,6 +2973,152 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-card .s-insight { margin-top: 12px; }
 .s-rec .s-insight { margin-bottom: 16px; }
 
+/* ══ THE LEAD ══════════════════════════════════════════════════════════════
+
+   The same block on the one surface that has room for it. Everything below
+   is a REMOVAL plus a scale: the tint, the border and the padding go, and
+   what is left is a figure, a line, a consequence and one filled control.
+
+   THE TINT STAYS. A pass of this took it out, on the reasoning that a
+   coloured box is how a flat page fakes ranking and that this page ran the
+   same box twice, four hundred pixels apart, on two findings of different
+   kinds. The second half of that was the real fault and it is fixed
+   elsewhere: the offering block is a pull-quote now, so there is exactly one
+   tinted panel on the surface.
+
+   With the pair broken, the tint is doing its actual job — marking the one
+   place AiMY speaks in the first person and recommends something. That is
+   what this product has meant by an accent panel since v3, and taking it
+   away made AiMY's recommendation look like a heading somebody had set
+   large. The panel says WHO is talking; the scale inside it says how much
+   of the page this is worth. Both, not one instead of the other.
+
+   It is still within the accent budget, which asks for one recommended move
+   per surface and now gets exactly one. */
+.s-insight.is-lead {
+  display: block;
+  margin: 24px 0 32px; padding: 24px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  border-radius: var(--r-lg);
+}
+/* AiMY's signature on the finding, at the size a signature is. It was the
+   first thing in a 14px sentence, which gave the mark the same weight as the
+   words — the mark says WHO IS SPEAKING and belongs on the line above, with
+   the work state it is declaring. */
+.s-lead-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+.s-insight.is-lead .s-insight-mark { width: 14px; height: 14px; }
+/* Baseline, not top. Two type sizes this far apart share a baseline or they
+   share nothing — top-aligned, the 18px line floats level with the figure's
+   cap height and reads as a separate element that happens to be adjacent. */
+.s-lead-line {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 16px;
+}
+/* THE ONE FIGURE THIS PAGE IS ABOUT.
+
+   QA sets its hero figures at 40-52px against 11px body and that is what
+   makes an eleven-pixel card legible; this is the same move against 14px
+   body, which lands at 60 and a ratio of 4.3 to 1. Tracking is negative
+   because at this size it is a real optical correction rather than the
+   imperceptible one the note at the top of this file rules out below 24px.
+   Leading under 1 because a single line of figures has no descender pair to
+   clear and 1.25 would open a gap the block cannot use. */
+.s-lead-n {
+  font-size: var(--ty-lead); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tighter); line-height: 0.9;
+  color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.s-lead-say {
+  flex: 1 1 260px; min-width: 0;
+  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--ink-secondary);
+  text-wrap: pretty;
+}
+/* The denominator is not the figure. It reads with the sentence, in the
+   sentence's colour, so "12" stays the thing the eye lands on. */
+.s-lead-of { color: var(--ink-faint); font-weight: var(--fw-bold); }
+/* ── THE CONSEQUENCE, WHICH IS THE HEADLINE ──
+
+   "The sequence is running past them regardless" is the line that makes the
+   figure matter, and it was the tail of a 14px sentence. It is the loudest
+   TEXT in the block now — under the figure, above the action, at the deck
+   step — because a number nobody has been told the meaning of is a number
+   nobody acts on. */
+.s-lead-deck {
+  font-size: var(--ty-deck); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight); color: var(--ink-primary);
+  max-width: 52ch; text-wrap: balance;
+  margin-bottom: 20px;
+}
+.s-lead-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 526.98px) { /* 620 layout px */
+  .s-lead-n { font-size: var(--ty-display); }
+  .s-lead-say, .s-lead-deck { font-size: var(--ty-heading); }
+}
+
+/* ══ THE PULL-QUOTE ════════════════════════════════════════════════════════
+
+   The offering block's reading, and the second of the two accent panels this
+   page used to carry. Identical treatment to the lead four hundred pixels
+   above, on a finding of a completely different kind and a fifth of the
+   evidence — so the page said "this matters most" twice and meant it once.
+
+   A quote, not a panel: a raised surface with the mark on the line above,
+   and no accent. It reads as AiMY's reading OF the rows beneath it, which is
+   what it is, rather than as a second announcement competing with the first.
+
+   No stripe down the side either. That was the same decorative `border-left`
+   the ranked rows had just dropped, reintroduced two hundred lines later on
+   the block sitting right beneath them. The raised surface holds it in
+   without drawing anything — elevation by surface step, which is how this
+   ecosystem separates a contained thing from its ground. */
+.s-insight.is-quote {
+  display: block;
+  margin: 0 0 20px; padding: 16px;
+  background: var(--card-bg-raised); border: 0;
+  border-radius: var(--r-lg);
+  max-width: 62ch;
+}
+/* The mark and the state on one line above the reading, the way the lead
+   does it — a 14px glyph alone on a line of its own was a signature with
+   nothing beside it to sign. */
+.s-insight.is-quote .s-insight-mark { width: 14px; height: 14px; }
+.s-insight.is-quote .s-lead-mark { margin-bottom: 8px; }
+.s-insight.is-quote .s-insight-txt {
+  display: block; font-size: var(--ty-body); color: var(--ink-secondary);
+  line-height: var(--lh-base);
+}
+.s-insight.is-quote .s-insight-txt b { color: var(--ink-primary); }
+/* ── THE PROPOSAL, SET APART FROM THE READING ──
+   Two different claims: what the evidence says, and what to do about it. Run
+   together they read as one paragraph, which is how "the offering is what to
+   change" ended up sounding like a conclusion instead of a preamble to one.
+   A labelled block, on the raised surface's own step up, so the section
+   named "What to offer better" visibly contains an answer to it. */
+.s-offer-fix {
+  margin-top: 12px; padding: 12px;
+  border-radius: var(--r-md); background: var(--card-bg);
+  font-size: var(--ty-body); line-height: var(--lh-base);
+  color: var(--ink-secondary); max-width: 62ch;
+}
+.s-offer-fix b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+.s-offer-fix-cap {
+  display: block; margin-bottom: 4px;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.s-insight.is-quote .s-insight-acts { margin-top: 12px; }
+
 /* ═══════════════════════════════════════════════
    OBSTACLES AND OPPORTUNITIES
 
@@ -2736,9 +3177,25 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-rec-facts span + span::before { content: '·'; color: var(--d600); margin-right: 8px; }
 /* The two figures every ICP is written against. The only thing in the block
    that is bigger, heavier and brighter than the rest — which is also what
-   lets a qualifier sit beside one without needing a box to be seen. */
-.s-facts-lead { font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50); }
-.s-facts-mid  { font-size: var(--fs-sm); color: var(--d300); }
+   lets a qualifier sit beside one without needing a box to be seen.
+
+   ── AND THE RANKS WERE ONE PIXEL APART ──
+
+   Three ranks, at 14 / 13 / 13. The structure was right and the steps were
+   not: a reader cannot see a one-pixel difference as a level, so `32k staff`
+   and `Founded 2016` arrived at the same volume and the ranking existed only
+   in the stylesheet. It is the cluster this product's whole type pass was
+   about, surviving inside a block that had already been rebuilt once to fix
+   exactly this.
+
+   Block heading against body, and three inks under it: size and ink for the
+   lead, ink alone between mid and back. Not higher — the next step above is
+   16 too, and firmographics do not outrank the thing that is overdue. */
+.s-facts-lead {
+  font-size: var(--ty-heading); font-weight: var(--fw-bold);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+}
+.s-facts-mid  { font-size: var(--ty-meta); color: var(--ink-secondary); }
 /* When it was founded, and how our record of it began — the second is not a
    fact about the company at all. Neither changes a decision.
 
@@ -2749,7 +3206,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    putting content at a caption's contrast is a step past that precedent
    rather than a match for it. 6.83 dark / 5.60 light, and still a clear step
    under the rank above it. */
-.s-facts-back { font-size: var(--fs-sm); color: var(--d400); }
+.s-facts-back { font-size: var(--ty-meta); color: var(--ink-faint); }
 .s-rec-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .s-rec-actions .btn svg { width: 13px; height: 13px; }
 .s-rec-head .inline-note { margin-top: 12px; }
@@ -2763,9 +3220,23 @@ body.is-calling { --fb-reserve: var(--call-width); }
   border: 1px solid var(--card-border); border-radius: var(--r-lg);
 }
 .s-next.is-over { border-color: rgba(240,68,56,0.3); background: var(--err-bg); }
-.s-next-what { font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50); }
-.s-next-when { font-size: var(--fs-xs); color: var(--d400); }
-.s-next.is-over .s-next-when { color: var(--err); }
+/* ── THE ONE FIGURE THIS RECORD IS ABOUT ──
+
+   `30 days overdue` is the most consequential fact on the page and it was
+   set at the meta step, third in a run after the step's name and its date.
+   The worklist row this record is reached from leads with the same number,
+   so a reader who clicked `40 days late` arrived at a page that mentioned it
+   in passing — the figure got quieter as they got closer to it.
+
+   Block heading step, in the error tone the block already carries. Not the
+   display step: the name above is the masthead and nothing here outranks
+   it, which is the rule this page now shares with the campaign. */
+.s-next-what { font-size: var(--ty-heading); font-weight: var(--fw-bold); color: var(--ink-primary); }
+.s-next-when { font-size: var(--ty-meta); color: var(--ink-faint); }
+.s-next.is-over .s-next-when {
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  color: var(--err-text); font-variant-numeric: tabular-nums;
+}
 .s-next .btn { margin-left: auto; }
 
 /* Grouped by a hairline and space, not by a box. A card should exist where
@@ -3381,10 +3852,35 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the objective, and everything else on the page is a means to it. Bordered
    left rather than boxed, so it reads as a statement the page is making and
    not as a panel beside it. */
+/* ══ THE STRIPE IS GONE ════════════════════════════════════════════════════
+
+   A 2px accent rule down the left of the goal, and another down the left of
+   progress. It is on the doctrine's own list of things that fail Level 1
+   (`00_AiMY_Knowledge_to_Action_Doctrine.md:416`, "decorative border-left
+   stripes"), and it was carrying the accent on two blocks that take no
+   action — which is the other budget it was over.
+
+   What the stripe was actually for is separation, and the block gets that
+   from the caption column beside it and the space around it. Nothing needed
+   replacing; the rule just went. */
 .s-goal-text {
-  font-size: var(--fs-base); color: var(--d100); line-height: var(--lh-base);
-  max-width: 72ch; padding-left: 12px;
-  border-left: 2px solid rgba(var(--accent-rgb), 0.4);
+  font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base);
+  max-width: 72ch;
+}
+/* ── THE LEDE ──
+   The goal is the claim every figure below is measured against, so it is
+   read first and set to be read: the deck step, primary ink, and a measure
+   short enough to hold a line of sight. Knowledge does the same to a
+   document's opening paragraph (`knowledge.css:3763`) for the same reason.
+
+   A lede is set SHORT. 50ch at the deck step is about 460px, which both
+   keeps the eye's return sweep honest and leaves the caption beside it
+   rather than wrapping the row — at 62ch the goal alone was wider than the
+   block's own measure and pushed its own label onto the line above. */
+.s-goal-text.is-lede {
+  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  color: var(--ink-primary); line-height: var(--lh-base);
+  max-width: 50ch; text-wrap: pretty;
 }
 
 /* ── What we are selling ──
@@ -3405,26 +3901,53 @@ body.is-calling { --fb-reserve: var(--call-width); }
    not say who was doing which job, which is the question the diagram asks in
    those words. 6 inside a row, 12 between — the ratio rule. */
 .s-crew { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
-.s-crew-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+/* ══ THE TITLE SITS ON TOP OF ITS ROW ══════════════════════════════════════
 
-/* ── The campaign's identity, as four value rows ──
-   What the Set up stage was: four blocks, four headings, four buttons and a
-   page of its own. A label, its values, and the one control that changes
-   them — on a line each, in the shape the crew rows already used.
+   A 76px caption column beside the content, vertically centred. That worked
+   while every row held one line and broke the moment one did not: against
+   Team's three lines the caption sat beside the second, and against the
+   tally it landed beside the BAR — four figures floating above their own
+   label, reading as though they belonged to the row above.
 
-   The values take the slack so every change control lands on the same right
-   edge, which is what makes four rows scan as a block rather than as four
-   sentences of different lengths. */
-/* ══ IT IS A COLUMN, NOT A FULL-WIDTH TABLE ═════════════════════════════
-   Uncapped, the row stretched the whole stage and `margin-left: auto` put
-   `Change` about 1,400px from the `TEAM` it changes — a control and its
-   label at opposite ends of the screen with nothing between them. Capped at
-   the measure the goal already uses, the four rows are one column and every
-   control is beside what it changes. */
+   Baseline alignment does not rescue it either. The value cell is itself a
+   flex container, so the row takes ITS baseline, and a multi-line block
+   inside one synthesises that from the last line — which put GOAL level with
+   the third line of the goal.
+
+   So the title goes above what it names, full width, and the alignment
+   question stops existing: there is no cross-axis to get wrong. It is also
+   the shape these titles needed anyway — a row title at the head of its row
+   reads as a title, where the same words in a narrow left gutter read as a
+   margin note.
+
+   The control follows the content it changes, on the same line, instead of
+   being pushed to a far right edge by `margin-left: auto` — which is what
+   put `Change` a full column away from the Team it changes. */
+.s-crew-row { display: block; }
+/* The titled bar: name, a rule spanning what the control acts over, the
+   control. Same construction as `.s-kicker` a rank above it, which is what
+   makes a row title read as a row title rather than as small text that
+   happens to be bold. */
+.s-crew-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+
+/* ── The campaign's identity, as five titled rows ──
+   What the Set up stage was: five blocks, five headings, five buttons and a
+   page of its own. A title, its values, and the one control that changes
+   them — grouped, in the shape the section heads use one rank up.
+
+   ── IT IS A COLUMN, NOT A FULL-WIDTH TABLE ──
+   Uncapped, the row stretched the whole stage and put `Change` about 1,400px
+   from the `TEAM` it changes. Capped at the measure the goal already uses,
+   the rows are one column and every control is inside the group it belongs
+   to.
+
+   The gap between rows is 24 against the 12 inside them: two to one, which
+   is what tells a reader that the four lines under `Team` are one thing and
+   the row below is another. It was 12 against 8 and the block read as nine
+   evenly-spaced lines rather than five groups. */
 .s-camp-id {
-  gap: 12px; margin-bottom: 20px; padding-bottom: 16px;
+  gap: 24px; margin-bottom: 0;
   max-width: 88ch;
-  border-bottom: 1px solid var(--hairline);
 }
 /* ══ THE GAP INSIDE A NAME IS NOT THE GAP BETWEEN GROUPS ═════════════════
    Both were 4px, so an avatar sat as close to its own name as one person sat
@@ -3432,15 +3955,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    with no boundary anywhere in it. 16 between the items in this run, 8
    inside a person, which is the ratio every other group on the surface
    uses. */
-.s-id-vals { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
-/* Stacked: one line per function, and the row's caption and control align to
-   the first of them rather than floating in the middle of four. */
-.s-id-vals.is-stacked { flex-direction: column; align-items: stretch; gap: 8px; }
-.s-crew-row.is-stacked { align-items: flex-start; }
-.s-id-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
-/* One offering and the controls that belong to it, so which `×` removes
-   which is structural rather than inferred from spacing. */
-.s-id-item { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.s-id-vals { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; min-width: 0; }
+/* Stacked: one line per function or per offering, under the row's own title. */
+.s-id-vals.is-stacked { flex-direction: column; align-items: stretch; gap: 12px; }
+/* ── LABEL ABOVE, PEOPLE UNDER, ONE LEFT EDGE ──
+   The flush-right 68px column gave every label a different starting x, so
+   the three groups had no shared margin and the names sat in a stepped
+   indent. Stacked, everything in the row starts at the same edge and "who is
+   on BDR" is a glance down it. */
+.s-id-line { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+/* `.s-id-item` was the offering row — a name, a Knowledge link and a `×`
+   sharing one flex line, where the only thing binding the three together was
+   the gap between them. `.s-sell-pill` binds them with a border instead, so
+   the row wrapper has nothing left to do. */
 /* ══ A FIXED COLUMN, AND NO RIVER IN IT ═════════════════════════════════
    Fixed so the names line up down the block and "who is on BDR" is a glance.
    RIGHT-ALIGNED because left-aligned it was 84px of box holding 42px of
@@ -3448,9 +3975,29 @@ body.is-calling { --fb-reserve: var(--call-width); }
    and the value it labels, on every line. Flush right, every label ends at
    one edge and every value starts 12px after it, so the pair is tight and
    the column is still a column. */
-.s-id-fn { min-width: 68px; flex: none; text-align: right; }
+.s-id-fn { flex: none; }
 .s-id-people { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-width: 0; }
-.s-camp-id .s-crew-row > .s-inline-btn { margin-left: auto; flex: none; }
+/* ══ A CONTROL HAS TO LOOK LIKE ONE ════════════════════════════════════════
+
+   With the rule removed from between them, `Change` landed twelve pixels
+   after `TEAM` and read as the second word of the title — two pieces of
+   13px text side by side, one of them pressable and nothing saying which.
+
+   It goes to the row's right edge, which is where every one of these has
+   sat since the block was built and is what makes `Add`, `Change` and
+   `Change` scan as one column of controls. The row is capped at the block's
+   own measure, so "the right edge" is a few hundred pixels away rather than
+   the fourteen hundred an uncapped row once put between them.
+
+   And it gets a press target: a padded box that fills on hover. A bare text
+   link inside a heading is the one place this product's tertiary tier
+   genuinely needs an edge, because the thing beside it is not a sentence. */
+.s-crew-head > .s-inline-btn {
+  flex: none; margin-left: auto;
+  padding: 4px 8px; border-radius: var(--r-sm);
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.s-crew-head > .s-inline-btn:hover { background: var(--card-bg-raised); }
 /* ── SENTENCE CASE, AND THAT IS THE POINT ──
    These were 11px bold uppercase — the same treatment as the row caption
    containing them, one shade apart — so `TEAM OWNER … MARKETING … BDR …
@@ -3461,9 +4008,65 @@ body.is-calling { --fb-reserve: var(--call-width); }
    under the 4.5 floor, on the labels that are the entire reason this row is
    scannable — the second-dimmest thing in the block was the thing that says
    what each line is. `--d400` is 6.08. */
+/* ══ AN OFFERING IS AN OBJECT, SO IT HAS AN EDGE ═══════════════════════════
+
+   A pill: the kind, the name, and the two controls that belong to it, inside
+   one border. Before this they were four loose spans in a wrapping row and
+   the only thing grouping an offering with its own `×` was proximity — which
+   fails the moment the row wraps, and wrapped on any narrow column.
+
+   The kind leads because it is the classifier and it is short; the name is
+   the value and carries the weight. `--card-bg-raised` rather than a border
+   alone: elevation by surface step is how this ecosystem separates a
+   contained thing from its ground. */
+.s-sell-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 8px 4px 12px;
+  border: 1px solid var(--card-border); border-radius: var(--r-pill);
+  background: var(--card-bg-raised);
+  max-width: 100%; min-width: 0;
+}
+.s-sell-pill-kind {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint); flex: none;
+}
+.s-sell-pill-name {
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  color: var(--ink-primary); min-width: 0;
+}
+.s-sell-pill .s-camp-out { margin-left: 0; }
+
+/* ── WHO IT IS FOR, LEGIBLY ──
+   The value here is one or two words and it decides who may see the whole
+   campaign, so it is set at the deck step in primary ink — the same rank as
+   the goal it sits four rows under. It rendered at the meta step in the
+   faint ink, which made the row a title with nothing under it. */
+.s-client-name {
+  font-size: var(--ty-deck); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); letter-spacing: var(--ls-tight);
+}
+/* The qualifier follows the value rather than replacing it. */
+.s-client-note {
+  font-size: var(--ty-meta); color: var(--ink-faint);
+}
+
+/* ── AND NOW THEY CAN BE CAPS AGAIN ──
+
+   These were made sentence-case deliberately: at the time the row captions
+   were ALSO 11px bold uppercase, one shade apart, so eight captions at equal
+   rank left nothing saying which were the structure and which were inside
+   it. That reasoning was right for that scale.
+
+   The row titles are 13 extrabold with a rule now, a clear rank above these,
+   so the collision is gone — and the function labels can go back to the
+   micro-label idiom the rest of the page uses for exactly this job. Caps and
+   tracking make them a different TEXTURE from the names beside them, which
+   is what separates a label from a value at one pixel of size difference. */
 .s-id-fn {
-  font-size: var(--fs-xs); font-weight: var(--fw-regular);
-  letter-spacing: normal; text-transform: none; color: var(--d400);
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
 }
 
 /* The fold is gone: it hid three lines behind a press on a block that is
@@ -3475,15 +4078,110 @@ body.is-calling { --fb-reserve: var(--call-width); }
    so the sentence the whole campaign exists to serve read at precisely the
    weight of "Engy Saleh". It is the one thing in this block somebody has to
    read, and now it is the brightest thing in it. */
-.s-camp-id .s-goal-text { font-size: var(--fs-base); color: var(--d50); line-height: var(--lh-base); }
+.s-camp-id .s-goal-text { color: var(--ink-secondary); }
+.s-camp-id .s-goal-text.is-lede { color: var(--ink-primary); }
+
+/* ══ THE TALLY ═════════════════════════════════════════════════════════════
+
+   What replaced the eleven-number paragraph. Figures, then the proportion,
+   then the one sentence — and the order is the point: the figures are what a
+   glance takes, the bar is what the figures cannot show, and the sentence is
+   what neither can say.
+
+   The figures are `.s-afs` from the executive surface, one step louder. That
+   row sets its values at `--fs-2xl` because it is one of six blocks on a
+   page read standing up; here it is the second thing on the page and the
+   figure it is competing with is the lead at 60, so it takes the display
+   step and the gap between the two stays legible. */
+.s-tally { display: flex; flex-direction: column; gap: 16px; }
+.s-tally-figs { margin-bottom: 0; gap: 20px; }
+.s-tally-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
+.s-tally-figs .s-af-cap { color: var(--ink-faint); }
+/* The channel breakdown, spanning the grid under the figure it breaks down.
+   `Touchpoints 25` is honest but incomplete: eleven of those were calls and
+   eight were meetings, and a campaign being worked on the phone is a
+   different campaign from one being mailed at. */
+.s-tally-mix {
+  grid-column: 1 / -1;
+  font-size: var(--ty-meta); color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── THE PROPORTION, DRAWN ──
+
+   Segments grow by their own count rather than a computed percentage, so the
+   arithmetic lives in one place and a one-lead segment cannot round to
+   nothing. No animation, so no `width` to thrash: flex does the division at
+   layout time and there is nothing here that moves. */
+.s-tally-bar {
+  display: flex; height: 8px; gap: 2px;
+  border-radius: var(--r-pill); overflow: hidden;
+}
+.s-tally-seg { display: block; min-width: 2px; border-radius: var(--r-pill); }
+.s-tally-seg.is-live { background: var(--d600); }
+.s-tally-seg.is-won  { background: var(--ok); }
+.s-tally-seg.is-lost { background: var(--err); }
+/* Find's status spread reuses this bar, and its segments come from
+   `TAX.status`, which speaks in tones rather than in this block's three
+   named outcomes. */
+.s-tally-seg.tone-ok      { background: var(--ok); }
+.s-tally-seg.tone-warn    { background: var(--warn); }
+.s-tally-seg.tone-err     { background: var(--err); }
+.s-tally-seg.tone-neutral { background: var(--d600); }
+.s-tally-seg.tone-info    { background: var(--info); }
+/* Standing alone under Find's heading it needs the margin the Progress
+   block's flex column was giving it. */
+.s-stage .s-tally-bar { margin-bottom: 16px; }
+
+/* Status is carried by colour AND text, never colour alone — the design
+   system's accessibility rule, and the reason the legend is not optional. */
+.s-tally-keys { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.s-tally-key {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.s-tally-key::before { content: ""; width: 8px; height: 8px; border-radius: var(--r-pill); flex-shrink: 0; }
+.s-tally-key.is-live::before { background: var(--d600); }
+.s-tally-key.is-won::before  { background: var(--ok); }
+.s-tally-key.is-lost::before { background: var(--err); }
+
+/* ══ THE CONCLUSION IS AiMY'S, SO IT CARRIES AiMY'S MARK ═══════════════════
+
+   "4 organizations have had three messages and answered none of them. That
+   is the biggest drag on it." `.s-tally-drag` styled this as prose — first
+   at body size under the legend, where it read as a footnote, then at the
+   deck step, which made it visible but still unattributed.
+
+   Visibility was only half of it. The four figures above are the campaign's
+   own arithmetic; this ranks five obstacles, picks one, and calls it the
+   thing holding the campaign back. That is a reading, and the doctrine's
+   rule is that AiMY's work is never rendered as the product's plain output.
+   It is an `.s-insight.is-quote` now — the same treatment as the offering
+   block's reading, because it is the same kind of claim — and the rule that
+   used to style it has nothing left to style. */
+.s-tally .s-insight.is-quote { margin-top: 8px; margin-bottom: 0; }
 /* `--d400`, not `--d500`. These four captions are what makes the header
    readable as rows — Goal, Selling, Team, For — and at the dimmest step on
    an 11px caps run they were the least legible thing on the surface while
    being the thing that says what each row is. */
+/* ══ THE ROW TITLES CARRY THEIR ROWS ═══════════════════════════════════════
+
+   GOAL, PROGRESS, SELLING, TEAM, FOR at eleven pixels in the faint ink, and
+   the rows they name now run to a lede at 18 and a figure at 24. A label
+   that much quieter than its content stops reading as a title and starts
+   reading as a caption that got lost — and these are the only wayfinding
+   this block has.
+
+   Thirteen and extrabold in the quiet ink, on the line above what it names.
+   Not primary: they title the rows, they do not compete with them, and this
+   block's emphasis belongs to the goal and the figures. */
 .s-crew-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  flex: none;
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d400); min-width: 76px; flex-shrink: 0;
+  color: var(--ink-quiet);
 }
 /* An empty function says so. A row that simply vanishes when nobody holds it
    answers "who is doing the BDR work here" with silence, which reads as
@@ -3495,7 +4193,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
    it was rendered as though it were noise. On the row's own size step now,
    at `--d400` (6.08), with the italic kept because that is what marks it as
    a gap rather than a name. */
-.s-crew-none { font-size: var(--fs-xs); color: var(--d400); font-style: italic; }
+/* "us", "nothing recorded" — a real value, not an apology. It was italic at
+   the meta step in the faint ink, which made the answer to "who is this for"
+   the quietest thing in its own row. Italic was carrying "this is a default
+   rather than a choice"; the row title already carries that, and italic on a
+   two-letter word at 13px reads as a rendering fault. */
+.s-crew-none { font-size: var(--ty-body); color: var(--ink-faint); }
 
 /* ═══════════════════════════════════════════════
    THE TRAIL
@@ -3520,13 +4223,45 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-trail-step:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
 .s-trail-step:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .s-trail-step.is-here { border-color: var(--accent); }
+/* ── THE ONE THAT GOES NEXT ──
+   The only thing on this block that changes day to day, and the only thing
+   it never said: three cards with counts, and no indication which of them
+   the campaign is standing in front of. A raised surface and a label, both,
+   because a border alone is already spoken for by `is-here` — which is
+   which step you are LOOKING at, a different question. */
+.s-trail-step.is-next { background: var(--card-bg-raised); }
+.s-trail-top { display: flex; align-items: center; gap: 8px; width: 100%; }
 .s-trail-n {
-  font-size: var(--fs-2xs); font-weight: var(--fw-extrabold);
-  color: var(--d500); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-micro); font-weight: var(--fw-extrabold);
+  color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
+/* The channel, named and drawn. A step's channel is the difference between
+   an email and a phone call and the card said neither — it named the step
+   ("Call") and left the reader to infer that a step called Call is a call. */
+.s-trail-ch {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.s-trail-ch svg { width: 12px; height: 12px; }
+.s-trail-next {
+  margin-left: auto;
+  font-size: var(--ty-micro); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--accent-text);
 }
 .s-trail-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
+  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-primary);
   line-height: var(--lh-tight);
+}
+/* ── WHAT A BLOCK HOLDS, IN ONE LINE ──
+   The same device the stage head got, one rank down: a sub-block that names
+   itself and nothing else leaves a reader to infer the model from the data.
+   `Sequence` over three cards and a `3d` is not enough to learn it from. */
+.s-block-say {
+  font-size: var(--ty-meta); color: var(--ink-faint);
+  max-width: 62ch; margin: -8px 0 16px;
 }
 /* The wait, and the line that says it is a wait. */
 .s-trail-wait {
@@ -3585,11 +4320,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-reply-row:hover { background: var(--accent-dim); }
 .s-reply-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.s-reply-name { font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
-.s-reply-n {
-  margin-left: auto; font-size: var(--fs-xs); color: var(--d400);
-  font-variant-numeric: tabular-nums;
-}
+/* `.s-reply-name` and `.s-reply-n` are gone with the campaign's replies
+   list, which is `.s-reason` now like every other count-and-a-door on that
+   page. The row shell survives for the surfaces that still use it. */
 
 /* ── The decision zone's two halves ──
    What it does, then a ruled-off "Does not" — separated because they are
@@ -3704,14 +4437,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-group-count { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); max-width: 72ch; }
 .s-group-count b { color: var(--d50); font-variant-numeric: tabular-nums; }
 
-/* The blocked figure, beside the heading it is about. In the caption step
-   rather than at heading weight: "20 of 31" is what the rows underneath add
-   up to, and a second thing at heading size reads as a second heading. */
-.s-camp-count {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); font-variant-numeric: tabular-nums; line-height: 16px;
-}
+/* `.s-camp-count` was the blocked figure, set in the caption step at the far
+   right of the heading row — the argument being that "20 of 31" is what the
+   rows add up to, so a second thing at heading size would read as a second
+   heading. The premise was right and the conclusion went one step too far:
+   the answer to "do not make it a heading" is not "make it the smallest and
+   faintest thing in the block, in the one column a text-heavy page is not
+   read in". `.s-sect-fig` is that figure, on the left, at its own step —
+   which is neither a heading nor a whisper. */
 
 /* `.s-offer-say` was the reading, set under its own evidence at caption
    weight — the one sentence on that block anybody was meant to act on,
@@ -3768,31 +4501,70 @@ body.is-calling { --fb-reserve: var(--call-width); }
   position: relative; z-index: 1;
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px;
 }
-/* ── What AiMY concluded, between the facts and the verbs ──
-   Where a reader wants the thing that makes the verb make sense: the facts
-   say what the list IS, this says what is wrong with it, the button acts on
-   what it just said. Same conclusion → action order as `.bcard` and the
-   rail's rows. */
-.s-listrow-read { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 8px; }
-.s-listrow-say { font-size: var(--fs-base); color: var(--d100); line-height: var(--lh-base); max-width: 72ch; }
-.s-listrow-say b { color: var(--d50); font-weight: var(--fw-bold); }
-/* The name is the card's title and was set at meta size — 13px, the same
-   step as the criteria and the facts under it, so the card had no heading at
-   all. `--fs-lg` is the block-heading step, which is what this is: the name
-   of one of several things on the page. */
+/* ══ THE NAME AND THE STATE, ON ONE LINE ═══════════════════════════════════
+   The chip was a block inside the reading, so across six cards the states
+   sat at six different heights — aligned to the length of the criteria above
+   them rather than to each other. Nothing about a set of cards is more worth
+   reading down a column than which of them is finished, and it was the one
+   thing the column could not carry. Right-aligned against the name, the same
+   place the task card's state went in this pass. */
+.s-listrow-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+/* ── THE CARD'S OWN MASTHEAD ──
+   `--fs-lg` against a 14px reading is 1.14:1, which is not a hierarchy, it
+   is a rounding error — and the card's largest element was therefore
+   whichever sentence happened to be longest. `--ty-title` puts a real step
+   between the name and everything under it, and keeps the house rule the
+   campaign page settled: the name of the thing is the top of its own scale,
+   above any figure drawn inside it. */
 .s-listrow-name {
   font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
+  font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary);
   letter-spacing: var(--ls-tight); line-height: var(--lh-tight);
-  text-align: left; cursor: pointer; min-height: 24px; align-self: flex-start;
+  text-align: left; cursor: pointer; min-height: 24px;
 }
 .s-listrow-name:hover { color: var(--ai-text); }
-.s-listrow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-listrow-crit { font-size: var(--fs-xs); color: var(--d500); line-height: var(--lh-relaxed); max-width: 72ch; }
-/* How complete a list is, which is the only fact about one that decides
-   whether it can be worked. */
-.s-listrow-facts { font-size: var(--fs-xs); color: var(--d400); }
-.s-listrow-facts b { color: var(--d100); font-variant-numeric: tabular-nums; }
+/* No ring on the button. The rule below `.s-listrow-name::after` already
+   draws the focus ring on the stretched pseudo-element, because that is what
+   the target actually is — and a second `:focus-visible` rule further down
+   this file was overriding it back onto one line of text, which is the whole
+   defect that comment was written to prevent. One ring, on the card. */
+/* ── WHAT IT COLLECTS ──
+   A subtitle, so it sits tight under the name rather than floating as its
+   own paragraph: the card's gap is 4px and only the beats below it buy
+   space. */
+.s-listrow-crit { font-size: var(--ty-meta); color: var(--ink-quiet); line-height: var(--lh-relaxed); max-width: 72ch; }
+/* ══ THE FIGURE THE CARD IS ABOUT ══════════════════════════════════════════
+   `1,240 matched the criteria · Engy Saleh owns it · runs itself` — one run
+   of 13px `--d400` prose in which the only emphasised thing was the owner's
+   name. The number the card exists to state was set at the faintest step on
+   it, unbolded, while the least decision-relevant fact in the line carried
+   `--d100` at 800.
+
+   Both counts now sit here, both labelled, and the emphasis is on the two
+   numbers rather than on the person. Tabular figures because six of these
+   stack in a column and a column of proportional digits cannot be compared
+   down its own length. */
+.s-listrow-fig {
+  font-size: var(--ty-meta); color: var(--ink-faint); margin-top: 8px;
+}
+.s-listrow-fig b {
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+}
+/* ── What AiMY concluded, between the figure and the verbs ──
+   Where a reader wants the thing that makes the verb make sense: the figure
+   says what the list HOLDS, this says what is wrong with it, the button acts
+   on what it just said. Same conclusion → action order as `.bcard` and the
+   rail's rows. */
+.s-listrow-say {
+  font-size: var(--ty-body); color: var(--ink-secondary);
+  line-height: var(--lh-base); max-width: 72ch; margin-top: 8px;
+}
+.s-listrow-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+/* Whose it is, and whether it keeps itself — attribution, so it sits under
+   the sentence it qualifies at the quietest step the card uses. */
+.s-listrow-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
 
 /* ── The call queue, for Sales ──
    Name, who they are, why now, and the control that starts it. The reason
@@ -3867,6 +4639,359 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-straight.tone-err  { border-left-color: var(--err); }
 .s-straight.tone-warn { border-left-color: var(--warn); }
 .s-straight.tone-ok   { border-left-color: var(--ok); }
+
+/* ══ THE REASON ROW ════════════════════════════════════════════════════════
+
+   One target, the full width of the block: the figure, the sentence, and a
+   chevron that says it opens. What it replaces was four columns — figure,
+   track, sentence, link — and each of the three that are gone was reporting
+   something the figure had already reported.
+
+   THE TRACK. Obstacle counts on a real campaign run 4 / 4 / 3 / 3 / 2.
+   Against the leader that draws as 100 / 100 / 75 / 75 / 50 — five bars
+   within a quarter of each other; against the campaign it draws five stubs.
+   QA argues for a compressed scale where six portfolios sit between 79 and
+   94 per cent, because there the eye genuinely cannot rank them unaided.
+   Single digits beside single digits are not that case, and drawing a bar
+   anyway put a column of travel between a number and its own sentence.
+
+   THE UNIT, five times. THE LINK, repeating the figure it sat beside —
+   "Show me the 4" next to a 4, five identical targets with nothing ranking
+   them, on rows whose whole purpose is to be ranked.
+
+   Hover fills the row rather than underlining a word inside it: the target
+   is the row, so the feedback is the row. It bleeds 12px left of the text
+   column so the fill reads as a band the content sits in, and the figures
+   stay on the same left edge as every section head above them.
+*/
+/* ── DENSITY IS THE POINT ──
+
+   Five rows at 60px each, in a 76ch container with the chevron two hundred
+   and fifty pixels past the end of the sentence, is not a list — it is five
+   paragraphs with numbers. Mobbin's analytics breakdowns (Semrush's topic
+   table, Amplitude's segment rows) all run one line per row at a tight
+   rhythm, because a breakdown is read by COMPARING rows and comparison
+   wants them close enough to hold in one look.
+
+   One line each, 40px tall, and the container capped where the sentences
+   actually end so the chevron sits at the end of the content rather than at
+   the end of the page. `gap: 0` — the hover band is the separation, and two
+   bands touching read as a list where two bands with a gap read as cards.
+
+   ── AND THE COLUMN IS SIZED TO THE NUMBER ──
+
+   40px of column plus a 16px gap put 56px between the start of the row and
+   its sentence, for figures that are one digit wide. Half of every row was
+   the space between its two halves. 32 and 12 — enough for a two-digit
+   count, which is the largest this walk can produce on a campaign of any
+   size worth reading — and the pair reads as one line instead of two
+   columns that happen to be adjacent. */
+.s-reasons { display: flex; flex-direction: column; }
+/* The column header, sitting directly over the figures on the same left edge
+   — the row's own 12px padding is what lines it up, so the label and the
+   numbers under it share an origin without a second set of numbers to keep
+   in step. Named once here rather than repeated on every row. */
+.s-reasons-head {
+  padding: 0 12px 8px;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.s-reason {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) 16px;
+  align-items: baseline; gap: 12px;
+  width: 100%; max-width: 70ch;
+  margin-left: -12px; padding: 8px 12px;
+  background: none; border: 0; border-radius: var(--r-md);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.s-reason:hover { background: var(--card-bg-raised); }
+.s-reason:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* ── THE ROW WHOSE SET YOU ARE LOOKING AT ──
+   Only Find's status spread needs this: those rows narrow the list beneath
+   them rather than opening a new surface, so one of them is always the
+   answer to "what am I looking at". A filled surface and the accent, the
+   same pair the pipeline cell uses for the same reason — it is a selection,
+   and this page says selection one way. */
+.s-reason.is-on { background: var(--accent-dim); }
+.s-reason.is-on .s-reason-say { color: var(--ink-primary); }
+.s-reason.is-on .s-reason-go { transform: rotate(90deg); }
+/* ── THE UNIT LEFT THE ROW ──
+
+   `ORGS` under every figure, five times, on rows that all count the same
+   thing — and the one that read `ADDRESSES` was wrong: `inWayOf` walks
+   accounts, so it is three organizations with a bad address. The noun is
+   stated once in the section's qualifier, which is what lets the row be a
+   single line and every sentence share one left edge. */
+.s-reason-n {
+  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+}
+/* ── THE SENTENCE IS THE ROW, NOT ITS CAPTION ──
+   Body against a 20px figure read as a label under a number. These are the
+   findings — the thing a reader is here to take — so they take the block
+   heading step, and the figure goes to display to keep the rank. 24 over 16
+   against 800 over 400 in two inks: three axes of difference, which is what
+   a rank needs when the sizes are only one step apart. */
+.s-reason-say {
+  font-size: var(--ty-heading); font-weight: var(--fw-medium);
+  line-height: var(--lh-base);
+  color: var(--ink-secondary); text-wrap: pretty;
+}
+/* Visible standing, not revealed on hover: an affordance that only exists
+   under a pointer does not exist on a touch screen. */
+.s-reason-go {
+  width: 16px; height: 16px; color: var(--ink-faint);
+  transition: color var(--t-fast), transform var(--t-fast);
+}
+.s-reason:hover .s-reason-go { color: var(--ink-quiet); transform: translateX(2px); }
+
+/* ── THE SAME ROW, QUIETER ──
+   The offering block reads a fifth of the evidence this one does. Same
+   construction, one step down on the figure and a narrower measure:
+   repetition WITH variation, which reads as "same kind of thing, less of
+   it" rather than as the same block twice. */
+.s-reasons.is-quiet .s-reason { max-width: 56ch; }
+.s-reasons.is-quiet .s-reason-n { font-size: var(--ty-title); }
+.s-reasons.is-quiet .s-reason-say { font-size: var(--ty-body); }
+
+@media (max-width: 611.98px) { /* 720 layout px */
+  /* The 40px figure column holds; only the measure gives way. */
+  .s-reason, .s-reasons.is-quiet .s-reason { max-width: none; gap: 12px; }
+}
+
+/* ══ THE FUNNEL ════════════════════════════════════════════════════════════
+
+   Five rows, one population, narrowing. Every row counts ORGANIZATIONS and
+   every bar is drawn against the top of the funnel, which is what makes the
+   rows divide into each other — the three figures this replaced counted
+   events, a percentage of deliveries and a percentage of email opens, and no
+   two of them shared a denominator.
+
+   The bar is honest here for the same reason it is honest on the coverage
+   meters and dishonest on the ranked rows: there is a real whole, every row
+   is a part of it, and the narrowing IS the finding. A funnel drawn as five
+   bare numbers is five numbers a reader has to subtract.
+
+   The goal row is marked, because a campaign is measured against what it was
+   for and this one says so in its own goal statement — a scoping call. It
+   was the one figure the tab never carried. */
+.s-funnel { display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
+.s-fn-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) 40px 44px;
+  align-items: center; gap: 4px 12px;
+  padding: 8px 12px; margin-left: -12px; border-radius: var(--r-md);
+}
+.s-fn-row.is-goal { background: var(--card-bg-raised); }
+/* 168, and the name does not wrap. At 132 the goal row broke `Booked a call`
+   over two lines to fit its own marker beside it, which put one row of a
+   five-row comparison at a different height than the other four. */
+.s-fn-name {
+  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
+  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-secondary);
+}
+.s-fn-row.is-goal .s-fn-name { color: var(--ink-primary); }
+.s-fn-goal {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--accent-text);
+}
+.s-fn-track { height: 8px; border-radius: var(--r-pill); background: var(--d750); overflow: hidden; }
+.s-fn-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+.s-fn-row.is-goal .s-fn-fill { background: var(--accent-text); }
+.s-fn-n {
+  justify-self: end;
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+}
+.s-fn-pct {
+  justify-self: end;
+  font-size: var(--ty-meta); color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
+/* What the row means and what it cost, under the bar rather than beside it —
+   at this width a fifth column would squeeze the track to nothing. */
+.s-fn-say {
+  grid-column: 2 / -1;
+  font-size: var(--ty-micro); color: var(--ink-faint);
+}
+.s-fn-say b { color: var(--warn-text); font-weight: var(--fw-bold); }
+/* Bounces are not a stage. Stated beside the funnel they distort, with the
+   fix attached, rather than as a step nobody passes through. */
+.s-fn-note {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
+  max-width: 70ch; margin-top: 16px;
+  font-size: var(--ty-meta); color: var(--ink-faint);
+}
+.s-fn-note b { color: var(--warn-text); }
+
+/* ══ THE COVERAGE METER ════════════════════════════════════════════════════
+
+   Enrich's rows, and the one list on this page that earns a bar.
+
+   The distinction is worth stating because it is the whole reason there are
+   two row components rather than one. `.s-reason` ranks things AGAINST EACH
+   OTHER — which obstacle is biggest, which reason loses most — and a bar
+   there compares a 4 with a 3 and draws two stubs. These rows are each a gap
+   in a KNOWN TOTAL, and the total is the finding: nine of thirty-one people
+   with no phone number is a third of everyone you could ring, and the same
+   nine out of two hundred would be a rounding error. A count alone cannot
+   tell those apart. The share can, so it is drawn.
+
+   Two lines, following Apollo's data-health rows and Fresha's completion
+   meters: the gap named, its figure against the whole, then the meter and
+   the percentage. The sentence leads because these are not ranked and there
+   is nothing to scan down a figure column for. */
+.s-covers { display: flex; flex-direction: column; gap: 4px; }
+.s-cover {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 8px 16px;
+  width: 100%; max-width: 62ch;
+  margin-left: -12px; padding: 12px;
+  background: none; border: 0; border-radius: var(--r-md);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.s-cover:hover { background: var(--card-bg-raised); }
+.s-cover:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.s-cover-say {
+  font-size: var(--ty-heading); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--ink-secondary); text-wrap: pretty;
+}
+.s-cover-fig {
+  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
+  font-size: var(--ty-title); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+}
+/* The denominator is the point of the row, so it is stated rather than
+   implied by the bar's length. */
+.s-cover-of {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.s-cover-track {
+  grid-column: 1; height: 6px; border-radius: var(--r-pill);
+  background: var(--d750); overflow: hidden;
+}
+.s-cover-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+/* The gap that stops the work entirely — no way to reach them at all — is
+   the one that is not merely thin data. It is toned, and the sentence says
+   so as well, because colour never carries a state alone. */
+.s-cover.is-worst .s-cover-fill { background: var(--err); }
+.s-cover-pct {
+  grid-column: 2; justify-self: end;
+  font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--ink-faint); font-variant-numeric: tabular-nums;
+}
+
+/* ══ THE SECTION HEAD ══════════════════════════════════════════════════════
+
+   A figure, a kicker and the line the kicker introduces. The figure is left
+   of both and the whole head sits above a rule, so a section announces
+   itself the way a story on a page does rather than by being the next thing
+   after some space.
+
+   ── NO RULES. SPACE. ──
+
+   A pass of this hung a hairline off every title and a border over every
+   section head, and the page ended up striped: a line under the masthead, a
+   line per section, a line trailing each of five row titles, a line trailing
+   each of three sub-block titles. Every one of them was doing a job that
+   space does better, and together they read as scaffolding rather than as
+   structure — which is what "separators all over the place" describes.
+
+   Knowledge's widgets file states the rule this violates outright: related
+   things are separated by SURFACE STEP and space, never by a drawn line, and
+   the only borders that earn their place are a card's outer edge and the
+   focus ring. It was in the research for this pass and got ignored.
+
+   So the separation is 48px above a section and 24px under its head, against
+   16px between the rows inside it — three to one, which is a boundary the
+   eye reads without anything being drawn. The proximity check in
+   `css-audit.js` enforces the same ratio mechanically.
+
+   ── AND IT STACKS ──
+
+   Two arrangements failed before this one. A fixed 64px gutter with the
+   figure in it put the kicker and the headline in a column beside a number,
+   three elements starting at three different heights. Baseline-aligning the
+   figure with the headline instead — the lead's construction — worked for
+   the lead, whose figure OPENS the sentence beside it ("12 · of 24 have
+   something in the way"), and failed here, where the figure and the headline
+   are two separate statements: a 24px number beside a two-line sentence
+   wraps into an L and neither reads first.
+
+   What fixed it was shortening the headline, not moving the figure. Once
+   the deck is "blocked, for five different reasons." — one line, with the
+   working moved down to the qualifier — the figure genuinely IS the first
+   word of it, and the baseline construction the lead uses works here for
+   the same reason it works there: `12 of 24 · blocked, for five different
+   reasons.` reads as one sentence because it is one.
+
+   `flex-wrap` is deliberately off. If a deck ever does run long, it wraps
+   under itself inside its own column rather than dropping below the figure
+   — which is what turned this into an L the first time. */
+.s-sect-head { margin: 48px 0 24px; }
+.s-sect-main { display: flex; align-items: baseline; gap: 12px; }
+.s-sect-fig {
+  display: flex; align-items: baseline; gap: 8px; flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.s-sect-fig-n {
+  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); line-height: var(--lh-none);
+  color: var(--ink-primary);
+}
+.s-sect-fig-of {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* ── THE KICKER ──
+
+   Eleven pixels, weight 700, `--d500` — the faintest and smallest thing in
+   the section it was naming, one shade off the background and set below the
+   body text it introduced. A label a reader has to hunt for is not doing the
+   job a label exists for.
+
+   Thirteen, extrabold, in the FAINT ink — a kicker names the section, it
+   does not compete with the headline under it, and the 48px above it is
+   already saying "new section" louder than any rule could. */
+.s-kicker {
+  display: block;
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+/* The line the kicker introduces, and the loudest text in the section. */
+.s-sect-deck {
+  flex: 1 1 auto; min-width: 0;
+  font-size: var(--ty-deck); font-weight: var(--fw-bold);
+  line-height: var(--lh-tight); color: var(--ink-primary);
+  max-width: 46ch; text-wrap: pretty; margin: 0;
+}
+/* ── A QUALIFIER IS NOT A DISCLAIMER ──
+
+   Set at the meta step in the faint ink, this read as small print — and what
+   it actually holds is the two things the section cannot be acted on
+   without: what the figures COUNT ("organizations, counted by reason", and
+   why they therefore add to more than the total), and what a fix is worth
+   ("clearing the biggest would free 4"). The second of those is the most
+   directly actionable sentence in the block, and it was the quietest.
+
+   Body prose in the secondary ink: a clear step under the headline, and
+   plainly legible rather than plainly ignorable. The figures inside it take
+   primary ink, because those are the parts a reader is deciding on. */
+.s-sect-sum {
+  font-size: var(--ty-body); line-height: var(--lh-base);
+  color: var(--ink-secondary); max-width: 62ch; margin-top: 12px;
+  text-wrap: pretty;
+}
+.s-sect-sum b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
 .s-straight-say {
   font-size: var(--fs-base); color: var(--d100);
   line-height: var(--lh-base); font-variant-numeric: tabular-nums;
@@ -4858,42 +5983,45 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-ring-go svg { width: 13px; height: 13px; }
 .s-ans-go { flex-shrink: 0; }
 
-/* A distribution row IS its own control — the whole row opens the accounts
-   in that status, the same rule the card and the table row follow. Eight
-   rows each carrying a Show button was the card-CTA defect at one-eighth
-   scale, in a single page. */
-.s-ans-hit {
-  width: 100%; text-align: left; cursor: pointer;
-  font-family: inherit;
-  border-radius: var(--r-sm);
-  transition: background-color var(--t-fast);
-}
-.s-ans-hit:hover { background: rgba(255,255,255,0.03); }
-:root[data-theme="light"] .s-ans-hit:hover { background: rgba(16,24,40,0.03); }
-.s-ans-hit:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* `.s-ans-hit` and `.s-ans-bar` are gone with the campaign's status spread.
 
-/* ── The distribution reads as a distribution ──
-   "Where its 24 accounts stand" was eight numbers in a column: a shape you
-   had to do arithmetic to see. The bar carries the proportion and the status
-   tone, so the campaign's shape is legible before the numbers are read —
-   which is the whole reason that block is on the sheet. */
-.s-ans-bar {
-  flex: 0 0 84px; height: 6px; border-radius: var(--r-pill);
-  background: var(--card-border); overflow: hidden;
-}
-.s-ans-bar span { display: block; height: 100%; border-radius: var(--r-pill); background: currentColor; }
-.s-ans-bar.tone-err  { color: var(--err-text); }
-.s-ans-bar.tone-warn { color: var(--warn-text); }
-.s-ans-bar.tone-ok   { color: var(--ok-text); }
-.s-ans-bar.tone-neutral { color: var(--d500); }
+   The row-as-control argument they carried was right and it survives — it is
+   what `.s-reason` does, on all four of the lists that each used to draw
+   their own version of it. The BAR does not survive: it was flex 0 0 84px
+   against a status split running 9/6/5/3/1, which is five near-identical
+   stubs, and the same reasoning retired the ranked bars in the two sections
+   above. `.s-ans-row` keeps its rules — the executive surface still draws
+   it, and there the spreads are wide enough for a bar to mean something. */
 
 /* ── Reschedule: two faces of one date ──
    Quick picks for the four answers people actually give, and a real date
    field for the fifth. Picking either updates the other and the stated
    effect above it. */
-.s-when { display: flex; flex-direction: column; gap: 8px; }
-.s-when-quick { display: flex; flex-wrap: wrap; gap: 4px; }
-.s-when-btn.is-on { border-color: var(--accent); background: var(--accent-dim); color: var(--d50); }
+/* ══ RESCHEDULE, AS A CANVAS BLOCK ═════════════════════════════════════════
+
+   `.s-when` and `.s-when-quick` held the modal's four quick-pick buttons
+   beside a date field — two controls setting one value, so the first
+   decision was which of them to use. Both are gone with the modal.
+
+   What is left is AiMY's proposal in the confirm and one date field behind a
+   disclosure for the case where you want another. `<details>` because the
+   edit path should cost a press only when taken: doctrine §3 requires Edit
+   to exist, not to be paid for by everyone who accepts. */
+.s-work-say {
+  font-size: var(--ty-body); line-height: var(--lh-base);
+  color: var(--ink-secondary); max-width: 62ch; margin-bottom: 16px;
+}
+.s-work-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+.s-when-own > summary {
+  font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--ink-quiet); cursor: pointer; list-style: none;
+  padding: 4px 0; transition: color var(--t-fast);
+}
+.s-when-own > summary::-webkit-details-marker { display: none; }
+.s-when-own > summary::marker { content: ""; }
+.s-when-own > summary:hover { color: var(--ink-primary); }
+.s-when-own > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+.s-when-own[open] > summary { margin-bottom: 8px; }
 .s-when-date { width: 100%; color-scheme: dark light; }
 
 /* A refusal that offers somewhere to go. */
@@ -5226,36 +6354,19 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    It is sticky. A group of thirty scrolls past its own heading, and a card
    whose flag chip says "Gone quiet" with no heading in view has lost the
    sentence that explains why it is grouped at all. */
-.s-group { margin-bottom: 24px; }
-/* ══ THE MARK, THE STATE AND THE SENTENCE SHARE A CENTRE ══════════════════
-   `align-items: baseline` put the AiMY mark six pixels above everything it
-   sits beside. An `<svg>` has no text baseline, so flexbox aligns it on its
-   bottom edge — which for a 16px glyph beside a 24px pill and a 20px line
-   means it floats. It is the leftmost thing in the row and the first thing
-   read, so its being out by six is the first thing seen.
+/* `.s-group-head` and its parts are gone with the per-finding headings. It
+   was a sticky, blurred panel carrying the AiMY mark, a work-state pill, the
+   finding as a paragraph and two verbs — careful work, and all of it in
+   service of a structure that put a full-width bar above every group. On the
+   sets this surface is reached with, that meant more bars than records.
 
-   The row holds one glyph, one pill and one sentence. None of them is bare
-   text sharing a baseline with the others; all three want a common centre. */
-.s-group-head {
-  position: sticky; top: 0; z-index: 2;
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
-  padding: 12px; margin-bottom: 12px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--card-border);
-  background: var(--panel-bg); backdrop-filter: blur(8px);
-}
-.s-group-mark { display: inline-flex; flex: none; }
-.s-group-mark svg { width: 14px; height: 16px; }
-.s-group-txt {
-  flex: 1 1 20rem; min-width: 0;
-  font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-base);
-}
-.s-group-txt b { color: var(--d50); font-weight: var(--fw-bold); }
-.s-group-acts { display: flex; align-items: center; gap: 16px; flex: none; }
-/* The tail group has no finding, so it has no mark, no state and no action —
-   only the count, and quieter than the groups that do. */
-.s-group-head.is-quiet { background: none; border-color: transparent; padding-left: 0; padding-right: 0; position: static; }
-.s-group-head.is-quiet .s-group-txt { color: var(--d500); }
+   `.s-findings` accumulates the same sentences into one block above one flat
+   list, and the stickiness is not needed there: a heading has to follow you
+   down thirty rows, a summary you have already read does not.
+
+   `.s-group` and `.s-group-more` survive — `.s-group` still wraps other
+   surfaces' sections, and `Show the other N` now pages the single list. */
+.s-group { margin-bottom: 24px; }
 .s-group-more { margin-top: 8px; }
 
 /* What the card keeps of the insight: which finding put it in this group.
@@ -5707,6 +6818,34 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   padding: 0; margin-top: 16px;
 }
 .s-camp-page .s-sheet-head-main { flex: 1 1 auto; min-width: 0; }
+
+/* ══ THE MASTHEAD ══════════════════════════════════════════════════════════
+
+   The name sets the ceiling. Nothing on this page is allowed to be larger
+   than it — not the lead figure, not a stage's count, not a section's own
+   number — because the largest thing on a page is what tells a reader where
+   they are, and a surface whose biggest element is a statistic reads as a
+   chart that has lost its title.
+
+   It goes UP, from 32 to 46. The pass before this took it down to 20 to
+   clear room for the figure and got the relationship backwards: the room the
+   figure needed was never the title's to give, it was sitting in the flat
+   14px middle of the page. Taking the top of the scale for the name and
+   re-ranking everything under it is what actually opened the surface.
+
+   Scoped, because the run sheet's name shares this class and has no lead
+   under it to outrank — `sales.css` records that unification as deliberate
+   and it stays. */
+.s-camp-page .s-sheet-name {
+  font-size: var(--ty-masthead); letter-spacing: var(--ls-tighter);
+  line-height: 1.05; color: var(--ink-primary);
+  margin-top: 4px; text-wrap: balance;
+}
+.s-camp-page .s-sheet-kind { font-size: var(--ty-meta); color: var(--ink-quiet); }
+.s-camp-page .s-sheet-when { font-size: var(--ty-meta); color: var(--ink-faint); margin-top: 8px; }
+@media (max-width: 764.98px) { /* 900 layout px */
+  .s-camp-page .s-sheet-name { font-size: var(--ty-lead); }
+}
 /* ── THE CAMPAIGN'S ACTIONS, BESIDE ITS NAME ──
 
    `.s-camp-foot` was here, and it sat at 4,801px on a 4,762px page — below
@@ -5725,133 +6864,159 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 @media (max-width: 764.98px) { /* 900 layout px */
   .s-camp-acts { margin-left: 0; flex: 1 1 100%; margin-top: 12px; }
 }
-/* ══ THE STAGE STRIP ═══════════════════════════════════════════════════════
+/* ══ THE PIPELINE ══════════════════════════════════════════════════════════
 
-   Navigation and progress in one row, which is the only reason it can replace
-   a page of headings: it answers "where am I", "what is left" and "how do I
-   get there" at once.
+   Four cells, always four wide, always comparable. What this replaces was an
+   `<ol>` of full-width rows with the open stage's five hundred pixels of
+   work nested INSIDE one of them — so the fourth stage sat a screen and a
+   half below the third, and the four figures the block exists to compare
+   could not be seen together at all.
 
-   FOUR STATES, AND THEY ARE DIFFERENT QUESTIONS. `is-clear` means nobody is
-   standing there RIGHT NOW — not that the stage is finished, because nothing
-   on a campaign that keeps taking leads in ever is. `is-at` means the
-   campaign is waiting there. `is-here` means you are looking at it. And
-   `is-mine` means the people standing there are waiting on you, which is the
-   only one of the four that is about the reader rather than about the work.
+   Side by side is what makes them a pipeline rather than a list. The eye
+   crosses them in one movement, left to right, which is the direction the
+   work actually flows, and the stage under the strip is then free to take
+   the whole column.
 
-   `is-done` is gone with the model that produced it. It was set from a gate
-   that could only be passed once, so a stage went green the first time
-   anything happened in it and stayed green through thirty new leads arriving
-   with nothing done about them.
-
-   Equal columns, not `auto` — six stages of unequal name length would give a
-   ragged row where the eye reads importance into width. */
-/* ══ FOUR NODES DOWN THE PAGE ══════════════════════════════════════════════
-
-   WHAT THIS REPLACES: `.s-stages`, a row of equal cells over one ground. It
-   was built to argue it was a sequence and not a tab bar, and it lost that
-   argument to its own behaviour — pressing a cell swapped the body, so four
-   cells read as four views. The construction was the problem: a horizontal
-   row of equal cells IS a tab strip, whatever is written above it.
-
-   Down the page it is a flow. Each node is a step, they read in order, and
-   the open one contains its own work instead of replacing the page below.
-   Nothing has to be argued about it.
-
-   THE OPEN NODE IS THE SURFACE'S ANCHOR. Its figure takes the 32px step —
-   the only thing on the page at that size — and the three closed nodes sit
-   at the title step. That is the hierarchy doing the navigating: you see
-   which step wants you before you have read a word. */
-.s-flow {
-  display: flex; flex-direction: column;
-  margin-top: 20px;
-  border: 1px solid var(--card-border); border-radius: var(--r-lg);
-  background: var(--card-bg); overflow: hidden;
-  list-style: none;
+   No card. The strip is grouped by proximity and a single raised surface
+   under the selected cell — the page's one card was this list, and it was
+   the only card on a surface that groups with space everywhere else. */
+.s-pipe {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px; margin-bottom: 24px;
 }
-.s-node + .s-node { border-top: 1px solid var(--hairline); }
-/* A closed node is one line: ordinal, name, figure, unit, and whose it is.
-   Grid rather than flex so the figures align down the column — four figures
-   you cannot compare vertically is four figures rendered as decoration. */
-.s-node-head {
-  display: grid; width: 100%;
-  grid-template-columns: 20px minmax(64px, auto) minmax(0, 1fr) auto 9ch;
-  align-items: baseline; gap: 4px 12px;
-  text-align: left; cursor: pointer; font-family: inherit;
-  padding: 12px 16px; background: none; border: 0;
+.s-pipe-cell {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 12px; border-radius: var(--r-md);
+  background: none; border: 0;
+  font-family: inherit; text-align: left; cursor: pointer;
   transition: background-color var(--t-fast);
 }
-.s-node-head:hover { background: var(--accent-dim); }
-.s-node-head:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-/* A readout, on the report a read-only tier gets: it still states the figure,
-   because where a campaign stands is what a client came for, but there is
-   nothing behind it for them so it does not offer to be pressed. */
-.s-node-head.is-flat { cursor: default; }
-.s-node-head.is-flat:hover { background: none; }
-.s-node.is-open > .s-node-head { background: var(--accent-dim); }
-/* The ordinal carries the STAGE'S CONDITION, not where you are standing:
-   clear, holding work, or holding work that is yours. Which node happens to
-   be open is navigation state, and painting it over the one mark that says
-   how the campaign is doing would trade data for chrome. */
-.s-node-n {
+button.s-pipe-cell:hover { background: var(--card-bg-raised); }
+.s-pipe-cell:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+div.s-pipe-cell { cursor: default; }
+
+/* ── THE SELECTED CELL ──
+   The fill does it alone. An underline under a tinted cell was two devices
+   saying one thing, and the second was a drawn line on a surface that had
+   just had every drawn line taken out of it. The tint is what this ecosystem
+   has always meant by an active nav item, and it is the one place on this
+   block the accent appears. */
+.s-pipe-cell.is-here { background: var(--accent-dim); }
+
+.s-pipe-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* ── THE ORDINAL CARRIES THE STAGE'S CONDITION ──
+   Clear, holding work, or holding work that is yours. Which cell happens to
+   be selected is navigation state and is drawn by the cell itself, so the
+   mark is free to keep saying how the campaign is doing. Colour is paired
+   with the cell's own aria-label, never carrying the meaning alone. */
+.s-pipe-n {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  color: var(--d500); border: 1px solid var(--card-border);
-  font-variant-numeric: tabular-nums; align-self: center;
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  color: var(--ink-faint); border: 1px solid var(--card-border);
+  font-variant-numeric: tabular-nums;
 }
-.s-node.is-clear .s-node-n { color: var(--ok); border-color: rgba(23,178,106,0.35); background: var(--ok-bg); }
-.s-node.is-at .s-node-n { color: var(--warn); border-color: rgba(247,144,9,0.4); background: var(--warn-bg); }
-.s-node.is-mine .s-node-n { color: var(--err); border-color: rgba(217,45,32,0.4); background: var(--err-bg); }
-.s-node-name {
-  font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
-  color: var(--d300); letter-spacing: var(--ls-tight); line-height: var(--lh-tight);
+/* ── AND THE ORDINAL STOPPED CARRYING STATE ──
+
+   It was green for clear, amber for where the campaign stands, red for
+   yours — three hues, no legend anywhere, on a mark whose own cell already
+   says the same things in words: `Clear`, `3 waiting`, and the stage head's
+   `waiting on you`. Colour that duplicates adjacent text is not redundancy
+   for accessibility, it is a third vocabulary to learn for nothing, and the
+   design system's rule is that status is carried by colour AND text — not
+   that every text state earns a colour.
+
+   What survives is `is-at`: which stage the campaign has actually reached is
+   the one thing the figures do not say, since a stage can be clear because
+   it is done or clear because nothing has got there yet. */
+.s-pipe-cell.is-at .s-pipe-n { color: var(--warn); border-color: rgba(247,144,9,0.4); background: var(--warn-bg); }
+.s-pipe-name {
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-quiet); min-width: 0;
 }
-.s-node.is-open .s-node-name { color: var(--d50); }
-/* THE FIGURE IS THE STEP'S DATA and it is stated whether or not the step is
-   open — that is the whole difference between this and the strip it
-   replaces, which stated its data one quarter at a time. */
-.s-node-fig {
-  font-family: var(--font-display);
-  font-size: var(--fs-2xl); font-weight: var(--fw-extrabold);
-  line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
-  color: var(--d50); font-variant-numeric: tabular-nums;
-  justify-self: end;
+.s-pipe-cell.is-here .s-pipe-name { color: var(--ink-primary); }
+
+/* The figure and what it counts, on one baseline — the same construction as
+   the lead and the section heads, so a number and its unit read as one
+   statement everywhere on this page. */
+.s-pipe-fig {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-none); letter-spacing: var(--ls-tight);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
 }
-/* The anchor. One number on the page at 32px, and it is the number the page
-   is about — where the work you are looking at stands. */
-.s-node.is-open .s-node-fig { font-size: var(--fs-3xl); }
-/* A condition is not a quantity. `Clear`, `None`, `Done` are states, set at
-   the label step so a word is never mistaken for a figure. */
-.s-node-fig.is-state {
-  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d400);
-  letter-spacing: 0;
+/* A condition is not a quantity. `Clear`, `None`, `No goal` are states, set
+   at the body step so a word is never mistaken for a figure. */
+.s-pipe-fig.is-state {
+  font-size: var(--ty-body); font-weight: var(--fw-bold);
+  color: var(--ink-faint); letter-spacing: 0;
 }
-.s-node.is-open .s-node-fig.is-state { font-size: var(--fs-2xl); }
-/* A fixed 8ch column, so the figures to its left line up down the flow
-   whatever their unit says. Four figures you cannot compare vertically are
-   four figures rendered as decoration. */
-/* No ellipsis: the column is sized to the longest unit the model can
-   produce ("found yet", nine characters) rather than clipping it. */
-.s-node-unit { font-size: var(--fs-xs); color: var(--d400); white-space: nowrap; }
-/* Whose it is, on the same line as the name — where a reader looks for it —
-   and only where somebody is actually standing in the step. */
-.s-node-who {
-  font-size: var(--fs-xs); color: var(--d500);
-     max-width: 100%;
+.s-pipe-unit {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
 }
-.s-node.is-mine .s-node-who { color: var(--err); font-weight: var(--fw-semibold); }
-.s-node.is-nobody .s-node-who { color: var(--warn); font-weight: var(--fw-semibold); }
-.s-node-body { padding: 4px 16px 20px; }
-/* Under 620 the four-column head cannot hold a name, a function and a
-   figure on one line. The figure keeps the right edge and the function
-   drops under the name, which is the order they are read in anyway. */
-@media (max-width: 526.98px) { /* 620 layout px */
-  .s-node-head { grid-template-columns: 20px minmax(0, 1fr) auto 9ch; }
-  .s-node-who { grid-column: 2 / -1; grid-row: 2; }
-  .s-node-fig { grid-column: 3; grid-row: 1; }
-  .s-node-unit { grid-column: 4; grid-row: 1; }
+
+/* ── DRAWN ONLY WHERE SOMETHING QUEUES ──
+   `Find` reports the campaign's population and `Measure` a reply rate;
+   neither is a queue, and neither is comparable to "3 waiting" on the same
+   axis. The two that do hold work are drawn against the campaign's own size,
+   so 3 against 13 is a shape. The others keep the space and draw nothing —
+   an uneven row that says which stages hold work, which is the question. */
+.s-pipe-track {
+  width: 100%; height: 4px; margin-top: 4px;
+  border-radius: var(--r-pill); background: var(--d750); overflow: hidden;
 }
+.s-pipe-track.is-none { background: none; }
+.s-pipe-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+.s-pipe-cell.is-here .s-pipe-fill { background: var(--accent-text); }
+
+@media (max-width: 764.98px) { /* 900 layout px */
+  .s-pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ══ THE STAGE ═════════════════════════════════════════════════════════════
+
+   The working surface, at the full width of the column instead of indented
+   inside a list item. It gets a name because it is no longer a row that was
+   doubling as one — and that name is the `h3` the blocks inside it needed,
+   which puts Copy, Sequence and Queue back at `h4` where they belong. */
+.s-stage-head {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px;
+  margin-bottom: 20px;
+}
+/* The block heading step, not the title step. It is an `h3` under a section
+   whose own headline is set at 18 — at 20 the stage outranked the section
+   containing it, which is the rank inversion this whole pass has been
+   removing everywhere else. Deck 18, stage 16, sub-block 13: one descent. */
+.s-stage-name {
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); color: var(--ink-primary);
+}
+.s-stage-fn {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* Only ever "waiting on you" or "nobody on it" — the two things the Team row
+   above cannot say, and both of them are findings, so they are toned. */
+.s-stage-who {
+  font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--warn-text);
+}
+/* What the tab is, in one line. `Find  BDR` was a name and an acronym, and
+   between them they said nothing about what the tab holds — the same gap the
+   sections had before they got decks, one rank down. Takes the whole row so
+   it sits under the name rather than trailing the owner. */
+.s-stage-does {
+  flex: 1 0 100%;
+  font-size: var(--ty-meta); color: var(--ink-faint);
+}
+/* The stage takes the column. It used to be `padding: 4px 16px 20px` inside
+   a bordered list item; there is no list and no border to sit inside now. */
+.s-stage { display: block; }
+.s-stage-body { display: block; }
 
 
 /* One organization on a stage. A row, not a card: the card is for comparing
@@ -5896,9 +7061,13 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 
 /* A block heading inside a stage. One step under the stage's own, because the
    stage is the page and these are its parts. */
+/* Same correction as the row captions, one rank down: these name the parts
+   INSIDE a stage — Copy, Sequence, Queue, Organizations, Results — so they
+   sit below the section kicker and above nothing else. `--d500` was the
+   faintest ink in the product on the labels doing the most wayfinding. */
 .s-sub-h {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
   margin-bottom: 12px;
 }
 
@@ -6664,23 +7833,84 @@ body.is-figures .filter-tray { display: none; }
 .s-camp-list-head > :first-child { margin-right: auto; }
 .s-camp-list-head .s-sheet-h { margin: 0; }
 
+/* ══ THE SUB-BLOCK TITLE ═══════════════════════════════════════════════════
+
+   The rule above is right that a heading must not read as one of the links
+   beside it, and `margin-right: auto` says so by putting the whole width
+   between them — which fixes the rank and creates the distance: `Change the
+   channels` ended up five hundred pixels from the Sequence it changes.
+
+   The title now carries its own rank by weight and case, so it does not need
+   the width to prove it, and the controls sit next to what they act on. No
+   rule between them: this page had a hairline hanging off every title for a
+   pass and they read as scaffolding.
+
+   ── AND THE VERBS STOP SHOUTING ──
+
+   Six accent links lived in these bars: `Change the channels`, `Call all 3`,
+   `Let AiMY call 3`, `Log what happened`, `Draft all 3`, `Add a step`. The
+   accent marks the ONE recommended move, and these are the tools of
+   whichever stage happens to be open — AiMY's actual recommendation is the
+   filled control at the top of the page, and it cannot be the loudest thing
+   on the surface while six links share its colour. Quiet ink standing,
+   accent on hover and focus where it is a state rather than a claim. */
+.s-camp-page .s-camp-list-head { align-items: baseline; }
+.s-camp-page .s-camp-list-head .s-sub-h { flex: none; margin-right: 0; margin-bottom: 0; }
+.s-camp-page .s-camp-list-head .s-inline-btn { flex: none; }
+
+/* ── THE ACTOR PAIR ──
+   `Call all 3` and `Let AiMY call 3` are one job with a different hand on
+   it; `Log what happened` is about the past. 8px inside the pair against the
+   head's 16px between groups — the two-to-one ratio that says these two
+   belong together and the third does not, and the one `css-audit.js` checks.
+   Both carry an icon because the actor is the whole difference between them,
+   and the phone glyph is the same one the six row buttons use. */
+.s-queue-who { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.s-camp-page .s-camp-list-head .s-inline-btn svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.s-queue-mark { color: var(--accent-text); }
+
+/* ── EVERY TEXT ACTION ON THE PAGE, NOT JUST THESE ──
+
+   Counted on one campaign: `Add`, `Change`, `Change`, `Knowledge`, `Draft
+   all 3`, `Change the channels`, `Add a step`, `Ask about the order`, `Call
+   all 3`, `Let AiMY call 3`, `Log what happened`, and eight `Show me the N`.
+   Nineteen accent controls, and one of them — the filled button under the
+   lead — is the recommended move the accent is reserved for.
+
+   The rule is one per surface, so it is applied once at the surface rather
+   than nineteen times at the call sites. Standing quiet, accent on hover and
+   focus: a door still announces where it goes with its own words, and the
+   one thing worth doing first is now the only thing wearing the colour. */
+.s-camp-page .s-inline-btn { color: var(--ink-quiet); }
+.s-camp-page .s-inline-btn:hover { color: var(--accent-text); }
+
+/* ── THE LAST OF THE STRIPES ──
+   `Copy` still drew `.s-straight`'s 2px left border — the pattern the
+   doctrine fails a surface on (§11, "decorative border-left stripes"). The
+   ranked rows dropped it for a track that carries the same information as a
+   length; these rows have one or two entries and nothing to rank, so they
+   drop it for nothing at all, which is what a two-row list needs. The base
+   class keeps its border for the executive page and the rail. */
+.s-camp-page .s-straight:not(.is-ranked) { padding-left: 0; border-left: 0; }
+/* `Draft all 3` is a stage tool like the rest of them, and it was the last
+   accent link left standing in the flow. */
+.s-camp-page .s-straight:not(.is-ranked) .s-straight-act { color: var(--ink-quiet); }
+.s-camp-page .s-straight:not(.is-ranked) .s-straight-act:hover { color: var(--accent-text); }
+
 /* The spread is this block's own header — bars that narrow the grid under
    them — so it sits tight to its title and loose from the cards it filters. */
-/* What the campaign is allowed to send on, above the steps it governs. It
-   used to exist only as a line in the rail's history — "The plan was set" —
-   with no control anywhere to see or change it. */
-.s-plan-on {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
-  font-size: var(--fs-xs); color: var(--d300); margin-bottom: var(--sp-4);
-}
+/* `.s-plan-on` held "Sends on AiMY · Phone · Online" above the sequence.
+   The channels are on the step cards — one each, named — so the line was
+   restating the plan immediately above the plan. `.s-plan-cap` survives: the
+   call summary and the find flow both use it as a lead-in label. */
 .s-plan-cap {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
 }
 
-.s-camp-spread { margin-bottom: var(--sp-5); }
-.s-ans-hit.is-on { background: var(--d50); }
-.s-ans-hit.is-on .s-ans-name { font-weight: 600; }
+/* `.s-camp-spread` and the `.s-ans-hit.is-on` pair went with the status
+   spread. The selected state moved to `.s-reason.is-on`, which is the same
+   idea on the row every list on that page now shares. */
 
 /* ══ THE CANVAS AT 375 ════════════════════════════════════════════════════
    `.aimy-overlay` is `position: absolute; inset: 0`, so its box is whatever
