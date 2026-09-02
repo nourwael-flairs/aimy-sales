@@ -95,7 +95,7 @@ const FN_IDS = S.REPS.map((p) => p.id);
 /* `grain` joins the list so a new function cannot be declared without
    somebody deciding whether it reads records at all. It is the field a
    c-level needed and every function before it defaulted into. */
-const NEEDED = ['label', 'rule', 'sees', 'writes', 'home', 'grain'];
+const NEEDED = ['label', 'rule', 'sees', 'writes', 'home', 'grain', 'runsCampaigns'];
 /* GUARDED, because "the model does not exist" is a finding and a crash is
    not. An audit that throws on the thing it audits reports a stack trace to
    somebody who wanted a sentence. */
@@ -275,6 +275,53 @@ function checkReadOnly() {
    assert it comes back byte-identical with exactly one more question on the
    pile. The day somebody wires this to something that mutates, this fails
    instead of shrugging. */
+/* ── 4c · Only a manager decides a campaign should exist ──
+
+   An SDR and a salesperson WORK campaigns; they do not create them. That
+   was gated on `canWrite()`, which is true for both — and two of the four
+   doors were not gated at all. `New campaign` on the selection bar and
+   `Build a campaign` on the briefing asked nothing of anybody.
+
+   Checked from the markup rather than from the declaration, because the
+   declaration is what the check is FOR: a tier that says it cannot start
+   one and still draws a control that does is exactly the shape of defect
+   check 4 exists for, one capability along. */
+function checkCampaignStart() {
+  const KEYS = ['data-newcamp', 'data-newlist', 'data-stop'];
+  S.REPS.forEach((p) => as(p.id, (who) => {
+    if (S.FUNCTIONS[who.fn].runsCampaigns) return;
+    /* THE SELECTION BAR IS A FIFTH SURFACE, and it was the one door here
+       that had no gate at all. It draws nothing until something is picked,
+       so the check picks a record this person may see and then reads it. */
+    const mine = S.filtered().slice(0, 2).map((r) => r.id);
+    S.selectPick(mine);
+    /* `Stop it` lives on the CAMPAIGN page and only on a running one, so
+       neither the briefing nor the selection bar can see it. Rendered here
+       against a campaign this person may actually open — the check would
+       pass vacuously against one they cannot. */
+    const camp = S.filteredCampaigns().filter((c) => S.campState(c) === 'running')[0];
+    const html = S.homePage() + ' ' + S.railInsights() + ' ' + S.scopeBar()
+      + ' ' + (camp ? S.campPage(camp) : '');
+    S.selectPick([]);
+    KEYS.forEach((k) => {
+      if (html.indexOf(k) >= 0) note(`${p.id} (${who.fn}): does not run campaigns and is offered ${k}`);
+    });
+    if (html.indexOf('data-start="newcamp"') >= 0) {
+      note(`${p.id} (${who.fn}): does not run campaigns and is offered the Build a campaign opener`);
+    }
+  }));
+
+  /* And the inverse, so the capability cannot be quietly switched off for
+     everyone: a manager must still be able to reach it. */
+  const builders = S.REPS.filter((p) => S.FUNCTIONS[p.fn].runsCampaigns);
+  if (!builders.length) { note('nobody in the cast can run a campaign — the capability is unreachable'); return; }
+  builders.forEach((p) => as(p.id, (who) => {
+    if (S.homePage().indexOf('data-newcamp') < 0) {
+      note(`${p.id} (${who.fn}): runs campaigns and is offered no way to start one`);
+    }
+  }));
+}
+
 function checkRaise() {
   const shape = () => JSON.stringify([S.DB.acc, S.DB.con, S.DB.camp, S.DB.touch, S.DB.task]);
   READ_ONLY.forEach((id) => as(id, (who) => {
@@ -383,7 +430,7 @@ function checkCampaigns() {
 function checkTeam() {
   FN_IDS.forEach((id) => as(id, (who) => {
     const board = S.filteredTeam();
-    const mayLook = ['admin', 'sdr-manager', 'sales-manager'].includes(who.fn);
+    const mayLook = ['admin', 'sales-manager'].includes(who.fn);
     if (!mayLook && board.length) {
       note(`${id} (${who.fn}): gets a team board of ${board.length}, but only sees a slice of a peer's work`);
     }
@@ -490,7 +537,7 @@ function checkGrain() {
   }));
 }
 
-[checkRecords, checkTouchpoints, checkTasks, checkReadOnly, checkRaise, checkDisclosure, checkCampaigns, checkTeam, checkClients, checkGrain]
+[checkRecords, checkTouchpoints, checkTasks, checkReadOnly, checkRaise, checkCampaignStart, checkDisclosure, checkCampaigns, checkTeam, checkClients, checkGrain]
   .forEach((fn) => { try { fn(); } catch (e) { note(`${fn.name} threw: ${e.message}`); } });
 
 if (fail.length) {

@@ -599,61 +599,59 @@
     'c-level': {
       label: 'C-level', ceiling: 'Everyone, as figures',
       rule: 'You see the whole book as figures. Individual records are not part of this view.',
-      sees: () => true, writes: false, grain: 'aggregate',
+      sees: () => true, writes: false, grain: 'aggregate', runsCampaigns: false,
       home: ['exec'],
     },
     /* ADMIN IS A PERMISSION, NOT A JOB, and it has no surface of its own.
        Every other function's home is built from the work it does; inventing
        a page for "sees everything" would be designing a page for nobody. It
-       lands on the SDR manager's — the widest of the working surfaces — and
-       the only thing it adds is the ability to look as somebody else, which
+       lands on the manager's — the widest of the working surfaces — and the
+       only thing it adds is the ability to look as somebody else, which
        `?as=` already is. */
     admin: {
       label: 'Admin', ceiling: 'Everyone',
       rule: 'Admins see every record in the workspace and may change any of it.',
-      sees: () => true, writes: true, grain: 'record',
+      sees: () => true, writes: true, grain: 'record', runsCampaigns: true,
       home: ['opener', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
     },
-    /* THE SDR MANAGER WAS CALLED `marketing`, AND IT WAS THE SAME PERSON.
+    /* ══ FOUR WORKING ROLES BECAME TWO, AND THE SPLIT WAS NEVER REAL ══════
 
-       The function read "sees the whole book, generates demand across it,
-       does not carry leads" — which is the job the team calls SDR manager.
-       Two names for one function is the drift that makes a permission model
-       unreviewable: the surface said one word, the code said another, and
-       nobody could tell whether they were the same rule.
+       `sdr` and `sales` declared the SAME `sees`, the same `writes`, the
+       same grain and the same ceiling — byte for byte. Everything that made
+       them two functions was which blocks their home led with, and a home
+       array is a layout preference, not a permission. Two functions that
+       cannot be told apart by anything the model checks are one function
+       with two opinions about a page.
 
-       `progress` joins the home for the same reason `sales-manager` has it:
-       a manager's own block comes first, and top-of-funnel throughput is
-       what this one manages. */
-    'sdr-manager': {
-      label: 'SDR manager', ceiling: 'Everyone',
-      rule: 'You see the whole book — demand is generated across it, not inside one campaign.',
-      sees: () => true, writes: true, grain: 'record',
-      home: ['opener', 'progress', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
-    },
-    sdr: {
-      label: 'SDR', ceiling: 'Everyone in Sales EMEA',
-      rule: 'You see the campaigns you are on and every lead inside them, plus anything you own or was shared with you.',
+       `sdr-manager` and `sales-manager` were nearer to being different —
+       one saw the whole book, one saw its team — but they are the same job
+       at the same level of the same team, and a company with one sales
+       organisation does not have two kinds of manager.
+
+       So: `bdr` works the leads and `sales-manager` runs the people. Six
+       functions, and every one of them is a job somebody holds. */
+    bdr: {
+      label: 'BDR', ceiling: 'Everyone in Sales EMEA',
+      rule: 'You see the leads you own, the ones shared with you, and every lead on a campaign you are on.',
       sees: (rec, me) => rec.owner === me.id || (rec.shared || []).includes(me.id) || onACampaignWith(rec, me.id),
-      writes: true, grain: 'record',
-      /* LISTS ARE THE SDR'S OWN SURFACE and they were on nobody's home but
-         the SDR manager's and Admin's — the two functions that do not build
-         them. Sourcing, enriching and handing a list on is the whole of this
-         function's day, and `tabPool('lists')` is entitlement-bounded, so an
-         SDR sees the ones holding accounts they may see. */
-      home: ['opener', 'agenda', 'campaigns', 'lists', 'orgs', 'contacts'],
-    },
-    sales: {
-      label: 'Sales', ceiling: 'Everyone in Sales EMEA',
-      rule: 'You see the leads you own, the ones shared with you, and the campaigns you are on.',
-      sees: (rec, me) => rec.owner === me.id || (rec.shared || []).includes(me.id) || onACampaignWith(rec, me.id),
-      writes: true, grain: 'record',
-      home: ['opener', 'queue', 'agenda', 'campaigns', 'orgs', 'contacts'],
+      writes: true, grain: 'record', runsCampaigns: false,
+      /* THE SALES VIEW LEADS, AND LISTS COME WITH IT. `queue` first, because
+         who to ring next is the question a working day opens on — that was
+         the old `sales` home and it is the better of the two. `lists` stays
+         from the old `sdr` home: sourcing and enriching is the same
+         person's morning now, and `tabPool('lists')` is entitlement-bounded
+         so they see the ones holding accounts they may see. */
+      home: ['opener', 'queue', 'agenda', 'campaigns', 'lists', 'orgs', 'contacts'],
     },
     'sales-manager': {
       label: 'Sales manager', ceiling: 'Everyone in Sales EMEA',
       rule: 'You see every lead owned by someone on your team, and every lead nobody owns.',
-      sees: (rec, me) => !rec.owner || teamOf(me.id).has(rec.owner), writes: true, grain: 'record',
+      sees: (rec, me) => !rec.owner || teamOf(me.id).has(rec.owner), writes: true, grain: 'record', runsCampaigns: true,
+      /* `lists` ARRIVES FROM THE MERGE. The SDR manager had it and this one
+         did not, and the person who now holds both jobs oversees sourcing
+         as well as closing. It goes last: a manager reads progress and
+         obstacles first, and looks at a list when one of those sends them
+         to it. */
       /* ══ `insights` — THE BRIEF NAMES THREE ROLES AND THIS WAS THE MISSING
             ONE ═══════════════════════════════════════════════════════════
 
@@ -669,12 +667,12 @@
 
             After `progress`, because a manager's own block comes first, and
             before `agenda`: the obstacles explain the progress above them. */
-      home: ['opener', 'progress', 'insights', 'agenda', 'campaigns', 'orgs', 'contacts'],
+      home: ['opener', 'progress', 'insights', 'agenda', 'campaigns', 'orgs', 'contacts', 'lists'],
     },
     client: {
       label: 'Client', ceiling: null,
       rule: 'You see the leads in your own engagement, and nothing outside it.',
-      sees: (rec, me) => clientsOf(rec).includes(me.client), writes: false, grain: 'record',
+      sees: (rec, me) => clientsOf(rec).includes(me.client), writes: false, grain: 'record', runsCampaigns: false,
       /* `exec` FIRST, AND IT IS THE SAME BLOCK THE C-LEVEL GETS. A client
          here is the client's CEO — one persona, asking what their spend
          returned. They keep `insights` and `campaigns` because unlike our
@@ -687,7 +685,17 @@
          is asking a question. A stopped run needs US. It is a working rep's
          briefing, written in the second person, rendered to a customer who
          cannot do a single thing it asks. */
-      home: ['exec', 'insights', 'campaigns'],
+      /* `campaigns` IS GONE, AND THE EXEC BLOCK ATE IT. `Your campaigns`
+         inside `exec` lists the same campaigns, opens the same page, and
+         says more about each of them — companies worked, who replied, what
+         signed, what is expected — where the old row said "25 messages
+         sent, 44% of them answered".
+
+         And the old row leaked vocabulary: it badged each campaign with its
+         internal stage, so a customer read "4 MEASURE" and learnt the name
+         of a step in our workflow. Two doors to one page, and the one being
+         removed is the narrower one that also gave away how we work. */
+      home: ['exec', 'insights'],
     },
     /* ══ A STAKEHOLDER OWNS A PRODUCT LINE, NOT THE BOOK ═══════════════
 
@@ -706,7 +714,7 @@
     stakeholder: {
       label: 'Stakeholder', ceiling: 'Their product line',
       rule: 'You see the leads in your product line, across every campaign, and can change none of them.',
-      sees: (rec, me) => accOf(rec).svc === me.svc, writes: false, grain: 'record',
+      sees: (rec, me) => accOf(rec).svc === me.svc, writes: false, grain: 'record', runsCampaigns: false,
       home: ['opener', 'insights', 'campaigns'],
     },
   };
@@ -730,12 +738,12 @@
      nobody holds is a function nobody can look at. */
   const REPS = [
     { id: 'nour',    name: 'Nour Wael',     initials: 'NW', fn: 'admin' },
-    { id: 'lina',    name: 'Lina Haddad',   initials: 'LH', fn: 'sdr-manager' },
+    { id: 'lina',    name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
     { id: 'ahmed',   name: 'Ahmed Mohamed', initials: 'AM', fn: 'sales-manager' },
-    { id: 'engy',    name: 'Engy Saleh',    initials: 'ES', fn: 'sdr' },
-    { id: 'habeba',  name: 'Sally Tarek',   initials: 'HM', fn: 'sdr' },
-    { id: 'omar',    name: 'Omar Fathy',    initials: 'OF', fn: 'sales' },
-    { id: 'sara',    name: 'Sara Nabil',    initials: 'SN', fn: 'sales' },
+    { id: 'engy',    name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
+    { id: 'habeba',  name: 'Sally Tarek',   initials: 'HM', fn: 'bdr' },
+    { id: 'omar',    name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
+    { id: 'sara',    name: 'Sara Nabil',    initials: 'SN', fn: 'bdr' },
     { id: 'youssef', name: 'Youssef Adel',  initials: 'YA', fn: 'stakeholder', svc: 'qa' },
     { id: 'marit',   name: 'Marit de Wit',  initials: 'MW', fn: 'client', client: 'upland' },
     { id: 'tomas',   name: 'Tomas Brandt',  initials: 'TB', fn: 'client', client: 'kestrel' },
@@ -769,13 +777,19 @@
      not here — offering it in the Owner axis would offer a filter that
      returns nothing, and a structural nought reads as news.
 
-     THE RENAME DOES NOT MOVE THE CURSOR. This list feeds `pick(r, SELLERS)`
-     inside `build()`, so a change to its membership or its ORDER would
-     reshuffle every owner in the corpus. `bdr`→`sdr` renames two of the six
-     in place and adds nobody, so the array is the same six people in the
-     same order and the corpus is untouched. `tier-audit`'s count table is
-     the proof, and it is byte-identical across this change. */
-  const SELLERS = REPS.filter((p) => ['admin', 'sdr', 'sales', 'sales-manager'].includes(p.fn));
+     THE MERGE DOES MOVE THE CURSOR, AND THAT IS UNAVOIDABLE. This list
+     feeds `pick(r, SELLERS)` inside `build()`, so its membership and its
+     ORDER decide who owns what. Folding `sdr-manager` into `sales-manager`
+     makes Lina a lead-owning function for the first time, which takes the
+     array from six people to seven — and every account after the first
+     draw gets a different owner.
+
+     There is no version of this merge that avoids it. Leaving Lina out of
+     `SELLERS` would shrink the array instead, and dropping `sales-manager`
+     from it would take Ahmed's book away. A rename can be free; a change to
+     who may own a lead cannot be. So the corpus is rebuilt, the counts move
+     once, and `tier-audit`'s table is the record of where they landed. */
+  const SELLERS = REPS.filter((p) => ['admin', 'bdr', 'sales-manager'].includes(p.fn));
 
   /* ══ THE CREW SHAPE, ONCE ══════════════════════════════════════════════
 
@@ -789,21 +803,31 @@
      A function, not a frozen constant, because each caller mutates the
      object it gets. `CREW_FNS` derives from it, so the picker's pool and
      the buckets it pushes into cannot disagree. */
-  const CREW_SHAPE = () => ({ 'sdr-manager': [], sdr: [], sales: [] });
+  const CREW_SHAPE = () => ({ 'sales-manager': [], bdr: [] });
   const CREW_FNS = Object.keys(CREW_SHAPE());
 
   /* One team, because one is enough to make "my team" mean something and two
-     would be corpus for its own sake. The manager is not a member of their
-     own team — `teamOf` adds them, so the rule reads the way people say it. */
+     would be corpus for its own sake. A manager is not a member of their own
+     team — `teamOf` adds them, so the rule reads the way people say it.
+
+     ══ `managers`, PLURAL, BECAUSE THE MERGE PUT TWO PEOPLE IN THE ROLE ═══
+
+     `manager` was one id, which was true while Lina held a separate
+     function. Folding `sdr-manager` into `sales-manager` gives this team two
+     people holding the manager's job, and a single-id field would have left
+     one of them managing nobody: `teamOf('lina')` would have fallen through
+     to `[id]`, and her page would have shown only unowned leads while
+     claiming to show her team's. */
   const TEAMS = [
-    { k: 'emea', name: 'Sales EMEA', manager: 'ahmed', members: ['engy', 'habeba', 'omar', 'sara'] },
+    { k: 'emea', name: 'Sales EMEA', managers: ['ahmed', 'lina'], members: ['engy', 'habeba', 'omar', 'sara'] },
   ];
+  const teamWith = (id) => TEAMS.find((x) => x.managers.includes(id) || x.members.includes(id));
   function teamOf(id) {
-    const t = TEAMS.find((x) => x.manager === id || x.members.includes(id));
-    return new Set(t ? [t.manager].concat(t.members) : [id]);
+    const t = teamWith(id);
+    return new Set(t ? t.managers.concat(t.members) : [id]);
   }
   const teamName = (id) => {
-    const t = TEAMS.find((x) => x.manager === id || x.members.includes(id));
+    const t = teamWith(id);
     return t ? t.name : null;
   };
 
@@ -1096,7 +1120,7 @@
   const CAMPAIGNS = [
     {
       k: 'q3-nl', name: 'Q3 Netherlands — QA', owner: 'ahmed',
-      crew: { 'sdr-manager': ['lina'], sdr: ['engy', 'habeba'], sales: ['omar'] },
+      crew: { 'sales-manager': ['lina'], bdr: ['engy', 'habeba', 'omar'] },
       goal: 'Dutch enterprises over 1,000 staff who run QA in-house and cannot staff their release cadence. We want a scoping call with whoever owns quality.',
       sells: [
         { kind: 'service', name: 'Managed QA capacity', kb: 'kb-icp-qa-ent' },
@@ -1109,7 +1133,7 @@
     },
     {
       k: 'ams-scrape', name: 'Amsterdam scrape — August', owner: 'engy',
-      crew: { 'sdr-manager': ['lina'], sdr: ['engy'], sales: [] },
+      crew: { 'sales-manager': ['lina'], bdr: ['engy'] },
       goal: 'Everything the August crawl found in Amsterdam over 500 staff. The goal is qualification, not a meeting — we want to know which of them match an ICP.',
       sells: [],
       made: '2026-07-21', from: '2026-08-01', to: '2026-08-31',
@@ -1119,7 +1143,7 @@
     },
     {
       k: 'fin-voice', name: 'Financial services — Voice', owner: 'omar', client: 'kestrel',
-      crew: { 'sdr-manager': [], sdr: ['habeba'], sales: ['omar', 'sara'] },
+      crew: { 'sales-manager': [], bdr: ['habeba', 'omar', 'sara'] },
       goal: 'Banks and insurers running their own contact centres. We want the person who owns customer experience, and we want a call.',
       sells: [
         { kind: 'service', name: 'Voice operations', kb: 'kb-icp-voice-fin' },
@@ -1132,7 +1156,7 @@
     },
     {
       k: 'tue-eind', name: 'Eindhoven deep-tech', owner: 'habeba',
-      crew: { 'sdr-manager': ['lina'], sdr: ['habeba'], sales: [] },
+      crew: { 'sales-manager': ['lina'], bdr: ['habeba'] },
       goal: 'Brainport cluster — small, technical, building their own tooling. We are selling capacity rather than capability, so the goal is a conversation about their backlog.',
       sells: [{ kind: 'service', name: 'Engineering capacity', kb: null }],
       made: '2026-06-19', from: '2026-07-01', to: '2026-10-31',
@@ -1146,7 +1170,7 @@
        early. */
     {
       k: 'edu-nl', name: 'Dutch universities', owner: 'sara', client: 'upland',
-      crew: { 'sdr-manager': [], sdr: [], sales: ['sara'] },
+      crew: { 'sales-manager': [], bdr: ['sara'] },
       goal: 'Research institutions with student-facing systems. Long cycles, procurement-gated — the goal was a framework place rather than a deal.',
       sells: [{ kind: 'service', name: 'Engineering capacity', kb: null }],
       made: '2026-03-20', from: '2026-04-01', to: '2026-07-15',
@@ -1156,7 +1180,7 @@
     },
     {
       k: 'referral-26', name: 'Referrals 2026', owner: 'nour',
-      crew: { 'sdr-manager': [], sdr: [], sales: ['omar', 'sara'] },
+      crew: { 'sales-manager': [], bdr: ['omar', 'sara'] },
       goal: 'Anything that came in through somebody we already work with. Warm, so the goal is a conversation this month rather than a sequence.',
       sells: [],
       made: '2025-12-15', from: '2026-01-01', to: '2026-12-31',
@@ -1170,7 +1194,7 @@
        In the fixtures so the draft state is reachable without building one. */
     {
       k: 'strategic-q4', name: 'Strategic Q4', owner: 'nour',
-      crew: { 'sdr-manager': ['lina'], sdr: ['engy'], sales: ['omar'] },
+      crew: { 'sales-manager': ['lina'], bdr: ['engy', 'omar'] },
       goal: 'Accounts worth a partner conversation rather than a sequence. Nobody has decided how to work it yet, which is what makes it a draft.',
       sells: [{ kind: 'solution', name: 'Partner engagement', kb: null }],
       made: '2026-07-28', from: null, to: null,
@@ -1193,7 +1217,7 @@
        `members` is empty because that is the point. */
     {
       k: 'hosp-nl', name: 'Hospitality — Netherlands', owner: 'engy',
-      crew: { 'sdr-manager': [], sdr: ['engy'], sales: [] },
+      crew: { 'sales-manager': [], bdr: ['engy'] },
       goal: 'Hotels, hostels and resorts in the Netherlands with fifty to five hundred staff. We are looking for whoever owns guest experience, and we want a first conversation.',
       sells: [{ kind: 'service', name: 'Support', kb: null }],
       made: '2026-08-11', from: null, to: null,
@@ -1873,7 +1897,7 @@
 
         DB.draft.push({
           id: 'df' + did++, camp: c.k, acc: id,
-          by: (c.crew && c.crew['sdr-manager'] && c.crew['sdr-manager'][0]) || 'aimy',
+          by: (c.crew && c.crew['sales-manager'] && c.crew['sales-manager'][0]) || 'aimy',
           at: iso(at), body: draftSay(c, a, sig), edited: false,
         });
       });
@@ -2245,7 +2269,7 @@
      paragraph above refuses for a rep. The rule did not change; the tier
      moved to the other side of it.
   ═══════════════════════════════════════════════ */
-  const seesOthers = () => ['admin', 'sdr-manager', 'sales-manager'].includes(me().fn);
+  const seesOthers = () => ['admin', 'sales-manager'].includes(me().fn);
 
   /* Their book, and what is wrong with it — every number bounded by what the
      LOOKER may see, never by what the person owns. A manager who cannot see
@@ -2574,9 +2598,9 @@
      in` does not need "Do we know enough about them to make contact?" over
      it. `verb` stays; the runs list conjugates it. */
   const CAMP_STAGE = [
-    { k: 'find',    n: 1, label: 'Find',    verb: 'Finding',   fn: 'sdr',           scope: 'camp' },
-    { k: 'enrich',  n: 2, label: 'Enrich',  verb: 'Filling in', fn: 'sdr',          scope: 'member' },
-    { k: 'reach',   n: 3, label: 'Reach',   verb: 'Reaching',  fn: 'sales',         scope: 'member' },
+    { k: 'find',    n: 1, label: 'Find',    verb: 'Finding',   fn: 'bdr',           scope: 'camp' },
+    { k: 'enrich',  n: 2, label: 'Enrich',  verb: 'Filling in', fn: 'bdr',          scope: 'member' },
+    { k: 'reach',   n: 3, label: 'Reach',   verb: 'Reaching',  fn: 'bdr',           scope: 'member' },
     { k: 'measure', n: 4, label: 'Measure', verb: 'Measuring', fn: 'sales-manager', scope: 'member' },
   ];
   const STAGE_BY = Object.create(null);
@@ -6798,7 +6822,8 @@
      one. Without it, clearing the view writes a bare URL, a bare URL gets
      the default back, and "show me everything" becomes unreachable — which
      is the trap this kind of default usually falls into. */
-  const DEFAULT_VIEW = { sales: 'waiting', sdr: 'untouched', 'sales-manager': 'overdue' };
+  /* The merged role defaults to the SALES view — what is waiting on you. */
+  const DEFAULT_VIEW = { bdr: 'waiting', 'sales-manager': 'overdue' };
 
   /* Nothing is narrowing: no axis, no set of ids, no list, no campaign, no
      search. Checked against the real key lists rather than a hand-written
@@ -7017,6 +7042,8 @@
     get attainment() { return attainment; },
     get periodOf() { return periodOf; },
     get workingHeads() { return workingHeads; },
+    get campaignCosts() { return campaignCosts; },
+    get unlogged() { return unlogged; },
     get acvOf() { return acvOf; },
     get spendOn() { return spendOn; },
     get clientsOf() { return clientsOf; },
@@ -7024,6 +7051,9 @@
     get maySeeTouch() { return maySeeTouch; },
     get disclosure() { return disclosure; },
     get filteredCampaigns() { return filteredCampaigns; },
+    /* `Stop it` only exists on a RUNNING campaign, so the audit needs to be
+       able to pick one out before it can check who is offered it. */
+    get campState() { return campState; },
     get filteredTeam() { return filteredTeam; },
     get standing() { return standing; },
     /* ══ THE RENDERERS, FOR THE ONE CHECK THAT NEEDS MARKUP ═════════════
@@ -7039,6 +7069,14 @@
     get campPage() { return campPage; },
     get homePage() { return homePage; },
     get railInsights() { return railInsights; },
+    /* `scopeBar` draws the operations a SELECTION carries, and one of them
+       starts a campaign. It is the only surface holding a write that
+       `homePage` and the two record pages never render, so an audit that
+       walks those four alone cannot see it. `selectPick` is what lets the
+       check put something in the selection first — the bar returns nothing
+       when nothing is picked. */
+    get scopeBar() { return scopeBar; },
+    selectPick(ids) { SEL.clear(); (ids || []).forEach((i) => SEL.add(i)); },
     /* ── FOR THE AUDIT, NOT FOR THE SURFACE ──
        `wiring-audit` runs every question this product composes for itself
        through the real matcher, because the alternative is a regex in the
@@ -7203,6 +7241,26 @@
      answer is the new one. */
   const atRecordGrain = () => (FUNCTIONS[me().fn].grain || 'record') === 'record';
 
+  /* ══ WHO DECIDES A CAMPAIGN'S LIFE, AND WHY IT IS NOT `canWrite` ═══════
+
+     A BDR works campaigns; they do not decide that one should exist, and
+     they do not decide when one is over. Both are the same call — who is
+     being sold to, with what, over what window, and when to stop paying for
+     it — and both were gated on `canWrite()`, which is true for every BDR.
+
+     STARTING AND STOPPING ARE ONE CAPABILITY. The first cut named this
+     `startsCampaigns` and gated only creation, which left `Stop it` sitting
+     on the campaign page for anybody who could write. Ending a campaign is
+     the more consequential half: it stops every run against it. One flag,
+     both ends, because a person trusted with one is trusted with the other
+     and a second flag would be a second thing to forget.
+
+     Declared rather than tested at the call sites, for the same reason
+     `grain` is: a capability that lives in five `if`s is a capability that
+     grows a sixth door nobody guards. `tier-audit` walks the declaration
+     and the markup together. */
+  const canRunCampaign = () => !!FUNCTIONS[me().fn].runsCampaigns;
+
   /* Scope is the opposite: a question you did ask, so the switch shows it and
      nothing has to be disclosed. It is still bounded by tier — a rep asking
      for "everyone" gets everyone they are entitled to, and the switch says
@@ -7275,11 +7333,30 @@
       'Filed accounts': 0.44, 'Modelled from headcount': 0.01,
       Apollo: 0.18, 'Contact Out': 0.14, Lusha: 0.26, 'Their switchboard': 0.04,
     }),
-    /* Per touchpoint. AiMY's is compute and telephony; the human channels
-       are an hour of somebody's time at a blended rate, which is where the
-       cost of a sales motion actually sits. */
-    touch: Object.freeze({ aimy: 0.09, phone: 14, meeting: 46, physical: 240 }),
+    /* AiMY's own cost per touch: compute and telephony, no human in it. The
+       human channels are priced by the hour instead — see `MINUTES`. */
+    touch: Object.freeze({ aimy: 0.09 }),
   });
+
+  /* ══ WHAT AN HOUR OF EACH PERSON COSTS ═════════════════════════════════
+
+     A flat per-touch price said a meeting cost €46 whoever took it, which
+     is the one thing an allocation view must not say: the whole question is
+     whether the right people are on the right campaigns, and at one price
+     they are interchangeable.
+
+     So time and money are separated. `MINUTES` is how long a channel takes
+     including the work either side of it — a call is not the eleven minutes
+     of talking, it is the note afterwards too. `RATE` is what an hour of a
+     function costs, fully loaded. Multiply and you get a figure that
+     changes when a manager takes the meeting instead of a BDR, which is
+     what makes it worth putting on a page. MOCK, like every price here. */
+  const MINUTES = Object.freeze({ aimy: 0, phone: 25, meeting: 90, physical: 300 });
+  const RATE = Object.freeze({ admin: 95, 'sales-manager': 85, bdr: 55 });
+  const rateOf = (id) => {
+    const p = REP[id];
+    return p && RATE[p.fn] ? RATE[p.fn] : 0;
+  };
 
   /* Two config numbers, from finance, set once — not per deal, not per
      person. Payback reads the margin; everything else reads the blended
@@ -7300,8 +7377,28 @@
      both. The client page loads no heads at all — our cost of delivery is
      not something the customer buys sight of. */
   const GROSS_MARGIN = 0.72;
-  const TEAM_MONTHLY = 6200;
-  const WORKING_FNS = ['sdr', 'sales', 'sdr-manager', 'sales-manager'];
+  /* ══ PAYROLL COMES OFF THE SAME RATE THE HOURS DO ══════════════════════
+
+     A blended monthly figure — everybody costs €6,200 — could produce a
+     total and nothing else. "People, everything else: €48k, 87%" is not a
+     breakdown, it is one number wearing four rows, and there is no
+     question a reader can ask it: you cannot move a blend.
+
+     Off `RATE`, the same figure that prices an hour on a campaign, a
+     manager costs more than a BDR and each person's cost is their own. It
+     also means one source for what somebody costs rather than two that can
+     disagree — the hour and the month are now the same number, multiplied
+     differently. MOCK, like every price here. */
+  const WORK_HOURS_MONTH = 160;
+  function payrollRows(p) {
+    const months = (daysBetween(p.from, new Date(p.to)) + 1) / 30.44;
+    return REPS.filter((x) => WORKING_FNS.includes(x.fn)).map((x) => {
+      const rate = RATE[x.fn] || 0;
+      const hours = WORK_HOURS_MONTH * months;
+      return { id: x.id, name: x.name, fn: x.fn, rate, hours, cost: rate * hours };
+    }).sort((a, b) => b.cost - a.cost);
+  }
+  const WORKING_FNS = ['bdr', 'sales-manager'];
   const workingHeads = () => REPS.filter((p) => WORKING_FNS.includes(p.fn)).length;
 
   /* The seeded corpus calls our own crawl `AiMY scrape`; `PROVIDERS` calls
@@ -7467,9 +7564,13 @@
     }, own);
   }
 
+  /* AiMY's touches are a supplier cost. A person's are time, and time is
+     priced by who spent it. */
   const activitySpend = (acc, p) => touchesFor(acc)
     .filter((t) => inPeriod(t.at, p))
-    .reduce((n, t) => n + (PRICE.touch[t.ch] || 0), 0);
+    .reduce((n, t) => n + (t.by === 'aimy'
+      ? (PRICE.touch[t.ch] || 0)
+      : ((MINUTES[t.ch] || 0) / 60) * rateOf(t.by)), 0);
 
   /* Sourcing and enrichment are what it cost to GET the lead — one-off, and
      they land in the period the lead arrived in. Activity is what it costs
@@ -7631,7 +7732,7 @@
        days in the quarter before is like for like on both sides. */
     const days = daysBetween(p.from, new Date(p.to)) + 1;
     spend.tools = spend.src + spend.enrich + spend.activity;
-    spend.team = (heads || 0) * TEAM_MONTHLY * (days / 30.44);
+    spend.team = heads === 0 ? 0 : payrollRows(p).reduce((n, r) => n + r.cost, 0);
     spend.total = spend.tools + spend.team;
 
     const arr = wins.reduce((n, w) => n + w.value, 0);
@@ -7650,6 +7751,117 @@
       byLine: Object.values(byLine).filter((r) => r.meetings || r.arr || r.pipeline)
         .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
     };
+  }
+
+  /* ══ WHERE THE TIME AND THE MONEY WENT, ONE CAMPAIGN AT A TIME ═════════
+
+     The executive page could say what the quarter cost and not what it was
+     spent ON. A total with no breakdown behind it is a number you can only
+     believe or disbelieve — there is no third thing to do with it, and the
+     one question a CEO actually has about a cost is which of them to stop.
+
+     Three kinds of cost, and they behave differently:
+
+       · PEOPLE — hours logged against the campaign, at each person's rate.
+         Attributed, not payroll: see the note on `unlogged` below.
+       · AiMY — its own touches, at compute cost. No human in them.
+       · SUPPLIERS — sourcing and enrichment on the accounts that arrived
+         into this campaign inside the window.
+
+     Everything comes from touchpoints and membership, which already exist.
+     Nothing new is stored. */
+  function campaignCost(camp, p) {
+    const mem = maySee((camp.members || []).map((id) => DB.accBy[id]).filter(Boolean)).filter((a) => !a.arch);
+    const by = {};
+    let aimy = 0, minutes = 0;
+
+    mem.forEach((acc) => {
+      touchesFor(acc).forEach((t) => {
+        if (!inPeriod(t.at, p)) return;
+        if (t.list && t.list !== camp.k) return;
+        if (t.by === 'aimy') { aimy += PRICE.touch[t.ch] || 0; return; }
+        const mins = MINUTES[t.ch] || 0;
+        if (!mins) return;
+        minutes += mins;
+        const r = by[t.by] || (by[t.by] = { id: t.by, hours: 0, rate: rateOf(t.by), cost: 0, touches: 0 });
+        r.hours += mins / 60;
+        r.cost += (mins / 60) * r.rate;
+        r.touches += 1;
+      });
+    });
+
+    let suppliers = 0;
+    mem.forEach((acc) => {
+      if (!inPeriod(srcAt(acc), p)) return;
+      suppliers += srcSpend(acc).cost + enrichSpendFor(acc).cost;
+    });
+
+    const crew = Object.values(by).sort((a, b) => b.cost - a.cost);
+    const people = crew.reduce((n, r) => n + r.cost, 0);
+    const won = mem.filter((a) => { const w = wonAt(a); return w && inPeriod(w, p); });
+    return {
+      camp, members: mem.length, crew, people, aimy, suppliers,
+      hours: minutes / 60,
+      total: people + aimy + suppliers,
+      arr: won.reduce((n, a) => n + acvOf(a).value, 0),
+      wins: won.length,
+      met: mem.filter((a) => metIn(a, p)).length,
+    };
+  }
+
+  /* Every campaign the reader may see, dearest first. The executive page
+     ranks by what it costs, not by when it was made — the same argument the
+     workbench makes about its own ordering, one altitude up. */
+  const campaignCosts = (p) => filteredCampaigns({ all: true })
+    .filter((c) => maySee((c.members || []).map((id) => DB.accBy[id]).filter(Boolean)).length)
+    .map((c) => campaignCost(c, p))
+    .filter((r) => r.total || r.met || r.wins)
+    .sort((a, b) => b.total - a.total);
+
+  /* ══ HOW MUCH OF THE PAYROLL LANDS ON A CAMPAIGN AT ALL ════════════════
+
+     Hours logged against a campaign are a fraction of hours paid for, and
+     the two must never be added or confused. Measured on this corpus, the
+     logged fraction is small — which is not a defect in the model, it is
+     the finding: a CEO reading "8% of what you pay for is attributable to a
+     campaign" has learned something they cannot get anywhere else on this
+     page. Stated, never quietly rolled into a total. */
+  function unlogged(p, heads) {
+    const days = daysBetween(p.from, new Date(p.to)) + 1;
+    const rows = heads === 0 ? [] : payrollRows(p);
+    const payroll = rows.reduce((n, r) => n + r.cost, 0);
+    /* Hours logged against a campaign, rolled up per person, so each row can
+       say how much of what they cost landed on a named piece of work. */
+    const on = {};
+    campaignCosts(p).forEach((c) => c.crew.forEach((m) => {
+      const r = on[m.id] || (on[m.id] = { hours: 0, cost: 0 });
+      r.hours += m.hours; r.cost += m.cost;
+    }));
+    const logged = Object.values(on).reduce((n, r) => n + r.cost, 0);
+    return {
+      payroll, logged, pc: payroll ? logged / payroll : null,
+      people: rows.map((r) => Object.assign({}, r, { onCamp: on[r.id] || { hours: 0, cost: 0 } })),
+    };
+  }
+
+  /* ══ WHICH PRODUCT IS WORKING, AS A VERDICT RATHER THAN A ROW ══════════
+
+     "QA €70k, Dev €0" is a table; "Dev has taken 11 meetings and closed
+     nothing" is a finding. The difference is a threshold somebody has
+     decided, and deciding it here — once, in the open — is what lets the
+     page say `emerging` or `stalling` instead of leaving the reader to do
+     the arithmetic on six rows. */
+  const LINE_VERDICT = [
+    { k: 'winning',  say: 'winning',  tone: 'ok' },
+    { k: 'emerging', say: 'emerging', tone: 'ok' },
+    { k: 'stalling', say: 'stalling', tone: 'warn' },
+    { k: 'cold',     say: 'not landing', tone: 'err' },
+  ];
+  function lineVerdict(r, best) {
+    if (r.arr && best && r.arr >= best * 0.5) return LINE_VERDICT[0];
+    if (r.arr) return LINE_VERDICT[1];
+    if (r.meetings >= 4) return LINE_VERDICT[3];
+    return LINE_VERDICT[2];
   }
 
   /* Everything still open, at its derived value — the "if everything
@@ -7675,10 +7887,15 @@
      the product predicts rather than reports, and it is what the projection
      on the executive page is built from. */
   const RUNGS = [
-    { k: 'met',       say: 'after we have met them' },
-    { k: 'replied',   say: 'after they write back' },
-    { k: 'contacted', say: 'after we make contact' },
-    { k: 'untouched', say: 'before anyone gets in touch' },
+    /* NAMED AS STATES, NOT AS MOMENTS. These read "after we have met
+       them", which is a clause about time and left the percentage beside it
+       ambiguous — a rate at a moment, or a rate for a group? They are
+       groups: every open company sits in exactly one, and the figure is how
+       many of that group historically close. A noun says so. */
+    { k: 'met',       say: 'Met them' },
+    { k: 'replied',   say: 'Replied, no meeting yet' },
+    { k: 'contacted', say: 'Contacted, no reply' },
+    { k: 'untouched', say: 'Not contacted yet' },
   ];
   function rungOf(acc) {
     const ts = touchesFor(acc);
@@ -9371,7 +9588,13 @@
             that were missing — the two Clay leads with, and the two a
             hundred and eighteen half-filled records need most. */ ''}
       <span class="ss-actions">
-        <button class="btn btn-brand btn-sm" type="button" data-newlist>New campaign</button>
+        ${/* `Add to a campaign` STAYS FOR EVERYONE WHO CAN WRITE. Putting a
+              lead onto a campaign that already exists is working the book;
+              deciding a campaign should exist is not, and only the second
+              one moves to `canRunCampaign`. Losing the first would take
+              the selection bar's most-used verb away from the people it was
+              built for. */ ''}
+        ${canRunCampaign() ? `<button class="btn btn-brand btn-sm" type="button" data-newlist>New campaign</button>` : ''}
         <button class="btn btn-ghost btn-sm" type="button" data-addsel>Add to a campaign</button>
         <button class="btn btn-ghost btn-sm" type="button" data-enrichsel>Fill in what is missing</button>
         ${/* THE VERB THIS BAR NEVER HAD. Four operations sat here and none
@@ -10108,9 +10331,9 @@
                 has nothing more urgent than the thing that makes it run —
                 and on every campaign that IS running there is no exit here
                 at all, so the flow's open node takes the primary. */ ''}
-          ${canWrite() && lifecycle ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-camp-primary" type="button" ${lifecycle.attr}>${esc(lifecycle.label)}</button>` : ''}
+          ${canRunCampaign() && lifecycle ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-camp-primary" type="button" ${lifecycle.attr}>${esc(lifecycle.label)}</button>` : ''}
           ${canWrite() ? `
-            ${running ? `<button class="btn btn-ghost btn-sm" type="button" data-stop="${esc(l.k)}">Stop it</button>` : ''}` : ''}
+            ${running && canRunCampaign() ? `<button class="btn btn-ghost btn-sm" type="button" data-stop="${esc(l.k)}">Stop it</button>` : ''}` : ''}
         </div>
       </div>
 
@@ -12466,7 +12689,7 @@
        So three readings of one derivation. The facts do not change; who is
        being asked to do something about them does. */
     const mine = canWrite();
-    const overTeam = ['sales-manager', 'sdr-manager'].includes(me().fn);
+    const overTeam = me().fn === 'sales-manager';
 
     const did = [];
     if (sentTo.length) did.push(`messaged ${openerN(esc(plural(sentTo.length, 'person')), 'contacts', sentTo)}`);
@@ -12694,7 +12917,7 @@
     return `<section class="s-block s-block-wide" aria-label="Campaigns">
       <div class="s-camp-rows-head">
         <h2 class="s-block-h">Campaigns</h2>
-        ${canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-newcamp>${chIcon('plus')}New campaign</button>` : ''}
+        ${canRunCampaign() ? `<button class="btn btn-ghost btn-sm" type="button" data-newcamp>${chIcon('plus')}New campaign</button>` : ''}
       </div>
       <div class="s-camp-rows">
         ${rows.map((c) => {
@@ -14899,6 +15122,14 @@
      question while claiming to do something. These stage and nothing more,
      so they say so, and the literal has to be in the markup for the check
      to be able to read it. */
+  /* One question, beside the heading of the thing it is about. The row of
+     three at the foot of the page could only ever be about the page; this
+     is about the section it sits on, and it carries the same
+     `data-entry-mode="prompt"` the audit requires of anything that only
+     stages a question. */
+  const secAsk = (label, ask) => `<button class="s-sec-ask" type="button" data-entry-mode="prompt"
+    data-aimy-ask="${esc(ask)}">${aiMark()}${esc(label)}</button>`;
+
   const askRow = (asks) => (asks.length ? `<div class="s-asks">
     <span class="s-asks-cap">Ask AiMY</span>
     ${asks.map((a) => `<button class="chip default s-ask" type="button" data-entry-mode="prompt"
@@ -14930,33 +15161,93 @@
     ${sub ? `<span class="s-af-sub">${esc(sub)}</span>` : ''}
   </div>`;
 
+  /* ══ WHAT AiMY MAKES OF THE QUARTER ════════════════════════════════════
+
+     The reader asked for the money surface to open the way the workbench
+     does — a paragraph AiMY writes, then the evidence under it. That is the
+     shape `openerText` already has for a rep, and the argument for it is
+     the same one altitude up: somebody reading this page once, standing up,
+     needs the conclusion drawn rather than assembled out of four sections.
+
+     What makes it a reading rather than a caption is that every clause
+     names something the figures below do NOT say on their face — the
+     campaign whose cost and return are furthest apart, the product that has
+     taken meetings and closed nothing, the share of payroll that lands on a
+     campaign at all. Ranked, and the loudest three are said. */
+  function execBrief(now, was, pipe, a, camps, un) {
+    const bits = [];
+    const money = `You spent <b>${esc(fmtMoney(now.spend.total))}</b> and signed <b>${esc(fmtMoney(now.arr))}</b>`;
+    const pace = a.pc == null ? '.' : a.pace == null
+      ? ` — <b>${esc(Math.round(a.pc * 100))}%</b> of target.`
+      : ` — <b>${esc(Math.round(a.pc * 100))}%</b> of target with ${esc(Math.round(a.elapsed * 100))}% of the time gone, so you are <b>${esc(plural(Math.abs(Math.round(a.pace * 100)), 'point'))} ${a.pace >= 0 ? 'ahead' : 'behind'}</b>.`;
+    bits.push(money + pace);
+
+    /* The campaign that returned most per euro, and the one that returned
+       nothing for the most. Both are only visible once cost sits beside
+       outcome, which is the whole reason the breakdown was built. */
+    const paid = camps.filter((c) => c.total > 0);
+    const best = paid.filter((c) => c.arr).sort((x, y) => (y.arr / y.total) - (x.arr / x.total))[0];
+    const worst = paid.filter((c) => !c.arr && c.total > 200).sort((x, y) => y.total - x.total)[0];
+    if (best) bits.push(`<b>${esc(best.camp.name)}</b> cost ${esc(fmtMoney(best.total))} and returned <b>${esc(fmtMoney(best.arr))}</b>.`);
+    if (worst) bits.push(`<b>${esc(worst.camp.name)}</b> has cost ${esc(fmtMoney(worst.total))} across ${esc(plural(Math.round(worst.hours), 'hour'))} and closed nothing.`);
+
+    if (un.pc != null && un.pc < 0.5) {
+      bits.push(`Only <b>${esc(Math.round(un.pc * 100))}%</b> of what you pay for lands on a campaign at all.`);
+    }
+    return bits.join(' ');
+  }
+
   function ceoExec(p, now, was, pipe, when) {
     const a = attainment(now, pipe, p);
-    const priced = now.bySrc.filter((r) => r.meetings && !r.unpriced);
-    const cheapest = priced.slice().sort((x, y) => x.each - y.each)[0];
-    const topLine = now.byLine.filter((r) => r.arr && r.meetings)[0] || now.byLine.filter((r) => r.arr)[0];
-    const ladder = pipe.rungs.slice().sort((x, y) => y.p - x.p);
+    const camps = campaignCosts(p);
+    const un = unlogged(p, workingHeads());
+    const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
+    const spendTop = Math.max.apply(null, camps.map((c) => c.total).concat([1]));
 
-    /* ══ THE TRACK IS SCALED TO THE FURTHEST THING ON IT ═══════════════════
-
-       A bar whose track IS the target cannot draw a projection that beats
-       it — and this quarter's does, by 38%. Scaling to the widest of the
-       three and marking the target with a line instead means the bar reads
-       the same whether the company is at 40% or 140%, which is the only way
-       one component survives every state its own data can produce. */
     const scale = Math.max(a.target, a.forecast, a.booked) || 1;
     const pcOf = (v) => Math.max(0, Math.min(100, (v / scale) * 100));
     const bookedPc = pcOf(a.booked);
     const fcastPc = Math.max(0, pcOf(a.forecast) - bookedPc);
     const targetPc = pcOf(a.target);
     const pacePc = a.elapsed == null ? null : pcOf(a.target * a.elapsed);
-
     const ahead = a.pace != null && a.pace >= 0;
-    /* A window that has run out says different things: no forecast to make,
-       no pace to keep, and "so far" is simply "in total". */
     const done = a.elapsed != null && a.elapsed >= 1;
-    const paceSay = a.pace == null ? ''
-      : `${Math.abs(Math.round(a.pace * 100))} points ${ahead ? 'ahead of' : 'behind'} pace`;
+
+    /* ══ BOUNDED BY THE TAXONOMY, NOT BY THE POPULATION ═══════════════
+
+       This was one row per person, and it does not scale: six people
+       produced nine rows, four of them identical at "€10k · 12%", and a
+       company with forty BDRs would produce forty-three. The two figures
+       actually worth reading — €0.75 of sourcing, €2.97 of AiMY — sat at
+       the bottom under <1% each, buried by rows that say the same thing.
+
+       A CEO does not read per person. They read per ROLE, and roles are a
+       closed set: this list is three groups and four children whether the
+       company has six people or six hundred. The per-person detail still
+       exists where it is bounded and where it means something — inside each
+       campaign panel, against the work it was spent on.
+
+       The rule, stated once: a breakdown must be bounded by the taxonomy it
+       groups by, never by the number of things in it. */
+    const byRole = {};
+    un.people.forEach((r) => {
+      const g = byRole[r.fn] || (byRole[r.fn] = { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0 });
+      g.n += 1; g.cost += r.cost; g.hours += r.hours; g.on += r.onCamp.hours;
+    });
+    const roles = Object.values(byRole).sort((x, y) => y.cost - x.cost);
+    const aimyCost = camps.reduce((n, c) => n + c.aimy, 0);
+    const cost = [
+      { k: 'people', say: 'People', v: un.payroll,
+        sub: `${plural(un.people.length, 'person')} · ${Math.round(roles.reduce((n, r) => n + r.on, 0))} of ${Math.round(roles.reduce((n, r) => n + r.hours, 0))} hours logged against a campaign`,
+        rows: roles.map((r) => ({ say: `${FUNCTIONS[r.fn].label}${r.n > 1 ? 's' : ''}`,
+          note: `${r.n} at ${fmtMoney(r.rate)}/h`, v: r.cost })) },
+      { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
+        sub: 'every attempt, not only the ones that answered',
+        rows: [{ say: 'Finding companies', note: 'Apollo, ZoomInfo and the crawl', v: now.spend.src },
+          { say: 'Filling in details', note: 'phone, email, headcount, revenue', v: now.spend.enrich }] },
+      { k: 'aimy', say: 'AiMY', v: aimyCost, sub: 'its own touches, at compute cost', rows: [] },
+    ].filter((r) => r.v > 0);
+    const costTop = now.spend.total || 1;
 
     return `<section class="s-block s-block-wide s-exec" aria-label="The book">
       <header class="s-exec-top">
@@ -14967,27 +15258,29 @@
         ${periodChips()}
       </header>
 
-      ${/* ══ ONE THING TO READ, AND IT ANSWERS THE ONLY QUESTION ═══════════
+      <section class="slv" aria-label="What AiMY makes of it">
+        <div class="slv-head">
+          <svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          <h1 class="slv-title">Where the money went</h1>
+          <span class="slv-time">${esc(when)}</span>
+        </div>
+        <div class="slv-body">
+          <p class="slv-line">${execBrief(now, was, pipe, a, camps, un)}</p>
+        </div>
+      </section>
 
-            Every figure this page carried before was an absolute with
-            nothing to read it against — €201k booked, €51k spent, 3.95×
-            returned — and none of them answered "am I on track", which is
-            the only question the surface exists for. A target is the
-            yardstick that turns all of them into an answer. */ ''}
       <div class="s-att">
         <div class="s-att-head">
           <span class="s-att-lead">${esc(fmtMoney(a.booked))} <span class="s-att-of">of ${esc(fmtMoney(a.target))}</span></span>
           <span class="s-att-pc${a.pc >= 1 ? ' tone-ok' : ''}">${esc(Math.round(a.pc * 100))}% to target</span>
         </div>
-
         <div class="s-att-track" role="img"
-          aria-label="${esc(`${fmtMoney(a.booked)} booked of a ${fmtMoney(a.target)} target. AiMY projects ${fmtMoney(a.forecast)}. ${paceSay}.`)}">
+          aria-label="${esc(`${fmtMoney(a.booked)} signed of a ${fmtMoney(a.target)} target. AiMY expects ${fmtMoney(a.forecast)}.`)}">
           <span class="s-att-booked" style="width:${bookedPc.toFixed(1)}%"></span>
           <span class="s-att-fcast" style="width:${fcastPc.toFixed(1)}%"></span>
           <span class="s-att-target" style="left:${targetPc.toFixed(1)}%"></span>
           ${done || pacePc == null ? '' : `<span class="s-att-pace" style="left:${pacePc.toFixed(1)}%"></span>`}
         </div>
-
         <div class="s-att-keys">
           <span class="s-att-key is-booked">${done ? 'Signed' : 'Signed so far'}</span>
           ${done ? '' : `<span class="s-att-key is-fcast">${aiMark()}AiMY expects ${esc(fmtMoney(a.forecast))} by the end</span>`}
@@ -14997,75 +15290,308 @@
       </div>
 
       <div class="s-afs">
-        ${attFig('Left to sell', a.gap ? fmtMoney(a.gap) : 'Nothing',
-          a.gap ? (a.elapsed >= 1 ? 'the window is closed'
+        ${/* ══ THE FIRST TILE HAS TO POINT BACK AT THE HEADLINE ═══════════
+
+              This was "Gap to target", which named both numbers it sits
+              between. It became "Still to sell" in a pass aimed at plainer
+              words, and plainer is not the same as clearer: "still to sell"
+              is an action with no object, on the one tile whose whole job
+              is to say what is left of the figure directly above it.
+
+              A reader asked what it meant, which is the only test that
+              counts. `€201k of €300k` above, `Left to hit target €99k`
+              below — the same two numbers, named the same way twice. */ ''}
+        ${attFig('Left to hit target', a.gap ? fmtMoney(a.gap) : 'Nothing',
+          a.gap ? (done ? 'the window is closed'
             : `${plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day')} to do it`) : 'the target is already met',
           a.gap ? null : 'ok')}
-        ${attFig('Open deals vs the gap', a.coverage == null ? '—' : `${a.coverage.toFixed(1)}×`,
-          a.gap ? `${fmtMoney(pipe.weighted)} likely to close against a ${fmtMoney(a.gap)} gap`
-            : `${fmtMoney(pipe.weighted)} likely to close, and nothing left to cover`,
+        ${/* ══ A LABEL HAS TO SAY WHICH TWO NUMBERS ARE BEING DIVIDED ══════
+              "Open deals vs the gap · 3.5×" gives a ratio and never says of
+              what over what, so a reader can tell it is good and not why.
+              Naming both halves in the caption and repeating them in the
+              sentence underneath means the figure can be checked. */ ''}
+        ${/* And this one names the SAME thing the tile beside it does. It
+              said "the gap" while its neighbour said "still to sell" — two
+              words for one number, side by side. */ ''}
+        ${/* THE CAPTION CARRIES THE SUBJECT, THE VALUE CARRIES THE CLAIM,
+              THE LINE CARRIES THE TWO NUMBERS. Each said all three: the
+              caption explained itself, the value repeated the caption, and
+              the sentence restated the tile beside it. Three words, three
+              words, four words. */ ''}
+        ${/* ══ THE MONEY GOES IN THE VALUE, THE RATIO QUALIFIES IT ═════════
+
+              This read "3.5× what is left", and a ratio is a derived thing:
+              three of the four tiles here show an amount, so the eye
+              arrives expecting one and has to translate. Worse, "what is
+              left" is a phrase, not a figure — it points at the tile beside
+              it instead of standing on its own.
+
+              The amount leads and the ratio becomes what it actually is: a
+              judgement about that amount. €351k against €99k needed, which
+              happens to be 3.5 times over. */ ''}
+        ${/* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
+
+              "Likely to close · €351k" could be read three ways: the whole
+              open book, a date, or an expected value. It is the third — every
+              open deal at the rate its stage historically closes — and the
+              one thing that settles it is the number it came FROM.
+
+              €9.1M is the ceiling and it is nowhere else on this page, so
+              saying "of €9.1M open" both resolves the ambiguity and stops
+              the ceiling going unstated. A reader now sees a slice and its
+              whole in one line, which is what "expected" means. */ ''}
+        ${attFig('Expected from open deals', fmtMoney(pipe.weighted),
+          a.gap ? `of ${fmtMoney(pipe.all)} open${a.coverage == null ? '' : ` · ${a.coverage.toFixed(1)}× the ${fmtMoney(a.gap)} needed`}`
+            : `of ${fmtMoney(pipe.all)} open, and the target is already met`,
           a.coverage == null ? null : a.coverage >= 3 ? 'ok' : 'warn')}
-        ${/* The sub read "28 points ahead of pace" under a value reading
-              "+28 pts" — the same fact twice. It states the two numbers the
-              comparison is made FROM instead, which is the thing you cannot
-              work out from the headline. */ ''}
-        ${attFig('Ahead or behind', a.pace == null ? '—'
+        ${attFig('Selling faster than the clock', a.pace == null ? '—'
             : `${plural(Math.abs(Math.round(a.pace * 100)), 'point')} ${ahead ? 'ahead' : 'behind'}`,
-          a.elapsed == null ? 'the window has closed'
-            : `${Math.round(a.pc * 100)}% sold with ${Math.round(a.elapsed * 100)}% of the time used`,
+          done ? 'the window has closed'
+            : `${Math.round(a.pc * 100)}% of the target sold, ${Math.round(a.elapsed * 100)}% of the time used`,
           a.pace == null ? null : ahead ? 'ok' : 'warn')}
-        ${/* GUARDED ON `payback`, NOT ON `ros`. It tested `ros` and then
-              read `payback`, and last quarter closed nothing — so `ros` was
-              0 rather than null, the guard passed, and `payback.toFixed`
-              threw inside a render. The whole page went blank and the chip
-              that switched to it left the URL unchanged, which is why it
-              looked like a dead control rather than a crash. Test the value
-              you are about to read. */ ''}
-        ${attFig('Spent to get it', fmtMoney(now.spend.total),
+        ${/* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost
+              of winning one customer, and how long that customer takes to
+              earn it back — which is a different sentence from the one the
+              two words were doing. */ ''}
+        ${attFig('What it cost to get', fmtMoney(now.spend.total),
           now.payback == null ? 'nothing has closed against it yet'
-            : `€${now.ros.toFixed(2)} back for every €1 · paid off in ${now.payback.toFixed(1)} months`)}
+            : `€${now.ros.toFixed(2)} back for every €1 · ${now.payback.toFixed(1)} months to break even`)}
       </div>
 
-      ${/* ══ THE ONE PREDICTED FIGURE, AND WHERE IT COMES FROM ═════════════
-
-            An AI product that shows a probability owes you the derivation.
-            These rates are not written down anywhere — they are the close
-            rate at each rung of this book, recomputed whenever an outcome
-            changes, so the projection above can be checked rather than
-            trusted. Four wins is a thin sample and the line says so rather
-            than letting a smoothed rate pass as a measured one. */ ''}
-      <div class="s-odds">
-        <span class="s-odds-cap">${aiMark()}How likely each open deal is to close</span>
-        <div class="s-odds-rows">
-          ${ladder.map((r) => `<div class="s-odds-row">
-            <span class="s-odds-p">${esc((r.p * 100).toFixed(1))}%</span>
-            <span class="s-odds-say">${esc(r.say)}</span>
-            <span class="s-odds-n">${esc(plural(r.n, 'company'))} worth ${esc(fmtMoney(r.value))}</span>
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">What the money went on</div>
+          ${secAsk('Where could I spend less', `My people cost ${fmtMoney(un.payroll)} this window and only ${Math.round((un.pc || 0) * 100)}% of it is logged against a campaign. Show me where the money is going that is not producing anything.`)}
+        </div>
+        <div class="s-cost">
+          ${cost.map((g) => `<div class="s-cost-g">
+            <div class="s-cost-row">
+              <span class="s-cost-say">${esc(g.say)}<span class="s-cost-sub">${esc(g.sub)}</span></span>
+              <span class="s-cost-v">${esc(fmtMoney(g.v))}</span>
+              <span class="s-cost-pc">${esc(g.v / costTop >= 0.005 ? Math.round((g.v / costTop) * 100) + '%' : '<1%')}</span>
+            </div>
+            ${g.rows.length ? `<div class="s-cost-kids">
+              ${g.rows.map((r) => `<div class="s-cost-kid">
+                <span class="s-cost-say">${esc(r.say)} <span class="s-cost-note">${esc(r.note)}</span></span>
+                <span class="s-cost-v">${esc(fmtMoney(r.v))}</span>
+              </div>`).join('')}
+            </div>` : ''}
           </div>`).join('')}
         </div>
-        <p class="s-odds-note">These are the rates this business actually closes at, worked out from its own deals rather than taken from an average. ${now.wins.length ? `Only ${esc(plural(now.wins.length, 'deal'))} closed in this window` : 'Nothing closed in this window'}, so each rate is held close to a sensible starting figure instead of swinging on one lucky account.</p>
-      </div>
+        ${/* AiMY'S, AND IT LOOKS LIKE IT. This was a grey paragraph under a
+              list — the same words, with nothing saying whose reading they
+              are. Every other surface in this product puts a claim like
+              this in `.s-insight`, behind the mark, and a claim about
+              what 84% of the payroll is NOT doing is exactly the kind that
+              has to be attributable. */ ''}
+        ${un.pc == null ? '' : `<div class="s-insight">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          <span class="s-insight-txt">Only <b>${esc(Math.round(un.pc * 100))}%</b> of what you pay for is logged against a named campaign &mdash; <b>${esc(fmtMoney(un.logged))}</b> of <b>${esc(fmtMoney(un.payroll))}</b>. The rest is time nobody attributed to one, so it cannot be judged against what it produced.</span>
+        </div>`}
+      </section>
 
-      <div class="s-exec-facts">
-        ${topLine ? `<span><b>${esc(label('service', topLine.k))}</b> brought in ${esc(Math.round((topLine.arr / (now.arr || 1)) * 100))}% of everything signed</span>` : ''}
-        ${cheapest ? `<span><b>${esc(label('src', cheapest.k))}</b> gets a meeting for ${esc(fmtMoney(cheapest.each))}</span>` : ''}
-        <span><b>${esc(Math.round((pipe.tier.modelled / (pipe.all || 1)) * 100))}%</b> of open deals are valued off the price list, not off similar deals we have won</span>
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">Campaigns, by what they cost</div>
+          ${secAsk('Which campaign should I stop', `Rank my campaigns by what they have cost against what they have returned, and tell me which one I should stop and what I would lose by stopping it.`)}
+        </div>
+        <p class="s-exec-note">Every hour logged against the campaign at the rate of whoever spent it, plus AiMY's own touches and what the suppliers charged to find and fill the accounts in it.</p>
+        ${camps.length ? `<div class="s-pans">
+          ${camps.map((c, i) => `<div class="s-pan" style="--i:${i}">
+            <div class="s-pan-head">
+              <span class="s-pan-name">${esc(c.camp.name)}<span class="s-pan-state">${esc(CAMP_STATE[campState(c.camp)].label)}</span></span>
+              <span class="s-pan-total">${esc(fmtMoney(c.total))}</span>
+            </div>
+            <div class="s-pan-facts">
+              <span><b>${c.members}</b> ${c.members === 1 ? 'company' : 'companies'}</span>
+              <span><b>${Math.round(c.hours)}</b> ${Math.round(c.hours) === 1 ? 'hour' : 'hours'}</span>
+              <span><b>${c.met}</b> met</span>
+              <span class="${c.arr ? 'is-good' : ''}"><b>${esc(c.arr ? fmtMoney(c.arr) : 'nothing')}</b> signed</span>
+            </div>
+            ${c.crew.length || c.aimy || c.suppliers ? `<div class="s-pan-crew">
+              ${/* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
+
+                    Five names is a readable list and twenty is a wall. This
+                    panel has to survive a campaign with a whole BDR desk on
+                    it, so the crew collapses to one line — how many, how
+                    long, what it cost, and the blended rate that comes out
+                    of it — and opens to the names.
+
+                    AiMY and Suppliers stay outside it. They are one line
+                    each whatever the size of the team, so folding them
+                    would hide something that was never in the way.
+
+                    A DISCLOSURE IS NOT A DRILL. This page refuses every
+                    control that opens a record, and this opens nothing —
+                    it shows more of what is already here. `<details>` is
+                    the design system's own accordion and `s-trace` already
+                    uses it, so it is keyboard-operable and needs no state,
+                    no handler and no data attribute. Open at three people
+                    or fewer, because an accordion around two names costs
+                    more than it saves. */ ''}
+              ${c.crew.length ? `<details class="s-crew"${c.crew.length <= 3 ? ' open' : ''}>
+                <summary class="s-crew-sum">
+                  <span class="s-crew-who">
+                    <b>${esc(plural(c.crew.length, 'person'))}</b>
+                    <span class="s-pan-meta">${esc(c.hours.toFixed(1))} hours at ${esc(fmtMoney(c.hours ? c.people / c.hours : 0))} an hour on average</span>
+                  </span>
+                  <span class="s-pan-cost">${esc(fmtMoney(c.people))}</span>
+                </summary>
+                <div class="s-crew-list">
+              ${/* ══ A NAME AND ITS TERMS ARE TWO FACTS, NOT ONE STRING ═══════
+                    "Engy Saleh BDR · 7.9h at €55/h" ran a bold name into
+                    three muted fragments on one 13px line, and the eye had
+                    to parse where each ended. The name and what it cost are
+                    what a reader scans; the role, the hours and the rate are
+                    what they check afterwards. So the first pair sits on one
+                    line and the terms go underneath, which is the same split
+                    the spend breakdown above already uses. */ ''}
+              ${c.crew.map((m) => `<span class="s-pan-p">
+                <span class="s-pan-who">
+                  <b>${esc((REP[m.id] || {}).name || m.id)}</b>
+                  <span class="s-pan-meta">${esc(roleOf(REP[m.id]))} &middot; ${esc(m.hours.toFixed(1))} hours at ${esc(fmtMoney(m.rate))} an hour</span>
+                </span>
+                <span class="s-pan-cost">${esc(fmtMoney(m.cost))}</span>
+              </span>`).join('')}
+                </div>
+              </details>` : ''}
+              ${c.aimy ? `<span class="s-pan-p is-ai">
+                <span class="s-pan-who">
+                  <b>${aiMark()}AiMY</b>
+                  <span class="s-pan-meta">its own touches, at compute cost</span>
+                </span>
+                <span class="s-pan-cost">${esc(fmtMoney(c.aimy))}</span>
+              </span>` : ''}
+              ${c.suppliers ? `<span class="s-pan-p">
+                <span class="s-pan-who">
+                  <b>Suppliers</b>
+                  <span class="s-pan-meta">finding the companies and filling them in</span>
+                </span>
+                <span class="s-pan-cost">${esc(fmtMoney(c.suppliers))}</span>
+              </span>` : ''}
+            </div>` : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>'}
+          </div>`).join('')}
+        </div>` : '<p class="s-none">Nothing has cost anything in this window.</p>'}
+      </section>
+
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">What is working, and what is not</div>
+          ${secAsk('Why are these not landing', `Some of my product lines have taken meetings and closed nothing. Show me whether they are reaching the wrong people or losing the ones they reach.`)}
+        </div>
+        ${now.byLine.length ? `<div class="s-pans">
+          ${now.byLine.map((r, i) => {
+            const v = lineVerdict(r, bestArr);
+            return `<div class="s-pan" style="--i:${i}">
+              <div class="s-pan-head">
+                <span class="s-pan-name">${esc(label('service', r.k))}<span class="s-pan-state tone-${esc(v.tone)}">${esc(v.say)}</span></span>
+                <span class="s-pan-total${r.arr ? '' : ' is-none'}">${esc(r.arr ? fmtMoney(r.arr) : 'Nothing')}</span>
+              </div>
+              <div class="s-pan-facts">
+                <span><b>${r.meetings}</b> met</span>
+                <span><b>${esc(r.arr && r.meetings ? fmtMoney(r.arr / r.meetings) : '—')}</b> a meeting</span>
+                <span><b>${esc(fmtMoney(r.pipeline))}</b> still open</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : '<p class="s-none">Nothing has moved in any product this window.</p>'}
+      </section>
+
+      <div class="s-odds">
+        <span class="s-odds-cap">${aiMark()}How many close, by how far they have got</span>
+        <div class="s-odds-rows">
+          ${pipe.rungs.slice().sort((x, y) => y.p - x.p).map((r) => `<div class="s-odds-row">
+            <span class="s-odds-p">${esc((r.p * 100).toFixed(1))}%</span>
+            <span class="s-odds-say">${esc(r.say)}</span>
+            <span class="s-odds-n">${esc(plural(r.n, 'company'))} &middot; ${esc(fmtMoney(r.value))} open</span>
+          </div>`).join('')}
+        </div>
+        <p class="s-odds-note">From deals this business has actually closed, not an industry average. ${now.wins.length ? `Only ${esc(plural(now.wins.length, 'deal'))} closed in this window` : 'Nothing closed in this window'}, so each rate is smoothed &mdash; one account cannot swing it.</p>
       </div>
 
       ${askRow(execAsks(now, pipe))}
     </section>`;
   }
 
-  /* ══ THE SAME PAGE, COUNTING WHAT THEY BOUGHT ══════════════════════════
+  /* ══ THE CLIENT'S CAMPAIGNS, IN THEIR TERMS ════════════════════════════
 
-     A client has no revenue target with us — the CEO's question, "am I on
-     track", still applies, but the thing being tracked is delivery. So the
-     track runs against meetings promised rather than money committed, and
-     everything else on the page is the same component doing the same job:
-     what has landed, what AiMY still expects, where they should be today.
+     The same rollup the executive page does, with our economics taken out
+     of it. A client's campaign carries what they bought — companies worked,
+     meetings delivered, who answered, what closed — and none of what it
+     cost us to do: no hourly rate, no supplier line, no AiMY compute.
 
-     The one thing that never crosses: our costs. Their per-meeting figure
-     is their fee over their meetings, never ours over ours. */
+     The headline figure is MEETINGS, not money. On our page the number that
+     matters per campaign is what it cost; on theirs it is what arrived, and
+     putting a euro figure at the top of a client's campaign would be
+     putting our cost or their fee where the delivery goes.
+
+     Built for many even though the fixtures give each client one — a client
+     with four campaigns is an ordinary thing and a section that only works
+     at one is a section that breaks the first time it is true. */
+  function clientCampaigns(p) {
+    return filteredCampaigns().map((c) => {
+      const mem = maySee((c.members || []).map((id) => DB.accBy[id]).filter(Boolean)).filter((a) => !a.arch);
+      const met = mem.filter((a) => metIn(a, p));
+      const replied = mem.filter((a) => touchesFor(a).some((t) => t.dir === 'in' && inPeriod(t.at, p)));
+      const won = mem.filter((a) => { const at = wonAt(a); return at && inPeriod(at, p); });
+      const open = mem.filter((a) => !ENDINGS.includes(a.outcome));
+      return { camp: c, members: mem.length, met: met.length, replied: replied.length,
+        wins: won.length, arr: won.reduce((n, a) => n + acvOf(a).value, 0),
+        open: open.length, weighted: open.reduce((n, a) => n + acvOf(a).value * oddsOf(a).p, 0) };
+    }).filter((r) => r.members).sort((x, y) => y.met - x.met || y.members - x.members);
+  }
+
+  /* Which parts of their market are answering. `svc` is OUR product line and
+     means nothing to a customer; `industry` is theirs — it is who they asked
+     us to go after, so it is the cut that can change what they ask for next. */
+  function clientIndustries(scope, p) {
+    const by = {};
+    scope.forEach((a) => {
+      const k = a.industry || 'other';
+      const g = by[k] || (by[k] = { k, n: 0, met: 0, replied: 0, wins: 0, arr: 0, open: 0 });
+      g.n += 1;
+      if (metIn(a, p)) g.met += 1;
+      if (touchesFor(a).some((t) => t.dir === 'in' && inPeriod(t.at, p))) g.replied += 1;
+      const at = wonAt(a);
+      if (at && inPeriod(at, p)) { g.wins += 1; g.arr += acvOf(a).value; }
+      if (!ENDINGS.includes(a.outcome)) g.open += acvOf(a).value * oddsOf(a).p;
+    });
+    return Object.values(by).sort((x, y) => y.arr - x.arr || y.met - x.met);
+  }
+
+  /* A verdict a client can act on: ask us to push harder somewhere, or stop
+     paying for a segment that never answers. The thresholds are the ones
+     `lineVerdict` uses, read against reach rather than revenue — a customer
+     judges us on whether we got in the room. */
+  function clientVerdict(r) {
+    if (r.arr) return { say: 'landing', tone: 'ok' };
+    if (r.met) return { say: 'in the room', tone: 'ok' };
+    if (r.replied) return { say: 'talking', tone: 'warn' };
+    if (r.n >= 4) return { say: 'no answer yet', tone: 'err' };
+    return { say: 'early', tone: 'warn' };
+  }
+
+  /* The client's version of `execBrief`. Same job — state the conclusion
+     before the evidence — and every clause is about what they bought:
+     what was promised against what landed, where their list stands, and
+     the difference between what is open and what is expected. */
+  function clientBrief(cl, met, target, fee, pc, pace, p, pipe, scope) {
+    const bits = [];
+    const paid = `You paid <b>${esc(fmtMoney(fee))}</b> and we delivered <b>${esc(plural(met, 'meeting'))}</b> of the ${esc(String(target))} promised`;
+    bits.push(pace == null || p.elapsed == null
+      ? `${paid}.`
+      : `${paid} — <b>${esc(Math.round(pc * 100))}%</b>, with ${esc(Math.round(p.elapsed * 100))}% of the time gone, so we are <b>${esc(plural(Math.abs(Math.round(pace * 100)), 'point'))} ${pace >= 0 ? 'ahead' : 'behind'}</b>.`);
+
+    const top = pipe.rungs[0];
+    const cold = pipe.rungs.filter((r) => r.k === 'untouched')[0];
+    if (top) bits.push(`<b>${esc(plural(top.n, 'of your ' + scope.length + ' companies', 'of your ' + scope.length + ' companies'))}</b> ${esc(top.k === 'met' ? 'have had a meeting' : 'are at ' + top.say.toLowerCase())}${cold && cold !== top ? `, and <b>${esc(String(cold.n))}</b> have not been contacted yet` : ''}.`);
+
+    if (pipe.all) {
+      bits.push(`Of the <b>${esc(fmtMoney(pipe.all))}</b> still open, <b>${esc(fmtMoney(pipe.weighted))}</b> is realistically expected.`);
+    }
+    return bits.join(' ');
+  }
+
   function clientExec(w, p, now, was, pipe, when) {
     const cl = CLIENT_BY[w.client] || { fee: { monthly: 0, perMeeting: 0 }, promised: 0, name: w.client };
     const months = now.days / 30.44;
@@ -15093,6 +15619,21 @@
     const targetPc = pcOf(target);
     const pacePc = p.elapsed == null ? null : pcOf(target * p.elapsed);
 
+    /* `execBlock` has already bounded this before calling in, so it is the
+       same set `bookMoney` and `pipelineOf` were handed — recomputed here
+       rather than threaded through a seventh parameter. */
+    const scope = maySee(DB.acc).filter((a) => !a.arch);
+    const camps = clientCampaigns(p);
+    const lines = clientIndustries(scope, p);
+    /* THEIR FEE, SPLIT THE WAY THEIR CONTRACT SPLITS IT. The executive page
+       breaks OUR cost into people, suppliers and compute; the equivalent
+       here is the two things they are actually billed for. */
+    const feeRows = [
+      { say: 'Retainer', sub: `${fmtMoney(cl.fee.monthly)} a month for ${months.toFixed(1)} months`, v: cl.fee.monthly * months },
+      { say: 'Per meeting', sub: `${fmtMoney(cl.fee.perMeeting)} each for ${plural(met, 'meeting')}`, v: cl.fee.perMeeting * met },
+    ].filter((r) => r.v > 0);
+    const feeTop = fee || 1;
+
     return `<section class="s-block s-block-wide s-exec" aria-label="What we do for you">
       <header class="s-exec-top">
         <div>
@@ -15101,6 +15642,17 @@
         </div>
         ${periodChips()}
       </header>
+
+      <section class="slv" aria-label="What AiMY makes of it">
+        <div class="slv-head">
+          <svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          <h1 class="slv-title">How your engagement is going</h1>
+          <span class="slv-time">${esc(when)}</span>
+        </div>
+        <div class="slv-body">
+          <p class="slv-line">${clientBrief(cl, met, target, fee, pc, pace, p, pipe, scope)}</p>
+        </div>
+      </section>
 
       <div class="s-att">
         <div class="s-att-head">
@@ -15125,19 +15677,34 @@
       </div>
 
       <div class="s-afs">
-        ${attFig('Still to deliver', left ? plural(left, 'meeting') : 'None',
+        ${attFig('Left to hit the promise', left ? plural(left, 'meeting') : 'None',
           left ? (done ? 'the window has closed' : `${plural(Math.max(0, Math.round((1 - p.elapsed) * (p.span || 92))), 'day')} to go`)
             : 'the promise is already met',
           left ? null : 'ok')}
-        ${attFig('On time or late', pace == null ? '—'
+        ${attFig('Delivering faster than the clock', pace == null ? '—'
             : `${plural(Math.abs(Math.round(pace * 100)), 'point')} ${ahead ? 'ahead' : 'behind'}`,
           done ? 'the window has closed'
-            : `${Math.round((pc || 0) * 100)}% delivered with ${Math.round(p.elapsed * 100)}% of the time used`,
+            : `${Math.round((pc || 0) * 100)}% of the promise delivered, ${Math.round(p.elapsed * 100)}% of the time used`,
           pace == null ? null : ahead ? 'ok' : 'warn')}
         ${attFig('What you paid', fmtMoney(fee),
           met ? `${fmtMoney(fee / met)} a meeting` : `${fmtMoney(cl.fee.monthly)} a month plus ${fmtMoney(cl.fee.perMeeting)} a meeting`)}
+        ${/* ══ THE SAME DENOMINATOR FIX THE EXECUTIVE PAGE NEEDED ══════════
+
+              This tile said "€1M still open across 10 companies" to a
+              client with nothing closed — the raw ceiling, unqualified,
+              which reads as money on its way. It is the exact ambiguity the
+              CEO's own pipeline figure had, and it matters more here: a
+              customer reading €1M as revenue coming is a promise nobody
+              made them.
+
+              So the client gets the expected figure with its whole beside
+              it, the same way the CEO does. The per-stage rates BEHIND it
+              stay ours — the odds ladder is not on this page and the
+              boundary holds — but the number those rates produce is about
+              their own engagement, and withholding it while showing the
+              ceiling is the misleading half of the pair. */ ''}
         ${attFig('Deals signed', now.arr ? fmtMoney(now.arr) : 'None yet',
-          now.wins.length ? plural(now.wins.length, 'deal') : `${fmtMoney(pipe.all)} still open across ${plural(pipe.open, 'company')}`)}
+          `${now.wins.length ? `${plural(now.wins.length, 'deal')} · ` : ''}${fmtMoney(pipe.weighted)} expected from ${fmtMoney(pipe.all)} still open`)}
       </div>
 
       ${/* ══ WHAT A CLIENT DOES NOT GET, AND WHY ══════════════════════════
@@ -15156,11 +15723,112 @@
             under `Companies we contacted`, and the third is the sub-line
             under `Deals signed`. A summary of the four figures directly
             beneath the four figures. */ ''}
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">What your fee bought</div>
+          ${secAsk('Am I getting value', `I paid ${fmtMoney(fee)} this window for ${plural(met, 'meeting')}. Tell me honestly whether that is good value and what would make it better.`)}
+        </div>
+        <div class="s-cost">
+          ${feeRows.map((r) => `<div class="s-cost-g">
+            <div class="s-cost-row">
+              <span class="s-cost-say">${esc(r.say)}<span class="s-cost-sub">${esc(r.sub)}</span></span>
+              <span class="s-cost-v">${esc(fmtMoney(r.v))}</span>
+              <span class="s-cost-pc">${esc(r.v / feeTop >= 0.005 ? Math.round((r.v / feeTop) * 100) + '%' : '<1%')}</span>
+            </div>
+          </div>`).join('')}
+        </div>
+        <div class="s-insight">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          <span class="s-insight-txt">${met ? `That is <b>${esc(fmtMoney(fee / met))}</b> a meeting` : 'No meetings landed in this window'}${replied ? `, and <b>${esc(fmtMoney(fee / replied))}</b> for every company that wrote back` : ''}${contacted ? ` &mdash; across <b>${esc(plural(contacted, 'company'))}</b> we contacted for you.` : '.'}</span>
+        </div>
+      </section>
+
+      ${/* ══ THESE PANELS OPEN, AND THE CEO'S DO NOT ═══════════════════════
+
+            The executive page draws inert panels because an aggregate tier
+            reaches no record — the affordance matches what the surface can
+            actually do. A client is a RECORD tier: `filteredCampaigns`
+            returns their campaigns and `campPage` renders for them, so a
+            panel here that refused to open would be withholding a door the
+            product already has.
+
+            So the same component, as a `<button>` with `data-camp`, cursor,
+            hover and a focus ring. The rule was never "panels are inert" —
+            it was "the signals tell the truth", and here the truth is the
+            other way round. */ ''}
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">Your campaigns</div>
+          ${secAsk('Which is working best', `Compare my campaigns on companies reached, meetings delivered and what has closed, and tell me which is worth putting more behind.`)}
+        </div>
+        ${camps.length ? `<div class="s-pans">
+          ${camps.map((c, i) => `<button class="s-pan s-pan-go" type="button" data-camp="${esc(c.camp.k)}" style="--i:${i}">
+            <span class="s-pan-head">
+              <span class="s-pan-name">${esc(c.camp.name)}<span class="s-pan-state">${esc(CAMP_STATE[campState(c.camp)].label)}</span></span>
+              <span class="s-pan-total">${esc(String(c.met))}<span class="s-pan-unit">${esc(c.met === 1 ? 'meeting' : 'meetings')}</span></span>
+            </span>
+            <span class="s-pan-facts">
+              <span><b>${c.members}</b> ${c.members === 1 ? 'company' : 'companies'}</span>
+              <span><b>${c.replied}</b> replied</span>
+              <span class="${c.arr ? 'is-good' : ''}"><b>${esc(c.arr ? fmtMoney(c.arr) : 'nothing')}</b> signed</span>
+              <span><b>${esc(fmtMoney(c.weighted))}</b> expected</span>
+            </span>
+          </button>`).join('')}
+        </div>` : '<p class="s-none">Nothing is running for you in this window.</p>'}
+      </section>
+
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">Which parts of your market answer</div>
+          ${secAsk('Where should we push', `Show me which parts of my market are answering and which are not, and where you would put the next month of effort.`)}
+        </div>
+        ${lines.length ? `<div class="s-pans">
+          ${lines.map((r, i) => {
+            const v = clientVerdict(r);
+            return `<div class="s-pan" style="--i:${i}">
+              <div class="s-pan-head">
+                <span class="s-pan-name">${esc(label('industry', r.k))}<span class="s-pan-state tone-${esc(v.tone)}">${esc(v.say)}</span></span>
+                <span class="s-pan-total${r.arr ? '' : ' is-none'}">${esc(r.arr ? fmtMoney(r.arr) : 'Nothing')}</span>
+              </div>
+              <div class="s-pan-facts">
+                <span><b>${r.n}</b> ${r.n === 1 ? 'company' : 'companies'}</span>
+                <span><b>${r.met}</b> met</span>
+                <span><b>${r.replied}</b> replied</span>
+                <span><b>${esc(fmtMoney(r.open))}</b> expected</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : '<p class="s-none">Nothing has moved in your market this window.</p>'}
+      </section>
+
+      <section class="s-exec-sec">
+        <div class="s-sec-head">
+          <div class="s-exec-eyebrow">Where your companies stand</div>
+          ${secAsk('Who should we chase', `Some of my companies have not been contacted or have gone quiet. Tell me which ones to chase first and why.`)}
+        </div>
+        ${/* THE LADDER WITHOUT THE RATES. The executive page shows the close
+              rate at each rung; that is our conversion economics and stays
+              on our side of the boundary. WHERE their companies sit is
+              theirs, and it is what a customer most wants from a progress
+              report. */ ''}
+        <div class="s-cost">
+          ${pipe.rungs.map((r) => `<div class="s-cost-g">
+            <div class="s-cost-row">
+              <span class="s-cost-say">${esc(r.say)}</span>
+              <span class="s-cost-v">${esc(String(r.n))}</span>
+              <span class="s-cost-pc">${esc(fmtMoney(r.value))}</span>
+            </div>
+          </div>`).join('')}
+        </div>
+      </section>
+
       ${askRow([
         { label: 'Which companies went quiet',
           ask: `Some of the companies you are working for me have stopped replying. Show me which ones and what they have in common.` },
         { label: 'What is closest to closing',
           ask: `Of the ${pipe.open} companies still open, which are furthest along and what is holding each of them up?` },
+        { label: 'Why only part of it is expected',
+          ask: `${fmtMoney(pipe.all)} is open on my engagement but only ${fmtMoney(pipe.weighted)} is expected to close. Explain the difference and what would move it.` },
         { label: 'Will you hit the promise',
           ask: `You promised ${target} meetings this quarter and have delivered ${met}. Tell me honestly whether the rest will land, and what would have to change.` },
       ])}
@@ -15334,6 +16002,7 @@
   }
 
   function cbuildStart() {
+    if (!canRunCampaign()) return;
     if (!canWrite()) return;
     const won = maySee(DB.acc).filter((a) => a.outcome === 'won');
     const inds = [...new Set(won.map((a) => a.industry))].filter(Boolean);
@@ -15572,8 +16241,8 @@
        opener, and its reason says so. */
     const inds = [...new Set(won.map((a) => a.industry))];
     const opens = [
-      { k: 'newcamp', label: 'Build a campaign',
-        why: loose.length ? `${plural(loose.length, 'organization')} are in no campaign yet` : 'from anything you have picked' },
+      canRunCampaign() ? { k: 'newcamp', label: 'Build a campaign',
+        why: loose.length ? `${plural(loose.length, 'organization')} are in no campaign yet` : 'from anything you have picked' } : null,
       { k: 'findco', label: 'Find companies',
         why: won.length && inds.length
           ? `your ${won.length} wins all came from ${plural(inds.length, 'industry')}`
@@ -15584,7 +16253,7 @@
           : 'nobody is waiting on a call' },
       { k: 'fillgaps', label: 'Fill in the gaps',
         why: thin.length ? `${plural(thin.length, 'organization')} ${thin.length === 1 ? 'is' : 'are'} missing headcount or revenue` : 'everything has what it needs' },
-    ];
+    ].filter(Boolean);
 
     return `<div class="s-starts" role="group" aria-label="Ways to start">
       ${opens.map((o) => `<button class="s-start" type="button" data-start="${esc(o.k)}">
@@ -19217,7 +19886,7 @@
     if ((el = e.target.closest('[data-addstep]'))) { addStep(el.dataset.addstep); return; }
     if ((el = e.target.closest('[data-archive]'))) { archiveRec(el.dataset.archive); return; }
     if ((el = e.target.closest('[data-uncamp]'))) { const [i, k] = el.dataset.uncamp.split('|'); removeFromCampaign(i, k); return; }
-    if ((el = e.target.closest('[data-stop]'))) { stopCampaign(el.dataset.stop); return; }
+    if ((el = e.target.closest('[data-stop]'))) { if (canRunCampaign()) stopCampaign(el.dataset.stop); return; }
     if ((el = e.target.closest('[data-annotate]'))) { annotateTouch(el.dataset.annotate); return; }
     if ((el = e.target.closest('[data-edit]'))) { openEdit(el); return; }
     if ((el = e.target.closest('[data-fixtouch]'))) { correctTouch(el.dataset.fixtouch); return; }
@@ -19309,13 +19978,14 @@
     if ((el = e.target.closest('[data-ending]'))) { recordEnding(el.dataset.ending); return; }
     if ((el = e.target.closest('[data-dismiss]'))) { const [rid, fk] = el.dataset.dismiss.split('|'); dismissFlag(rid, fk); return; }
     if ((el = e.target.closest('[data-kbrev]'))) { askReview(el.dataset.kbrev); return; }
-    if (e.target.closest('[data-newlist]')) { createCampaign(selectedIds()); return; }
+    if (e.target.closest('[data-newlist]')) { if (canRunCampaign()) createCampaign(selectedIds()); return; }
     /* The standing entrance, from the rail — no selection behind it, because
        the point of it is that you do not have to have made one first. */
     /* The rail's New campaign has no selection behind it by definition — it
        is the standing control, pressable from anywhere — so it is always the
        conversation. Same rule as the opener, stated once at each door. */
     if (e.target.closest('[data-newcamp]')) {
+      if (!canRunCampaign()) return;
       if (selectedIds().length) createCampaign(selectedIds());
       else cbuildStart();
       return;
@@ -19859,6 +20529,7 @@
          answered that by making an empty campaign and leaving you to fill
          it. The conversation finds them as part of building it. */
       if (k === 'newcamp') {
+        if (!canRunCampaign()) return;
         if (selectedIds().length) createCampaign(selectedIds());
         else cbuildStart();
         return;
@@ -20943,6 +21614,10 @@
   }
 
   function createCampaign(seedIds, named, opts) {
+    /* The last door. Four controls reach this and each is gated, but a write
+       stopped only by nothing having drawn its button is stopped by a
+       render — the same guard every other writer in this file carries. */
+    if (!canRunCampaign()) return;
     const seeds = (seedIds || []).map(recBy).filter(Boolean);
     const accIds = toAccountIds(seeds);
     const seed = campaignSeed(accIds);
@@ -21642,6 +22317,9 @@
 
   /* `campState` read the window and nothing could end a campaign early. */
   function stopCampaign(key) {
+    /* The same guard the other end of the lifecycle carries. A write stopped
+       only by nothing having drawn its button is stopped by a render. */
+    if (!canRunCampaign()) return;
     const c = DB.campBy[key];
     if (!c) return;
     const left = c.members.filter((m) => { const a = DB.accBy[m]; return a && !a.outcome; }).length;

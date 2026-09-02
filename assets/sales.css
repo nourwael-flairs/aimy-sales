@@ -6279,14 +6279,17 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-af-val.tone-ok { color: var(--ok-text); }
 .s-af-val.tone-warn { color: var(--warn-text); }
-.s-af-sub { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); text-wrap: pretty; }
+.s-af-sub { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ── Where the projection comes from ── */
 .s-odds {
   padding: 20px; border-radius: var(--r-lg);
   background: rgba(var(--accent-rgb), 0.04);
   border: 1px solid rgba(var(--accent-rgb), 0.10);
-  margin-bottom: 24px;
+  /* IT WAS FLUSH AGAINST THE PANELS ABOVE IT — measured, zero pixels. Every
+     other group on this page is separated by `.s-exec-sec`'s 40px, and this
+     one is not a section, so it never got any. Same rhythm, stated once. */
+  margin: 40px 0 24px;
 }
 .s-odds-cap {
   display: inline-flex; align-items: center; gap: 8px;
@@ -6309,9 +6312,6 @@ body.is-figures .filter-tray { display: none; }
    preventing is one word alone on the last line. */
 .s-odds-note { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
 
-/* The three standing facts, as a sentence row rather than three more tiles. */
-.s-exec-facts { display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: var(--fs-xs); color: var(--d400); }
-.s-exec-facts b { color: var(--d100); font-weight: var(--fw-semibold); }
 
 @media (prefers-reduced-motion: no-preference) {
   .s-att-booked, .s-att-fcast { transform-origin: left; animation: s-att-wipe 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
@@ -6326,6 +6326,307 @@ body.is-figures .filter-tray { display: none; }
 @media (max-width: 526.98px) {
   .s-afs { grid-template-columns: 1fr; }
   .s-att-lead { font-size: var(--fs-2xl); }
+}
+
+/* ══ THE WORKINGS UNDER THE HEADLINE ═══════════════════════════════════
+   Four sections, each answering one of the questions a total cannot: what
+   the money went on, which campaign it went on, which product it bought,
+   and how sure the open half is. Divided by rules and space; no boxes. */
+.s-exec-sec { padding-top: 40px; }
+.s-exec-note {
+  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  max-width: 76ch; margin: 8px 0 20px; text-wrap: pretty;
+}
+.s-exec-note b { color: var(--d200); }
+
+
+/* ══ NOT A SECOND SEGMENTED BAR ═══════════════════════════════════════
+
+   The spend split was drawn as a horizontal bar with a colour legend under
+   it — which is the attainment track's exact shape, forty pixels away, and
+   the two mean nothing like the same thing. One is progress against a
+   target; this is four amounts that add up. A reader who has just learnt
+   what the first bar means arrives at the second and has to unlearn it.
+
+   Four amounts that add up is a list. Ranked, aligned on the figure, with
+   the share as a number rather than a width — and nothing else on this page
+   pretending to be the thing above it. */
+/* ══ TWO COLUMNS, AND A RULE BETWEEN THEM RATHER THAN A GAP ════════════
+
+   Capped at 68ch this list used half the page and left the other half
+   empty — a column of nine short lines down the left of a 1400px surface.
+   Two columns use the room, and three groups fall as People and AiMY on
+   the left, Suppliers on the right.
+
+   THE SEPARATOR IS A RULE, NOT SPACE. Space alone at this width reads as
+   one wide row with an odd gap in the middle — the eye keeps trying to
+   pair "People €74k" with "Suppliers €90.77" across it. A hairline says
+   these are two lists, which is what they are. Padding sits on both sides
+   of it so neither column's figures crowd the line. */
+.s-cost {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0; row-gap: 32px; margin-top: 12px;
+}
+.s-cost-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline; gap: 16px;
+  padding: 8px 0; border-top: 1px solid var(--card-border);
+}
+.s-cost-row:first-child { border-top: 0; }
+/* AT THE BODY STEP, NOT THE CAPTION STEP. This whole section answers
+   "what did I spend it on", which is one of the four questions the page
+   exists for — and it was set two steps below the panels underneath it,
+   so the most consequential list on the surface read as a footnote. */
+.s-cost-say { font-size: var(--fs-md); color: var(--d100); min-width: 0; }
+/* What the row is, under what it is called. The sub-line is where a person
+   row says how much of what they cost landed on named work — the one thing
+   the figure beside it cannot say on its own. */
+/* ══ THESE LINES CARRY THE FINDING, NOT DECORATION ═════════════════════
+
+   Every sub-line here sat at `--d400`, the step this file uses for text you
+   are not expected to read — and the most consequential fact in the section
+   is one of them: "98 of 1135 hours logged against a campaign". The figure
+   beside it means nothing without it.
+
+   `--d400` is for a caption repeating what is already visible. A line that
+   says something new belongs a step up, and so do the qualifiers after each
+   name: "4 at EUR55/h" is the rate, which is data. */
+.s-cost-sub { display: block; font-size: var(--fs-xs); color: var(--d300); margin-top: 4px; }
+.s-cost-v {
+  font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  text-align: right; min-width: 96px;
+}
+.s-cost-pc {
+  font-size: var(--fs-sm); color: var(--d300);
+  font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
+}
+/* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
+   and one step down, so a reader can stop at three lines or read nine — the
+   thing a flat list of nine equal rows never let them do. */
+.s-cost-g { padding: 0; }
+.s-cost-g:nth-child(odd)  { padding-right: 40px; }
+/* `--card-border` is 7% white — right for a hairline UNDER something, and
+   invisible as a rule BETWEEN two columns, which is the one job this line
+   has. At `--card-border-hover` it reads without becoming a divider that
+   competes with the figures either side of it. */
+.s-cost-g:nth-child(even) { padding-left: 40px; border-left: 1px solid var(--card-border-hover); }
+.s-cost-g .s-cost-row { border-top: 0; padding: 0; }
+.s-cost-kids { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 0 16px; }
+.s-cost-kid {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 16px;
+}
+.s-cost-kid .s-cost-say { font-size: var(--fs-xs); color: var(--d200); }
+.s-cost-kid .s-cost-v { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); min-width: 72px; }
+.s-cost-note { color: var(--d300); }
+
+/* One question per section, beside the heading it belongs to. A single row
+   of three at the foot of the page could only ever be about the page; these
+   are about the thing directly above them. */
+.s-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.s-sec-ask {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--fs-xs); color: var(--d300);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  border-radius: var(--r-pill); padding: 4px 12px;
+  cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.s-sec-ask:hover { background: rgba(var(--accent-rgb), 0.14); border-color: rgba(var(--accent-rgb), 0.3); }
+.s-sec-ask:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-sec-ask svg { color: var(--ai-text); flex-shrink: 0; }
+
+/* ══ A PANEL IS NOT A CARD, AND THE DIFFERENCE IS AFFORDANCE ═══════════
+
+   These were divided rows with a proportion bar, and rows are the wrong
+   shape for the content: a campaign here carries a name, a state, a total,
+   four counts and a crew list at individual rates. That is a record, and a
+   record wants a container.
+
+   THE OBJECTION IS RIGHT, AND IT IS ABOUT SIGNALS, NOT SHAPE. A container
+   that reads as clickable on a page where nothing opens is the same defect
+   as a disabled button on a read-only tier — an affordance that promises
+   something the surface cannot do. But containment is not what promises it.
+   This product already draws the line, and draws it with INTERACTION:
+
+     · `.s-door` and `.s-camp-row` are clickable. Both carry
+       `cursor: pointer`, a `:hover` that changes background or border, and
+       a `:focus-visible` ring — and both are `<button>` elements.
+     · `.s-metric` is a panel. Filled, bordered, and none of those three.
+
+   So these follow `.s-metric`: a fill to group, no hover, no pointer, no
+   focus ring, and a `<div>` rather than a `<button>` — which means they are
+   not in the tab order either. A keyboard user is already told the truth;
+   the visual now says the same thing.
+
+   NO BORDER, ONLY A FILL. `--card-bg` plus `--card-border` is this
+   product's card. The fill alone reads as a region of a page, which is
+   what these are, and it is the one signal that separates them from the
+   eight bordered things elsewhere on the surface that DO open.
+
+   The proportion bar went with the rows. Ordering by cost is the
+   comparison — the dearest campaign is first and its total is the largest
+   number in its panel, which is the same fact a bar was drawing twice. */
+.s-pans {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* MORE SPACE BETWEEN TWO PANELS THAN INSIDE EITHER, or the pair reads as
+     one surface and the grid loses its rows. `css-audit` measures exactly
+     this — 12px against 20px of padding was under the floor and it said so
+     before anybody looked at the page. */
+  gap: 24px; margin-top: 16px;
+}
+.s-pan {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--card-bg); border-radius: var(--r-lg); padding: 20px;
+}
+.s-pan-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.s-pan-name { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
+.s-pan-state {
+  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--d400); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
+}
+/* A product line's state is a VERDICT, so it carries a tone the campaign's
+   never needs — running and finished are facts, "not landing" is a call. */
+.s-pan-state.tone-ok   { color: var(--ok-text); }
+.s-pan-state.tone-warn { color: var(--warn-text); }
+.s-pan-state.tone-err  { color: var(--err-text); }
+.s-pan-total {
+  font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* ══ THE ONE PANEL THAT DOES OPEN ══════════════════════════════════════
+
+   Every panel on the executive page is inert because an aggregate tier
+   reaches no record. A CLIENT reaches theirs — `filteredCampaigns` returns
+   their campaigns and `campPage` renders for them — so a panel that refused
+   to open would withhold a door the product already has.
+
+   The rule was never "panels are inert". It was "the signals tell the
+   truth", and here the truth is the other way round: a `<button>`, a
+   pointer, a hover and a focus ring, exactly the three marks `.s-door` and
+   `.s-camp-row` carry. Everything else about it is the same component. */
+.s-pan-go {
+  text-align: left; width: 100%; font-family: inherit; border: 0;
+  cursor: pointer; transition: background-color var(--t-fast);
+}
+.s-pan-go:hover { background: var(--card-bg-raised); }
+.s-pan-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-pan-go .s-pan-head, .s-pan-go .s-pan-facts { display: flex; }
+/* The unit under the count, so "6" reads as six of something without the
+   word competing with the figure for the same line. */
+.s-pan-unit {
+  display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--d300); text-transform: uppercase; letter-spacing: 0.1em;
+  text-align: right; margin-top: 4px;
+}
+
+.s-pan-facts {
+  display: flex; flex-wrap: wrap; gap: 4px 20px;
+  font-size: var(--fs-xs); color: var(--d300); margin-top: 16px;
+}
+.s-pan-facts b { color: var(--d100); font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
+.s-pan-facts .is-good b { color: var(--ok-text); }
+/* The crew, at the rate each of them costs. One per line inside the panel:
+   wrapping them into a paragraph made five people read as one sentence,
+   and the whole point is that they are five separate costs. */
+/* Twelve, not eight. Each row is two lines now, and at 8px the gap between
+   two people was smaller than the gap between a person and their own terms
+   — so five crew read as ten unrelated lines. */
+.s-pan-crew {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
+}
+.s-pan-p {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+}
+.s-pan-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-pan-who b { color: var(--d50); font-weight: var(--fw-semibold); }
+.s-pan-meta { color: var(--d300); }
+
+/* ══ THE CREW FOLDS, AND THE MARKER SAYS WHICH WAY ═════════════════════
+   Native `<details>`, the same component the design system ships and the
+   call trace already uses — keyboard-operable with no state to hold and
+   no handler to wire. The default marker is replaced by a chevron that
+   rotates, because the default sits outside the flex row and breaks the
+   name-and-cost alignment every other line here keeps. */
+.s-crew { margin: 0; }
+.s-crew-sum {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  list-style: none; cursor: pointer; padding: 0;
+  font-size: var(--fs-xs); font-variant-numeric: tabular-nums;
+  transition: color var(--t-fast);
+}
+.s-crew-sum::-webkit-details-marker { display: none; }
+/* `<summary>` is `display: list-item` by default, and a `display: flex` on
+   it is ignored in some engines unless the marker is removed first — which
+   is why the cost was landing inline after the text instead of at the far
+   edge with every other figure in the panel. */
+.s-crew-sum::marker { content: ""; }
+.s-crew-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.s-crew-who b { color: var(--d50); font-weight: var(--fw-semibold); }
+/* The chevron leads the summary, so the affordance is at the start of the
+   line a reader's eye lands on rather than at the far end of it. */
+.s-crew-who b::before {
+  content: ""; display: inline-block; width: 0; height: 0; margin-right: 8px;
+  border-left: 4px solid currentColor;
+  border-top: 3px solid transparent; border-bottom: 3px solid transparent;
+  transition: transform var(--t-fast); transform-origin: 25% 50%;
+  vertical-align: 1px;
+}
+.s-crew[open] .s-crew-who b::before { transform: rotate(90deg); }
+.s-crew-sum:hover .s-crew-who b { color: var(--accent); }
+.s-crew-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: var(--r-sm); }
+/* ══ THE NAMES BELONG TO THE ROW ABOVE THEM ════════════════════════════
+
+   A rule across the top said "new section" — the opposite of what an
+   accordion means. Opening one is not moving to the next thing, it is
+   looking inside the thing you are already on, and a horizontal separator
+   is the one mark that denies that.
+
+   Indentation and a vertical rule say it instead: the names sit inboard of
+   their summary and the line runs down beside them, which is the same
+   shape the design system's own tree view uses for the same relationship.
+   `AiMY` and `Suppliers` stay at the outer margin, so the fold reads as
+   one of three items rather than as a container round all of them. */
+.s-crew-list {
+  display: flex; flex-direction: column; gap: 12px;
+  margin: 12px 0 0 4px; padding-left: 20px;
+  border-left: 1px solid var(--card-border-hover);
+}
+.s-pan-p.is-ai .s-pan-who b { color: var(--ai-text); }
+.s-pan-p svg { color: var(--ai-text); vertical-align: -1px; margin-right: 4px; }
+.s-pan-cost { color: var(--d100); white-space: nowrap; }
+.s-pan-none {
+  font-size: var(--fs-xs); color: var(--d400);
+  margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);
+}
+
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); margin-left: 12px;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d400);
+}
+  font-size: var(--fs-sm); color: var(--d100); white-space: nowrap;
+  font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold);
+}
+
+/* The AiMY paragraph is the widest thing on this page and the only prose. */
+.s-exec .slv { margin-bottom: 32px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .s-exec .s-pan {
+    animation: s-exec-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+}
+
+@media (max-width: 1002.98px) {
+  .s-pans { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .s-pan-head { flex-direction: column; gap: 4px; }
+  .s-pan-total { font-size: var(--fs-lg); }
 }
 
 /* ══ THE DOOR, NOT THE NARRATOR ═══════════════════════════════════════
@@ -6582,3 +6883,28 @@ body.is-figures .filter-tray { display: none; }
 /* Direction is the same segmented control the channel uses, so the two rows
    read as one question asked twice rather than as two kinds of control. */
 .s-dir-pick { display: inline-flex; }
+
+/* The reading under the breakdown, at the width of the list it reads. */
+/* ══ THE BLOCK IS FULL WIDTH, THE LINE INSIDE IT IS NOT ════════════════
+
+   Capped at 76ch the callout sat under the left column of a two-column
+   grid and read as belonging to it — as if only "People" had a note. It is
+   about the whole breakdown, so it spans the whole breakdown.
+
+   AND SO DOES THE LINE. The measure rule this file holds to elsewhere —
+   60 to 75 characters — is about long-form text, where the eye has to find
+   the start of the next line over and over. This is two lines. Capping it
+   left a short callout hugging the left third of a full-width block, which
+   read as unfinished rather than as considered, and the cost of a longer
+   measure over two lines is close to nothing. */
+.s-exec .s-insight { margin-top: 32px; }
+
+/* Below the split the two columns would each be too narrow for a figure
+   and its caption on one line, so they stack — and the rule that separated
+   them becomes a rule between them. */
+@media (max-width: 1002.98px) {
+  .s-cost { grid-template-columns: 1fr; row-gap: 0; }
+  .s-cost-g { border-top: 1px solid var(--card-border); padding: 16px 0; }
+  .s-cost-g:nth-child(odd), .s-cost-g:nth-child(even) { padding-left: 0; padding-right: 0; border-left: 0; }
+  .s-cost-g:first-child { border-top: 0; padding-top: 0; }
+}
