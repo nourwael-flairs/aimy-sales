@@ -12514,7 +12514,21 @@
 
             The header's lifecycle move still asks before it, because a
             campaign that cannot run yet has nothing more urgent. */ ''}
-      ${campInsight(l, { onPage: true, said })}
+      ${/* ══ NOT WHILE IT IS STILL BEING MADE ═════════════════════════════
+            A campaign created empty and landed on gets "0 found for it yet —
+            it is written down and nobody is on it", which is a reading with
+            nothing to read: both halves are true of every campaign at the
+            moment it exists, and neither followed from anything the reader
+            did. It is the same defect as `0 of the 5 need something doing,
+            for 0 different reasons` — a block built to accumulate, drawn
+            over an empty set.
+
+            AiMY reads the GOAL. Until there is one, or somebody is on it,
+            there is nothing for it to have read — and the drawn flow agrees:
+            its suggestion comes after "add campaign details", not before.
+            The page still says what to do next, because every row on it
+            carries its own control. */ ''}
+      ${l.goal || (l.members || []).length ? campInsight(l, { onPage: true, said }) : ''}
       ${canWrite() ? '' : raiseRow(l.k, l.name)}
 
       ${/* Identity under the recommendation and above the flow: it is true
@@ -12532,8 +12546,21 @@
             is in the way is what is happening, what to offer better is what
             to do about it, and a suggestion above its own evidence is a
             suggestion nobody can check. */ ''}
-      ${campInWay(l)}
-      ${campOffer(l)}
+      ${/* ══ AND NEITHER OF THESE, WHILE NOBODY IS ON IT ══════════════════
+            `campInWay` argues, correctly, that a section which vanishes when
+            it is clean is one you cannot trust to have looked — so it states
+            what it found. That is the right rule for a campaign being
+            WORKED and the wrong one for a campaign four seconds old:
+            "Nobody is on it yet, so nothing can be in the way" is not
+            reassurance, it is the empty set described at length. `campOffer`
+            is worse, because it is an AiMY block whose whole content on a
+            blank campaign is that AiMY has nothing to say.
+
+            Both read the members. A campaign nobody is on has no obstacles
+            and no objections because it has no subject, and the section that
+            fixes that — Find, below — is the one that still draws. */ ''}
+      ${(l.members || []).length ? campInWay(l) : ''}
+      ${(l.members || []).length ? campOffer(l) : ''}
 
       ${campFlow(l)}
       </div>
@@ -26758,7 +26785,7 @@
       city:   { label: 'city' },
       domain: { label: 'domain' },
       emp:    { label: 'headcount', num: true },
-      rev:    { label: 'revenue', num: true },
+      rev:    { label: 'revenue', num: true, none: 'add the revenue' },
     },
     con: {
       name:  { label: 'name' },
@@ -26768,12 +26795,17 @@
     },
     camp: {
       name:        { label: 'name' },
-      goal:        { label: 'what it is for', long: true },
+      /* ══ THE EMPTY STATE IS NOT ALWAYS "ADD A " + LABEL ═══════════════
+         It was, and on the three labels that are not bare nouns it produced
+         "add a what it is for", "add a criteria" and "add a revenue". The
+         label names the field for the tooltip; `none` is what the gap
+         itself should say, and only the fields that need it carry one. */
+      goal:        { label: 'what it is for', long: true, none: 'say what it is for' },
       description: { label: 'description', long: true },
     },
     src: {
       name: { label: 'name' },
-      crit: { label: 'criteria', long: true },
+      crit: { label: 'criteria', long: true, none: 'add the criteria' },
     },
     /* What we are going to say, corrected where it sits. AiMY writes the
        first version and you fix it in the same place you read it — the
@@ -26808,7 +26840,7 @@
     if (!spec || !canWrite()) return esc(text);
     const key = (o.id || o.k) + '|' + field;
     return `<button class="s-edit" type="button" data-edit="${esc(key)}"
-      title="Change the ${esc(spec.label)}">${text ? esc(text) : `<span class="s-edit-none">add a ${esc(spec.label)}</span>`}<svg class="s-edit-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
+      title="Change the ${esc(spec.label)}">${text ? esc(text) : `<span class="s-edit-none">${esc(spec.none || `add a ${spec.label}`)}</span>`}<svg class="s-edit-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
   }
 
   /* Swap the button for an input, in place and WITHOUT repainting. A repaint
