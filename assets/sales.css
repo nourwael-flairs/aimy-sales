@@ -1808,9 +1808,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-tab-more { margin-top: 16px; }
 
 /* The one thing you can make from this surface, on the one tab it belongs
-   to. A row of its own rather than an end-stop on the strip, so it keeps its
-   position whichever tab is open — it simply is not drawn on the other two. */
-.s-mklist { margin-bottom: 16px; }
+   to — and on the reading's own line rather than a row of its own. The
+   reading is capped at 76ch and leaves the right of a wide page empty; a
+   second row would have bought nothing but 40px of height.
+
+   Its `margin-bottom` matters only when the reading is absent (a book with
+   one list, or none), where the button is the flex line's only item and has
+   to hold the same 24px the reading would have held. Beside a reading it is
+   inert — `align-items: flex-start` and the taller item decide the row. */
+.s-lists-top { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.s-mklist { margin-left: auto; flex-shrink: 0; margin-bottom: 24px; }
 
 /* ═══════════════════════════════════════════════
    THE RESULT LINE — what came back, directly above it

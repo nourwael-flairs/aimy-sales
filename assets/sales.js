@@ -15853,12 +15853,17 @@
             than a door that is findable without it.
 
             It is also the only way in when there are no lists at all: the
-            empty state below said "Nothing here" and offered nothing. */ ''}
-      ${open === 'lists' && canWrite() ? `<div class="s-mklist">
-        <button class="btn btn-ghost btn-sm" type="button" data-findco>Build a list</button>
-      </div>` : ''}
+            empty state below said "Nothing here" and offered nothing.
 
-      ${reading}
+            IT SHARES THE READING'S ROW. `.s-findings` is capped at 76ch and
+            leaves the right third of a wide page empty, so a row of its own
+            would have cost 40px of vertical space to say one short thing in
+            a band that was already blank. End of the reading's line, not
+            under it. */ ''}
+      ${open === 'lists' ? `<div class="s-lists-top">
+        ${reading}
+        ${canWrite() ? `<button class="btn btn-ghost btn-sm s-mklist" type="button" data-findco>Build a list</button>` : ''}
+      </div>` : reading}
       ${cuts.length && !reading ? `<div class="s-tabcuts" role="group" aria-label="Narrow these">
         ${cuts.map((c) => `<button class="chip${c.k === (cut && cut.k) ? ' active' : ' default'}" type="button" data-cut="${esc(c.k)}">${esc(c.label)} <span class="s-cut-n">${c.n}</span></button>`).join('')}
         ${cut ? `<button class="s-inline-btn" type="button" data-cut="">Show all ${pool.length}</button>` : ''}
