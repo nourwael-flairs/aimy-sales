@@ -23765,29 +23765,12 @@
     if (e.target.closest('[data-call-hold]')) { if (DB.call) { DB.call.held = !DB.call.held; paintCall(); } return; }
     if (e.target.closest('[data-call-end]')) { endCall(); return; }
 
-    /* Dropping a returned row, and putting it back. A toggle rather than a
-       removal for the same reason a rejected criterion greys out instead of
-       vanishing: you are refining, and a refinement you cannot reverse
-       without re-running the whole search is one people will not make. */
-    if ((el = e.target.closest('[data-finddrop]'))) {
-      const k = el.dataset.finddrop;
-      if (FIND_DROP.has(k)) FIND_DROP.delete(k); else FIND_DROP.add(k);
-      paintFind();
-      return;
-    }
-    if ((el = e.target.closest('[data-crit]'))) {
-      const c = FIND_CRIT.filter((x) => x.k === el.dataset.crit)[0];
-      if (!c) return;
-      /* Yours came off the sentence you typed, so taking it off takes it
-         away rather than greying it out. AiMY's stay, switched off, because
-         a reading you rejected is worth being able to put back. */
-      if (c.own && c.on) FIND_CRIT = FIND_CRIT.filter((x) => x !== c);
-      else c.on = !c.on;
-      findSetPool();
-      if (workRun) settleWork(workRun.id, 'Criteria changed.');
-      paintFind();
-      return;
-    }
+    /* `[data-finddrop]` and `[data-crit]` went with the panel that drew
+       them. Both still referenced `FIND_DROP`, `FIND_CRIT`, `findSetPool`
+       and `paintFind` — four names the old flow took with it — so either one
+       firing would have thrown. Nothing draws them, so nothing could; that is
+       not a reason to keep the trap loaded. The chips on the builder use
+       `[data-bterm]`, which reads the draft. */
     if ((el = e.target.closest('[data-bstep]'))) {
       go({ bstep: el.dataset.bstep });
       return;
@@ -24027,16 +24010,10 @@
     }
     if (e.key !== 'Enter' || e.shiftKey) return;
     if (e.target.id === 'floatInput') { e.preventDefault(); submitFloat(); }
-    /* Type a criterion, press Enter. Reaching for a button after typing is
-       the sort of thing you only forgive once. */
-    if (e.target.classList.contains('s-find-new')) {
-      e.preventDefault();
-      const said = e.target.value.trim();
-      if (!said) return;
-      FIND_CRIT.push({ k: 'own' + FIND_CRIT.length, label: said, own: true, on: true });
-      findSetPool(); paintFind();
-    }
-    if (e.target.classList.contains('s-find-said')) { e.preventDefault(); findReread(e.target.value.trim()); }
+    /* The old panel's two Enter bindings went with it — `.s-find-new` and
+       `.s-find-said` are classes nothing renders, and both bodies called into
+       `FIND_CRIT`, `findSetPool`, `paintFind` and `findReread`, all deleted.
+       The builder's sentence needs no binding: it reads as you type. */
   });
   /* Capture, because focusout does not bubble the way focus events are
      usually listened for and an input that is removed mid-blur never
