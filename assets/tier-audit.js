@@ -237,6 +237,16 @@ const WRITE_KEYS = [
   'unsell', 'audadd', 'addstep', 'plan', 'stop', 'merge', 'reportto',
   'newcamp', 'newlist', 'addsel', 'taskgo', 'taskpause', 'taskstop',
   'taskundo', 'writeall', 'callend', 'callrec', 'callmute', 'callhold',
+  /* The list builder's generate. `buildCommit` opens with the same
+     `canWrite()` guard every other writer takes. */
+  /* `bsave` and `bdiscard` are kept even though the preview stage is gone,
+     on the same rule as `kbfix` above — a removed write is exactly the one
+     a later edit might reintroduce without its guard. `listkeep` blesses a
+     draft; `listdrop` removes it and every record its search brought in. */
+  'bgo', 'fillnow', 'bsave', 'bdiscard', 'listkeep', 'listdrop', 'listadd',
+  /* `campaddlist` puts lists into a campaign; `persona` writes who it is
+     aimed at. Both change the record, so both are declared. */
+  'campaddlist', 'persona',
 ];
 
 function checkReadOnly() {

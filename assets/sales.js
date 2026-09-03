@@ -2670,6 +2670,18 @@
       does: 'What gets sent, in what order, and who is next.' },
     { k: 'measure', n: 4, label: 'Measure', verb: 'Measuring', fn: 'sales-manager', scope: 'member',
       does: 'What came back.' },
+    /* ══ AND WHAT IT COST ═════════════════════════════════════════════════
+       The fifth node, and the only one not everybody sees. `campaignCost`
+       has computed this per campaign since v6 and the executive page was
+       the only surface that read it — so a sales manager could see every
+       meeting a campaign booked and never what it cost to book them, which
+       is the one question they answer for.
+
+       `money`, not `financials`, as the key: `?stage=` values are typed by
+       people and read in three places, and the short one is the one that
+       does not get mistyped. */
+    { k: 'money', n: 5, label: 'Financials', verb: 'Counting', fn: 'sales-manager', scope: 'camp',
+      does: 'What it cost, and what came back.' },
   ];
   const STAGE_BY = Object.create(null);
   CAMP_STAGE.forEach((s) => (STAGE_BY[s.k] = s));
@@ -2951,6 +2963,23 @@
       const sent = evs.filter((e) => e.kind === 'sent').length;
       const back = evs.filter((e) => e.kind === 'replied').length;
       return sent ? { fig: `${Math.round((back / sent) * 100)}%`, unit: 'back' } : { fig: 'None', unit: 'sent yet', state: true };
+    }
+    /* ══ WHAT IT COST, AND NEVER A RETURN ═════════════════════════════
+       The first cut of this divided ARR by spend and put `114× back` on
+       the node. `campaignCost.total` is ATTRIBUTABLE cost — hours logged
+       against this campaign, AiMY's own touches, and what its leads cost to
+       source — and it carries none of the payroll `bookMoney` loads for the
+       book. Dividing a whole deal by a part of a cost produces a number
+       shaped like ROI that is wrong by whatever fraction of the salary bill
+       nobody logged, and 114 was that fraction showing.
+
+       The exec page has always put the two side by side and never divided
+       them. So does this. Always the spend, so the node is comparable
+       between campaigns rather than flipping subject when one closes. */
+    if (k === 'money') {
+      const m = campaignCost(c, campPeriod(c));
+      return m.total ? { fig: fmtMoney(m.total), unit: 'spent' }
+        : { fig: 'Nothing', unit: 'spent yet', state: true };
     }
     return n ? { fig: String(n), unit: 'waiting' } : { fig: 'Clear', unit: '', state: true };
   }
@@ -5316,6 +5345,10 @@
        suggestions. Reading the sector now selects the pool. */
   const NET_POOL = {
     health: [
+      ['Amsterdam UMC', 'amsterdamumc.nl', 'Amsterdam', 16000, 2018],
+      ['Radboudumc', 'radboudumc.nl', 'Nijmegen', 11000, 1956],
+      ['Isala', 'isala.nl', 'Zwolle', 6500, 1998],
+      ['Nutricia', 'nutricia.nl', 'Utrecht', 2000, 1896],
       ['Vitestro', 'vitestro.com', 'Utrecht', 140, 2017],
       ['Castor EDC', 'castoredc.com', 'Amsterdam', 320, 2016],
       ['Nedap Healthcare', 'nedap.com', 'Groenlo', 850, 1929],
@@ -5326,6 +5359,9 @@
       ['Ksyos', 'ksyos.nl', 'Amstelveen', 400, 2005],
     ],
     hospitality: [
+      ['Vermaat Groep', 'vermaat.nl', 'Zeist', 5500, 1978],
+      ['Center Parcs Nederland', 'centerparcs.nl', 'Rotterdam', 3200, 1968],
+      ['Swinkels Family Brewers', 'swinkelsfamilybrewers.com', 'Lieshout', 1500, 1719],
       ['Citizen M', 'citizenm.com', 'Amsterdam', 780, 2008],
       ['The Student Hotel', 'thesocialhub.co', 'Amsterdam', 640, 2012],
       ['Postillion Hotels', 'postillionhotels.com', 'Bunnik', 520, 1971],
@@ -5336,6 +5372,10 @@
       ['Bilderberg Hotels', 'bilderberg.nl', 'Arnhem', 680, 1970],
     ],
     software: [
+      ['Centric', 'centric.eu', 'Gouda', 4000, 1992],
+      ['CGI Nederland', 'cginederland.nl', 'Rotterdam', 3500, 1976],
+      ['Unit4', 'unit4.com', 'Utrecht', 2700, 1980],
+      ['Mendix', 'mendix.com', 'Rotterdam', 1200, 2005],
       ['Mollie', 'mollie.com', 'Amsterdam', 750, 2004],
       ['Framer', 'framer.com', 'Amsterdam', 180, 2014],
       ['Bird', 'bird.com', 'Amsterdam', 640, 2011],
@@ -5346,6 +5386,10 @@
       ['Salsify Benelux', 'salsify.com', 'Amsterdam', 160, 2012],
     ],
     banking: [
+      ['de Volksbank', 'devolksbank.nl', 'Utrecht', 3600, 1817],
+      ['a.s.r.', 'asr.nl', 'Utrecht', 3500, 1720],
+      ['VGZ', 'vgz.nl', 'Arnhem', 3500, 1926],
+      ['Triodos Bank', 'triodos.com', 'Zeist', 1800, 1980],
       ['Bunq', 'bunq.com', 'Amsterdam', 480, 2012],
       ['Knab', 'knab.nl', 'Amsterdam', 620, 2012],
       ['Van Lanschot Kempen', 'vanlanschotkempen.com', 'Den Bosch', 950, 1737],
@@ -5356,6 +5400,8 @@
       ['Adyen Financial', 'adyen.com', 'Amsterdam', 900, 2006],
     ],
     logistics: [
+      ['Royal IHC', 'royalihc.com', 'Kinderdijk', 3000, 1642],
+      ['Ballast Nedam', 'ballast-nedam.nl', 'Nieuwegein', 2500, 1877],
       ['Ovinto', 'ovinto.com', 'Rotterdam', 85, 2011],
       ['Quicargo', 'quicargo.com', 'Amsterdam', 120, 2016],
       ['Portbase', 'portbase.com', 'Rotterdam', 240, 2002],
@@ -5366,6 +5412,10 @@
       ['Van Berkel Logistics', 'vanberkellogistics.nl', 'Veghel', 300, 1988],
     ],
     retail: [
+      ['A.S. Watson Benelux', 'aswatson.com', 'Renswoude', 20000, 1975],
+      ['Blokker', 'blokker.nl', 'Amsterdam', 3400, 1896],
+      ['MediaMarkt Nederland', 'mediamarkt.nl', 'Rotterdam', 3000, 1999],
+      ['de Bijenkorf', 'debijenkorf.nl', 'Amsterdam', 3000, 1870],
       ['Rituals', 'rituals.com', 'Amsterdam', 920, 2000],
       ['Otrium', 'otrium.com', 'Amsterdam', 210, 2015],
       ['Bever', 'bever.nl', 'Amersfoort', 780, 1948],
@@ -5376,6 +5426,11 @@
       ['Dille & Kamille', 'dille-kamille.nl', 'Utrecht', 400, 1974],
     ],
     public: [
+      ['Politie Nederland', 'politie.nl', 'The Hague', 65000, 1993],
+      ['UWV', 'uwv.nl', 'Amsterdam', 18000, 2002],
+      ['Gemeente Den Haag', 'denhaag.nl', 'The Hague', 8000, 1248],
+      ['Fontys Hogescholen', 'fontys.nl', 'Eindhoven', 4500, 1996],
+      ['Hogeschool van Amsterdam', 'hva.nl', 'Amsterdam', 4000, 1993],
       ['Gemeente Zaanstad', 'zaanstad.nl', 'Zaandam', 890, 1974],
       ['Hogeschool Windesheim', 'windesheim.nl', 'Zwolle', 940, 1988],
       ['ROC van Amsterdam', 'rocva.nl', 'Amsterdam', 820, 1996],
@@ -5384,6 +5439,10 @@
       ['Saxion', 'saxion.nl', 'Enschede', 930, 1875],
     ],
     energy: [
+      ['Enexis', 'enexis.nl', 'Den Bosch', 4500, 2009],
+      ['Essent', 'essent.nl', 'Den Bosch', 2400, 1919],
+      ['Waternet', 'waternet.nl', 'Amsterdam', 1800, 2006],
+      ['Vitens', 'vitens.nl', 'Zwolle', 1400, 2002],
       ['Vandebron', 'vandebron.nl', 'Amsterdam', 180, 2013],
       ['Sympower', 'sympower.net', 'Amsterdam', 150, 2015],
       ['Groendus', 'groendus.nl', 'Utrecht', 340, 2020],
@@ -5392,6 +5451,8 @@
       ['Enpuls', 'enpuls.nl', 'Den Bosch', 220, 2016],
     ],
     telecom: [
+      ['Nokia Nederland', 'nokia.nl', 'Eindhoven', 1200, 1988],
+      ['Eurofiber', 'eurofiber.com', 'Utrecht', 1100, 2000],
       ['Youfone', 'youfone.nl', 'Almere', 210, 2010],
       ['Simpel', 'simpel.nl', 'Amsterdam', 160, 2008],
       ['Voiceworks', 'voiceworks.com', 'Almere', 380, 2005],
@@ -5400,6 +5461,10 @@
       ['Solcon', 'solcon.nl', 'Dronten', 240, 1997],
     ],
     industry: [
+      ['FrieslandCampina', 'frieslandcampina.com', 'Amersfoort', 22000, 1871],
+      ['BAM Groep', 'bam.com', 'Bunnik', 13000, 1869],
+      ['Tata Steel Nederland', 'tatasteeleurope.com', 'IJmuiden', 9000, 1918],
+      ['Heijmans', 'heijmans.nl', 'Rosmalen', 5000, 1923],
       ['VDL Groep ETG', 'vdletg.com', 'Eindhoven', 950, 1953],
       ['Norma Groep', 'normagroep.com', 'Hengelo', 620, 1953],
       ['Bosch Rexroth Boxtel', 'boschrexroth.nl', 'Boxtel', 740, 1795],
@@ -5412,59 +5477,438 @@
   /* What the sheet would bring in, given the criteria on it. Set by
      `findCompanies` and re-read wherever the count and the names are said,
      so the promise and the import cannot come from different lists. */
+  /* ══ THE CATEGORIES A LIST IS BUILT FROM ═══════════════════════════════
+
+     Until now a criterion was `{k, label, ind?, on, own?, via?}` and its
+     CATEGORY lived in two places, neither of them a field: the `k` string,
+     and a `"Prefix: value"` convention inside `label` that three separate
+     sites stripped back off again with a regex. A saved list
+     recovered its industry by reverse-matching `TAX.industry` on `.label`,
+     so renaming a label silently broke every list ever made.
+
+     Worse, only one of them did anything. `findSetPool` read the FIRST
+     criterion carrying an `ind` and picked that industry's bucket; headcount,
+     place, age, hygiene and anything you typed changed the count and nothing
+     else. Ask for 1,000+ staff and the same eight companies came back, every
+     one of them under 950, and the sheet called them the strongest matches.
+
+     So: `{axis, val, label, on, own}`, with `val` machine-readable and the
+     category a real field. `axis` keys into this registry, every entry knows
+     how to list its options and how to TEST a row, and the test is what makes
+     a category worth putting a step around. */
+
+  /* The index this prototype stands in for. Named, because the reach figure
+     below is derived from it and a modelled number whose basis is anonymous
+     is the unsourced confidence this product exists to remove. */
+  const INDEX_MODEL = 2400;
+
+  /* Twelve rows before the preview stops drawing and starts counting. The
+     same number the briefing's tabs use, and for the same reason: a place you
+     chose to be may show more than a glance, and it is still not a database. */
+  const FIND_SHOWN = 12;
+
+  const AGE_BANDS = [
+    { k: 'young', label: 'Since 2015',  lo: 2015, hi: 9999 },
+    { k: 'grown', label: '2000–2014',   lo: 2000, hi: 2014 },
+    { k: 'settled', label: 'Before 2000', lo: 0,  hi: 1999 },
+  ];
+  const ageBand = (y) => {
+    if (y == null) return null;
+    const row = AGE_BANDS.filter((b) => y >= b.lo && y <= b.hi)[0];
+    return row ? row.k : null;
+  };
+
+  /* Domains you already hold, for the one hygiene criterion that is real.
+     Recomputed per call: 118 rows, and a cached set would go stale the moment
+     a build imported anything. */
+  const bookDomains = () => new Set(DB.acc.filter((a) => !a.arch)
+    .map((a) => String(a.domain || '').toLowerCase()).filter(Boolean));
+
+  /* ══ EVERY ROW IN THE INDEX, AS A RECORD ═══════════════════════════════
+     `NET_POOL` is stored as tuples and every consumer destructures them in
+     that order. This reads them once into named fields so an axis test can
+     say `r.emp` rather than `r[3]`, and `netNew` below hands the tuple shape
+     straight back out, so nothing downstream moves. */
+  const netRows = () => Object.keys(NET_POOL).reduce((out, k) => out.concat(
+    NET_POOL[k].map((r) => ({
+      name: r[0], domain: r[1], city: r[2], emp: r[3], founded: r[4], industry: k,
+    }))), []);
+
+  /* The places the index actually reaches, commonest first — derived from the
+     corpus rather than from `TAX`, because there is no geography axis in the
+     taxonomy and `parseFilters` already treats a city as free text. */
+  function cityRows(pool) {
+    const n = Object.create(null);
+    (pool || netRows()).forEach((r) => { if (r.city) n[r.city] = (n[r.city] || 0) + 1; });
+    return Object.keys(n).sort((a, b) => n[b] - n[a] || a.localeCompare(b)).map((c) => [c, c]);
+  }
+
+  const BUILD_AXES = [
+    { k: 'industry', name: 'Industry',
+      rows: () => TAX.industry.map((i) => [i.k, i.label]),
+      test: (r, v) => r.industry === v },
+    { k: 'size', name: 'Headcount',
+      rows: () => TAX.size.map((b) => [b.k, b.label]),
+      test: (r, v) => sizeBand(r.emp) === v },
+    /* Capped at the eight the index reaches most. The full list is
+       twenty-nine and the tail is one company a city — a builder narrowing to
+       "Roosendaal (1)" is not a thing anybody does, and twenty-nine chips is
+       the wall this whole pass exists to remove. The rest are still reachable:
+       choosing an industry re-ranks the list, so a place that matters to a
+       sector rises into it. */
+    { k: 'where', name: 'Where', bare: true, cap: 8,
+      rows: (pool) => cityRows(pool),
+      test: (r, v) => r.city === v },
+    { k: 'age', name: 'Founded',
+      rows: () => AGE_BANDS.map((b) => [b.k, b.label]),
+      test: (r, v) => ageBand(r.founded) === v },
+    /* People only. A people search is a company search plus a title filter —
+       which is what Sales Navigator and Apollo do — so the company axes above
+       narrow the companies and this narrows the people at them. */
+    { k: 'title', name: 'Job title', people: true,
+      rows: () => TITLES.map((t) => [t, t]),
+      test: (p, v) => p.role === v },
+    /* The one hygiene criterion that filters anything. Measured: 12 of the
+       index share a domain with an account you already hold — Nedap, Mollie,
+       Adyen, Coolblue, Bunq and eight more, and Adyen is in the book marked
+       not a fit. It has been switched on by default and importing all twelve
+       anyway since the flow was written.
+
+       `Has a live domain` is gone. Every row in the index has one, so it was
+       a statement rendered as a removable control that changed nothing —
+       which is the defect this surface has removed twice before. */
+    { k: 'quality', name: 'Only if', bare: true,
+      rows: () => [['new', 'Not already in the book']],
+      test: (r, v) => (v === 'new' ? !bookDomains().has(String(r.domain || '').toLowerCase()) : true) },
+    /* ══ TWO AXES THAT DO NOT NARROW, AND SAY SO ═════════════════════════
+       `via` names a supplier to ask; `own` is a phrase you typed that no
+       index can be queried for. Both used to halve the modelled count like
+       any other chip — adding "Uses Salesforce" cost as much as adding an
+       industry. They pass every row now, and the surface has to label them
+       as what they are. */
+    { k: 'via', name: 'Where to look', bare: true, quiet: true,
+      rows: () => FINDERS.map(([who]) => [who, who]),
+      test: () => true },
+    { k: 'own', name: 'Your own term', bare: true, quiet: true,
+      rows: () => [], test: () => true },
+  ];
+  const AX_BY = Object.create(null);
+  BUILD_AXES.forEach((a) => (AX_BY[a.k] = a));
+
+  /* `"Headcount: 200–1,000"` composed once, here, instead of being baked into
+     `label` at the three places that used to write it and stripped back off at
+     the three that used to read it. Axes whose value already reads as a
+     sentence — a city, "Not already in the book", a term you typed — take no
+     prefix. */
+  const critText = (c) => {
+    const ax = AX_BY[c.axis];
+    return !ax || ax.bare ? c.label : `${ax.name}: ${c.label}`;
+  };
+  const critKey = (c) => `${c.axis}:${c.val}`;
+
+  /* ══ THE CRITERIA ACTUALLY FILTER ══════════════════════════════════════
+     OR within an axis, AND across them — the semantics `filtered()` already
+     uses, and worth stating because it is the difference between "healthcare
+     and logistics" returning 23 and returning nothing. */
+  function netMatch(row, terms) {
+    const on = (terms || []).filter((t) => t && t.on);
+    for (const ax of BUILD_AXES) {
+      /* A people axis does not narrow the SEARCH. The index holds companies;
+         a job title decides who at them is worth generating, which happens
+         after the companies come back. Testing `p.role` against a company row
+         failed every one of them, so "QA managers at software companies" —
+         two criteria the flow reads perfectly — returned nothing at all. */
+      if (ax.people) continue;
+      const mine = on.filter((t) => t.axis === ax.k);
+      if (!mine.length) continue;
+      if (!mine.some((t) => ax.test(row, t.val))) return false;
+    }
+    return true;
+  }
+  /* Takes the terms it is asked about, so the page and the canvas can both
+     ask without one of them having to write into the other one's state. */
+  const netMatched = (terms) => netRows().filter((r) => netMatch(r, terms || buildTerms()));
+
+  /* ══ HOW MANY THERE ARE OUT THERE, DERIVED RATHER THAN DECLARED ════════
+     This was `Math.max(pool, 2400 / 2.1^(active − 1))`: every criterion
+     halved the market, whether it removed anything or not, so a hygiene chip
+     cost the same as an industry and two chips that changed nothing still
+     took 2,400 to 544. It also contradicted the rows beside it — from a
+     campaign goal the sheet read "28 companies match. These 8 are the
+     strongest — run it again for the next batch" when the pool held exactly
+     eight and a ninth could not exist.
+
+     Scaled from what actually matched instead. A criterion that removes
+     nothing now changes nothing, which is the property a count has to have
+     before anybody can learn what a control does by pressing it. */
+  const buildReach = (terms) => {
+    const all = netRows().length;
+    const hit = netMatched(terms).length;
+    if (!all) return 0;
+    return Math.max(hit, Math.round(INDEX_MODEL * (hit / all)));
+  };
+
+  /* ══ WHAT THE INDEX RETURNS BESIDES A HEADCOUNT ════════════════════════
+
+     A row was a name, a domain, a place, a size and a year — and the surface
+     that showed it read as five fragments because none of them said what the
+     company DOES. Clay's own company search returns Name · Locations ·
+     Description · Primary industry · Size · Type · LinkedIn URL, and the
+     description is the column that makes the rest worth reading.
+
+     Kept beside `NET_POOL` rather than widened into its tuple: the tuple is
+     destructured positionally in four places and by index in `netRows`, and
+     adding two slots to a hundred and eight rows to serve one renderer is how
+     a fixture becomes unreadable. Keyed by name, which is unique across the
+     index — `netRows` asserts that by falling back rather than guessing.
+
+     `type` is the legal shape Clay reports; `about` is one line on what they
+     actually sell. Both are the sort of thing a data vendor returns, and both
+     are as approximately true as the headcounts already here. */
+  const NET_ABOUT = {
+    /* health */
+    'Amsterdam UMC': ['Non Profit', 'University hospital and medical research centre'],
+    Radboudumc: ['Non Profit', 'University medical centre in Nijmegen'],
+    Isala: ['Non Profit', 'One of the largest top-clinical hospitals'],
+    Nutricia: ['Public Company', 'Specialised medical and infant nutrition'],
+    Vitestro: ['Privately Held', 'Robotic blood-draw devices for labs'],
+    'Castor EDC': ['Privately Held', 'Clinical trial data capture platform'],
+    'Nedap Healthcare': ['Public Company', 'Care records and scheduling software'],
+    SkinVision: ['Privately Held', 'Skin cancer risk app and triage'],
+    Pacmed: ['Privately Held', 'Decision support from hospital outcome data'],
+    Quin: ['Privately Held', 'Digital primary care and GP practices'],
+    Luscii: ['Privately Held', 'Remote patient monitoring for hospitals'],
+    Ksyos: ['Privately Held', 'Digital hospital connecting GPs to specialists'],
+    /* hospitality */
+    'Vermaat Groep': ['Privately Held', 'Contract catering for hospitals and offices'],
+    'Center Parcs Nederland': ['Privately Held', 'Holiday parks and short-break resorts'],
+    'Swinkels Family Brewers': ['Privately Held', 'Family brewery behind Bavaria and Palm'],
+    'Citizen M': ['Privately Held', 'Affordable design hotels for frequent travellers'],
+    'The Student Hotel': ['Privately Held', 'Hybrid hotel, co-working and student housing'],
+    'Postillion Hotels': ['Privately Held', 'Conference hotels and meeting venues'],
+    'Van der Valk Amsterdam': ['Privately Held', 'Family-run full-service hotel and restaurant'],
+    'Eden Hotels': ['Privately Held', 'City-centre hotels across the Netherlands'],
+    'Fletcher Hotels': ['Privately Held', 'Regional hotel group with wellness resorts'],
+    'Conscious Hotels': ['Privately Held', 'Sustainable boutique hotels in Amsterdam'],
+    'Bilderberg Hotels': ['Privately Held', 'Country-house hotels and conference estates'],
+    /* software */
+    Centric: ['Privately Held', 'IT services and software for public sector'],
+    'CGI Nederland': ['Public Company', 'IT consulting and managed services'],
+    Unit4: ['Privately Held', 'ERP and financials for services organisations'],
+    Mendix: ['Privately Held', 'Low-code application development platform'],
+    Mollie: ['Privately Held', 'Payments API for European merchants'],
+    Framer: ['Privately Held', 'Design and publishing tool for websites'],
+    Bird: ['Privately Held', 'Messaging and customer engagement platform'],
+    Channable: ['Privately Held', 'Product feed management for e-commerce'],
+    Sendcloud: ['Privately Held', 'Shipping automation for online shops'],
+    Silverfin: ['Privately Held', 'Cloud accounting workflow for firms'],
+    Gitpod: ['Privately Held', 'Cloud development environments for engineering teams'],
+    'Salsify Benelux': ['Privately Held', 'Product experience and commerce data management'],
+    /* banking */
+    'de Volksbank': ['Public Company', 'Retail bank behind SNS, ASN and RegioBank'],
+    'a.s.r.': ['Public Company', 'Insurance, pensions and asset management'],
+    VGZ: ['Cooperative', 'Health insurer and care purchasing cooperative'],
+    'Triodos Bank': ['Public Company', 'Sustainable bank lending only to positive impact'],
+    Bunq: ['Privately Held', 'Mobile-only challenger bank for Europe'],
+    Knab: ['Privately Held', 'Online bank for freelancers and small business'],
+    'Van Lanschot Kempen': ['Public Company', 'Private banking and investment management'],
+    NIBC: ['Privately Held', 'Corporate and mortgage lending bank'],
+    'Alpha Credit': ['Privately Held', 'Consumer credit and instalment lending'],
+    'Achmea Bank': ['Cooperative', 'Mortgages and savings within Achmea'],
+    'Nationale-Nederlanden Invest': ['Public Company', 'Investment and pension products'],
+    'Adyen Financial': ['Public Company', 'Payments platform for global enterprises'],
+    /* logistics */
+    'Royal IHC': ['Privately Held', 'Dredging and offshore vessel construction'],
+    'Ballast Nedam': ['Privately Held', 'Construction and infrastructure contractor'],
+    Ovinto: ['Privately Held', 'Rail freight telematics and monitoring'],
+    Quicargo: ['Privately Held', 'Marketplace for unused truck capacity'],
+    Portbase: ['Non Profit', 'Port community system for Dutch ports'],
+    'Broekman Logistics': ['Privately Held', 'Forwarding, warehousing and breakbulk terminals'],
+    'Nunner Logistics': ['Privately Held', 'Road and rail freight across Eurasia'],
+    'Bolk Transport': ['Privately Held', 'Exceptional and heavy transport specialist'],
+    'Jan de Rijk': ['Privately Held', 'Air cargo road feeder and European trucking'],
+    'Van Berkel Logistics': ['Privately Held', 'Regional distribution and warehousing'],
+    /* retail */
+    'A.S. Watson Benelux': ['Privately Held', 'Health and beauty retail behind Kruidvat'],
+    Blokker: ['Privately Held', 'Household goods and kitchenware chain'],
+    'MediaMarkt Nederland': ['Public Company', 'Consumer electronics superstores'],
+    'de Bijenkorf': ['Privately Held', 'Premium department stores'],
+    Rituals: ['Privately Held', 'Home and body cosmetics retailer'],
+    Otrium: ['Privately Held', 'Online outlet for end-of-season fashion'],
+    Bever: ['Privately Held', 'Outdoor clothing and equipment retailer'],
+    Loavies: ['Privately Held', 'Social-first womenswear label'],
+    Bloomon: ['Privately Held', 'Direct-from-grower flower subscriptions'],
+    'Coolblue Zakelijk': ['Privately Held', 'Business arm of the electronics retailer'],
+    'Sissy-Boy': ['Privately Held', 'Fashion and interiors lifestyle stores'],
+    'Dille & Kamille': ['Privately Held', 'Natural household and kitchen goods'],
+    /* public */
+    'Politie Nederland': ['Government Agency', 'National police force'],
+    UWV: ['Government Agency', 'Employee insurance and benefits agency'],
+    'Gemeente Den Haag': ['Government Agency', 'City government of The Hague'],
+    'Fontys Hogescholen': ['Educational', 'University of applied sciences'],
+    'Hogeschool van Amsterdam': ['Educational', 'Amsterdam university of applied sciences'],
+    'Gemeente Zaanstad': ['Government Agency', 'Municipal government for the Zaan region'],
+    'Hogeschool Windesheim': ['Educational', 'University of applied sciences in Zwolle'],
+    'ROC van Amsterdam': ['Educational', 'Vocational education college'],
+    'Waterschap Rivierenland': ['Government Agency', 'Water authority for dykes and water levels'],
+    'Gemeente Ede': ['Government Agency', 'Municipal government for Ede'],
+    Saxion: ['Educational', 'University of applied sciences in Enschede'],
+    /* energy */
+    Enexis: ['Cooperative', 'Regional electricity and gas network operator'],
+    Essent: ['Public Company', 'Energy supplier to homes and business'],
+    Waternet: ['Government Agency', 'Drinking water and wastewater for Amsterdam'],
+    Vitens: ['Public Company', 'Largest drinking water company in the country'],
+    Vandebron: ['Privately Held', 'Marketplace for direct-from-producer green energy'],
+    Sympower: ['Privately Held', 'Demand response and grid flexibility'],
+    Groendus: ['Privately Held', 'Solar, charging and energy management'],
+    'Alliander Duurzaam': ['Public Company', 'Sustainable projects arm of the grid operator'],
+    'Eneco Zakelijk': ['Privately Held', 'Business energy supply and sustainability'],
+    Enpuls: ['Privately Held', 'Energy transition development within Enexis'],
+    /* telecom */
+    'Nokia Nederland': ['Public Company', 'Network infrastructure and mobile core'],
+    Eurofiber: ['Privately Held', 'Open fibre and data centre connectivity'],
+    Youfone: ['Privately Held', 'No-frills mobile and broadband provider'],
+    Simpel: ['Privately Held', 'Low-cost SIM-only mobile subscriptions'],
+    Voiceworks: ['Privately Held', 'Cloud telephony for resellers'],
+    Speakup: ['Privately Held', 'Business voice and messaging platform'],
+    'Delta Fiber': ['Privately Held', 'Fibre rollout and regional broadband'],
+    Solcon: ['Privately Held', 'Internet provider with a family-safe focus'],
+    /* industry */
+    FrieslandCampina: ['Cooperative', 'Dairy cooperative and consumer brands'],
+    'BAM Groep': ['Public Company', 'Construction and civil engineering group'],
+    'Tata Steel Nederland': ['Privately Held', 'Integrated steelworks at IJmuiden'],
+    Heijmans: ['Public Company', 'Property development and infrastructure'],
+    'VDL Groep ETG': ['Privately Held', 'Precision systems for semiconductor equipment'],
+    'Norma Groep': ['Privately Held', 'High-precision mechatronic components'],
+    'Bosch Rexroth Boxtel': ['Privately Held', 'Drive and control technology for factories'],
+    'Kaak Group': ['Privately Held', 'Industrial bakery production lines'],
+    'Aebi Schmidt Nederland': ['Privately Held', 'Municipal sweeping and winter service vehicles'],
+    'HyET Solar': ['Privately Held', 'Flexible thin-film solar foil'],
+    /* ── AND THE HUNDRED AND EIGHTEEN ALREADY IN THE BOOK ──
+       A list holds both: rows the search brought in, and rows you already had
+       that AiMY merged. Keying only the index left every merged lead reading
+       "No description on file" beside twelve that had one — the same row, the
+       same column, two different products. One map, both pools. */
+    ING: ['Public Company', 'Retail and wholesale bank across Europe'],
+    'ABN AMRO': ['Public Company', 'Dutch retail, private and corporate bank'],
+    Rabobank: ['Cooperative', 'Cooperative bank with a food and agri focus'],
+    Aegon: ['Public Company', 'Life insurance, pensions and asset management'],
+    'NN Group': ['Public Company', 'Insurance and pensions across Europe and Japan'],
+    Achmea: ['Cooperative', 'Insurance group behind Zilveren Kruis and Centraal Beheer'],
+    Adyen: ['Public Company', 'Single payments platform for global merchants'],
+    bunq: ['Privately Held', 'Mobile-only challenger bank for Europe'],
+    Optiver: ['Privately Held', 'Proprietary trading and market making'],
+    'Flow Traders': ['Public Company', 'Market maker in exchange-traded products'],
+    'IMC Trading': ['Privately Held', 'Technology-driven proprietary trading'],
+    Philips: ['Public Company', 'Health technology, imaging and personal care'],
+    ASML: ['Public Company', 'Lithography systems for semiconductor manufacture'],
+    'NXP Semiconductors': ['Public Company', 'Chips for automotive, identity and connectivity'],
+    Signify: ['Public Company', 'Connected lighting, formerly Philips Lighting'],
+    Nedap: ['Public Company', 'Identification and workflow technology'],
+    'VDL Groep': ['Privately Held', 'Industrial family group in vehicles and systems'],
+    Vanderlande: ['Privately Held', 'Baggage and parcel handling automation'],
+    'Damen Shipyards': ['Privately Held', 'Standardised vessel design and shipbuilding'],
+    'Booking.com': ['Public Company', 'Online travel and accommodation marketplace'],
+    TomTom: ['Public Company', 'Location technology, maps and navigation'],
+    Miro: ['Privately Held', 'Visual collaboration and online whiteboard'],
+    Backbase: ['Privately Held', 'Engagement banking platform for banks'],
+    MessageBird: ['Privately Held', 'Omnichannel communications API'],
+    Exact: ['Privately Held', 'Accounting and ERP for small business'],
+    'AFAS Software': ['Privately Held', 'Integrated ERP and HR software'],
+    Channable: ['Privately Held', 'Product feed management for e-commerce'],
+    Sendcloud: ['Privately Held', 'Shipping automation for online shops'],
+    Mambu: ['Privately Held', 'Cloud core banking platform'],
+    Framer: ['Privately Held', 'Design and publishing tool for websites'],
+    'Wolters Kluwer': ['Public Company', 'Professional information and software'],
+    RELX: ['Public Company', 'Analytics and decision tools for professionals'],
+    Randstad: ['Public Company', 'Staffing, recruitment and workforce services'],
+    'Randstad Sourceright': ['Public Company', 'Outsourced recruitment and talent advisory'],
+    Brunel: ['Public Company', 'Specialist engineering and technical staffing'],
+    YER: ['Privately Held', 'Recruitment and secondment for specialists'],
+    BearingPoint: ['Partnership', 'Management and technology consulting'],
+    'Capgemini Netherlands': ['Public Company', 'IT consulting, engineering and managed services'],
+    Arcadis: ['Public Company', 'Design and consultancy for natural and built assets'],
+    'Royal HaskoningDHV': ['Privately Held', 'Engineering and project management consultancy'],
+    Fugro: ['Public Company', 'Geo-data for infrastructure and energy'],
+    Boskalis: ['Privately Held', 'Dredging, offshore energy and marine services'],
+    KLM: ['Privately Held', 'Dutch flag carrier airline'],
+    'Schiphol Group': ['Government Agency', 'Operator of Amsterdam Airport Schiphol'],
+    Transavia: ['Privately Held', 'Low-cost leisure airline within Air France-KLM'],
+    Martinair: ['Privately Held', 'Dedicated air cargo carrier'],
+    'Port of Rotterdam': ['Government Agency', 'Port authority for Europe’s largest seaport'],
+    PostNL: ['Public Company', 'Mail, parcels and e-commerce logistics'],
+    'DHL Express Netherlands': ['Privately Held', 'International express parcel delivery'],
+    'Van Oord': ['Privately Held', 'Dredging and offshore wind construction'],
+    'Ahold Delhaize': ['Public Company', 'Supermarket group behind Albert Heijn'],
+    Jumbo: ['Privately Held', 'Family-owned national supermarket chain'],
+    Coolblue: ['Privately Held', 'Electronics retailer known for service'],
+    bol: ['Privately Held', 'Benelux online retail marketplace'],
+    Action: ['Privately Held', 'Non-food discount variety stores'],
+    HEMA: ['Privately Held', 'Own-brand department stores'],
+    Picnic: ['Privately Held', 'App-only grocery delivery with electric vans'],
+    Rituals: ['Privately Held', 'Home and body cosmetics retailer'],
+    'Just Eat Takeaway': ['Public Company', 'Online food ordering and delivery'],
+    Swapfiets: ['Privately Held', 'Bicycle subscription with included repairs'],
+    KPN: ['Public Company', 'National fixed and mobile telecoms operator'],
+    VodafoneZiggo: ['Privately Held', 'Mobile, broadband and television joint venture'],
+    Odido: ['Privately Held', 'Mobile and fixed operator, formerly T-Mobile NL'],
+    Eneco: ['Privately Held', 'Energy supply, heat networks and wind'],
+    'Vattenfall Netherlands': ['Public Company', 'Electricity, gas and heat supplier'],
+    TenneT: ['Government Agency', 'High-voltage transmission grid operator'],
+    Alliander: ['Public Company', 'Regional electricity and gas network operator'],
+    Stedin: ['Cooperative', 'Grid operator for the Randstad region'],
+    Shell: ['Public Company', 'Integrated energy and petrochemicals'],
+    Heineken: ['Public Company', 'International brewer and beverage group'],
+    Unilever: ['Public Company', 'Food, home and personal care brands'],
+    AkzoNobel: ['Public Company', 'Decorative paints and performance coatings'],
+    'DSM-Firmenich': ['Public Company', 'Nutrition, health and beauty ingredients'],
+    'Eindhoven University of Technology': ['Educational', 'Technical university and Brainport research hub'],
+    'Delft University of Technology': ['Educational', 'Largest technical university in the country'],
+    'Utrecht University': ['Educational', 'Broad research university'],
+    'University of Amsterdam': ['Educational', 'Largest research university by enrolment'],
+    'Leiden University': ['Educational', 'Oldest university in the Netherlands'],
+    'University of Twente': ['Educational', 'Entrepreneurial technical university'],
+    'Wageningen University': ['Educational', 'Life sciences, food and environment research'],
+    'Erasmus University Rotterdam': ['Educational', 'Economics, business and medicine research'],
+    'Radboud University': ['Educational', 'Research university in Nijmegen'],
+    TNO: ['Non Profit', 'Independent applied research organisation'],
+    'Erasmus MC': ['Non Profit', 'University medical centre in Rotterdam'],
+    'UMC Utrecht': ['Non Profit', 'University medical centre and research institute'],
+    'Nederlandse Spoorwegen': ['Government Agency', 'National passenger rail operator'],
+    ProRail: ['Government Agency', 'Rail infrastructure manager'],
+    'Sligro Food Group': ['Public Company', 'Food wholesale for hospitality and retail'],
+    Lightyear: ['Privately Held', 'Solar-powered electric vehicle technology'],
+    'Nearfield Instruments': ['Privately Held', 'Metrology for semiconductor process control'],
+    'SMART Photonics': ['Privately Held', 'Indium phosphide photonic chip foundry'],
+    'Salvia BioElectronics': ['Privately Held', 'Implantable bioelectronic migraine therapy'],
+    'Amber Mobility': ['Privately Held', 'Shared electric vehicle fleet software'],
+    'Dept Agency': ['Privately Held', 'Digital marketing and technology agency'],
+    'Tony’s Chocolonely': ['Privately Held', 'Chocolate brand campaigning on slave-free cocoa'],
+    'G-Star RAW': ['Privately Held', 'Premium denim and apparel brand'],
+    VanMoof: ['Privately Held', 'Designer electric city bicycles'],
+    Elastic: ['Public Company', 'Search, observability and security platform'],
+    'GitLab Netherlands': ['Public Company', 'DevSecOps platform for software teams'],
+    'Databricks Netherlands': ['Privately Held', 'Data and AI lakehouse platform'],
+    'Uber Netherlands': ['Public Company', 'Ride-hailing and delivery marketplace'],
+    'Netflix EMEA': ['Public Company', 'Streaming entertainment, EMEA headquarters'],
+    'Salesforce Netherlands': ['Public Company', 'Customer relationship management cloud'],
+    'Cisco Netherlands': ['Public Company', 'Networking, security and collaboration'],
+    'Accenture Netherlands': ['Public Company', 'Strategy, consulting and technology services'],
+    'Deloitte Netherlands': ['Partnership', 'Audit, tax, consulting and advisory'],
+    'KPMG Netherlands': ['Partnership', 'Audit, tax and advisory services'],
+    'PwC Netherlands': ['Partnership', 'Assurance, tax and advisory services'],
+    'EY Netherlands': ['Partnership', 'Assurance, consulting, tax and strategy'],
+    Ordina: ['Public Company', 'IT services and consulting in the Benelux'],
+    'Sopra Steria Netherlands': ['Public Company', 'Digital transformation and systems integration'],
+    Conclusion: ['Privately Held', 'Ecosystem of IT and business change firms'],
+    'Info Support': ['Privately Held', 'Custom software engineering and data'],
+    Quintor: ['Privately Held', 'Software engineering and agile consultancy'],
+    Xebia: ['Privately Held', 'Cloud, data and agile technology consultancy'],
+  };
+
   let NET_IND = 'health';
-  const netNew = () => (NET_POOL[NET_IND] || NET_POOL.health).map((r) => [...r, NET_IND]);
+  const netNew = () => netMatched().map((r) => [r.name, r.domain, r.city, r.emp, r.founded, r.industry]);
 
-  /* ══ THE RESULTS ARE REFINED BEFORE THEY ARE SAVED ══════════════════════
-
-     The flow was: describe → AiMY reads criteria → a count and six names →
-     `Bring in 8`, which in one press wrote the list, imported the rows and
-     navigated you to them. So you could refine the CRITERIA all you liked
-     and never the RESULTS, and assignment was a separate act you found
-     afterwards on a surface you had already been sent to.
-
-     What the sales team actually described: "you share some stuff and it
-     returns lists for you, you refine them then ask to assign the list to
-     someone or yourself, then it's saved to the database." Three verbs in
-     that sentence and the product had one.
-
-     `FIND_DROP` is the refinement: which returned rows you do not want. It
-     is state beside `FIND_CRIT` for the same reason — dropping a row has to
-     move the count without re-running anything — and it is reset wherever
-     the criteria are, so a new search never inherits the last one's
-     exclusions. Keyed by name, which is unique inside a pool.
-
-     NOTHING IS WRITTEN UNTIL SAVE. That was already true and is now the
-     point rather than an accident: the working set lives here, so Cancel
-     genuinely costs nothing and the confirm is the moment the list becomes
-     real to anybody else. */
-  let FIND_DROP = new Set();
-  const netKept = () => netNew().filter((r) => !FIND_DROP.has(r[0]));
-
-  /* The criteria live in state so removing a chip can move the count without
-     re-opening the block. Reset every time the flow starts. */
-  let FIND_CRIT = [];
-
-  /* WHERE THE CRITERIA COME FROM — and this is the whole reason a campaign
-     needed a goal.
-
-     v3 inferred them from won deals because there was nothing better to
-     read: AiMY guessing at an objective somebody could simply have stated.
-     A campaign with a goal is asked what it is for, and the block SAYS WHICH
-     OF THE TWO HAPPENED — an inferred criterion and a stated one are not the
-     same claim, and rendering them identically is the unsourced confidence
-     this product exists to remove. */
-  let FIND_FROM = null;
-
-  /* `srcKey` — RUNNING A LIST AGAIN, RATHER THAN RUNNING A NEW ONE.
-
-     "Run it again" on a list card called this with no argument at all, so it
-     ignored the list whose button had been pressed and pushed a SECOND
-     source with freshly-guessed criteria. The word "again" was the only part
-     of it that was true.
-
-     A list already carries the criteria that made it. Running it again means
-     running those. */
   /* ══ THE READING ═══════════════════════════════════════════════════════
 
        The chips used to say "Industry: from the goal" — a label describing
@@ -5521,13 +5965,22 @@
   ];
   const inDigits = (s) => NUM_WORD.reduce((t, [w, n]) => t.split(w).join(n), s);
 
+  /* A written range becomes the BANDS it overlaps, not a label. "50 to 1000
+     staff" is `small` and `mid`, which the matcher ORs together — so the
+     sentence narrows the search instead of decorating it, and the chips it
+     produces are the same chips the manual page offers. */
+  function sizeTerms(lo, hi) {
+    return TAX.size.filter((b) => b.hi >= lo && b.lo <= hi)
+      .map((b) => ({ axis: 'size', val: b.k, label: b.label, on: true }));
+  }
+
   function readGoal(text) {
     const g = inDigits(String(text || '').toLowerCase());
     const out = [];
     if (!g.trim()) return out;
 
     const ind = GOAL_IND.filter(([re]) => re.test(g))[0];
-    if (ind) out.push({ k: 'ind', label: `Industry: ${label('industry', ind[1])}`, ind: ind[1], on: true });
+    if (ind) out.push({ axis: 'industry', val: ind[1], label: label('industry', ind[1]), on: true });
 
     /* Numbers first, because a range somebody wrote down beats a band we
        inferred from the word "enterprise". */
@@ -5535,425 +5988,1540 @@
     const over = g.match(/(?:over|more than|above|at least|\+)\s*(\d[\d,.]*)\s*(?:staff|people|employ|headcount|fte)/);
     const under = g.match(/(?:under|fewer than|less than|below|up to)\s*(\d[\d,.]*)\s*(?:staff|people|employ|headcount|fte)/);
     const num = (s) => Number(String(s).replace(/[,.]/g, ''));
-    if (range) out.push({ k: 'size', label: `Headcount: ${num(range[1]).toLocaleString('en-GB')}–${num(range[2]).toLocaleString('en-GB')}`, on: true });
-    else if (over) out.push({ k: 'size', label: `Headcount: ${num(over[1]).toLocaleString('en-GB')}+`, on: true });
-    else if (under) out.push({ k: 'size', label: `Headcount: under ${num(under[1]).toLocaleString('en-GB')}`, on: true });
-    else if (/enterprise|large organi|multinational/.test(g)) out.push({ k: 'size', label: 'Headcount: 1,000+', on: true });
-    else if (/\bsmb\b|small business|small compan|startup/.test(g)) out.push({ k: 'size', label: 'Headcount: 10–200', on: true });
+    if (range) out.push(...sizeTerms(num(range[1]), num(range[2])));
+    else if (over) out.push(...sizeTerms(num(over[1]), Infinity));
+    else if (under) out.push(...sizeTerms(0, num(under[1])));
+    else if (/enterprise|large organi|multinational/.test(g)) out.push(...sizeTerms(1001, Infinity));
+    else if (/\bsmb\b|small business|small compan|startup/.test(g)) out.push(...sizeTerms(10, 200));
 
+    /* ══ A PLACE THE INDEX REACHES, OR A LABEL THAT SAYS IT DOES NOT ═════
+       `GOAL_GEO` answers with twelve names and only some of them are places
+       the index can be asked about — "Amsterdam" is a city on every row,
+       "Benelux" and "the Netherlands" are true of all 108 and narrow nothing.
+       The first becomes a `where` term that filters; the second becomes your
+       own term, which is labelled as not narrowing rather than quietly
+       halving the count the way it used to. */
     const geo = GOAL_GEO.filter(([re]) => re.test(g))[0];
-    if (geo) out.push({ k: 'geo', label: geo[1], on: true });
+    if (geo) {
+      const known = cityRows().some(([c]) => c === geo[1]);
+      out.push(known
+        ? { axis: 'where', val: geo[1], label: geo[1], on: true }
+        : { axis: 'own', val: geo[1], label: geo[1], on: true, own: true });
+    }
 
     /* ══ WHERE TO LOOK IS NOT WHAT TO LOOK FOR ═════════════════════════
 
        Every criterion above narrows the SET. This one names the supplier
-       to ask, which is a different kind of instruction and is why it
-       carries its own key rather than being folded in with the rest.
-
-       It earns the chip by changing the result: `via` below is read at
-       save time, so switching it off puts the search back on the full
-       waterfall and switching it on bills one seat instead of three
-       lookups. A criterion that only relabelled the list would be a
-       control that does nothing, which this surface has removed before. */
+       to ask, which is a different kind of instruction — so it sits on its
+       own axis, passes every row, and is drawn as an instruction rather than
+       as a filter. It still earns its place by changing the result: `via` is
+       read at save time, so switching it on bills one seat instead of three
+       lookups and stamps `acc.src`. */
     const via = /linked-?in|sales navigator/.test(g) ? 'LinkedIn Sales Navigator' : null;
-    if (via) out.push({ k: 'via', label: `Source: ${via}`, via, on: true });
+    if (via) out.push({ axis: 'via', val: via, label: via, on: true });
 
-    /* A moment worth catching them at. These read as timing, not as an
-       attribute, so they are named as timing. */
-    const sig = [[/hiring|recruit|vacanc/, 'Hiring right now'],
-      [/raised|funding|series [a-d]|investment round/, 'Raised in the last year'],
-      [/expand|opening|new (?:site|location|branch)/, 'Opening somewhere new'],
-      [/rebrand|replatform|migrat/, 'Replatforming']].filter(([re]) => re.test(g))[0];
-    if (sig) out.push({ k: 'sig', label: sig[1], on: true });
+    /* ══ THE SIGNALS ARE GONE FROM THE SEARCH ══════════════════════════
+       Hiring · Raised · Opening somewhere · Replatforming were read out of a
+       goal sentence and tested by nothing anywhere — an index row carries a
+       name, a domain, a city, a headcount and a founding year, and no signal
+       data exists on it. A criterion that can only decorate is the control
+       this surface has removed twice before.
+
+       They are real about companies you already hold, where `opportunitiesOf`
+       computes them from touchpoints — so they survive on the step that
+       offers your own leads, and nowhere else. */
 
     return out;
   }
 
   const FIND_HYGIENE = [
-    { k: 'live', label: 'Has a live domain', on: true },
-    { k: 'new', label: 'Not already in the book', on: true },
+    { axis: 'quality', val: 'new', label: 'Not already in the book', on: true },
   ];
 
+  /* ══ READING A SAVED LIST'S CRITERIA BACK ══════════════════════════════
+
+     `DB.source.crit` is a `·`-joined DISPLAY STRING, and re-running a list
+     re-parsed it. That parse could recover exactly one thing — the industry —
+     and it did so by reverse-matching `TAX.industry` on `.label`, so renaming
+     a chip broke every list ever made with it. Everything else came back as
+     an inert phrase: "200+ staff" narrowed nothing, and the re-run quietly
+     searched wider than the list it claimed to be continuing.
+
+     So a list now carries `terms` as well, and `crit` becomes the rendering
+     of it. `sourceTerms` prefers the structure and falls back to reading the
+     prose, which is what the six fixtures and every list made before today
+     still have — and it reports WHICH it did, because a re-run that recovered
+     four of six criteria has to say so rather than pretend it recovered all
+     six. */
+  function looseTerms(crit) {
+    /* Split on the separator the line was written with, then again on commas
+       INSIDE a segment. `src-ams` stores "software, banking, logistics" as one
+       part, and reading it whole recovered nothing — three industries the
+       index can be asked about came back as a phrase it cannot. Only split
+       where every piece resolves to something, so "regulated or
+       safety-critical delivery" stays one term rather than becoming three
+       fragments of a sentence. */
+    const segs = String(crit || '').split('·').map((p) => p.trim()).filter(Boolean);
+    const cities = cityRows().map(([c]) => c);
+    /* By KEY as well as by label. The fixtures write "software, banking,
+       logistics" — the keys — while a list saved by the flow writes
+       "Banking & finance" — the label. Matching only the label recovered
+       neither, and matching only the key would lose every list made since. */
+    const indOf = (v) => TAX.industry.filter((i) => i.k === v.toLowerCase()
+      || i.label.toLowerCase() === v.toLowerCase())[0];
+    const known = (v) => !!indOf(v)
+      || TAX.size.some((b) => b.label.toLowerCase() === v.toLowerCase())
+      || cities.some((c) => c.toLowerCase() === v.toLowerCase());
+    const parts = [];
+    segs.forEach((seg) => {
+      const bits = seg.split(',').map((x) => x.trim()).filter(Boolean);
+      if (bits.length > 1 && bits.every(known)) parts.push(...bits);
+      else parts.push(seg);
+    });
+    const out = [];
+    parts.forEach((p) => {
+      const bare = p.replace(/^[^:]+:\s*/, '').trim();
+      const ind = indOf(bare);
+      if (ind) { out.push({ axis: 'industry', val: ind.k, label: ind.label, on: true }); return; }
+      const band = TAX.size.filter((b) => b.label.toLowerCase() === bare.toLowerCase())[0];
+      if (band) { out.push({ axis: 'size', val: band.k, label: band.label, on: true }); return; }
+      const num = (x) => Number(String(x).replace(/[,.]/g, ''));
+      const range = bare.match(/^(\d[\d,.]*)\s*[–—-]\s*(\d[\d,.]*)\s*(?:staff|people|employees)?$/i);
+      const over = bare.match(/^(\d[\d,.]*)\+\s*(?:staff|people|employees)?$/i);
+      if (range) { out.push(...sizeTerms(num(range[1]), num(range[2]))); return; }
+      if (over) { out.push(...sizeTerms(num(over[1]), Infinity)); return; }
+      const city = cities.filter((c) => c.toLowerCase() === bare.toLowerCase())[0];
+      if (city) { out.push({ axis: 'where', val: city, label: city, on: true }); return; }
+      if (/already in the book/i.test(bare)) {
+        out.push({ axis: 'quality', val: 'new', label: 'Not already in the book', on: true });
+        return;
+      }
+      /* `Has a live domain` is not carried forward. Every row in the index has
+         one, so re-running with it would restore a control that changes
+         nothing — and a list saved before today has it on almost every time. */
+      if (/live domain/i.test(bare)) return;
+      const finder = FINDERS.filter(([who]) => who.toLowerCase() === bare.toLowerCase())[0];
+      if (finder) { out.push({ axis: 'via', val: finder[0], label: finder[0], on: true }); return; }
+      out.push({ axis: 'own', val: bare.toLowerCase(), label: bare, on: true, own: true });
+    });
+    return out;
+  }
+
+  function sourceTerms(s) {
+    if (s && s.terms && s.terms.length) return { terms: s.terms.map((t) => ({ ...t })), loose: false };
+    const terms = looseTerms(s && s.crit);
+    return { terms, loose: true, read: terms.filter((t) => t.axis !== 'own').length, of: terms.length };
+  }
+
+  /* The criteria as they read on screen, which is what `crit` has always
+     been. Derived from `terms` now instead of being the only record of them. */
+  const critLine = (terms) => (terms || []).filter((t) => t.on).map(critText).join(' · ');
   /* The pool follows whichever industry criterion is switched on, so taking
      the chip off widens the search in the names too, not only in the count. */
-  function findSetPool() {
-    const on = FIND_CRIT.filter((c) => c.on && c.ind)[0];
-    NET_IND = on && NET_POOL[on.ind] ? on.ind : 'health';
+  /* ══ THE LIST BUILDER, AS A PAGE ═══════════════════════════════════════
+
+     Until now the only way to make a list was to let AiMY read a sentence,
+     inside a canvas panel that caps at `min(72vh, 520px)` — 1,927px of form
+     in a 379px viewport at its worst. There was no manual path at all: you
+     could refuse the pre-fill, but you could not drive the thing yourself.
+
+     This is the BDR's own flow, drawn: companies or people → the criteria →
+     where to look → what you already have → name it → generate. Each step is
+     a category, each category carries the count it leaves behind, and the
+     total moves as they add up. The canvas keeps its own version of the same
+     flow reading the same axes, which is what stops the two drifting.
+
+     Steps reuse `.s-step` from the canvas panel unchanged — one open at a
+     time, nothing gated, a closed step showing its ANSWER rather than a tick. */
+
+  /* The draft. Module-level rather than in the URL: a half-built list is not
+     a linkable thing and the query string would be enormous. What IS in the
+     URL is which step is open and which kind you are building, because a step
+     you cannot reload into is a mode — the same argument `campFlow` makes for
+     `stage`. */
+  let DRAFT = null;
+
+  const BUILD_ACTIVE_DAYS = 60;
+  const buildKind = () => (S.bkind === 'con' ? 'con' : 'acc');
+  const buildStep = () => Math.min(Math.max(+S.bstep || 2, 2), 3);
+
+  function buildStart(over) {
+    DRAFT = {
+      /* Nothing switched on by default, not even the dedupe. It was the last
+         pre-fill left: sensible, invisible, and still a decision the surface
+         had made before being asked. It comes back as a suggestion the moment
+         there is anything to dedupe — with the overlap counted, which is more
+         than the silent version ever told you. */
+      terms: (over && over.terms) ? over.terms.map((t) => ({ ...t })) : [],
+      drop: new Set(),
+      take: new Set(),
+      said: (over && over.said) || '',
+      run: null,
+      name: (over && over.name) || null,
+      by: (over && over.by) || null,
+      camp: (over && over.camp) || null,
+      from: (over && over.from) || null,
+    };
   }
 
-  function findCompanies(campKey, srcKey) {
-    /* The guard F-01 put on nine other writers and missed here, because this
-       one opens a canvas rather than a commit and the sweep went by control.
-       It ends in a write — a list, and rows in the book — so it takes the
-       same test. No read-only tier can reach a control that calls it and
-       `tier-audit` checks that every run; a write stopped only by nothing
-       having drawn its button is stopped by a render, and renders change. */
-    if (!canWrite()) return;
-    /* Every entrance to this flow clears the exclusions. A search that
-       inherited the last one's dropped rows would silently return fewer
-       than it counted, which is the one thing this surface must never do. */
-    FIND_DROP = new Set();
-    const c = campKey ? DB.campBy[campKey] : null;
-    /* ══ "THE REST" — AND THE DOOR THAT MINTED A DUPLICATE INSTEAD ═════════
+  /* Every axis the page offers, in the order the flow draws them. `title` is
+     people-only; the rest describe the company either way, because a people
+     search is a company search plus a title filter. */
+  const buildAxes = () => BUILD_AXES.filter((a) => !a.quiet
+    && (!a.people || buildKind() === 'con'));
 
-       R7.6 asks to be able to add more data: pagination, search for more.
-       The Find surface PROMISES it in AiMY's own voice — "I would bring in
-       the 8 strongest first so you can look before committing to the rest" —
-       and the only continuation was `Run it again`, on the list surface you
-       land on afterwards, named for re-running rather than for continuing.
+  const buildTerms = () => (DRAFT ? DRAFT.terms : []);
+  const buildOn = (axis, val) => buildTerms().some((t) => t.on && t.axis === axis && t.val === val);
+  const buildMatched = () => netMatched(buildTerms());
 
-       From a CAMPAIGN there was no continuation at all. `findCompanies(camp)`
-       took the second branch every time, so pressing Find them twice on one
-       campaign produced TWO LISTS WITH THE SAME NAME AND THE SAME CRITERIA,
-       8 imported each — measured on `hosp-nl`, 6 sources to 7, members 8 to
-       16, both lists reading "Hotels & hospitality, Support, 50–500,
-       Netherlands — 5 Aug 2026". That is precisely the defect v4 fixed for
-       the list surface, on the path v4 did not walk.
-
-       A campaign's own search now carries its list through, so the second
-       press CONTINUES the first rather than forking it. `src.for` records
-       which campaign asked, because "which list did this campaign's search
-       make" has no other answer — members carry `srcRef`, but a campaign can
-       draw on lists it did not make. */
-    const own = campKey ? DB.source.filter((s) => s.for === campKey) : [];
-    const src = srcKey ? DB.source.filter((x) => x.k === srcKey)[0] : own[own.length - 1] || null;
-    if (src) {
-      /* `src` CARRIES THROUGH, so "Run it again" runs THIS list again. It
-         did not before: the confirm minted `src-new-N` every time, so a
-         second run produced a second list with the same name and the same
-         criteria, and the original stayed at its old count. A list is a
-         thing somebody made and keeps — re-running it is an operation ON
-         it, not a way to make another one. */
-      /* `camp` carries too, or continuing a campaign's own list would put
-         the next batch in the book and not on the campaign that asked for
-         it — a continuation that continues somewhere else. */
-      FIND_FROM = { kind: 'again', name: src.name, said: src.crit, src: src.k, camp: src.for || (c ? c.k : null) };
-      FIND_CRIT = src.crit.split('·').map((part, i) => {
-        const lbl = part.trim();
-        const m = /^Industry:\s*(.+)$/.exec(lbl);
-        const ind = m ? (TAX.industry.filter((x) => x.label === m[1])[0] || {}).k : null;
-        return { k: 'c' + i, label: lbl, ind: ind || null, on: true };
-      });
-      findSetPool();
-      paintFind();
-      return;
-    }
-
-    if (c && c.goal) {
-      FIND_FROM = { kind: 'goal', name: c.name, said: c.goal, camp: c.k };
-      FIND_CRIT = readGoal(c.goal).concat(FIND_HYGIENE.map((h) => ({ ...h })));
-      /* What we sell is a criterion in its own right and it is not in the
-         goal sentence, so it is added rather than read. */
-      if (c.sells && c.sells.length) FIND_CRIT.splice(1, 0, { k: 'buys', label: `Would buy: ${c.sells[0].name}`, on: true });
-    } else {
-      /* No goal to read, so the description starts as what the won deals
-         have in common — still a sentence, still yours to rewrite. */
-      const won = maySee(DB.acc).filter((a) => a.outcome === 'won');
-      const inds = [...new Set(won.map((a) => a.industry))];
-      const said = inds.length
-        ? `${inds.map((i) => label('industry', i)).join(' and ')} companies in the Netherlands with 50 to 1000 staff, like the ones we have won.`
-        : 'Healthcare companies in the Netherlands with 50 to 1000 staff.';
-      FIND_FROM = { kind: 'won', said };
-      FIND_CRIT = readGoal(said).concat(FIND_HYGIENE.map((h) => ({ ...h })));
-    }
-    findSetPool();
-    paintFind();
+  /* ══ WHAT EACH OPTION WOULD DO, NOT WHAT THE WHOLE ROW DID ═════════════
+     Counted against the OTHER axes, so the number on a chip is what pressing
+     it actually returns. `countsFor` makes the same argument for the filter
+     row: "a count that ignores the rest of the row promises results the click
+     will not deliver." An option that would return nothing still draws, with
+     its zero — hiding it would answer "are there any" by omission, and the
+     empty bands are the honest edge of what this index reaches. */
+  function axisCounts(ax, terms) {
+    const others = (terms || buildTerms()).filter((t) => t.on && t.axis !== ax.k);
+    const rows = netRows();
+    const out = Object.create(null);
+    ax.rows().forEach(([val]) => {
+      out[val] = rows.filter((r) => netMatch(r, others.concat([{ axis: ax.k, val, on: true }]))).length;
+    });
+    return out;
   }
 
-  /* Re-read after you have rewritten the description. Anything you typed
-     yourself survives it — you wrote that on purpose, and a re-read is AiMY
-     revising its own understanding, not overruling yours. */
-  function findReread(said) {
-    const mine = FIND_CRIT.filter((c) => c.own);
-    FIND_FROM = { ...FIND_FROM, said };
-    FIND_CRIT = readGoal(said).concat(FIND_HYGIENE.map((h) => ({ ...h }))).concat(mine);
-    findSetPool();
-    paintFind();
-  }
-
-  /* How many the search would return, from the criteria. Modelled rather
-     than counted — there is no index behind this prototype — and the block
-     says so, because a number with an invented provenance is exactly the
-     unsourced confidence this product exists to remove. */
-  const findCount = () => {
-    const on = FIND_CRIT.filter((c) => c.on).length;
-    return Math.max(netNew().length, Math.round(2400 / Math.pow(2.1, on - 1)));
+  /* ── Companies you already hold that fit, and which of them are live ──
+     The `quality` axis is dropped for this: "not already in the book" is
+     false of everything in the book by definition, and asking it here would
+     return nothing every time. */
+  const buildBookFit = () => {
+    const terms = buildTerms().filter((t) => t.on && t.axis !== 'quality');
+    const pool = maySee(buildKind() === 'con' ? DB.con : DB.acc).filter((r) => !r.arch);
+    return pool.filter((r) => netMatch(buildKind() === 'con' ? accOf(r) || r : r, terms));
+  };
+  const buildActive = (r) => {
+    const t = (DB.touchBy[r.id] || [])[0];
+    return (t && daysAgo(t.at) <= BUILD_ACTIVE_DAYS) || statusOf(r) === 'awaiting-us';
   };
 
-  /* Named after what is actually switched on, so the name and the criteria
-     cannot disagree. The prefixes ("Buys:", "Headcount:") are how the chip
-     labels themselves read; the name wants the value, not the field. */
-  function findName() {
-    const on = FIND_CRIT.filter((c) => c.on)
-      .map((c) => c.label.replace(/^[^:]+:\s*/, ''))
-      /* "Has a live domain" and "Not already in the book" are hygiene, true
-         of every list worth making, and they say nothing about who is in it. */
-      .filter((x) => !/live domain|already in the book/i.test(x));
-    return `${on.length ? on.join(', ') : 'Everything'} — ${fmtDate(iso(TODAY))}`;
+  /* What a closed step says instead of the body you cannot see — its answer,
+     and the count it leaves behind. */
+  function buildSaid(n) {
+    const kind = buildKind() === 'con' ? 'People' : 'Companies';
+    if (n === 1) return kind;
+    if (n === 2) {
+      const on = buildTerms().filter((t) => t.on && !AX_BY[t.axis].quiet && t.axis !== 'quality');
+      return on.length ? `${on.map((t) => t.label).join(' · ')} — ${buildMatched().length}` : 'anything';
+    }
+    if (n === 3) {
+      const via = buildTerms().filter((t) => t.on && t.axis === 'via')[0];
+      const own = buildTerms().filter((t) => t.on && t.axis === 'own');
+      return [via ? via.label : 'every source', own.length ? `${plural(own.length, 'own term')}` : ''].filter(Boolean).join(' · ');
+    }
+    if (n === 4) return DRAFT && DRAFT.take.size ? `${DRAFT.take.size} of yours` : 'none of yours';
+    return `${buildName()} · ${actor((DRAFT && DRAFT.by) || me().id).name}`;
   }
 
-  function findBody() {
-    const n = findCount();
-    const rows = netNew();
-    const kept = netKept();
-    const already = FIND_FROM && FIND_FROM.src ? (DB.sourceBy[FIND_FROM.src] || {}).imported || 0 : 0;
-    const read = FIND_CRIT.filter((c) => !c.own && c.k !== 'live' && c.k !== 'new');
-    return `<div class="s-find">
-      <label class="ds-field s-field">
-        <span class="s-field-label">Criteria</span>
-        <textarea class="input s-find-said" rows="2" spellcheck="false"
-          placeholder="Describe them in a sentence — sector, size, where they are, anything that makes them worth a call.">${esc((FIND_FROM && FIND_FROM.said) || '')}</textarea>
-      </label>
-      <div class="s-find-read">
-        <button class="s-inline-btn" type="button" data-findread>Read it again</button>
-        <span class="s-find-readnote">${read.length
-          ? `I read ${plural(read.length, 'criterion', 'criteria')} out of it.`
-          : 'I could not read anything out of that. Add the criteria yourself.'}</span>
-      </div>
-      <div class="s-find-crit">
-        ${FIND_CRIT.map((c) => `<button class="chip${c.on ? ' active' : ' default'}${c.own ? ' s-crit-own' : ''}" type="button" data-crit="${esc(c.k)}">
-          ${esc(c.label)}<span class="s-crit-x" aria-hidden="true">${c.on ? '×' : '+'}</span>
-        </button>`).join('')}
-      </div>
-      <div class="s-find-add">
-        <input class="input s-find-new" type="text" spellcheck="false"
-          placeholder="Add one of your own — “Uses Salesforce”, “Two or more offices”" />
-        ${/* Secondary: the block's primary is its confirm. A filled Add beside
-              a filled Bring-in-24 is two recommendations in one block. */ ''}
-        <button class="entry-action em-review" type="button" data-critadd>Add</button>
-      </div>
-      ${/* ══ AND THE SENTENCE NAMES THE WAY TO THE REST ═══════════════════
+  const buildAutoName = () => {
+    const on = buildTerms().filter((t) => t.on && !AX_BY[t.axis].quiet && t.axis !== 'quality');
+    return `${on.length ? on.map((t) => t.label).join(', ') : 'Everything'} — ${fmtDate(iso(TODAY))}`;
+  };
+  const buildName = () => (DRAFT && DRAFT.name != null ? DRAFT.name : buildAutoName());
 
-            It read "I would bring in the 8 strongest first so you can look
-            before committing to the rest" — a promise with no control on the
-            surface making it, and no name for the thing you would press. It
-            says what the next press does, and continuing is now a press on
-            the same door rather than a different one on a later surface. */ ''}
-      <p class="s-find-count">${already
-        ? `<b>${n.toLocaleString('en-GB')}</b> companies match and <b>${already}</b> are already in. This brings the next <b>${kept.length}</b>.`
-        : `<b>${n.toLocaleString('en-GB')}</b> companies match. These <b>${rows.length}</b> are the strongest — drop any you do not want, and run it again for the next batch.`}</p>
-      ${/* WHERE THEY CAME FROM, ON THE SURFACE THAT CLAIMS THE COUNT. The
-            enrichment surface has named its suppliers and their hit rates
-            since v4; this one asserted a number from nowhere. Same shape,
-            same reading — the supplier and how often it answers. */ ''}
-      ${/* NAMING ALL FOUR WHEN THE SEARCH ASKED ONE would be the same defect
-            one layer up: the line claims a waterfall, the list records a
-            single seat, and the cost model bills the second. It reads what
-            the criteria say, like everything else on this sheet. */ ''}
-      <p class="s-find-via"><span class="s-plan-cap">Asked</span>${(() => {
-        const named = (FIND_CRIT.filter((c) => c.on && c.via)[0] || {}).via;
-        const asked = named ? FINDERS.filter(([who]) => who === named) : FINDERS;
-        return asked.map(([who, pct]) => `${esc(who)} <span class="s-find-hit">${pct}%</span>`).join(' · ');
-      })()}</p>
-      ${/* ══ THE PREVIEW IS THE SET ═══════════════════════════════════════
 
-            Six name chips, and the confirm imported eight. It was a SAMPLE
-            of a decision already made — you could see who was coming and not
-            say no to any of them, so the only refinement available was to
-            change the criteria and hope.
+  /* ══ WHAT AiMY OFFERS, RATHER THAN WHAT IT ASSUMED ═════════════════════
 
-            Every row, each droppable, each carrying the three facts that
-            decide it: where they are, how many staff, what year. That is
-            what "refine them" means, and it is why the earlier note here —
-            "a set is described before it is enumerated" — stops applying:
-            enumeration is the point once the rows are yours to change.
+     The pre-fill is gone. Every entrance used to arrive with criteria already
+     switched on — read off a campaign goal, or off what you have won — and
+     the only way to disagree was to find the chips and take them off one at a
+     time. A suggestion you cannot refuse is not a suggestion, and a surface
+     that has already decided is not asking.
 
-            Still not a grid. Rows of a fixed shape, no column headers, each
-            self-describing, which is the card rule at row scale. */ ''}
-      <div class="s-find-rows">
-        ${rows.map((c) => {
-          const out = FIND_DROP.has(c[0]);
-          return `<div class="s-find-row${out ? ' is-out' : ''}">
-            <span class="s-find-row-name">${esc(c[0])}</span>
-            <span class="s-find-row-facts">${esc(c[2])} · ${esc(fmtSize(c[3]))} · founded ${esc(String(c[4]))}</span>
-            <button class="s-find-row-x" type="button" data-finddrop="${esc(c[0])}"
-              aria-label="${out ? `Put ${esc(c[0])} back` : `Drop ${esc(c[0])}`}">${out ? '+' : '×'}</button>
-          </div>`;
-        }).join('')}
-      </div>
-      <label class="ds-field s-field">
-        <span class="s-field-label">Name</span>
-        <input class="input s-find-name" type="text" spellcheck="false"
-          value="${esc(findName())}" />
-      </label>
-      ${/* ══ AND WHO IS GOING TO WORK IT ══════════════════════════════════
+     So AiMY says what it noticed and offers the move. Each of these is
+     derived at render time from the book, the index and what you have typed
+     so far — none is a written string — and each carries one press that
+     applies it. Nothing is applied until you press. */
+  function buildSuggests() {
+    const out = [];
+    if (!DRAFT) return out;
+    const terms = buildTerms();
+    const has = (axis) => terms.some((t) => t.on && t.axis === axis);
+    const hit = netMatched(terms);
+    const camp = DRAFT.camp ? DB.campBy[DRAFT.camp] : null;
 
-            `by` was written as whoever ran the search and changed only
-            through `Hand it on`, a control on the list surface you reach
-            AFTERWARDS. So the question "who is this for" was asked at the
-            one moment nobody has the answer — after the thing exists — when
-            the moment you know is the moment you make it.
+    /* ① The campaign that asked, if it asked. Its goal is a sentence
+       somebody already wrote about who this is for. */
+    if (camp && camp.goal && !has('industry')) {
+      const read = readGoal(camp.goal).filter((t) => t.axis !== 'quality');
+      if (read.length) {
+        out.push({ k: 'goal', say: `The goal on <b>${esc(camp.name)}</b> describes ${read.map((t) => t.label).join(', ')}.`,
+          act: 'Use that', terms: read });
+      }
+    }
 
-            R4.5 asks for exactly this: "be assigned to a list or assign
-            someone to a list, permission permitting". `SELLERS` is the same
-            pool `Hand it on` offers, so the two cannot disagree about who
-            may hold one. */ ''}
-      <div class="s-field">
-        <span class="s-field-label">Who works it</span>
-        <div class="s-assign-grid">
-          ${SELLERS.map((pp) => `<label class="s-assign-chip">
-            <input type="radio" name="findby" class="s-find-by" value="${esc(pp.id)}"${pp.id === me().id ? ' checked' : ''} />
-            <span class="avatar avatar-sm">${esc(pp.initials)}</span>
-            <span class="s-assign-name">${esc(pp.name)}${pp.id === me().id ? ' (you)' : ''}<span class="s-pick-role">${esc(roleOf(pp))}</span></span>
-          </label>`).join('')}
+    /* ② What has actually closed. Read off `outcome`, not off a sentence
+       about it — and stated as the small sample it is. */
+    if (!has('industry')) {
+      const won = maySee(DB.acc).filter((a) => a.outcome === 'won');
+      const inds = [...new Set(won.map((a) => a.industry))].filter(Boolean);
+      if (inds.length) {
+        out.push({ k: 'won',
+          say: `Your ${plural(won.length, 'win')} came from ${inds.map((i) => label('industry', i)).join(', ')} — one each, so it is a shortlist rather than a pattern.`,
+          act: 'Add those sectors',
+          terms: inds.map((i) => ({ axis: 'industry', val: i, label: label('industry', i), on: true })) });
+      }
+    }
+
+    /* ③ The one the drawn flow asks for by name: leads you already hold that
+       fit, and which of them are live right now. */
+    const fit = buildBookFit();
+    const live = fit.filter(buildActive);
+    if (fit.length && fit.some((r) => !DRAFT.take.has(r.id))) {
+      const waiting = live.filter((r) => statusOf(r) === 'awaiting-us')[0];
+      out.push({ k: 'have',
+        say: `<b>${fit.length}</b> you already hold match this${live.length ? `, and <b>${live.length}</b> ${live.length === 1 ? 'is' : 'are'} live` : ''}.${
+          waiting ? ` ${esc(waiting.name)} is awaiting you.` : ''}`,
+        act: `Bring ${fit.length === 1 ? 'it' : 'them'} in`, take: fit.map((r) => r.id) });
+    }
+
+    /* ④ Where the matches actually are. Only worth saying when one place
+       holds a third of them — below that it is a fact, not a finding. */
+    if (hit.length > 3 && !has('where')) {
+      const n = Object.create(null);
+      hit.forEach((r) => { if (r.city) n[r.city] = (n[r.city] || 0) + 1; });
+      const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+      if (top && n[top] / hit.length >= 0.3) {
+        out.push({ k: 'where', say: `<b>${n[top]} of the ${hit.length}</b> are in ${esc(top)}.`,
+          act: `Only ${top}`, terms: [{ axis: 'where', val: top, label: top, on: true }] });
+      }
+    }
+
+    /* ⑤ The dedupe, when it is off. Measured rather than asserted: it is the
+       overlap between the index and your own domains. */
+    if (!has('quality')) {
+      const book = bookDomains();
+      const dupes = hit.filter((r) => book.has(String(r.domain || '').toLowerCase())).length;
+      if (dupes) {
+        out.push({ k: 'dedupe', say: `<b>${dupes} of the ${hit.length}</b> are already in your book.`,
+          act: 'Leave them out', terms: [{ ...FIND_HYGIENE[0] }] });
+      }
+    }
+
+    /* ⑥ Too many to work. The biggest block is the honest place to cut. */
+    if (hit.length > 30) {
+      const n = Object.create(null);
+      hit.forEach((r) => { n[r.industry] = (n[r.industry] || 0) + 1; });
+      const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+      if (top && !has('industry')) {
+        out.push({ k: 'narrow', say: `<b>${hit.length}</b> is more than anyone works at once. ${label('industry', top)} is the biggest block at ${n[top]}.`,
+          act: `Narrow to ${label('industry', top)}`,
+          terms: [{ axis: 'industry', val: top, label: label('industry', top), on: true }] });
+      }
+    }
+
+    return out.slice(0, 3);
+  }
+
+  function buildSuggestBlock() {
+    const sugg = buildSuggests();
+    if (!sugg.length) return '';
+    return `<div class="s-sugg">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY suggests
+      </p>
+      ${sugg.map((g) => `<div class="s-sugg-row">
+        <span class="s-sugg-say">${g.say}</span>
+        ${canWrite() ? (BUSY === 'sugg:' + g.k
+          ? `<button class="s-finding-go is-busy" type="button" disabled>Working…</button>`
+          : `<button class="s-finding-go" type="button" data-bsugg="${esc(g.k)}">${esc(g.act)}</button>`) : ''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  /* ══ THE STAGE ═════════════════════════════════════════════════════════
+
+     Three screens, one at a time, each replacing the last — not five
+     accordions to open and close. You pick how you want to work, you pick
+     what you are collecting, and then you say who you want in a sentence.
+
+     The criteria are TYPED, not chosen from a grid of options. A grid asks
+     you to recognise the vocabulary before you may use it; a sentence lets
+     you say what you already know, and AiMY reads it back as chips you can
+     take away if it read wrong. */
+  function buildStage() {
+    /* ══ THE CHAT IS THE FRONT DOOR ══════════════════════════════════════
+       The page opened on a gate — Do it yourself, or Ask AiMY — a screen whose
+       whole content was a question about how you would like to answer the next
+       question. Two presses before anything was asked, and neither about the
+       list. The conversation is the door now: it opens by asking what you are
+       collecting, which is the first real question either way, and it carries
+       Open the builder on that same turn. The gate still exists — it is inside
+       the first thing you were going to be asked anyway. */
+    const step = buildStep();
+    if (step <= 2) return buildPickKind();
+    return buildDescribe();
+  }
+
+  function buildPickKind() {
+    const people = maySee(DB.con).filter((p) => !p.arch).length;
+    return `<div class="s-sheet-head">
+        <div class="s-sheet-head-main">
+          <div class="s-sheet-kind">New list</div>
+          <h1 class="s-sheet-name">What are you collecting?</h1>
         </div>
+      </div>
+      <div class="s-ways">
+        <button class="s-way" type="button" data-bkind="acc">
+          <span class="s-way-name">Companies</span>
+          <span class="s-way-why">One row per organization. <b>${netRows().length}</b> in reach, and the ones you already hold can come along.</span>
+        </button>
+        <button class="s-way" type="button" data-bkind="con">
+          <span class="s-way-name">People</span>
+          <span class="s-way-why">The people at those companies, narrowed by job title. <b>${people}</b> of them are already yours.</span>
+        </button>
+      </div>`;
+  }
+
+  function buildDescribe() {
+    const terms = buildTerms().filter((t) => t.on);
+    const hit = buildMatched().length;
+    const take = DRAFT.take.size;
+    const kind = buildKind();
+    const eg = kind === 'con'
+      ? 'QA managers at Dutch software companies with 200 to 1000 staff'
+      : 'Banking and logistics companies in the Netherlands with 200 to 1000 staff';
+    return `<div class="s-sheet-head">
+        <div class="s-sheet-head-main">
+          <div class="s-sheet-kind">New list · ${kind === 'con' ? 'People' : 'Companies'}</div>
+          ${/* ══ AND THE NAME IS SETTLED BEFORE THE LIST IS ═════════════════
+                It was drawn as an `h1` and could not be touched: the only way
+                to disagree with "Everything — 5 Aug 2026" was to save the
+                list under it and rename it afterwards. `buildScrape` has read
+                `.s-build-name` since the page was written and nothing ever
+                rendered one — a scrape with no field, which is why the branch
+                below it (leave it alone and it keeps tracking the criteria;
+                type in it and it stops) has never once run.
+
+                Same input, so that branch works as written: while the value
+                still equals the derived name, `DRAFT.name` stays null and the
+                heading follows what you type into the criteria. The moment
+                you change it, it is yours and stops moving. */ ''}
+          <h1 class="s-sheet-name">${canWrite()
+            ? `<input class="s-build-name" type="text" spellcheck="false"
+                 value="${esc(buildName())}" data-auto="${esc(buildAutoName())}"
+                 aria-label="Name this list" />`
+            : esc(buildName())}</h1>
+        </div>
+      </div>
+
+      ${/* ══ THE SENTENCE IS TYPED WHERE EVERY SENTENCE IS TYPED ═══════════
+            A three-row textarea sat here asking "Who are you looking for?"
+            while the bar fixed to the foot of every surface in the product
+            asked the same thing in different words — two boxes on one screen,
+            and the first question of the interaction became "which box?",
+            which is the defect `floatPlaceholder`'s own note calls out about
+            the three inputs this product used to have.
+
+            So there is one box, and it is the one that was already there. The
+            page shows what it heard rather than holding the field you typed
+            it into, and the placeholder on the bar says what pressing Enter
+            will do — which is what that bar has always promised. */ ''}
+      ${DRAFT.said
+        ? `<p class="s-said">${esc(DRAFT.said)}</p>`
+        : `<p class="s-said is-empty">Say who you are after in the bar below — something like “${esc(eg)}”.</p>`}
+
+      ${terms.length ? `<div class="s-find-crit">
+        ${terms.map((c) => `<button class="chip active" type="button" data-bterm="${esc(critKey(c))}">${esc(critText(c))}<span class="s-crit-x" aria-hidden="true">×</span></button>`).join('')}
+      </div>` : ''}
+
+      ${buildSuggestBlock()}
+
+      <div class="s-build-foot">
+        <p class="s-build-total"><b>${hit}</b> of the ${netRows().length} I can reach match${
+          take ? `, and <b>${take}</b> of yours` : ''}. That models to about <b>${buildReach(buildTerms()).toLocaleString('en-GB')}</b> against a ${INDEX_MODEL.toLocaleString('en-GB')}-company index.</p>
+        ${canWrite() ? `<button class="entry-action em-direct s-build-go" type="button" data-bgo${hit + take ? '' : ' disabled aria-disabled="true"'}>Generate ${hit + take}</button>` : ''}
+      </div>`;
+  }
+
+  /* ══ ONE READER FOR A TYPED SENTENCE ═══════════════════════════════════
+     Both builders read what you typed through here, so "software companies in
+     Amsterdam" cannot mean one thing on the page and another in the thread.
+     `parseFilters` supplies the axis keys — it accumulates across categories
+     instead of taking one match each, which is the difference between reading
+     three criteria out of that sentence and reading one — and `readGoal`
+     supplies the headcount range, which `parseFilters` has no reader for. */
+  function readSaid(text, kind) {
+    /* ══ BOTH READERS, BECAUSE EACH KNOWS WHAT THE OTHER DOES NOT ═════════
+       `parseFilters` matches a sector by its KEY or its LABEL and accumulates
+       across categories, so it reads "logistics and banking" as two. It does
+       not know a synonym: "banks", "fintech", "hospitals", "hotels", "SaaS"
+       all fall straight through it, and "banks in london" came back as
+       nothing at all.
+
+       `GOAL_IND` is exactly that vocabulary — `/bank|insur|finance|fintech/`
+       and nine more — but `readGoal` stops at the FIRST match, so it reads
+       "logistics and banking" as one.
+
+       So: both, unioned. The accumulator supplies the breadth and the
+       synonyms supply the words people actually type. Two readers of one
+       sentence is a smell this file argues against elsewhere — the answer is
+       that they are two VOCABULARIES over one reading, not two readings. */
+    const got = parseFilters(text) || {};
+    const add = [];
+    (got.industry || []).forEach((k) => add.push({ axis: 'industry', val: k, label: label('industry', k), on: true }));
+    (got.city || []).forEach((c) => add.push({ axis: 'where', val: c, label: c, on: true }));
+    if (kind === 'con') (got.title || []).forEach((t) => add.push({ axis: 'title', val: t, label: t, on: true }));
+    readGoal(text).forEach((t) => {
+      if (t.axis === 'size' || t.axis === 'via' || t.axis === 'industry' || t.axis === 'where') add.push(t);
+    });
+    const seen = Object.create(null);
+    return add.filter((t) => {
+      const k = t.axis + ':' + t.val;
+      if (seen[k]) return false;
+      seen[k] = 1;
+      return true;
+    });
+  }
+
+  /* ══ THE LIST ARRIVES ONE AT A TIME ════════════════════════════════════
+
+     A search that returns instantly reads as a lookup; this one is going out
+     to four suppliers, and the rows landing one after another is what that
+     actually looks like. It is also the only moment the flow has to show its
+     work — after this the list simply exists.
+
+     Bounded, not per-row: the whole run takes about a second and a half
+     whether it brings back four rows or a hundred, so the animation never
+     becomes the thing you are waiting for. Under `prefers-reduced-motion` it
+     does not run at all — the rows are already there and the write happens
+     immediately, which is what that preference asks for. */
+  const STREAM_MS = 1500;
+  function buildRun() {
+    if (!canWrite() || !DRAFT) return;
+    buildScrape();
+    const rows = netMatched(buildTerms());
+    const take = [...DRAFT.take];
+    const total = rows.length + take.length;
+    if (!total) { toast('Nothing matches these criteria, so there is nothing to save.'); return; }
+    /* ══ THE STREAM COMMITS INTO A DRAFT, AND THE DRAFT IS WHERE YOU DECIDE
+       An interstitial preview stage sat between the stream and the list, with
+       the same Save and Discard verbs on it. Two places to make the same
+       decision, and the earlier one was blind to the enrichment gaps, the
+       campaign fits, and every other reading the list's own page produces —
+       so the deciding was moved to the page that shows the evidence. The run
+       now streams into a `drafted` list. */
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still) { buildCommit(); return; }
+    /* ══ A BOUNDED NUMBER OF TICKS, NOT ONE PER ROW ═══════════════════════
+       A row per tick is fine at eight and wrong at a hundred — and worse than
+       wrong in a background tab, where the browser clamps `setTimeout` to
+       about a second and a hundred rows would take a hundred seconds to
+       arrive. So the number of TICKS is fixed and each one appends however
+       many rows it has to. The run reads the same either way and cannot
+       outlast its own animation. */
+    const ticks = Math.min(total, 20);
+    DRAFT.run = {
+      rows, take, at: 0, total,
+      step: Math.ceil(total / ticks),
+      ms: Math.max(40, Math.round(STREAM_MS / ticks)),
+    };
+    paintBuild();
+    setTimeout(buildTick, DRAFT.run.ms);
+  }
+
+  function buildTick() {
+    if (!DRAFT || !DRAFT.run) return;
+    const r = DRAFT.run;
+    /* A short pause after the last row lands, so the transition to the
+       drafted list page does not swallow the last thing you saw stream. */
+    if (r.at >= r.total) { DRAFT.run = null; setTimeout(buildCommit, 400); return; }
+    const i = r.at;
+    r.at += 1;
+    /* Appended, not repainted. Re-rendering the whole page per row would
+       restart every animation on it and lose the caret if you were typing. */
+    const host = $('.s-stream');
+    if (host) host.insertAdjacentHTML('beforeend', buildStreamRow(i));
+    const n = $('.s-stream-n');
+    if (n) n.textContent = String(r.at);
+    if (host) host.scrollTop = host.scrollHeight;
+    setTimeout(buildTick, r.ms);
+  }
+
+  function buildStreamRow(i) {
+    const r = DRAFT.run;
+    if (i < r.rows.length) {
+      const c = r.rows[i];
+      return `<div class="s-stream-row">
+        <span class="s-stream-name">${esc(c.name)}</span>
+        <span class="s-stream-facts">${esc(c.city)} · ${esc(fmtSize(c.emp))} · founded ${esc(String(c.founded))}</span>
+      </div>`;
+    }
+    const rec = recBy(r.take[i - r.rows.length]);
+    if (!rec) return '';
+    return `<div class="s-stream-row is-yours">
+      <span class="s-stream-name">${esc(rec.name)}</span>
+      <span class="s-stream-facts">already yours · ${esc(label('status', statusOf(rec)))}</span>
+    </div>`;
+  }
+
+  function buildRunning() {
+    const r = DRAFT.run;
+    return `<div class="s-sheet-head">
+        <div class="s-sheet-head-main">
+          <div class="s-sheet-kind">${aiMark()}Looking</div>
+          ${/* The name stays editable through the stream so you have a spare
+                second to disagree with the derived one before the drafted
+                page takes over. */ ''}
+          <h1 class="s-sheet-name">${canWrite()
+            ? `<input class="s-build-name" type="text" spellcheck="false"
+                 value="${esc(buildName())}" data-auto="${esc(buildAutoName())}"
+                 aria-label="Name this list" />`
+            : esc(buildName())}</h1>
+        </div>
+      </div>
+      <p class="s-stream-cap">
+        <span class="s-stream-n">0</span> of ${r.total} · asked ${FINDERS.map(([w]) => esc(w)).join(' · ')}
+      </p>
+      <div class="s-stream"></div>`;
+  }
+
+
+
+  /* ══ THE COLUMNS A COMPANY SEARCH RETURNS ══════════════════════════════
+
+     Clay's own returns Name · Locations · Description · Primary industry ·
+     Size · Type · LinkedIn URL, and until now this row had four of the seven.
+     The three it was missing are the three that make a row worth reading
+     rather than scanning: what the company DOES, what shape it is, and a way
+     to go and look at it.
+
+     Not a table. There is no header, because every value says what it is on
+     its own — "3.6k staff", "founded 1817", "Public Company" — and a header
+     is the thing a table loses the moment you scroll. What replaces it is
+     rank: the name is the size of a heading, the description is body text,
+     and everything that qualifies them is a step below.
+
+     The whole row is a target. Selecting it and opening it are the two things
+     you do to a lead, and they are the two the rest of the product already
+     wires — `data-row` picks, `data-open` goes. */
+  /* ══ AND IT IS THE SAME ROW ONCE THE LIST IS SAVED ═════════════════════
+
+     Opening a saved list drew `leadRow` instead: a name, whatever was late
+     about it, an owner and a verb. On a list of people that produced rows
+     reading "Sofie van der Berg · site visit is 40 days past its date" — a
+     row about a person that would not say what she does, which company she
+     is at, or how to reach her. This row said all of it the moment the list
+     was generated, and the surface you actually work the list on threw it
+     away. Two anatomies for one record, and the thinner one where the time
+     goes.
+
+     So the list's own page draws this row too, unchanged in everything it
+     already said. A pass in between also folded the worklist's finding,
+     lateness and owner into it and that was the wrong instinct: `listHead`
+     and the reading directly above already state those over the whole set,
+     and a set an hour old repeated `UNTOUCHED · Nour Wael` down forty-five
+     rows — a column whose entire job is to be compared, holding a value that
+     separates nothing. What is true of all of them is said once, above them.
+
+     One thing is added, and only one: the move. See `go` below. */
+  function buildRow(rec, kind) {
+    const picked = SEL.has(rec.id);
+    const tick = canWrite() ? `<label class="s-pick-tick">
+        <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${picked ? ' checked' : ''}
+          aria-label="Pick ${esc(rec.name)}" />
+      </label>` : '<span class="s-brow-nopick"></span>';
+
+    /* ══ AND THE ONE MOVE, WHERE THE LIST IS BEING WORKED ═════════════════
+       The only thing this row gained when it became the list's own row as
+       well as the builder's. Everything else it already said — what they do,
+       where, how big, the addresses — was right, and a pass that also folded
+       the worklist's finding, lateness and owner into it was answering a
+       question nobody had asked: those four lines are what `listHead` and
+       the reading above already say about the set, and repeating them per
+       row is what a rail note two thousand lines up calls the defect.
+
+       `exitFor` names one thing to do about one record, so it goes under the
+       record rather than into a column of its own — a column made it a FIELD
+       to compare down the page, and charged every row without a move 192px
+       of reserved nothing to keep the figures beside it aligned.
+
+       It wears the mark because that is what it is: AiMY reading this row and
+       naming the next step. Same anatomy as the list card's recommendation,
+       which is the same claim at the scale of a whole list. Absent on a
+       record with nothing to answer, and absent for anyone who cannot write. */
+    const ex = canWrite() ? exitFor(rec) : null;
+    const ask = ex && FLAG_ASK[ex.k];
+    const go = ex ? `<span class="s-brow-ops">
+        <button class="s-insight-lnk s-ai-btn" type="button" data-exit="${esc(rec.id)}"
+          data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
+          data-aimy-topic="${esc(ex.k)}"
+          ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${aiMark()}${esc(ex.label)}</button>
+      </span>` : '';
+
+    if (kind === 'con') {
+      const acc = accOf(rec) || {};
+      return `<article class="s-brow${picked ? ' is-picked' : ''}" data-row="${esc(rec.id)}">
+        ${tick}
+        <span class="s-brow-main">
+          <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
+          <span class="s-brow-desc">${esc(rec.role || 'Role not known')}${acc.name ? ` at ${esc(acc.name)}` : ''}</span>
+          <span class="s-brow-facts">${[
+            acc.city || null,
+            acc.industry ? label('industry', acc.industry) : null,
+            rec.email || null,
+            rec.phone || null,
+          ].filter(Boolean).map(esc).join(' · ') || '<i>no email and no phone number</i>'}</span>
+          ${rec.li ? `<a class="s-brow-link" href="https://${esc(rec.li)}" target="_blank" rel="noopener">${esc(rec.li)}</a>` : ''}
+          ${go}
+        </span>
+        <span class="s-brow-side">
+          ${/* The email and the phone are already on the line above, so repeating
+                them here was the row saying one thing twice and the company's
+                legal type — which belongs to the company, not the person.
+
+                What a person is qualified BY is the company behind them and
+                what they would be bought for: the size decides whether they
+                are worth a call, and the service decides what the call is
+                about. Both are on the record already and neither was on the
+                row. */ ''}
+          <span class="s-brow-fig">${acc.emp == null ? '—' : esc(fmtSize(acc.emp))}</span>
+          <span class="s-brow-rev">${rec.svc ? `buys ${esc(label('service', rec.svc))}` : 'fit unknown'}</span>
+          <span class="s-brow-tag">${esc(label('status', statusOf(rec)))}</span>
+        </span>
+      </article>`;
+    }
+
+    const about = NET_ABOUT[rec.name];
+    const slug = String(rec.name).toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const li = `linkedin.com/company/${slug}`;
+    return `<article class="s-brow${picked ? ' is-picked' : ''}" data-row="${esc(rec.id)}">
+      ${tick}
+      <span class="s-brow-main">
+        <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
+        ${about ? `<span class="s-brow-desc">${esc(about[1])}</span>` : ''}
+        <span class="s-brow-facts">${[
+          label('industry', rec.industry),
+          rec.city || null,
+          rec.founded ? `founded ${rec.founded}` : null,
+        ].filter(Boolean).map(esc).join(' · ')}</span>
+        ${/* Both addresses, and both real links. A website rendered as text on
+              a row about a company you have never contacted is the one thing
+              on it you would actually click. */ ''}
+        <span class="s-brow-links">
+          ${rec.domain ? `<a class="s-brow-link" href="https://${esc(rec.domain)}" target="_blank" rel="noopener">${esc(rec.domain)}</a>` : ''}
+          <a class="s-brow-link" href="https://www.${esc(li)}" target="_blank" rel="noopener">${esc(li)}</a>
+        </span>
+        ${go}
+      </span>
+      <span class="s-brow-side">
+        <span class="s-brow-fig">${rec.emp == null ? '—' : esc(fmtSize(rec.emp))}</span>
+        ${/* Revenue sits under the headcount because it is the field the
+              enrichment offer above fills — and until this row drew it,
+              pressing "Get revenue" changed the header's percentage and
+              nothing you could see. */ ''}
+        <span class="s-brow-rev">${rec.rev == null ? 'revenue unknown' : esc(fmtMoney(rec.rev))}</span>
+        ${about ? `<span class="s-brow-tag">${esc(about[0])}</span>` : ''}
+      </span>
+    </article>`;
+  }
+
+  function buildRows(pool, kind) {
+    if (!pool.length) return '';
+    const shown = pool.slice(0, LIST_PAGE);
+    return `<div class="s-brows">${shown.map((r) => buildRow(r, kind)).join('')}</div>
+      ${pool.length > shown.length
+        ? `<button class="s-inline-btn" type="button" data-quick="${esc(`on=leads&srcref=${S.bsrc}&who=${kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=`)}">Open all ${pool.length} in the workbench</button>`
+        : ''}`;
+  }
+
+  /* ══ WHICH CAMPAIGN THIS LIST BELONGS TO ═══════════════════════════════
+     The last box of the drawn flow: add to a campaign, or make one, with AiMY
+     naming the ones that fit. Scored on what the campaigns already work —
+     a campaign is a fit for a list when the leads it already holds are the
+     same shape as the leads this list just brought in. Nothing is invented:
+     the overlap is counted off `campMembers`. */
+  function buildCampFit(src) {
+    const pool = listPool(src);
+    if (!pool.length) return [];
+    const inds = new Set(pool.map((a) => (a.industry || (accOf(a) || {}).industry)).filter(Boolean));
+    return DB.camp.map((c) => {
+      const mem = campMembers(c);
+      const share = mem.filter((a) => inds.has(a.industry)).length;
+      return { c, share, of: mem.length };
+    }).filter((x) => x.share && campState(x.c) !== 'finished')
+      .sort((a, b) => (b.share / (b.of || 1)) - (a.share / (a.of || 1)) || b.share - a.share)
+      .slice(0, 2);
+  }
+
+  /* ══ THE PAGE BECOMES THE LIST ═════════════════════════════════════════
+
+     The steps fold into one line of chips and the list takes the page. What
+     it does NOT do is draw a result grid of its own: `listHead` already
+     carries the name, the criteria and every verb a list has — assign, put it
+     in a campaign, run it again, let AiMY keep it up — and `grid` already
+     draws the real record cards. A second set would be a second thing to keep
+     in agreement, and the doctrine's rule against inventing a component that
+     already exists is exactly this case.
+
+     What is genuinely new is above them: the criteria still editable, what
+     the list arrived missing, and which campaign it suits. */
+  /* ══ WHAT AiMY CAN GO AND GET, FIELD BY FIELD ══════════════════════════
+     A list arrives thin by construction — headcount comes with the row and
+     revenue does not — and the old line said so as a complaint: "13 of the 13
+     arrived without headcount or revenue." True, and it left you to work out
+     what to do about it.
+
+     One offer per missing field instead, each naming the supplier that would
+     answer it and how often it does. `PROVIDERS` has carried those hit rates
+     since v4, and this is the first surface to ask them the useful question:
+     not "what is missing" but "what can you get, and how likely is it". */
+  const FILL_ASK = {
+    emp: ['headcount', 'sorted or scored'],
+    rev: ['revenue', 'sorted or scored'],
+    email: ['an email address', 'written to'],
+    phone: ['a phone number', 'rung'],
+  };
+  /* ══ THE OFFER FILLS THE LIST, IT DOES NOT OPEN A FLOW ═════════════════
+
+     `data-enrichlist` raises the enrichment run — a waterfall, a preview, a
+     confirm — which is the right shape when you are choosing WHO to enrich
+     out of a book of a hundred and eighteen. Here the answer is already
+     decided: AiMY has named the field, counted the rows, and said who would
+     answer it. Sending that to a chooser makes you re-answer a question you
+     have just answered by pressing.
+
+     So it fills, on the spot, on the field it named. One toast, one undo,
+     capturing the previous values by value — the same contract every other
+     writer in this file keeps. */
+  /* ══ AN ACTION THAT LOOKS SOMETHING UP SHOWS THAT IT DID ═══════════════
+     One second, and the control says what it is doing while it waits. Not
+     decoration: these offers name a supplier and a hit rate, and landing
+     instantly would make the supplier a fiction. Guarded by
+     `prefers-reduced-motion` — that preference asks for no waiting, not
+     slower waiting, so the work happens immediately. */
+  const BUSY_MS = 1000;
+  let BUSY = null;
+  function buildBusy(key, run) {
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still) { run(); return; }
+    BUSY = key;
+    /* The offers draw on the list's own page too now, and `paintBuild` only
+       ever repaints the builder — so the working state was invisible on the
+       surface where most of these get pressed. */
+    if (onBuild()) paintBuild(); else paint();
+    setTimeout(() => { BUSY = null; run(); }, BUSY_MS);
+  }
+
+  function buildFillNow(key, field) {
+    if (!canWrite()) return;
+    /* `book` is not a list and deliberately cannot be one: `DB.sourceBy` is
+       keyed by `src-…`, so the word can never collide with a real list. */
+    const src = key === 'book' ? null : DB.sourceBy[key];
+    if (key !== 'book' && !src) return;
+    const kind = src && src.kind === 'con' ? 'con' : 'acc';
+    const pool = src ? listPool(src) : maySee(DB.acc).filter((a) => !a.arch);
+    const missing = pool.filter((r) => (kind === 'con' ? !r[field] : r[field] == null));
+    if (!missing.length) { toast('Nothing is missing that here.'); return; }
+    const best = (PROVIDERS[field] || [])[0];
+    const src2 = best ? best[0] : 'AiMY crawl';
+    /* Captured before anything moves, so undo restores what was actually
+       there rather than what we assume was there. */
+    const was = missing.map((r) => [r, r[field], JSON.stringify(r.enrich || {})]);
+    missing.forEach((r) => {
+      if (field === 'rev') {
+        /* Modelled from headcount, which is what the provider with the best
+           hit rate on this field actually does — and it is stated as modelled
+           on the record rather than presented as filed. */
+        const per = { banking: 380e3, software: 240e3, logistics: 190e3 }[r.industry] || 220e3;
+        r.rev = r.emp == null ? null : Math.round(r.emp * per);
+      } else if (field === 'emp') {
+        r.emp = r.emp == null ? 250 : r.emp;
+      } else if (field === 'email') {
+        const acc = accOf(r) || {};
+        const bits = String(r.name || '').toLowerCase().split(' ');
+        if (acc.domain) r.email = `${bits[0]}.${bits[bits.length - 1]}@${acc.domain}`.replace(/[^a-z0-9.@-]/g, '');
+      } else if (field === 'phone') {
+        r.phone = `+31 ${20 + (hashId(r.id) % 60)} ${100 + (hashId(r.id) % 800)} ${1000 + (hashId(r.id) % 9000)}`;
+      }
+      r.enrich = Object.assign({}, r.enrich, {
+        [field]: { conf: field === 'rev' ? 'medium' : 'low', src: src2, at: iso(TODAY) },
+      });
+    });
+    reindex();
+    const noun = (FILL_ASK[field] || [field])[0];
+    paint();
+    toast(`Filled in ${noun} on ${plural(missing.length, kind === 'con' ? 'person' : 'organization')}.`, () => {
+      was.forEach(([r, v, en]) => { r[field] = v; r.enrich = JSON.parse(en); });
+      reindex(); paint();
+    });
+  }
+
+  /* ══ AND IT IS NOT ONLY ABOUT THE MISSING FIELDS ═══════════════════════
+
+     The block offered two rows and never a third: get the headcount, get the
+     revenue. Meanwhile the two biggest things AiMY had concluded about the
+     list were drawn as PROSE with no press attached — "1,222 more match its
+     criteria and were never brought in" sat in the rail as a sentence, and
+     "Financial services — Voice already works 10 of the same shape" sat on
+     the build page ending in the words "is one press below", which is an
+     insight pointing at a button instead of being one.
+
+     Every offer AiMY has about a list, in one place, each a sentence and the
+     press that answers it — which is what the doctrine asks of an insight
+     and what none of these three had all at once. */
+  /* ══ EVERYTHING AiMY HAS TO SAY ABOUT A LIST, IN ONE BLOCK ═════════════
+
+     There were two, stacked, four hundred pixels apart and both wearing the
+     mark: `What AiMY can do next` over the count line, `AiMY reads it` under
+     it. One was about the LIST — what is missing from it, what its criteria
+     matched and nobody took, whether anything works it. The other was about
+     the LEADS IN it — what is stuck, and how many. Two readings of one thing
+     by one reader, and the surface asked you to hold them apart yourself.
+
+     One block, and the merge is possible because both were already the same
+     shape underneath: a count, a clause, and the one verb that answers it.
+     `.s-finding` has drawn that triple since v5. So an offer is not a new
+     kind of row, it is a row with a different verb on the end — and the
+     verbs differ honestly, because picking a set and sending AiMY to a data
+     supplier are not the same act. The entry-mode ladder already says so:
+     selection is tier 3 and stays a bare uppercase link, going and getting
+     something is tier 2 and takes a border.
+
+     This returns the offer ROWS rather than markup, because the two callers
+     need them in different company: `grid` folds them in after the leads'
+     own findings, and the build page — where a list an hour old has no
+     findings at all — draws them alone. */
+  /* ══ ONE OFFER PER MISSING FIELD, FOR ANY SET AT ALL ═══════════════════
+     Lifted out of `listOffers` because the set with the most gaps in it is
+     not a list — it is the book. "Fill in the gaps" on the opener strip is
+     corpus-wide and had nowhere to send that press but the canvas, so the
+     one flow that fills a field in place, names the supplier and its hit
+     rate, and hands back an undo was reachable from a list and from nowhere
+     else. `scope` is what `data-fillnow` carries back: a source key, or
+     `book` for everything the reader may see. */
+  function fillOffers(scope, pool, kind) {
+    const rows = [];
+    (kind === 'con' ? ['email', 'phone'] : ['emp', 'rev']).forEach((f) => {
+      const missing = pool.filter((r) => (kind === 'con' ? !r[f] : r[f] == null));
+      if (!missing.length) return;
+      const best = (PROVIDERS[f] || []).slice().sort((a, b) => b[1] - a[1])[0];
+      const noun = FILL_ASK[f][0];
+      rows.push({
+        n: missing.length,
+        say: `no ${esc(noun.replace(/^an? /, ''))}, so they cannot be ${esc(FILL_ASK[f][1])}${
+          best ? `. ${esc(best[0])} answers <b>${best[1]}%</b> of the time` : ''}.`,
+        busy: `fill:${f}`,
+        busySay: `Asking ${(best && best[0]) || 'the suppliers'}…`,
+        act: `Get ${noun.replace(/^an? /, '')}`,
+        attr: `data-fillnow="${esc(scope)}|${esc(f)}"`,
+      });
+    });
+    return rows;
+  }
+
+  function listOffers(src, pool, kind, railSaid) {
+    const rows = fillOffers(src.k, pool, kind);
+
+    /* ── WHAT THE CRITERIA MATCHED AND NOBODY TOOK ──
+       `listGap` is the subtraction the index card makes and the list's own
+       page never did. It is usually the largest number on the surface. */
+    const gap = listGap(src);
+    if (gap) rows.push({
+      n: gap.toLocaleString('en-GB'),
+      /* Joined with a space, not the dash. The count is this sentence's
+         grammatical subject rather than a figure it is about — "1,222 more
+         matched" is one clause, and "1,222 — more matched" cuts it in half. */
+      flow: true,
+      say: 'more matched these criteria and were never brought in.',
+      busy: `more:${src.k}`,
+      busySay: 'Looking…',
+      act: 'Bring in more',
+      attr: `data-listrun="${esc(src.k)}"`,
+    });
+
+    /* ── AND WHO WOULD WORK IT ──
+       Only where nothing does. A list already inside a campaign has had this
+       question answered, and asking it again is the surface not reading its
+       own facts line.
+
+       No leading count, because the subject here is the LIST rather than a
+       number of records in it — and `0 — campaigns draw on this list` says
+       nothing twice. The finding leads and the campaigns that would suit it
+       follow as the evidence; written the other way round the sentence ran
+       "X already works 10 of the same shape, and Y already works 5 of the
+       same shape, and no campaign draws on this list", which is two
+       identical clauses and three `and`s before it reaches the fault. */
+    const fits = buildCampFit(src);
+    if (pool.length && !listUsedBy(src).length) rows.push({
+      n: null,
+      say: `<b>No campaign</b> draws on this list.${fits.length ? ` ${fits.map((f, i) => `<b>${esc(f.c.name)}</b> ${
+        i ? `works ${f.share}` : `already works ${f.share} leads of the same shape`}`).join(', and ')}.` : ''}`,
+      act: 'Start a campaign from it',
+      attr: `data-listcamp="${esc(src.k)}"`,
+    });
+
+    /* ══ AND NOT THE ONE THE RAIL IS ALREADY MAKING ══════════════════════
+       `listReading` ranks these same findings down to ONE and the rail draws
+       it, with the same press, four hundred pixels to the left. Without this
+       the gap row put "1,222 more match its criteria and were never brought
+       in" on screen twice in nearly the same words — the repeated derivation
+       the rail's own note argues against.
+
+       Matched on the attribute rather than on the text, so a change to
+       either sentence cannot quietly break the pairing. */
+    return railSaid ? rows.filter((r) => r.attr !== railSaid) : rows;
+  }
+
+  /* One row, whichever list it lands in — and the same join the finding rows
+     make, so a block holding both reads as one list of statements rather than
+     two kinds of thing that happen to share a container. `n` is optional (the
+     campaign offer's subject is the list, not a count of records) and `flow`
+     says the clause continues the number's own sentence rather than
+     commenting on it. */
+  function offerRow(o) {
+    return `<div class="s-finding">
+      <span class="s-finding-say">${o.n == null ? '' : `<b>${esc(String(o.n))}</b>${o.flow ? ' ' : ' — '}`}${o.say}</span>
+      ${canWrite() ? (o.busy && BUSY === o.busy
+        ? `<button class="s-finding-go is-busy" type="button" disabled>${esc(o.busySay)}</button>`
+        : `<button class="s-finding-go" type="button" ${o.attr}>${esc(o.act)}</button>`) : '<span></span>'}
+    </div>`;
+  }
+
+  /* ── The block on the build page, where there are no lead findings yet ──
+     A list minutes old has been touched by nobody, so `grid`'s half of this
+     has nothing to say and only the offers remain. Same block, same rows,
+     same mark — the lede is the only thing that differs, and it differs
+     because what is true differs. */
+  function buildFillBlock(src, pool, kind, railSaid) {
+    return fillBlockOf(listOffers(src, pool, kind, railSaid));
+  }
+
+  /* The markup, given rows from either door — the list's `listOffers` or the
+     book's `fillOffers`. Split out when the gap cut started drawing these,
+     because two blocks that must agree about what a gap is are one block. */
+  function fillBlockOf(offers, lede) {
+    if (!offers.length) return '';
+    return `<div class="s-findings is-panel">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY reads it
+      </p>
+      <p class="s-findings-say">${lede || listLede(0, 0, 0, offers.length)}</p>
+      <div class="s-findings-list">${offers.map(offerRow).join('')}</div>
+    </div>`;
+  }
+
+  /* ══ ONE SENTENCE OVER BOTH HALVES ═════════════════════════════════════
+     The leads' half and the list's half, joined or standing alone, so the
+     block opens with what is true of everything under it rather than with a
+     summary of one of its two kinds of row. Shared, because a lede that
+     disagreed with itself across two surfaces would be worse than two
+     blocks. */
+  function listLede(flagged, of, reasons, offers) {
+    const lead = flagged
+      ? (flagged === of
+          ? `<b>${plural(reasons, 'different reason')}</b> between them`
+          : `<b>${flagged} of the ${of}</b> ${flagged === 1 ? 'needs' : 'need'} something doing, for <b>${plural(reasons, 'different reason')}</b>`)
+      : '';
+    const rest = offers
+      ? `there ${offers === 1 ? 'is' : 'are'} <b>${plural(offers, 'thing')}</b> I can do about the list itself`
+      : '';
+    if (lead && rest) return `${lead} — and ${rest}.`;
+    if (lead) return `${lead}.`;
+    return `<b>Nothing on it needs chasing</b>, and ${rest}.`;
+  }
+  function buildDone(src) {
+    const pool = listPool(src);
+    const kind = src.kind === 'con' ? 'con' : 'acc';
+
+    return `<div class="s-build-done">
+      ${/* ══ THE CRITERIA ARE STATED ONCE, BY THE HEADER ═══════════════════
+            A chip row and `Change the criteria` sat above `listHead`, which
+            draws those same criteria as its own editable line eight pixels
+            below — the same facts twice, and two different ways to change
+            them adjacent to each other: the chips reopened the builder at the
+            step a term came from, the line edits the string in place.
+
+            Three ways, in fact. `Look for more like these` in the header
+            reopens the builder with exactly the terms the chips loaded, which
+            is the same act with a name that says what it is for. So the row
+            goes, `data-bedit` goes with it, and what is left is the line that
+            says what the list collects and the verb that runs it again. */ ''}
+      ${listHead(src, pool)}
+
+      ${/* WHAT IT ARRIVED MISSING, before anybody tries to work it. Headcount
+            comes with the row and revenue does not, so a list is born thin by
+            construction — saying so here is the difference between finding
+            out now and finding out on the first call. */ ''}
+      ${/* The campaign fit used to be a second block here, ending in the
+            words "is one press below" — an insight pointing at a control
+            rather than carrying one. It is a row of the block above now,
+            with the press attached. */ ''}
+      ${buildFillBlock(src, pool, kind)}
+
+      ${buildRows(pool, kind)}
+    </div>`;
+  }
+
+
+  /* ══ THE SAME FLOW, ASKED RATHER THAN FILLED IN ════════════════════════
+
+     The page and this are two ways of answering one set of questions. They
+     read the same axes through the same reader, count the same way, and end
+     in the same write — what differs is only who speaks first.
+
+     AND NEITHER OF THEM OFFERS A MENU. The first cut of this asked one
+     multiple-choice question per axis: Industry? six chips. Headcount? five.
+     A conversation made of buttons is a form with a chat bubble around it,
+     and it made you recognise the product's vocabulary before you were
+     allowed to use yours. So AiMY asks, you type, and it reads back what it
+     understood with the count attached. The only things you can press are the
+     two actions that are not answers: go now, or take it to the page.
+
+     Stored turns, not a stack of panels: only one `canvasWork` may be live,
+     and a `.s-work` block is DOM-only, so any `toast()` repaints the thread
+     from the stored turns and destroys it. The single decidable block is
+     therefore the last thing that happens. `CBUILD` is the shape this
+     copies. */
+  let LBUILD = null;
+
+  /* Which turn steps belong to this build rather than to the campaign one.
+     `turnHtml` reads it to decide whether an option writes `data-lbuild` or
+     `data-cbuild` — the two conversations share one renderer and one thread,
+     so the step name is the only thing telling them apart. A literal list,
+     because `wiring-audit` matches literal attributes and a name assembled at
+     runtime is a control it cannot pair with its handler. */
+  const LB_STEPS = ['lb-kind', 'lb-said', 'lb-name'];
+
+  function lbuildPush(step, text, opts, hint) {
+    threadPush({ who: 'aimy', text, build: { step, opts: opts || [], hint: hint || '' } });
+  }
+  function lbuildSpend() {
+    thread$().forEach((t) => { if (t.build) t.build.spent = true; });
+  }
+
+  const lbuildMatched = () => netMatched(LBUILD ? LBUILD.terms : []).length;
+
+  /* The two things you can press, and neither is an answer. One leaves for
+     the page carrying everything said so far; the other says you are done
+     talking. Every turn has them, from the first — the earliest useful moment
+     to leave a conversation is before it has asked you anything. */
+  const LB_OUT = { k: 'open', label: 'Open the builder instead', quiet: true };
+  const LB_GO = { k: 'go', label: 'That is enough — look now' };
+
+  const lbuildSay = () => {
+    const hit = lbuildMatched();
+    return `${hit} of the ${netRows().length} I can reach match, which models to about ${buildReach(LBUILD.terms).toLocaleString('en-GB')} against a ${INDEX_MODEL.toLocaleString('en-GB')}-company index.`;
+  };
+
+  const lbuildAutoName = () => {
+    const on = LBUILD.terms.filter((t) => t.on && !AX_BY[t.axis].quiet && t.axis !== 'quality');
+    return `${on.length ? on.map((t) => t.label).join(', ') : 'Everything'} — ${fmtDate(iso(TODAY))}`;
+  };
+
+  /* ── What is still open, said as a nudge rather than asked as a question ──
+     An axis nobody has named is not a blocker; it is the next useful thing to
+     say. Naming ONE keeps the turn a sentence instead of a checklist, and it
+     is the axis that would narrow hardest — the one with the most options
+     that still return something. */
+  function lbuildNudge() {
+    const open = buildAxes().filter((ax) => {
+      if (ax.k === 'quality' || ax.k === 'via') return false;
+      if (ax.people && LBUILD.kind !== 'con') return false;
+      if (LBUILD.terms.some((t) => t.on && t.axis === ax.k)) return false;
+      const c = axisCounts(ax, LBUILD.terms);
+      const live = ax.rows().filter(([v]) => c[v]).length;
+      return live > 1;
+    });
+    if (!open.length) return '';
+    const ax = open[0];
+    return ax.k === 'size' ? ' You have not said how big — say a size and I will narrow it.'
+      : ax.k === 'where' ? ' You have not said where — name a city and I will narrow it.'
+      : ax.k === 'industry' ? ' You have not said a sector — name one and I will narrow it.'
+      : ax.k === 'title' ? ' You have not said what they do — name a job title and I will narrow it.'
+      : ` Say a ${ax.name.toLowerCase()} and I will narrow it.`;
+  }
+
+  /* Everything AiMY has understood so far, read back with the count. Said
+     after every sentence, because a reader who cannot see what was understood
+     has no way to correct it. */
+  function lbuildReport(readBack) {
+    LBUILD.step = 'said';
+    lbuildSpend();
+    const hit = lbuildMatched();
+    const has = LBUILD.terms.filter((t) => t.on).map((t) => t.label).join(', ');
+    const head = readBack
+      ? `Read that as ${readBack}.`
+      : (has ? `So far: ${has}.` : '');
+    if (!hit) {
+      lbuildPush('lb-said', `${head} Nothing in the index matches all of that. Take something back off it and I will look again.`,
+        [{ k: 'reset', label: 'Start the criteria again' }, LB_OUT],
+        'Or say it differently.');
+      paintTalk();
+      return;
+    }
+    lbuildPush('lb-said', `${head} ${lbuildSay()}${lbuildNudge()}`,
+      [LB_GO, LB_OUT],
+      'Say anything else that narrows it, or say go.');
+    paintTalk();
+  }
+
+  function lbuildName() {
+    LBUILD.step = 'name';
+    lbuildSpend();
+    lbuildPush('lb-name', `${lbuildSay()} What should the list be called?`,
+      [{ k: 'name-auto', label: `Call it “${lbuildAutoName()}”` }, LB_OUT],
+      lbuildAutoName());
+    paintTalk();
+  }
+
+  /* ══ NAMING IT IS THE LAST THING THE CONVERSATION DOES ═════════════════
+
+     This used to end in a `canvasWork` holding its own preview — a second
+     list renderer, inside a panel that caps at `min(72vh, 520px)`, showing
+     twelve of the rows the page was about to show properly. Two renderers of
+     one thing is the duplication this whole rebuild exists to remove, and the
+     panel was the worse of the two: no actions on it, no enrichment offer, no
+     reading, and a scrollbar.
+
+     So the answer to "what should it be called" is the last turn. Everything
+     said is carried into the page's own draft, the canvas closes, and the
+     build runs there — streaming, then the list with its actions, its
+     enrichment offers and AiMY's reading of it.
+
+     Naming the thing IS the commit gesture: you have been shown the count on
+     every turn, and the write still lands through `buildCommit` with a toast
+     and an undo, which is the same contract the page keeps. */
+  function lbuildConfirm(name) {
+    LBUILD.name = name;
+    lbuildSpend();
+    threadPush({ who: 'you', text: name });
+    paintTalk();
+    const over = {
+      terms: LBUILD.terms, name, kind: LBUILD.kind, camp: LBUILD.camp, step: 3,
+    };
+    LBUILD = null;
+    closeCanvas();
+    buildOpen(over);
+    /* After the page is on screen, so the rows stream onto the surface that
+       will keep them rather than into a panel that is about to close. */
+    buildRun();
+  }
+
+  function lbuildStart(over) {
+    if (!canWrite()) return;
+    LBUILD = {
+      kind: (over && over.kind) || null,
+      terms: (over && over.terms) ? over.terms.map((t) => ({ ...t })) : [],
+      camp: (over && over.camp) || null,
+      name: '', step: 'kind',
+    };
+    go({ chat: 'listbuild', on: S.on });
+    THREADS.listbuild = [];
+    SESSIONS.listbuild = { title: 'Building a list', at: iso(TODAY), state: qs() };
+    lbuildPush('lb-kind',
+      'Are you collecting companies, or the people at them?',
+      [{ k: 'kind:acc', label: 'Companies' }, { k: 'kind:con', label: 'People' }, LB_OUT],
+      'Or just say who you are after and I will work out which.');
+    openCanvas();
+    paintTalk();
+    const box = $('#overlayInput');
+    if (box) box.focus();
+  }
+
+  /* ── One sentence, read through the reader the page uses ──
+     So a form of words cannot mean one thing here and another there. The
+     first sentence also settles what you are collecting, because "the QA
+     managers at Dutch software companies" says both at once and asking again
+     would be the surface not having read it. */
+  function lbuildRead(text) {
+    const t = String(text || '');
+    if (!LBUILD.kind) {
+      LBUILD.kind = /\b(people|person|contact|manager|director|head of|vp|lead|title)\b/i.test(t) ? 'con' : 'acc';
+    }
+    const add = readSaid(t, LBUILD.kind);
+    const have = (x) => LBUILD.terms.some((y) => y.axis === x.axis && y.val === x.val);
+    const fresh = add.filter((x) => !have(x));
+    fresh.forEach((x) => LBUILD.terms.push(x));
+    threadPush({ who: 'you', text: t });
+    if (!fresh.length && !LBUILD.terms.length) {
+      lbuildSpend();
+      lbuildPush('lb-said', `I can search ${netRows().length} Dutch companies by sector, size, city and founding year — nothing outside the Netherlands is in reach. Try “logistics companies over 1000 staff in Rotterdam”.`,
+        [LB_OUT], 'Banking companies in Amsterdam with 200 to 1000 staff');
+      paintTalk();
+      return;
+    }
+    lbuildReport(fresh.length ? fresh.map((x) => x.label).join(', ') : null);
+  }
+
+  /* ══ ONE SHELL, TWO STATES ═════════════════════════════════════════════
+     Before it is saved the page is the steps; afterwards it is the list they
+     produced, with the criteria still above it. One `.s-back` either way —
+     `wiring-audit` asserts exactly one per page renderer, and two branches
+     each drawing their own would be two. */
+  function buildPage() {
+    const src = S.bsrc ? DB.sourceBy[S.bsrc] : null;
+    if (!src && !DRAFT) buildStart();
+    return `<div class="s-rec s-camp-page s-build-page">
+      <div class="s-rec-main">
+        <button class="s-back" type="button" data-close-build>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          ${esc(backLabel())}
+        </button>
+        ${src ? buildDone(src) : (DRAFT.run ? buildRunning() : buildStage())}
       </div>
     </div>`;
   }
 
-  function paintFind(seedFrom) {
-    /* Every chip press re-renders the sheet, and the description is an
-       input inside it — so what you had half-typed goes back to state
-       before it is thrown away. Losing a sentence to a click on something
-       else is the kind of small betrayal that stops people typing. */
-    const typed = $('.s-find-said');
-    if (typed && FIND_FROM) FIND_FROM.said = typed.value;
-    canvasWork({
-      title: FIND_FROM && FIND_FROM.kind === 'again'
-        ? `Run ${FIND_FROM.name} again`
-        : FIND_FROM && FIND_FROM.kind === 'goal'
-        ? `Find companies for ${FIND_FROM.name}`
-        : 'Find companies like the ones you have won',
-      /* THE LEDE SAYS WHERE THE CRITERIA CAME FROM. Read off a stated goal
-         and guessed at from won deals are different claims, and a block that
-         renders them in the same sentence is asking to be trusted equally
-         for both. */
-      lede: FIND_FROM && FIND_FROM.kind === 'again'
-        ? `The criteria that made ${FIND_FROM.name}, unchanged. Rewrite the description or take a criterion away — the count moves as you do.`
-        : FIND_FROM && FIND_FROM.kind === 'goal'
-        ? `Read off ${FIND_FROM.name}’s goal. Rewrite it and I read it again, or add a criterion I would not have thought of.`
-        : 'No campaign goal to read, so this starts from what you have won. Rewrite it and I read it again.',
-      body: findBody(),
-      effects: (() => {
-        const c = FIND_FROM && FIND_FROM.camp ? DB.campBy[FIND_FROM.camp] : null;
-        const dropped = FIND_DROP.size;
-        /* The two `skip` lines here were the clearest case in the product:
-           "Nobody is contacted" and "The rest of the matches are not
-           imported" — two sentences ruling out things the surface never
-           offered, on a write the toast can undo. The `ok` line went with
-           them, because "8 companies join the book as a new list" is what
-           the confirm button says.
+  /* Repaint in place. A criterion is not a navigation, so it does not go
+     through `go()` — but the live fields have to be rescued into the draft
+     first or a chip press would throw away the name you were typing, which is
+     the small betrayal `paintFind` learned to avoid two versions ago. */
+  /* The way in. One function rather than six call sites writing the same
+     `go()` payload, because the other doors into list-making all land here in
+     the next phase and a payload copied six times is six places to forget a
+     key. */
+  function buildOpen(over) {
+    if (!canWrite()) return;
+    buildStart(over);
+    go({ on: 'build', bstep: String((over && over.step) || 2), bsrc: '',
+      bkind: (over && over.kind === 'con') ? 'con' : '',
+      /* `stage` and `in` clear with the rest. They are narrowings INSIDE a
+         campaign, and arriving here from one left `stage=find` on a page that
+         has no stages — the same reason `data-camp` clears them. */
+      /* And `chat`, because arriving here from the conversation means the
+         conversation handed over — leaving its key would reopen a thread whose
+         questions this page is now answering. */
+      camp: '', lead: '', task: '', tab: '', cut: '', srcref: '', stage: '', in: '', chat: '',
+      /* `keepFrom` was for `data-bedit`, which reopened this page FROM this
+         page — the referrer had to survive or Back looped. Every caller left
+         arrives from somewhere else, so the referrer is always this hop. */
+      from: hereRef('on', 'bstep', 'bkind', 'bsrc', 'camp', 'lead', 'task', 'tab', 'cut', 'srcref', 'stage', 'in') });
+  }
 
-           The dropped count is a `warn` and keyed, so it rewrites as you
-           drop rows — it is the live preview of a decision being made, which
-           is the one case `effectsBlock` always draws. It says the rows are
-           gone from THIS list rather than from the book, because a person
-           who has just pressed × four times wants to know they have not
-           deleted four companies. */
-        return [
-          dropped ? ['warn', `${plural(dropped, 'row')} dropped — they stay in the search, not in this list.`, 'findDrop'] : null,
-          c ? ['ok', `They join ${c.name}, which moves to Enrich.`]
-            : ['ok', 'Headcount, sector and domain only.'],
-        ];
-      })(),
-      needs: '.s-find-name', needsSay: 'The list needs a name.',
-      reversible: 'Undoable',
-      /* SAVE, not "bring in". The rows have been yours to change since the
-         preview became the set, so the press is the moment the list becomes
-         a thing rather than the moment the search happens. */
-      confirm: `Save ${netKept().length}`,
-      run() {
-        const name = (($('.s-find-name') || {}).value || '').trim();
-        if (!name) { toast('The list needs a name. Nothing was imported.'); return false; }
-        const rows = netKept();
-        if (!rows.length) { toast('Every row was dropped, so there is nothing to save.'); return false; }
-        /* Who works it, chosen here rather than found later. Falls back to
-           the person doing the saving, which is what it always was. */
-        const by = (($('.s-find-by:checked') || {}).value) || me().id;
-        const camp = FIND_FROM && FIND_FROM.camp ? DB.campBy[FIND_FROM.camp] : null;
-        /* RE-RUNNING WRITES BACK INTO THE LIST IT CAME FROM. Anything else
-           leaves you with two lists of the same name and no way to tell
-           which one a campaign is built on. */
-        const again = FIND_FROM && FIND_FROM.src ? DB.sourceBy[FIND_FROM.src] : null;
-        const key = again ? again.k : 'src-new-' + (DB.source.length + 1);
-        const before = DB.acc.length;
-        const wereMembers = camp ? camp.members.slice() : null;
-        const wasList = again ? { name: again.name, crit: again.crit, found: again.found, imported: again.imported, by: again.by } : null;
-        const crit = FIND_CRIT.filter((c) => c.on).map((c) => c.label).join(' · ');
-        /* Which supplier the search named, if it named one. Read once: it
-           decides what the list is billed for AND how the rows record their
-           arrival, and those two must not be able to disagree. */
-        const liFind = (FIND_CRIT.filter((c) => c.on && c.via)[0] || {}).via || null;
-        if (again) {
-          /* A re-run may hand the list on. It is the same surface asking the
-             same question, and refusing to honour the answer on a continuation
-             would make the field mean "who works it, unless this list already
-             existed" — which nothing on screen says. */
-          again.name = name; again.crit = crit; again.by = by;
-          again.found = findCount(); again.imported += rows.length;
-        } else {
-          DB.source.push({ k: key, name, by, at: iso(TODAY), auto: false,
-            /* Which suppliers answered. Recorded on the list rather than per
-               row, because a query goes to all three and the rows come back
-               merged — claiming a vendor per company would be a precision
-               the flow does not have. */
-            /* Unless a `via` criterion named one, in which case that is
-               the only supplier asked and the only one billed. */
-            via: liFind ? [liFind] : FINDERS.map(([n]) => n),
-            /* Which campaign's search made this, so the next press of Find
-               them continues it instead of forking a twin. */
-            for: camp ? camp.k : null,
-            crit, found: findCount(), imported: rows.length });
-        }
-        rows.forEach((row, i) => {
-          const [nm, domain, city, emp, founded, industry] = row;
-          const id = 'an' + i + '-' + key;
-          DB.acc.push({
-            id, kind: 'acc', name: nm, domain, city, country: 'Netherlands',
-            emp, founded, industry, region: 'nl', rev: null, svc: 'qa', icp: null,
-            /* THE ROWS BELONG TO WHOEVER WORKS THE LIST, not to whoever
-               ran the search. They were `me()` unconditionally, so handing a
-               list on at the moment of saving would have given somebody a
-               list of records owned by you — and `standing()`, the team
-               board and every "mine" filter read that owner. */
-            /* The arrival matches the supplier that produced it. A search
-               run on Sales Navigator that saved its rows as "AiMY scrape"
-               would put the cost on one channel and the credit on another,
-               and the source filter would then never find them. */
-            src: liFind ? 'linkedin' : 'scrape', srcRef: key, owner: by, shared: [],
-            next: null, outcome: null, outcomeWhy: null, arch: false,
-            enrich: { emp: { conf: 'high', src: 'Company register', at: iso(TODAY) }, founded: null, rev: null },
-          });
-          /* ══ THEY LAND ON THE CAMPAIGN THAT ASKED FOR THEM ═══════════════
-               The search used to end on the leads surface behind a source
-               filter, and joining them to the campaign was a second flow
-               from a third place — which is how getting leads onto a
-               campaign came to cost eight moves across four surfaces. If a
-               campaign asked, the campaign receives. */
-          if (camp) camp.members.push(id);
+  /* ══ THE LIVE FIELDS GO INTO THE DRAFT BEFORE ANYTHING READS IT ════════
+     Every repaint and every write has to do this first, and it is one
+     function because doing it in only one of them is the bug it was written
+     for: typing a name, choosing an owner and pressing Generate saved the
+     generated name and gave the list to whoever was signed in, because the
+     commit read state that only the repaint ever wrote.
+
+     The name counts as yours only once it differs from what the criteria
+     would have written — otherwise opening step 5 and closing it again would
+     freeze an auto-name that should have kept following the chips. */
+  function buildScrape() {
+    if (!DRAFT) buildStart();
+    /* The sentence is no longer a field on this page — it arrives through the
+       one input at the foot of the surface, and `runInput` writes it. */
+    const nm = $('.s-build-name');
+    /* ══ AGAINST THE NAME THE FIELD WAS DRAWN WITH ═══════════════════════
+       "Untouched" means the box still holds what this page put in it, and
+       that has to be compared with the derived name AS IT WAS AT RENDER —
+       not as it is now. Reading a new sentence changes the derived name
+       before the repaint, so comparing against the live value made every
+       first sentence freeze the heading at "Everything — 5 Aug 2026": the
+       box held the old derivation, the function returned the new one, they
+       differed, and the scrape concluded somebody had typed it. */
+    if (nm) DRAFT.name = (DRAFT.name == null && nm.value === (nm.dataset.auto || '')) ? null : nm.value;
+    const by = $('.s-build-by:checked');
+    if (by) DRAFT.by = by.value;
+  }
+
+  function paintBuild() {
+    buildScrape();
+    /* Where the caret was, if it was in the name. The page re-renders whole —
+       one `innerHTML` write, like every other surface here — so a repaint
+       triggered by anything else would otherwise drop you out of it mid-word.
+       It was the sentence field this guarded; that field has gone to the bar
+       at the foot of the surface, which no repaint of the stage touches. */
+    const was = $('.s-build-name');
+    const sel = was && document.activeElement === was
+      ? [was.selectionStart, was.selectionEnd] : null;
+    const stage = $('#wbStage');
+    if (stage) stage.innerHTML = buildPage();
+    if (sel) {
+      const now = $('.s-build-name');
+      if (now) { now.focus(); try { now.setSelectionRange(sel[0], sel[1]); } catch (err) { /* older engines */ } }
+    }
+  }
+
+  /* ══ IT READS WHAT YOU SAID ════════════════════════════════════════════
+     Terms that came out of the sentence are replaced by the new reading;
+     anything you accepted from a suggestion is not, which is what makes the
+     two kinds of criteria behave the way they look.
+
+     No debounce any more, and no `input` listener. Both existed because this
+     read a textarea as you typed; the sentence now arrives whole, on Enter,
+     from the bar at the foot of the surface. `force` is for that caller: a
+     sentence reworded into the same criteria still has to repaint, because
+     the page shows the sentence back. */
+  function buildReadLive(force) {
+    if (!DRAFT) return;
+    buildScrape();
+    const said = String(DRAFT.said || '').trim();
+    const kept = DRAFT.terms.filter((t) => t.from !== 'said');
+    const add = said ? readSaid(said, buildKind()) : [];
+    const have = (t) => kept.some((x) => x.axis === t.axis && x.val === t.val);
+    const next = kept.concat(add.filter((t) => !have(t)).map((t) => ({ ...t, from: 'said' })));
+    const same = next.length === DRAFT.terms.length
+      && next.every((t, i) => DRAFT.terms[i] && DRAFT.terms[i].axis === t.axis && DRAFT.terms[i].val === t.val);
+    if (same && !force) return;
+    DRAFT.terms = next;
+    paintBuild();
+  }
+
+  /* ══ ONE WRITE, AND BOTH BUILDERS WILL CALL IT ═════════════════════════
+
+     The page and the canvas are two ways of answering the same questions, so
+     they must not be two ways of writing the answer. Everything the drawn
+     flow ends in — the list, its criteria, its members, the leads you merged
+     in from your own book — is written here and nowhere else.
+
+     `srcSeq` rather than `DB.source.length + 1`: the old key collided after
+     an undo, because undo removes the source, the length drops back, and the
+     next save reuses the key of the list you just took away. */
+  let srcSeq = 0;
+
+  /* ══ INDEX ROWS BECOME RECORDS, WHOEVER ASKED ══════════════════════════
+     `buildCommit` did this inline, and then re-running a saved list needed
+     the identical thing under an existing key — the accounts, and on a
+     people list the one or two people at each of them, at the fixture's own
+     reachability rates. Two copies of a write is two copies that drift, so
+     it is one function and both callers pass their own starting index.
+
+     `at` is that index, and it is why the ids are what they are: `ab3-src-x`
+     has to stay unique when the same list is re-run twice, so the second run
+     starts numbering where the first stopped rather than from zero. */
+  function makeRows(key, rows, o) {
+    const accs = [];
+    const cons = [];
+    rows.forEach((r, n) => {
+      const i = o.at + n;
+      const accId = 'ab' + i + '-' + key;
+      accs.push({
+        id: accId, kind: 'acc', name: r.name, domain: r.domain,
+        city: r.city, country: 'Netherlands', emp: r.emp, founded: r.founded,
+        industry: r.industry, region: 'emea', rev: null, svc: 'qa', icp: null,
+        src: o.liFind ? 'linkedin' : 'scrape', srcRef: key, owner: o.by, shared: [],
+        next: null, outcome: null, outcomeWhy: null, arch: false,
+        enrich: { emp: { conf: 'high', src: o.liFind || 'AiMY scrape', at: iso(TODAY) }, founded: null, rev: null },
+      });
+      if (o.kind !== 'con') return;
+      /* One or two people per company, at the roles asked for. The seeded rng
+         is keyed off the index so the same search twice returns the same
+         people — a list that reshuffled on re-run would be a different list
+         wearing the same name. */
+      const rr = rngAt(1000 + i);
+      const pool2 = o.wantTitles.length ? ROLES.filter((x) => o.wantTitles.indexOf(x.t) >= 0) : ROLES;
+      const howMany = pool2.length === 1 ? 1 : (rr() < 0.45 ? 2 : 1);
+      for (let c = 0; c < howMany; c++) {
+        const role = pool2[Math.floor(rr() * pool2.length)] || ROLES[0];
+        const given = GIVEN[Math.floor(rr() * GIVEN.length)];
+        const sur = SURNAME[Math.floor(rr() * SURNAME.length)];
+        const slug = `${given}.${sur}`.toLowerCase().replace(/[^a-z.]/g, '');
+        cons.push({
+          id: 'pb' + i + '-' + c + '-' + key, kind: 'con', acc: accId,
+          srcRef: key, name: `${given} ${sur}`, role: role.t, svc: role.svc,
+          /* The rates a scraped arrival actually gives you, from the fixture's
+             own note: 42% email, 34% phone. Thin by construction. */
+          email: rr() < 0.42 ? `${slug}@${r.domain}` : null,
+          phone: rr() < 0.34 ? `+31 ${20 + Math.floor(rr() * 60)} ${100 + Math.floor(rr() * 800)} ${1000 + Math.floor(rr() * 9000)}` : null,
+          li: rr() < 0.8 ? `linkedin.com/in/${slug}` : null,
+          owner: o.by, shared: [], next: null, outcome: null, outcomeWhy: null,
+          arch: false, enrich: { email: null },
         });
-        reindex();
-        if (camp) {
-          go({ on: 'campaigns', camp: camp.k, stage: campStage(camp), lead: '', status: [], industry: [], size: [] });
-        } else {
-          go({ on: 'leads', srcref: key, task: '', status: [], obstacle: [], opp: [], campaign: [], ids: [], loose: '', q: '' });
-        }
-        paintChrome();
-        /* Names the person when it is not you. Saying "and it is yours" on
-           every save would be telling somebody a thing they just decided;
-           saying nothing when it went to Sara would hide the one consequence
-           of this press they cannot see from where they are standing. */
-        const to = by === me().id ? '' : `, for ${actor(by).name}`;
-        toast(camp ? `${plural(rows.length, 'company')} on ${camp.name}${to}.`
-          : again ? `${plural(rows.length, 'company')} added to “${name}”${to}.`
-          : `${plural(rows.length, 'company')} in “${name}”${to}.`, () => {
-          DB.acc.length = before;
-          /* UNDO PUTS A RE-RUN BACK, IT DOES NOT DELETE THE LIST. Removing
-             `key` unconditionally would have taken a list that existed
-             before this run with it — the run added rows to it, so undoing
-             the run means restoring its counts, not erasing it. */
-          if (again) Object.assign(again, wasList);
-          else DB.source = DB.source.filter((s) => s.k !== key);
-          if (camp) camp.members = wereMembers;
-          reindex();
-          go(camp ? { on: 'campaigns', camp: camp.k, stage: 'find' }
-            : again ? { on: 'leads', srcref: again.k } : { on: 'briefing', srcref: '' });
-          paintChrome();
-        });
-      },
+      }
+    });
+    return { accs, cons };
+  }
+
+  function buildCommit() {
+    if (!canWrite()) return;
+    if (!DRAFT) return;
+    buildScrape();
+    const name = String(buildName() || '').trim();
+    if (!name) { toast('The list needs a name. Nothing was saved.'); return; }
+    const kind = buildKind();
+    /* People are not in the index — it holds companies. A people list is
+       built from the people you already hold, which is what step 4 offers and
+       what `has` records. Companies come from both. */
+    const rows = buildMatched().filter((r) => !DRAFT.drop.has(r.name));
+    const take = [...DRAFT.take];
+    if (!rows.length && !take.length) {
+      toast('Nothing matches these criteria, so there is nothing to save.');
+      return;
+    }
+    const by = DRAFT.by || me().id;
+    const terms = buildTerms().filter((t) => t.on).map((t) => ({ ...t }));
+    const liFind = (terms.filter((t) => t.axis === 'via')[0] || {}).val || null;
+    const key = 'src-b' + (++srcSeq) + '-' + Date.now().toString(36).slice(-4);
+    const before = DB.acc.length;
+
+    const srcRec = {
+      k: key, name, by, at: iso(TODAY), auto: false,
+      kind, has: take.slice(),
+      via: liFind ? [liFind] : FINDERS.map(([w]) => w),
+      /* Which campaign's search made this, so the next press continues it
+         instead of minting a second list with the same name — the twin defect
+         this file has fixed once already, on the path it did not then walk. */
+      for: DRAFT.camp || null,
+      /* Both: `terms` is what a re-run reads, `crit` is what every existing
+         reader renders. One is derived from the other, so they cannot
+         disagree the way a hand-written string and its parse used to. */
+      terms, crit: critLine(terms),
+      /* `imported` is corrected below once the people exist. A people build
+         writes its contacts after this record, so counting them here is not
+         possible and counting the companies instead was wrong. */
+      found: buildReach(terms), imported: rows.length + take.length,
+    };
+    DB.source.push(srcRec);
+
+    /* Which titles this list is about, so a people build narrows to them
+       rather than returning whoever the generator happened to make. */
+    const wantTitles = terms.filter((t) => t.axis === 'title').map((t) => t.val);
+    const built = makeRows(key, rows, { kind, by, liFind, wantTitles, at: 0 });
+    const made = built.cons;
+    built.accs.forEach((a) => DB.acc.push(a));
+    made.forEach((p) => DB.con.push(p));
+
+    /* ══ "N BROUGHT IN" COUNTS WHAT THE LIST HOLDS ═══════════════════════
+       A people build makes one or two contacts per company, so the number
+       of companies its search matched is not the size of the list — six
+       companies can be nine people. The header read the first and `listPool`
+       returned the second, which is the head-counts-five-rows-draw-four
+       defect this file has already fixed once from the other side. */
+    const took = (kind === 'con' ? made.length : rows.length) + take.length;
+    srcRec.imported = took;
+    reindex();
+    DRAFT = null;
+    /* `chat` clears with it. The conversation that built this is over, and
+       leaving its key in the URL would reopen an answered thread on reload. */
+    go({ on: 'build', bsrc: key, bstep: '', chat: '' });
+    /* ══ THE RECEIPT COMES AFTER THE MOVE ════════════════════════════════
+       `toast` writes `#toastHost` and `go` repaints everything around it, so
+       raising the receipt first meant announcing a thing that had not
+       happened yet — and on the run that streams, the announcement and the
+       navigation landed close enough together to race. Said once the list is
+       on screen, which is also when it is true.
+
+       The undo takes the people back out too. A people build writes contacts
+       as well as companies, and an undo that removed only the companies would
+       leave their contacts in the book pointing at a list that no longer
+       exists. */
+    toast(`Saved ${name} — ${plural(took, kind === 'con' ? 'person' : 'organization')} in it.`, () => {
+      DB.acc.length = before;
+      DB.con = DB.con.filter((p) => p.srcRef !== key);
+      DB.source = DB.source.filter((x) => x.k !== key);
+      reindex();
+      go({ on: 'build', bsrc: '', bstep: '3' });
+      paintChrome();
     });
   }
 
+  
   /* ═══════════════════════════════════════════════
      ENRICHMENT — a waterfall, and what it costs to be wrong
 
@@ -6007,12 +7575,7 @@
      axis folded into `BY` and never read. The slot existed and nothing ever
      filled it — so `src.via` fills it with what the brief asked for, and the
      two that described a shape of arrival rather than a supplier are gone. */
-  /* LinkedIn joins them, and its hit rate is the honest one: a saved search
-     answers more often than a database lookup because you are reading a
-     profile the person maintains themselves. What it does NOT hand over is
-     the address, which is why it is a finder here and still a provider for
-     `emp` below — two jobs, one supplier, both true. */
-  const FINDERS = [['LinkedIn Sales Navigator', 81], ['Apollo', 74], ['ZoomInfo', 58], ['Exa/Serper', 41]];
+  const FINDERS = [['Apollo', 74], ['ZoomInfo', 58], ['Exa/Serper', 41]];
   const FIELD_LABEL = { emp: 'Headcount', rev: 'Revenue', email: 'Email', phone: 'Phone' };
   const ACC_FIELDS = ['emp', 'rev'];
   const CON_FIELDS = ['email', 'phone'];
@@ -6490,7 +8053,7 @@
       const id = 'ak' + (s.autoLog.length + 1) + '-' + n + '-' + s.k;
       DB.acc.push({
         id, kind: 'acc', name: nm, domain, city, country: 'Netherlands',
-        emp, founded, industry, region: 'nl', rev: null, svc: 'qa', icp: null,
+        emp, founded, industry, region: 'emea', rev: null, svc: 'qa', icp: null,
         /* THE ROWS BELONG TO WHOEVER OWNS THE LIST, not to whoever happens to
            be looking when the cycle fires. Nobody pressed anything. */
         src: 'scrape', srcRef: s.k, owner: s.by, shared: [],
@@ -6842,6 +8405,11 @@
        that actually carries an open list. A URL key nothing writes is a key
        that can only ever be wrong. */
     'lead', 'camp', 'chat', 'step', 'state', 'task',
+    /* The list builder: which step is open, whether it holds companies or
+       people, and the list once it exists. In the URL because a step you
+       cannot reload into is a mode, and this product has spent two versions
+       removing modes. */
+    'bstep', 'bkind', 'bsrc',
     /* `tab` — WHICH OF THE FOUR WORKING SURFACES IS OPEN, and `cut` — the one
        chip narrowing inside it. Both belong to the briefing, not to the
        corpus: they die when you leave it and they never touch `status`,
@@ -7365,6 +8933,15 @@
      and the markup together. */
   const canRunCampaign = () => !!FUNCTIONS[me().fn].runsCampaigns;
 
+  /* ══ WHO MAY READ WHAT A CAMPAIGN COST ═════════════════════════════════
+     The two functions the money is FOR — a sales manager answers for the
+     spend on their campaigns, a C-level for the book's — and admin, which
+     sees everything by definition. A BDR works the campaign and is not
+     asked what it cost; a client is shown their own engagement and never
+     our margins, which is the same line `bookMoney` already draws when it
+     loads no heads for them. */
+  const seesCampMoney = () => ['sales-manager', 'c-level', 'admin'].indexOf(me().fn) >= 0;
+
   /* Scope is the opposite: a question you did ask, so the switch shows it and
      nothing has to be disclosed. It is still bounded by tier — a rep asking
      for "everyone" gets everyone they are entitled to, and the switch says
@@ -7887,6 +9464,36 @@
 
      Everything comes from touchpoints and membership, which already exist.
      Nothing new is stored. */
+  /* ══ A CAMPAIGN'S MONEY IS COUNTED OVER THE CAMPAIGN ═══════════════════
+     The Financials stage carried the executive page's period chips — This
+     quarter, Last quarter, This year, Rolling 12 — and every one of them is
+     the wrong window for one campaign. A campaign that ran June to September
+     read as two thirds of itself under "This quarter" and as nothing at all
+     under "Last quarter", with no indication either was a slice: the figures
+     simply changed. The period control belongs to a surface that spans many
+     campaigns and compares them over a common window, which is what the
+     executive page is and what a campaign page is not.
+
+     Its own window instead: `from` to `to`, or to today while it is still
+     running. A campaign that has not started has neither, so it counts from
+     the day it was made — everything spent on it since it existed, which is
+     the only honest answer before there is a window to speak of. */
+  const campPeriod = (c) => ({
+    k: 'camp',
+    from: c.from || c.made || iso(TODAY),
+    to: c.to && daysAgo(c.to) > 0 ? c.to : iso(TODAY),
+  });
+
+  /* What that window is, in words, for the block that has to say what it
+     counted. */
+  function campWhen(c) {
+    const p = campPeriod(c);
+    if (!c.from) return 'since it was made';
+    return c.to && daysAgo(c.to) > 0
+      ? `over its window, ${fmtDate(p.from)} to ${fmtDate(p.to)}`
+      : `since it started on ${fmtDate(p.from)}`;
+  }
+
   function campaignCost(camp, p) {
     const mem = maySee((camp.members || []).map((id) => DB.accBy[id]).filter(Boolean)).filter((a) => !a.arch);
     const by = {};
@@ -8179,7 +9786,16 @@
       /* WHICH LIST IT ARRIVED IN. Not `src`, which says HOW it came in
          (a crawl, a referral) — this says WHICH crawl, and a book with four
          crawls in it needs the difference. */
-      if (S.srcref && accOf(rec).srcRef !== S.srcref) return false;
+      /* Membership, not arrival — the same rule as `listPool`. Reading
+         `srcRef` alone made a merged lead invisible on the very surface the
+         list opens onto: the head counted five and the rows drew four. */
+      if (S.srcref) {
+        const src = DB.sourceBy[S.srcref];
+        const mine = accOf(rec).srcRef === S.srcref
+          || (src && (src.has || []).indexOf(rec.id) >= 0)
+          || (src && (src.has || []).indexOf(accOf(rec).id) >= 0);
+        if (!mine) return false;
+      }
       /* `own` is the engagement that is ours, so it matches having none. */
       if (S.client.length && !S.client.some((k) => (k === 'own' ? !clientsOf(rec).length : clientsOf(rec).includes(k)))) return false;
       if (!ownerMatch(S.owner, rec, rec.owner)) return false;
@@ -8367,6 +9983,10 @@
     sources: { row: [], more: [], reads: [] },
   };
   AXES_ON.leads = AXES_ON.accounts;
+  /* The builder narrows an INDEX, not the book, so none of the corpus axes
+     apply and it draws no filter row. Declared rather than omitted because a
+     surface missing from this map reads as an oversight. */
+  AXES_ON.build = { row: [], more: [], reads: [] };
   /* Falls back to the leads axes rather than throwing. `briefing` and
      `sources` draw no filter row of their own, and `AXES_ON[S.on]` was a
      bare lookup — a surface with no entry took the whole render down. */
@@ -8388,11 +10008,38 @@
   const onTasks = () => S.on === 'running';
   const onCamps = () => S.on === 'campaigns';
   const onBriefing = () => S.on === 'briefing';
-  const onCons = () => S.who === 'contacts';
+  /* ══ AND A LIST OF PEOPLE IS READ AS PEOPLE, WHOEVER OPENED IT ═════════
+
+     `who` is a workbench control, and the workbench's controls come off
+     inside a list — so a list of PEOPLE opened without `who=contacts` in the
+     query landed on the six COMPANIES behind it, while the block above it
+     offered to go and fetch email addresses for them. The surface
+     contradicted itself twice on one screen, and what produced it was a
+     `data-quick` string on a card that had forgotten a parameter.
+
+     The kind is on the list, so it is derived here rather than spelt into
+     every door: a door can forget and a derivation cannot. `who=contacts`
+     still answers first, so asking a COMPANY list for its people is
+     unaffected — the derivation only supplies what nobody stated.
+
+     Inlined rather than calling `listScope`, which is declared further down
+     this file: a `const` arrow read before its line is a TDZ throw, and this
+     is called from `records()` two thousand lines above. */
+  const onCons = () => {
+    if (S.who === 'contacts') return true;
+    const s = onLeads() && S.srcref ? DB.sourceBy[S.srcref] : null;
+    return !!(s && s.kind === 'con');
+  };
   /* A leads-shaped list: the corpus surface itself, and the member list
      inside an open campaign or source. All three want the same axes, the
      same cards and the same date range. */
   const onLeads = () => S.on === 'leads';
+
+  /* The list builder. A page rather than a panel, because building a list is
+     authoring and the canvas is for deciding — and because the panel version
+     put nine sections in a 379px viewport. Required as a literal:
+     `wiring-audit` derives its legal-surface set from these comparisons. */
+  const onBuild = () => S.on === 'build';
 
   let ddSeq = 0;
 
@@ -8445,19 +10092,6 @@
     }, true);
   });
 
-  /* The add-contacts search redraws the candidate list as you type. Same
-     rule as the source tabs: it is the same decision seen differently, so it
-     replaces the live block rather than stacking another. */
-  document.addEventListener('input', (e) => {
-    if (!e.target.classList || !e.target.classList.contains('s-add-q')) return;
-    if (!addTo) return;
-    const at = e.target.selectionStart;
-    addTo.q = e.target.value;
-    dropWork();
-    paintAddWork();
-    const again = $('.s-add-q');
-    if (again) { again.focus(); again.setSelectionRange(at, at); }
-  });
 
   document.addEventListener('input', (e) => {
     const field = e.target.closest && e.target.closest('.dd-search');
@@ -8681,6 +10315,13 @@
      One campaign, not many: two campaigns is a comparison, and a comparison
      has no single scope to preserve. */
   const campScope = () => (onLeads() && S.campaign.length === 1 ? S.campaign[0] : null);
+
+  /* ── AND THE OTHER KIND OF NAMED SET ARRIVES THE SAME WAY ──
+     A list is a campaign's twin for this purpose: somebody wrote criteria,
+     ran a search, chose what to import and gave the result a name. Landing on
+     one is being handed a set, not going looking for one — so the surface
+     owes it the same treatment `campScope` earns, and for the same reason. */
+  const listScope = () => (onLeads() && S.srcref && DB.sourceBy[S.srcref] ? S.srcref : null);
 
   function viewChips() {
     if (!onLeads()) return '';
@@ -9042,37 +10683,44 @@
         ${esc(back.label)}
       </button>` : ''}
       ${src ? listHead(src, list) : ''}
+      ${/* AiMY's offers about the list were a second marked block here, above
+            the count line and above the reading of the leads themselves. They
+            are rows of that one block now — `grid` folds them in, because
+            that is where the other half of the same reader's sentence already
+            was. */ ''}
+      ${/* ══ AND NOT AT ALL, WHEN THE LIST IS THE SET ═══════════════════════
+
+            "29 contacts at 18 accounts · 3 waiting on a person" over a list
+            whose header two lines up already reads `18 brought in of 1,240
+            found`, and whose reading directly below it opens `11 of the 29
+            need something doing`. The count was said three times on one
+            screen, and this was the copy with the least to add — the header
+            says what the list holds, the reading says how much of it is
+            stuck, and this said how many rows there are.
+
+            The waiting pointer goes with it rather than surviving alone. It
+            is a narrowing, and every other narrowing on this surface has just
+            come off for the same reason; the reading below offers the same
+            cut with the finding attached, which is the better half of it. */ ''}
+      ${src ? '' : `
       <div class="s-result-row">
         <div class="s-result-main">
-          ${/* One anchor per surface. When a list is open its NAME is the
-                anchor — `listHead` draws it as the `h1` — so the count steps
-                down to the title size and stops competing. */ ''}
-          ${src ? `<p class="s-result-count is-sub">${plural(list.length, noun)}</p>`
-            : `<h1 class="s-result-count">${plural(list.length, noun)}</h1>`}
+          <h1 class="s-result-count">${plural(list.length, noun)}</h1>
           ${/* Contacts say what they sit inside. "236 contacts" over a grid
                 the Accounts tab calls 118 gives no clue the first is the
                 people in the second — the same relation the account card
                 states from its own side. */ ''}
           ${onCons() && list.length
             ? `<span class="s-result-scope">at ${esc(plural(new Set(list.map((r) => accOf(r).id)).size, 'account'))}</span>` : ''}
-          ${/* ══ NOT WHEN THE HEADER IS ALREADY THE NAME ═══════════════════
-                `scopeName` exists because "a list opened with no name on it" —
-                pressing a list landed on a surface headed "20 accounts" and
-                the surface would not say which list. `listHead` answered that
-                in v4 by making the name the `h1`, and this line went on
-                answering it too: "16 accounts in Banking & finance, 50–1,000,
-                Netherlands — 5 Aug 2026", a hundred pixels under an `h1`
-                reading exactly that.
-
-                A stale premise, like the rail's `display: none` and its
-                `:has()` exception before it. The campaign and picked-set
-                branches keep theirs — nothing else on the leads surface
-                names those. */ ''}
-          ${scope && !src ? `<span class="s-result-scope">in ${scope}</span>` : ''}
+          ${/* The campaign and picked-set branches keep this. Nothing else on
+                the leads surface names those, where a list has `listHead`
+                drawing its name as the `h1` — which is why the whole row
+                above is suppressed there rather than just this line. */ ''}
+          ${scope ? `<span class="s-result-scope">in ${scope}</span>` : ''}
           ${need ? `<span class="s-result-dot" aria-hidden="true">·</span>
             <button class="s-result-need" type="button" data-quick="status=awaiting-us,stalled">${need} waiting on a person</button>` : ''}
         </div>
-      </div>
+      </div>`}
       ${/* The frame, under the count and over the grid — it is the reason
             the number is the size it is, so it reads in the order it is
             needed rather than as a footnote to something two rows below. */ ''}
@@ -9451,60 +11099,12 @@
      row to carry its state and every row states its own. What decides now is
      whether the record HAS a finding — one that does says what happened,
      one that does not says where it stands. */
-  function leadRow(rec, i) {
-    const acc = accOf(rec);
-    const st = statusOf(rec);
-    const ts = touchesFor(rec);
-    const ex = exitFor(rec);
-    const ask = ex && FLAG_ASK[ex.k];
-    const flag = topFlag(rec);
-
-    const urg = leadUrgency(rec);
-
-    /* What happened to THIS one, in the flag's own words. `whyFlag` already
-       writes it for the record page, and the row was making a reader open
-       the record to get it — so three leads stuck for three different
-       lengths of time read identically. Outside a group there is no heading
-       to carry the state, so the status stands in. */
-    const say = flag ? whyFlag(rec, flag.k)
-      : rec.kind === 'acc' ? '' : [rec.role, acc.name].filter(Boolean).join(' · ');
-
-    return `<article class="s-lrow st-${toneOf(st)}${SEL.has(rec.id) ? ' is-picked' : ''}" style="--i:${i || 0}" data-row="${esc(rec.id)}">
-      ${canWrite() ? `<label class="s-pick-tick">
-        <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${SEL.has(rec.id) ? ' checked' : ''}
-          aria-label="Pick ${esc(rec.name)}" />
-      </label>` : '<span class="s-lrow-nopick"></span>'}
-      <span class="s-lrow-body">
-        <button class="s-lrow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
-        ${say ? `<span class="s-lrow-say">${esc(say)}</span>` : ''}
-        ${/* The state, only where there is no finding to say something more
-              specific. A row with a finding already carries what happened;
-              adding "Awaiting us" under it is the weaker of two facts,
-              repeated down the column. */ ''}
-        ${flag ? '' : `<span class="s-lrow-st tone-${toneOf(st)}">${esc(label('status', st))}</span>`}
-        ${(() => {
-          const s = callSession();
-          return s && (s.skipped || []).includes(rec.id)
-            ? '<span class="s-lrow-skip" title="Skipped on the run you are working now">Skipped on this run</span>' : '';
-        })()}
-      </span>
-      <span class="s-lrow-side">
-        <span class="s-lrow-urg${urg.tone ? ` tone-${esc(urg.tone)}` : ''}">${esc(urg.text)}</span>
-        <span class="s-lrow-own">${esc(actor(rec.owner).name)}</span>
-      </span>
-      ${/* ── ONE VERB, ON THE ROW ──
-            `exitFor` already knows what the flag implies — reschedule it,
-            fix the address, find a new champion — and the card threw that
-            away inside a group, so acting on one meant navigating to its
-            record. Ghost, not filled: a filled control on every row is nine
-            primaries, which is the defect the group heading's own note
-            argues against. */ ''}
-      ${canWrite() && ex ? `<button class="s-lrow-go" type="button" data-exit="${esc(rec.id)}"
-        data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
-        data-aimy-topic="${esc(ex.k)}"
-        ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${esc(ex.label)}</button>` : '<span></span>'}
-    </article>`;
-  }
+  /* `leadRow` is gone. It drew a name, what was late about it, an owner and
+     a verb — the right row while `grid` had two, and the wrong one the
+     moment there was a choice: opening a campaign's four unanswered accounts
+     gave no domain, no sector, no size and no address on the screen whose
+     job is deciding what to do about those four. `buildRow` answers both
+     halves and is what every other surface already drew. */
 
   /* `card()` is gone with the two-column lead grid. It rendered a name, its
      firmographics, a status pill and a meta run at 88-109px apiece, two
@@ -9517,14 +11117,12 @@
      for; a filtered set of leads arrived at from a gate is a worklist, and
      you read it in one direction. */
 
-  /* The card's whole share of the insight when its group carries the
-     sentence: which finding put it here, in the finding's own tone. */
-  function flagChip(rec) {
-    const flag = topFlag(rec);
-    if (!flag) return '';
-    const row = BY.status[flag.k];
-    return `<span class="s-flagchip tone-${esc(row.tone)}">${esc(row.label)}</span>`;
-  }
+  /* `flagChip()` went with the grouped card grid. It drew a card's whole
+     share of the insight — which finding put the record in its group — and
+     `leadRow` says the same thing in the row itself through `whyFlag`. It
+     outlived its only call site and `wiring-audit` caught it as UNMOUNTED;
+     `.s-flagchip` and its four tone rules went out of `sales.css` with it,
+     because a rule nothing renders fails `css-audit` check 1b. */
 
   /* One touchpoint, as a phrase. Facts are phrases, not labels: `CHANNEL`
      stacked over `Phone` is two things to read where one would do. Used by
@@ -9701,6 +11299,21 @@
        Every row still says which finding put it there — `whyFlag` writes it
        into the row itself — so flattening loses no attribution. What it
        loses is the same sentence repeated as a heading above every group. */
+    /* ══ ONE ROW, EVERYWHERE LEADS ARE DRAWN ═════════════════════════════
+       This was an opt-in: a named list and the briefing's tabs got the full
+       record row, and everything else — a status gate, a campaign, a picked
+       set — kept the worklist row, on the argument that a CUT through the
+       book wants a thinner row than an inventory.
+
+       That argument does not survive contact with the surfaces. Opening a
+       campaign's four unanswered accounts gave a name, a clause and an
+       owner, and no domain, no sector, no size, no address — on the one
+       screen whose whole job is deciding what to do about those four. The
+       cut is narrower; the question about each row is the same.
+
+       So there is one row. `leadRow` and the `rich` flag go with the
+       distinction they served. */
+
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
     let flagged = 0;
@@ -9742,7 +11355,7 @@
          showed three of each and no way to see it whole. */
       const open = OPEN_GROUPS.has('_all');
       const page = open ? sorted : sorted.slice(0, LIST_PAGE);
-      return `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>
+      return `<div class="s-brows">${page.map((r) => buildRow(r, r.kind === 'con' ? 'con' : 'acc')).join('')}</div>
         ${recs.length > page.length
           ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${recs.length - page.length}</button>`
           : open && recs.length > LIST_PAGE
@@ -9766,7 +11379,27 @@
 
        The ratio goes too when it is vacuous. `16 of the 24` is a real
        finding; `16 of the 16` is arithmetic about a filter. */
-    const one = found.length === 1;
+    /* ══ AND THE LIST'S OWN OFFERS ARE ROWS OF THIS BLOCK ════════════════
+       They were a second marked block above the count line — `What AiMY can
+       do next` over `AiMY reads it`, one about the list and one about the
+       leads in it, four hundred pixels apart and both in the first person.
+       Two readings of one thing by one reader.
+
+       They fold in because they were already the same shape: a count, a
+       clause, and the verb that answers it. What differs is the weight of
+       the verb, and it differs honestly — picking a set stages a selection,
+       sending AiMY to a supplier goes and does something. */
+    /* Offers about the LIST only where a list is the scope — every other
+       surface reaching `grid` has no list-shaped question to ask. */
+    const listSrc = listScope() ? DB.sourceBy[S.srcref] : null;
+    const offers = listSrc
+      ? listOffers(listSrc, listPool(listSrc), listSrc.kind === 'con' ? 'con' : 'acc',
+          (listReading(listSrc).card || {}).attr)
+      : [];
+
+    /* The compact single-finding form has no list to fold the offers into,
+       so it only applies when there is nothing to fold. */
+    const one = found.length === 1 && !offers.length;
     const allFlagged = flagged === list.length;
     const share = allFlagged
       ? `<b>All ${flagged}</b>`
@@ -9794,14 +11427,19 @@
       ${listOf(list)}`;
     }
 
-    const readBlock = `<div class="s-findings">
+    /* ══ A READING WITH NOTHING TO READ DOES NOT DRAW ════════════════════
+       FIX, and not a silent one — this block was unconditional, so a set where
+       nothing is flagged rendered "0 of the 5 need something doing, for 0
+       different reasons" over an empty findings list. Unreachable until the
+       builder existed: every set this surface was reached with came from a
+       gate, and a gate is a finding. A list you have just built is the first
+       set that arrives with no history at all. */
+    const readBlock = !flagged && !offers.length ? '' : `<div class="s-findings${listScope() ? ' is-panel' : ''}">
       <p class="s-lead-mark">
         <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
         AiMY reads it
       </p>
-      <p class="s-findings-say">${allFlagged
-        ? `<b>${plural(found.length, 'different reason')}</b> between them.`
-        : `${share} ${flagged === 1 ? 'needs' : 'need'} something doing, for <b>${plural(found.length, 'different reason')}</b>.`}</p>
+      <p class="s-findings-say">${listLede(flagged, list.length, found.length, offers.length)}</p>
       ${/* ══ AND THE TAIL IS A LINE, NOT NINE ROWS ═════════════════════════
             A full campaign turns up nine findings, four of them holding one
             lead each — and a block built to stop the page being a wall of
@@ -9817,9 +11455,17 @@
           const recs = groups.get(k);
           const row = BY.status[k];
           const allPicked = recs.every((r) => SEL.has(r.id));
+          /* ══ ONE SENTENCE, AND THE COUNT IS IN IT ══════════════════════
+             The number sat in a 32px gutter with a 12px gap after it, so a
+             row read as two things that happened to be on one line — a
+             figure, then a sentence about something. It is one statement
+             and the number is its subject, so it is inside it, in the same
+             type at the weight the sentence's own emphasis already uses.
+             Same join the single-finding form above has always made. */
+          const clause = FLAG_SUM[k] || row.label;
           return `<div class="s-finding">
-            <span class="s-finding-n">${recs.length}</span>
-            <span class="s-finding-say">${esc(FLAG_SUM[k] || row.label)}</span>
+            <span class="s-finding-say"><b>${recs.length}</b> — ${
+              esc(clause.charAt(0).toLowerCase() + clause.slice(1))}</span>
             ${canWrite() ? `<button class="s-finding-pick${allPicked ? ' is-on' : ''}" type="button" data-pickgroup="${esc(k)}">${
               allPicked ? 'Unpick' : `Pick ${recs.length === 1 ? 'it' : `these ${recs.length}`}`}</button>` : '<span></span>'}
           </div>`;
@@ -9827,12 +11473,16 @@
         ${ranked.length > FINDINGS_SHOWN ? `<p class="s-findings-tail">and <b>${ranked.length - FINDINGS_SHOWN} more</b>, ${
           ranked.slice(FINDINGS_SHOWN).every((k) => groups.get(k).length === 1) ? 'one lead each' : 'smaller'} — ${
           esc(ranked.slice(FINDINGS_SHOWN).map((k) => BY.status[k].label.toLowerCase()).join(', '))}.</p>` : ''}
+        ${/* What is stuck first, then what AiMY would go and get. Order is
+              what it costs to ignore: a bad address blocking three leads is
+              today's problem and a modelled revenue figure is not. */ ''}
+        ${offers.map(offerRow).join('')}
       </div>
-      <p class="s-findings-acts">
+      ${flagged ? `<p class="s-findings-acts">
         <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
           data-aimy-topic="findings"
           data-aimy-ask="${esc(`${flagged} of the ${list.length} leads on screen have something in the way. Show me what they have in common and what to do about them.`)}">Ask about them</button>
-      </p>
+      </p>` : ''}
     </div>`;
 
     return `${readBlock}${listOf(list)}`;
@@ -10435,70 +12085,40 @@
     return 'next';
   }
 
-  function trailBlock(l) {
-    return `<div class="s-trail" role="list">
-      ${l.trail.map((s, i) => {
-        const st = stepState(l, s);
-        const evs = (DB.eventsOf[l.k] || []).filter((e) => e.step === s.n);
-        const went = evs.filter((e) => e.kind === 'sent').length;
-        const here = String(S.step) === String(s.n);
-        /* ── THE WAIT SAYS IT IS A WAIT ──
-           `3d` between two cards is three days of WHAT: since the last one,
-           until the next, how old it is. Spelled out, with the direction in
-           the word, it is one reading instead of a guess. */
-        const wait = i ? `<span class="s-trail-wait" aria-hidden="true">${s.wait} ${s.wait === 1 ? 'day' : 'days'} later</span>` : '';
-        /* ── AND THE COUNT SAYS WHAT IT COUNTED ──
-           `SENT 6` is six of something, on a block whose other two cards say
-           11 and 8. The unit is people: six of them have had this step. */
-        const done = went ? `${stepWord(st, s.ch)} to ${went}` : stepWord(st, s.ch);
-        return `${wait}
-          <button class="s-trail-step${here ? ' is-here' : ''}${st === 'staged' ? ' is-next' : ''}" type="button" role="listitem"
-                  data-step="${esc(l.k)}|${s.n}"
-                  aria-label="Step ${s.n}, ${esc(s.name)}, on ${esc(label('channel', s.ch))}, ${esc(done)}${st === 'staged' ? ', goes next' : ''}">
-            <span class="s-trail-top">
-              <span class="s-trail-n">${s.n}</span>
-              <span class="s-trail-ch">${chIcon(s.ch)}${esc(label('channel', s.ch))}</span>
-              ${st === 'staged' ? '<span class="s-trail-next">Next</span>' : ''}
-            </span>
-            <span class="s-trail-name">${esc(s.name)}</span>
-            <span class="work-state ws-${esc(st)}" data-work-state="${esc(st)}">${esc(done)}</span>
-          </button>`;
-      }).join('')}
-    </div>
-    ${canWrite() && !campOver(l) ? `<div class="s-trail-tools">
-      ${/* ══ A LABEL IS A PROMISE ══════════════════════════════════════════
-            "Add a step" added nothing. It typed a question into the canvas
-            and waited for you to press send — as did "Check the order",
-            which checked nothing. Doctrine §11 forbids exactly this, and
-            two controls doing one thing under two verbs that name a
-            different thing each is how a surface stops being trustworthy.
+  /* `trailBlock` went with the Sequence block it drew. It was the only
+     surface anywhere that showed `c.plan` — what a campaign sends, in order,
+     with the waits between — and Reach is the calls to be made now. The plan
+     is still WRITTEN, by `Start it` in the header, because `campState` reads
+     it; it is simply not displayed. */
 
-            Adding a step is a write the campaign already models, so it is
-            one: `addStep` appends to `l.trail` with the same vocabulary
-            `buildTrail` uses. Asking about the order is a real thing to
-            want, so it keeps its control and says what it does. */ ''}
-      <button class="s-inline-btn" type="button" data-addstep="${esc(l.k)}">Add a step</button>
-      ${/* `prompt`, not `investigate`. This opens the canvas with a question
-            typed in and waits for you to press send — which is what
-            `em-prompt` means. `em-investigate` claims AiMY has already
-            looked, and it has not. */ ''}
-      <button class="s-inline-btn" type="button" data-entry-mode="prompt" data-aimy-topic="trail-order-${esc(l.k)}"
-        data-aimy-ask="${esc(`Is the order and the waits on ${l.name} right? Show me what each step got back and whether the gaps are helping or hurting.`)}">Ask about the order</button>
-    </div>` : ''}`;
+  /* ══ THE FIVE STEPS A CAMPAIGN'S PEOPLE PASS THROUGH ═══════════════════
+     Lifted out of the funnel because the campaign LIST wants the same
+     numbers, and two derivations of "how many replied" is two answers to
+     one question — the defect this file has paid for on touchpoint counts
+     already. One set of sets, read by the funnel that draws all five and by
+     the row that draws two of them. */
+  function campSteps(l) {
+    const members = campMembers(l);
+    const ts = campSent(l);
+    const byAcc = {};
+    ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
+    const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
+    return [
+      { k: 'in', label: 'On the campaign', set: members,
+        say: 'organizations it went out to' },
+      { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
+        say: 'we sent something' },
+      { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
+        say: 'they answered' },
+      { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
+        /* Not 'the goal of this campaign' — the marker beside the name
+           already says that, and the column is for what the step MEANS. */
+        say: 'agreed to a call' },
+      { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
+        say: 'closed' },
+    ];
   }
 
-  /* ═══════════════════════════════════════════════
-     ANALYTICS — as cards, because that is what the numbers are
-
-     Clay's campaign analytics is five metric cards, three tinted engagement
-     panels and three lead counts. Not a table, on a screen whose entire job
-     is reporting numbers — which is the clearest statement anywhere in that
-     product about when a grid earns its place and when it does not.
-
-     Every figure is computed from `DB.event`, which is derived from the
-     touchpoints, so nothing here can disagree with the trail above it or
-     with what a record says happened.
-  ═══════════════════════════════════════════════ */
   function campAnalytics(l) {
     const evs = DB.eventsOf[l.k] || [];
     const n = (k) => evs.filter((e) => e.kind === k).length;
@@ -10573,60 +12193,119 @@
        `never arrived` survives outside the funnel, because it is not a stage
        anybody passes through — it is a data fault, and the one figure here
        with a cheap fix attached. */
-    const members = campMembers(l);
-    const ts = campSent(l);
-    const byAcc = {};
-    ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
-    const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
-
-    const steps = [
-      { k: 'in', label: 'On the campaign', set: members,
-        say: 'organizations it went out to' },
-      { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
-        say: 'had at least one thing sent to them' },
-      { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
-        say: 'answered at least once' },
-      { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
-        say: 'the goal of this campaign' },
-      { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
-        say: 'closed' },
-    ];
+    const steps = campSteps(l);
     const top = steps[0].set.length || 1;
 
     /* ── THE BIGGEST DROP IS THE FINDING ──
        Where a campaign loses its people is the one thing the funnel is for,
        and it is a comparison between adjacent rows rather than any row's own
        number — so nothing in a list of five figures states it. */
-    let worst = null;
-    for (let i = 1; i < steps.length; i++) {
-      const lost = steps[i - 1].set.length - steps[i].set.length;
-      if (!worst || lost > worst.lost) worst = { lost, from: steps[i - 1], to: steps[i] };
-    }
-    const booked = steps[3].set.length;
-    const read = !ts.length
-      ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
-      : `<b>${booked === 0 ? 'No one' : plural(booked, 'organization')}</b> ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
-          worst && worst.lost ? ` It loses most of them between <b>${esc(worst.from.label.toLowerCase())}</b> and <b>${esc(worst.to.label.toLowerCase())}</b> — <b>${worst.lost}</b> of them.` : ''}`;
+    /* ══ THE SHARE THAT MATTERS IS OF THE STEP BEFORE ════════════════════
+       Every percentage here was of the campaign's whole size — 50 · 25 · 21
+       · 8 — which answers "how many got this far" and hides the only thing a
+       funnel is read for. On this campaign 25% to 21% looks like a small
+       fall and is in fact an 83% conversion: five of the six who replied
+       booked a call, which is the best thing this campaign does and was
+       invisible. Meanwhile the two 50%s are where it actually leaks.
 
+       So each row converts from the row above it, and the reading names both
+       ends — the step to fix, and the step that is working. */
+    const conv = steps.slice(1).map((st, i) => {
+      const prev = steps[i].set.length;
+      const n = st.set.length;
+      return { st, from: steps[i], n, prev, lost: prev - n, rate: prev ? n / prev : null };
+    });
+    const rated = conv.filter((x) => x.rate != null && x.prev);
+    /* ══ THE BIGGEST DROP IS THE ABSOLUTE ONE ═════════════════════════════
+       This ranked by RATE for one pass, and it named Won — 40%, which is
+       three organizations — while twelve were lost at Reached. Fixing
+       Reached is worth four times as much, so the sentence was pointing at
+       the smaller problem.
+
+       Amplitude's funnel documentation is explicit about the same thing for
+       its "largest drop-off step": the relevant comparison is the absolute
+       decrease and not the percentage decrease. The rate still earns its
+       column — it is what says whether a STEP is working — but where to
+       spend the next hour is a question about how many people fell out.
+
+       So the two are separated: the loss is counted, the strength is rated,
+       and the sentence says which is which. */
+    const worst = conv.slice().sort((a2, b2) => b2.lost - a2.lost)[0] || null;
+    const weak = worst && worst.lost ? worst : null;
+    const strong = rated.slice().sort((a2, b2) => b2.rate - a2.rate)[0] || null;
+    const booked = steps[3].set.length;
+    /* The denominator moved here from a row of its own, so the sentence says
+       what everything below it is a share OF. */
+    const pcOf = (v) => `${Math.round(v * 100)}%`;
+    const read = !campSent(l).length
+      ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
+      : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
+          weak ? ` It loses most at <b>${esc(weak.st.label.toLowerCase())}</b> — <b>${weak.lost}</b> of the ${weak.prev} never get there.` : ''}${
+          strong && strong !== weak && strong.rate > 0.6
+            ? ` Its strongest conversion is <b>${esc(strong.st.label.toLowerCase())}</b>, at <b>${pcOf(strong.rate)}</b>.`
+            : ''}`;
+
+    /* ══ FOUR ENCODINGS OF ONE DROP, AND A ROW THAT WAS ALWAYS 100% ══════
+       Each row carried a bar, a count, a percentage and "N lost here" — four
+       ways of saying the same fall, and the bar was the least precise of
+       them. The percentages already descend 50 · 25 · 21 · 8, which IS the
+       shape the bars were drawing; and where the biggest fall happens is a
+       comparison between adjacent rows, which the reading above states in
+       words and no row could.
+
+       `On the campaign — 24 of 24` went too. It is the denominator every
+       other row divides by, not a step anybody passes: a row whose value is
+       100% by construction is arithmetic about a filter, which is the defect
+       this file has now cut from three surfaces. It is stated once, in the
+       reading, where it belongs.
+
+       What is left is the name, what it means, the count and the share —
+       four rows, one line each. */
     return `${stageRead(read)}
     <div class="s-funnel">
-      ${steps.map((s, i) => {
-        const n = s.set.length;
-        const prev = i ? steps[i - 1].set.length : n;
-        const drop = i && prev ? prev - n : 0;
-        return `<div class="s-fn-row${s.k === 'booked' ? ' is-goal' : ''}">
-          <span class="s-fn-name">${esc(s.label)}${s.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
-          <span class="s-fn-track" aria-hidden="true"><span class="s-fn-fill" style="width:${Math.max(1, Math.round((n / top) * 100))}%"></span></span>
-          <span class="s-fn-n">${n}</span>
-          <span class="s-fn-pct">${i ? `${Math.round((n / top) * 100)}%` : `of ${top}`}</span>
-          <span class="s-fn-say">${esc(s.say)}${drop ? ` · <b>${drop} lost here</b>` : ''}</span>
-        </div>`;
-      }).join('')}
+      ${conv.map((x, i) => `<div class="s-fn-row${x.st.k === 'booked' ? ' is-goal' : ''}${
+          weak && x === weak ? ' is-weak' : ''}">
+          <span class="s-fn-name">${esc(x.st.label)}${x.st.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
+          ${/* The conversion leads, because it is the column you scan: 83
+                against two 50s says where to look, and four shares of the
+                same denominator said nothing at all. */ ''}
+          <span class="s-fn-pct">${x.rate == null ? '—' : `${Math.round(x.rate * 100)}%`}</span>
+          <span class="s-fn-n">${x.n} <span class="s-fn-of">of ${x.prev}</span></span>
+          ${/* ══ BOTH SHARES, WHICH IS WHAT THE GUIDANCE ACTUALLY SAYS ═══
+                Step conversion pinpoints where the problem is; cumulative
+                says how much is left by the end. Amplitude and Domo both
+                describe them as complementary and recommend showing both —
+                the mistake this block made was showing ONLY the cumulative,
+                which hid an 83% step behind a 21% total.
+
+                So the step rate keeps the column it is scanned in, and the
+                cumulative rides with the definition at the smallest step:
+                on Won, `40%` is the close rate and `8% of the 24` is what
+                the campaign actually converted, and a reader needs both to
+                know whether to fix the close or the top.
+
+                No "of those that replied" suffix — `5 of 6` states the
+                denominator and the row above it is literally named. */ ''}
+          <span class="s-fn-all">${Math.round((x.n / top) * 100)}% of ${top}</span>
+          <span class="s-fn-say">${esc(x.st.say)}</span>
+        </div>`).join('')}
     </div>
     ${bounced ? `<div class="s-fn-note">
       ${/* Not a funnel step — nobody passes THROUGH a bounce. A fault in the
             list, stated beside the funnel it distorts, with the fix on it. */ ''}
-      <span><b>${rate(bounced, sent + bounced)}</b> of what went out never arrived. That is the list, not the copy.</span>
+      ${/* ══ AND WHETHER THAT IS BAD ═══════════════════════════════════
+            "11% never arrived" is a number a reader has to already know the
+            industry to use. Published 2026 cold-outbound benchmarks put an
+            acceptable bounce under 3% and best-in-class under 1.5%, so at
+            11% this list is nearly four times the ceiling — which is the
+            difference between a footnote and a job.
+
+            Graded only above `BENCH.min` sends. A third of nine bouncing is
+            three addresses, and calling that a list problem is a confident
+            claim about almost nothing. */ ''}
+      <span><b>${rate(bounced, sent + bounced)}</b> of what went out never arrived. That is the list, not the copy.${
+        sent + bounced >= BENCH.min && bounced / (sent + bounced) > BENCH.bounce
+          ? ` Anything over <b>${Math.round(BENCH.bounce * 100)}%</b> is a list to clean before it is sent to again.` : ''}</span>
       <button class="s-inline-btn" type="button"
         data-quick2="${esc(`on=leads&who=contacts&campaign=${l.k}&obstacle=address-bounced&status=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">Show me the ${bounced === 1 ? 'one' : bounced}</button>
     </div>` : ''}`;
@@ -10700,13 +12379,21 @@
        list and the call queue back in through the address bar — the gate has
        to be here, not only in what `campHeadline` proposes. */
     const report = !canWrite();
-    const here = report ? 'measure' : STAGE_BY[S.stage] ? S.stage : campHeadline(l).stage;
+    /* ══ THE FIFTH NODE IS NOT EVERYBODY'S ═══════════════════════════════
+       `?stage=` is a URL parameter, so a BDR typing `stage=money` would
+       reach the cost of a campaign they are not asked to answer for. The
+       gate is on the SET the strip is built from, and `here` is clamped to
+       it — the same argument the report gate above makes, one tier down. */
+    const mine = CAMP_STAGE.filter((st) => st.k !== 'money' || seesCampMoney());
+    const legal = (k) => mine.some((st) => st.k === k);
+    const here = report ? 'measure'
+      : STAGE_BY[S.stage] && legal(S.stage) ? S.stage : campHeadline(l).stage;
     const at = campStage(l);
     const total = campMembers(l).length;
 
     /* Which stages are holding work, worst first — the deck's subject, and
        the set that earns a track. */
-    const held = CAMP_STAGE
+    const held = mine
       .filter((st) => st.scope === 'member' && st.k !== 'measure')
       .map((st) => ({ st, n: stageMembers(l, st.k).length }))
       .filter((x) => x.n)
@@ -10724,7 +12411,7 @@
     const hereMine = hereCrew.includes(me().id);
     const hereN = hereSt.scope === 'member' && hereSt.k !== 'measure' ? stageMembers(l, hereSt.k).length : 0;
 
-    const strip = CAMP_STAGE.map((st) => {
+    const strip = mine.map((st) => {
       const open = st.k === here;
       /* Nothing to press where nothing would happen: on the report every
          cell but Measure is a readout, so it is not a button. A disabled
@@ -10740,7 +12427,6 @@
       const queues = st.scope === 'member' && st.k !== 'measure';
       const n = queues ? stageMembers(l, st.k).length : 0;
       const clear = queues && !n;
-      const pct = queues && total ? Math.max(2, Math.round((n / total) * 100)) : 0;
       const tag = flat ? 'div' : 'button';
       const say = `${st.label} — ${stageSay(l, st.k)}${
         n && mine ? ', waiting on you' : n && !crew.length ? ', nobody is on it' : ''}`;
@@ -10753,10 +12439,7 @@
         </span>
         <span class="s-pipe-fig${f.state ? ' is-state' : ''}">${esc(f.fig)}${
           f.unit ? `<span class="s-pipe-unit">${esc(f.unit)}</span>` : ''}</span>
-        ${/* The space is kept whether or not a track is drawn in it, so the
-              four cells stay one height and the figures stay on one line. */ ''}
-        <span class="s-pipe-track${pct ? '' : ' is-none'}" aria-hidden="true">${
-          pct ? `<span class="s-pipe-fill" style="width:${pct}%"></span>` : ''}</span>
+
       </${tag}>`;
     }).join('');
 
@@ -10785,6 +12468,7 @@
         hereSt.k === 'find' ? stageFind(l)
           : hereSt.k === 'enrich' ? stageEnrich(l)
           : hereSt.k === 'reach' ? stageReach(l)
+          : hereSt.k === 'money' ? stageMoney(l)
           : stageMeasure(l)}</div>
     </section>`;
   }
@@ -10876,7 +12560,21 @@
 
             The header's lifecycle move still asks before it, because a
             campaign that cannot run yet has nothing more urgent. */ ''}
-      ${campInsight(l, { onPage: true, said })}
+      ${/* ══ NOT WHILE IT IS STILL BEING MADE ═════════════════════════════
+            A campaign created empty and landed on gets "0 found for it yet —
+            it is written down and nobody is on it", which is a reading with
+            nothing to read: both halves are true of every campaign at the
+            moment it exists, and neither followed from anything the reader
+            did. It is the same defect as `0 of the 5 need something doing,
+            for 0 different reasons` — a block built to accumulate, drawn
+            over an empty set.
+
+            AiMY reads the GOAL. Until there is one, or somebody is on it,
+            there is nothing for it to have read — and the drawn flow agrees:
+            its suggestion comes after "add campaign details", not before.
+            The page still says what to do next, because every row on it
+            carries its own control. */ ''}
+      ${l.goal || (l.members || []).length ? campInsight(l, { onPage: true, said }) : ''}
       ${canWrite() ? '' : raiseRow(l.k, l.name)}
 
       ${/* Identity under the recommendation and above the flow: it is true
@@ -10894,8 +12592,21 @@
             is in the way is what is happening, what to offer better is what
             to do about it, and a suggestion above its own evidence is a
             suggestion nobody can check. */ ''}
-      ${campInWay(l)}
-      ${campOffer(l)}
+      ${/* ══ AND NEITHER OF THESE, WHILE NOBODY IS ON IT ══════════════════
+            `campInWay` argues, correctly, that a section which vanishes when
+            it is clean is one you cannot trust to have looked — so it states
+            what it found. That is the right rule for a campaign being
+            WORKED and the wrong one for a campaign four seconds old:
+            "Nobody is on it yet, so nothing can be in the way" is not
+            reassurance, it is the empty set described at length. `campOffer`
+            is worse, because it is an AiMY block whose whole content on a
+            blank campaign is that AiMY has nothing to say.
+
+            Both read the members. A campaign nobody is on has no obstacles
+            and no objections because it has no subject, and the section that
+            fixes that — Find, below — is the one that still draws. */ ''}
+      ${(l.members || []).length ? campInWay(l) : ''}
+      ${(l.members || []).length ? campOffer(l) : ''}
 
       ${campFlow(l)}
       </div>
@@ -11191,6 +12902,50 @@
     </div>`;
   }
 
+  /* ══ WHO IT IS AIMED AT, READ OFF WHO IS ON IT ═════════════════════════
+     A campaign's persona was a thing you could only learn by opening its
+     people and noticing they were all QA managers. It is the same
+     derivation the audience criteria already run — `role` on the contacts —
+     ranked, so the shape of the target reads at a glance and a campaign that
+     has drifted into three unrelated titles says so. */
+  function campPersona(l) {
+    const n = Object.create(null);
+    campPeople(l).forEach((p) => { if (p.role) n[p.role] = (n[p.role] || 0) + 1; });
+    return Object.keys(n).sort((a, b) => n[b] - n[a]).map((t) => ({ t, n: n[t] }));
+  }
+
+  /* ══ THE RATE, NOT THE TOTAL ═══════════════════════════════════════════
+     `campTally` counts touchpoints and meetings for the whole life of a
+     campaign, which answers "how much has happened" and not "is it keeping
+     up" — and the second is the one somebody checks on a Monday. Divided by
+     the weeks the campaign has actually been running, so two campaigns of
+     different ages are comparable, which a total never is.
+
+     Its window is the campaign's own: `from` to today, or to `to` once it
+     has closed. A campaign with no `from` has not started, so there is no
+     window to divide by and this returns nothing rather than dividing by a
+     week it invented. */
+  function campWeekly(l) {
+    if (!l || !l.from) return null;
+    const to = l.to && daysAgo(l.to) > 0 ? l.to : iso(TODAY);
+    if (to < l.from) return null;
+    const weeks = Math.max(1, (daysBetween(l.from, new Date(to)) + 1) / 7);
+    let touches = 0;
+    let meetings = 0;
+    campMembers(l).forEach((a) => touchesFor(a).forEach((t) => {
+      if (!inPeriod(t.at, { from: l.from, to })) return;
+      touches += 1;
+      /* The same test `metIn` makes, so a meeting counts here exactly where
+         it counts on the funnel — one definition, two readers. */
+      if (t.ch === 'meeting' || t.ch === 'physical' || t.outcome === 'meeting-booked') meetings += 1;
+    }));
+    return { weeks, touches, meetings, tpw: touches / weeks, mpw: meetings / weeks };
+  }
+
+  /* One decimal, and no trailing ".0" — "3 a week" is what somebody says out
+     loud, and "3.0 a week" is a spreadsheet talking. */
+  const perWeek = (v) => (Math.round(v * 10) / 10).toString();
+
   function campIdentity(l) {
     const crew = l.crew || {};
     const internal = canWrite();
@@ -11276,6 +13031,71 @@
             four zeroes would be a worse answer than the sentence that says
             nobody is on it yet. */ ''}
       ${row('Progress', campTally(l) || `<span class="s-goal-text">${esc(campProgressSay(l))}</span>`)}
+
+      ${/* ══ WHO IT IS AIMED AT, AND WHETHER IT IS KEEPING UP ═════════════
+            Two questions the page could answer and did not. The persona was
+            learnable only by opening the people and noticing they were all
+            QA managers; the rate was learnable not at all, because every
+            figure on this page is a life-to-date total and a total cannot
+            say whether a campaign has gone quiet this month.
+
+            Under Progress, because both qualify it: the tally says how much
+            has happened, these say to whom and how fast. */ ''}
+      ${(() => {
+        const who = campPersona(l);
+        const want = l.personas || [];
+        if (!who.length && !want.length) {
+          /* Nobody is on it yet, but the campaign can still say who it is
+             FOR — which is the half of this row that is a decision rather
+             than a count, and the half the creation flow needs. */
+          return internal ? row('Persona', '<span class="s-goal-text">Nobody has said who it is aimed at.</span>',
+            canWrite() ? `<button class="s-inline-btn" type="button" data-persona="${esc(l.k)}">Add</button>` : '') : '';
+        }
+        /* ══ THE NUMBER NEEDED A NOUN ══════════════════════════════════════
+             It read `VP Engineering 5` and the 5 was unexplained — five what,
+             out of what. It is how many PEOPLE on this campaign hold that
+             title, so it says so, and the row states the total it is a
+             share of.
+
+             Expanded in place through the same `OPEN_GROUPS` latch every
+             other capped set on this product uses, rather than a link to a
+             surface that would list them again. */
+        const open = OPEN_GROUPS.has('personas');
+        const shown = open ? who : who.slice(0, 3);
+        const people = campPeople(l).length;
+        const off = want.length ? who.filter((x) => want.indexOf(x.t) < 0) : [];
+        const offN = off.reduce((n2, x) => n2 + x.n, 0);
+        return row('Persona', `${
+          want.length ? `<span class="s-persona-want">Aimed at <b>${esc(want.join(', '))}</b></span>` : ''}${
+          shown.map((x) => `<span class="s-persona${want.length && want.indexOf(x.t) < 0 ? ' is-off' : ''}"><b>${esc(x.t)}</b> ${
+            x.n} ${x.n === 1 ? 'person' : 'people'}</span>`).join('')}${
+          who.length > shown.length
+            ? `<button class="s-inline-btn" type="button" data-opengroup="personas">and ${who.length - shown.length} more</button>`
+            : open && who.length > 3
+              ? `<button class="s-inline-btn" type="button" data-opengroup="personas">Show fewer</button>` : ''}${
+          who.length ? `<span class="s-goal-text">of ${plural(people, 'person')} on it</span>`
+            /* A campaign made an hour ago is aimed at somebody and holds
+               nobody, and the row printed the aim and then stopped — true,
+               but it reads as though the sentence was cut off. */
+            : `<span class="s-goal-text">${people
+              ? `no job title on any of the ${people} on it yet` : 'nobody on it yet'}</span>`}${
+          /* The gap between who it is FOR and who is on it — the same kind
+             of finding a list's criteria-versus-contents makes, and the
+             reason declaring a persona is worth doing at all. */
+          offN ? `<span class="s-persona-off">${offN} ${offN === 1 ? 'is' : 'are'} not who it is aimed at</span>` : ''}`,
+          canWrite() ? `<button class="s-inline-btn" type="button" data-persona="${esc(l.k)}">${want.length ? 'Change' : 'Add'}</button>` : '');
+      })()}
+      ${(() => {
+        const w = campWeekly(l);
+        if (!w) return '';
+        /* Named for the window it measured, because "2.4 a week" over three
+           weeks and over thirty are different claims and only one of them
+           is worth acting on. */
+        const over = `over ${plural(Math.round(w.weeks), 'week')}`;
+        return row('Every week', `<span class="s-persona"><b>${esc(perWeek(w.tpw))}</b> touchpoints</span>
+          <span class="s-persona"><b>${esc(perWeek(w.mpw))}</b> meetings</span>
+          <span class="s-goal-text">${esc(over)}</span>`);
+      })()}
 
       ${/* ══ ONE OFFERING PER LINE, FOR THE SAME REASON AS TEAM ═══════════
             Two products, each carrying a `Knowledge` link and a remove `×`,
@@ -11401,356 +13221,203 @@
   /* ── ② FIND ──
      The organizations on it, and the control the product has never had: get
      MORE of them, from here, read off this campaign's goal. */
+  /* ══ WHICH LISTS A CAMPAIGN DRAWS ON ═══════════════════════════════════
+     The reverse of `listUsedBy`, and it has to be, or the two would disagree
+     about the same pairing. A member belongs to a list if it arrived through
+     that list's search or was merged into it — the same membership rule
+     `listPool` uses, read from the campaign's side. */
+  function campLists(c) {
+    if (!c) return [];
+    const mem = campMembers(c);
+    if (!mem.length) return [];
+    return DB.source.filter((s) => mem.some((a) => a.srcRef === s.k || (s.has || []).indexOf(a.id) >= 0));
+  }
+
+  /* How many of the campaign's members came in through this list. Not
+     `listPool(s).length`, which is the whole list — a campaign often takes
+     part of one, and reporting the list's own size here would say the
+     campaign holds leads it does not. */
+  const campFromList = (c, s) => campMembers(c)
+    .filter((a) => a.srcRef === s.k || (s.has || []).indexOf(a.id) >= 0);
+
+  /* ══ FIND IS THE LISTS, NOT THE ORGANIZATIONS ══════════════════════════
+     It drew the campaign's twenty-four organizations and a criteria form
+     that added more — a second list builder, on a page that has one. What
+     a campaign is FOUND from is its lists, and every question this stage
+     answers is about them: which ones, how much of each came in, and where
+     the next batch comes from.
+
+     The organizations themselves are one press away and always were: the
+     count opens the workbench scoped to the campaign, which is the surface
+     built to read a set of leads. Drawing them here made Find a worse copy
+     of it. */
   function stageFind(l) {
     const members = campMembers(l);
-    const by = {};
-    members.forEach((a) => (by[statusOf(a)] = (by[statusOf(a)] || 0) + 1));
-    const narrowed = !!S.in;
-    const shown = narrowed ? members.filter((a) => statusOf(a) === S.in) : members;
+    const lists = campLists(l);
+    const inLists = new Set();
+    lists.forEach((s) => campFromList(l, s).forEach((a) => inLists.add(a.id)));
+    const byHand = members.filter((a) => !inLists.has(a.id));
+    /* Capped and expanded in place, the way every other long set on this
+       product is — `OPEN_GROUPS` is the same latch `grid` uses, so pressing
+       Show all here behaves the way it does everywhere else. */
+    const open = OPEN_GROUPS.has('_all');
+    const page = open ? members : members.slice(0, LIST_PAGE);
 
-    return `${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
-      ${/* THE ARROW THE DIAGRAM DRAWS AND THE PRODUCT NEVER HAD.
-            "Add contacts" picks from leads you already own. Getting NEW ones
-            meant leaving the campaign for the home page, running a search,
-            landing on a list, selecting, and adding — eight moves across four
-            surfaces to do something to the campaign you were standing on.
+    /* ══ WHAT FIND HAS TO SAY ═════════════════════════════════════════
+       Every stage on this page now opens with one, because a step that
+       shows its evidence and never states a finding leaves the reader to do
+       the accumulating — which is the argument `grid` makes about lead rows
+       and `campSectHead` makes about sections, applied to the fourth place
+       it was still missing.
 
-            It passes `l.k`, which also makes `findCompanies`' goal branch
-            reachable for the first time: it was written, and every call site
-            passed nothing, so the one place a campaign's goal fed sourcing
-            could never run. */ ''}
-      <button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-findfor="${esc(l.k)}">Find more like these</button>
-      <button class="btn btn-ghost btn-sm" type="button" data-addto="${esc(l.k)}">Add ones we have</button>
-    </div>` : ''}
+       Find's finding is where the next batch comes from: the list whose
+       criteria matched most that nobody took. */
+    const gaps = lists.map((sc) => ({ sc, gap: listGap(sc) })).filter((x) => x.gap)
+      .sort((x, y) => y.gap - x.gap);
+    const top = gaps[0];
+    const read = !members.length
+      ? stageRead('Nothing is on it yet. <b>A list is how leads get here</b> — build one from its goal, or add one you already have.')
+      : !lists.length
+        ? stageRead(`<b>${plural(members.length, 'organization')}</b> on it, and <b>none came from a list</b> — every one was added on its own, so there is nothing here to re-run for more.`)
+        : !top
+          ? stageRead(`<b>${plural(members.length, 'organization')}</b> from ${plural(lists.length, 'list')}, and <b>every one of those lists is exhausted</b> — their criteria have brought in everything they match.`)
+          : stageRead(
+              `<b>${plural(members.length, 'organization')}</b> from ${plural(lists.length, 'list')}. <b>${esc(top.sc.name)}</b> matched <b>${top.gap.toLocaleString('en-GB')} more</b> that were never brought in${
+                gaps.length > 1 ? `, and ${gaps.length - 1} of the others ${gaps.length - 1 === 1 ? 'has' : 'have'} a gap too` : ''}.`,
+              canWrite() ? readAct('Bring in more', `data-listrun="${esc(top.sc.k)}"`) : null);
 
-      ${!members.length ? `<p class="s-none">Nothing on it yet.</p>
-        ${/* ══ WHO IS IN IT, ASKED WHERE IT BELONGS ═══════════════════════
-              These six chips were the last block of the create form, so the
-              audience had to be decided before the campaign — and before the
-              goal it should follow from was written down. Here they sit on
-              the step named after the question, against a live count of what
-              they would bring in, on a campaign that already has a goal
-              AiMY can read. Unchanged otherwise: same rows, same tests,
-              same `audienceFrom` reading the ticks off the DOM. */ ''}
-        ${canWrite() && !campOver(l) ? `<div class="s-field s-aud">
-          <span class="s-field-label">Criteria</span>
-          ${AUDIENCE_ASKS.map((row, q) => `<div class="s-aud-row">
-            <span class="s-aud-ask">${esc(row.ask)}</span>
-            <div class="s-assign-grid">${row.opts.map((o) => `<label class="s-assign-chip">
-              <input type="checkbox" class="s-aud-pick" data-aud="${q}" value="${esc(o.v)}" />
-              <span class="s-assign-name">${esc(o.t)}</span>
-            </label>`).join('')}</div>
-          </div>`).join('')}
-          <p class="s-aud-out"></p>
-          <button class="btn btn-ghost btn-sm s-aud-add" type="button" data-audadd="${esc(l.k)}">Add the ones that match</button>
-        </div>` : ''}` : `
-        ${/* ══ THE NOUN, AND THE NARROWING AS A CHIP ══════════════════════
-              This said "10 organizations" twenty-eight pixels under a node
-              head reading "10 in" — the same count, twice, in one glance.
-              The heading is what the block holds; the node head above it is
-              how many, and that is the head's whole job.
+    return `${read}
+      ${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
+        ${/* Two doors and no third. One reaches the lists that already
+              exist, the other builds one from this campaign's own goal —
+              which is what `data-findfor` has always carried into the
+              builder. The criteria form that used to sit here was the
+              builder again, worse, and inline. */ ''}
+        <button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-findfor="${esc(l.k)}">Build a new list</button>
+        ${DB.source.length ? `<button class="btn btn-ghost btn-sm" type="button" data-campaddlist="${esc(l.k)}">Add an existing list</button>` : ''}
+      </div>` : ''}
 
-              Narrowed, the count is NOT the node's any more, so it is worth
-              stating — as the chip the rest of the product uses for a live
-              filter, which also puts the way out on the thing that narrowed
-              rather than in a sentence beside it. */ ''}
-        <div class="s-camp-list-head">
-          <h4 class="s-sub-h">Organizations</h4>
-          ${narrowed ? `<button class="chip active s-chip" type="button" data-cstatus=""
-            aria-label="Showing ${esc(label('status', S.in).toLowerCase())} only — show all ${members.length}">
-            ${esc(label('status', S.in))} &middot; ${shown.length}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>` : ''}
-        </div>
-        ${(() => {
-          /* One status is not a spread — a single full-width bar compares
-             a set against itself. The rows still carry the narrowing, so
-             where there is nothing to choose between there is nothing to
-             draw: the chips above and the per-row status say it already. */
-          const spread = TAX.status.filter((x) => by[x.k]);
-          if (spread.length < 2) return '';
-          /* ══ THE SAME ROW AS EVERY OTHER COUNT ON THE PAGE ═══════════════
-             This drew its own thing — a name, a tinted bar and a figure at
-             the far right — while three other lists on the same page each
-             drew a different one. It is a count and a door like all of them,
-             so it is `.s-reason` like all of them; and the tinted bar goes
-             with the argument the ranked rows already settled, that statuses
-             running 9/6/5/3/1 against a total of 24 draw as five stubs and
-             the figure says it better.
-
-             It keeps the one thing none of the others need: `is-on`, so the
-             status you are currently filtered to is marked. */
-          /* ══ A COMPOSITION IS ONE SHAPE, NOT SEVEN ═══════════════════════
-
-             Every organization on the campaign is in exactly one status, so
-             these counts are PARTS OF ONE WHOLE — and the question a reader
-             brings is what the whole looks like: mostly working, mostly
-             stalled, mostly closed. Seven separate rows make that a sum you
-             have to do; seven separate bars make it seven comparisons you
-             have to hold. One stacked bar makes it a shape.
-
-             This is the tally bar from Progress, on the same argument and
-             the same component. The list under it stays, because the bar
-             answers "what does it look like" and the list is how you get
-             into any part of it — and because status has to be carried by
-             text as well as colour. */
-          /* The BAR keeps taxonomy order, because a composition is read
-             left to right as a pipeline and shuffling the segments by size
-             would break the one thing it is for. The LIST ranks by count,
-             because a list is read top-down and the biggest group is the one
-             worth opening first. Two orders, two jobs. */
-          const segs = spread.map((x) => `<span class="s-tally-seg tone-${esc(x.tone)}" style="flex-grow:${by[x.k]}" title="${esc(`${by[x.k]} ${x.label.toLowerCase()}`)}"></span>`).join('');
-          const ranked = [...spread].sort((a, b) => by[b.k] - by[a.k]);
-          const top = ranked[0];
-          return `${stageRead(
-              `<b>${by[top.k]} of the ${members.length}</b> are <b>${esc(top.label.toLowerCase())}</b>, more than any other state. ${
-                top.k === 'untouched' ? 'Nothing has gone to them yet.'
-                  : top.k === 'awaiting-us' ? 'They answered and the campaign has not.'
-                  : 'That is where most of this campaign currently stands.'}`,
-              S.in === top.k ? null : readAct(`Show me the ${by[top.k]}`, `data-cstatus="${esc(top.k)}"`))}
-            <div class="s-tally-bar" role="img"
-              aria-label="${esc(`Of ${members.length} organizations: ${spread.map((x) => `${by[x.k]} ${x.label.toLowerCase()}`).join(', ')}.`)}">${segs}</div>
-            <div class="s-reasons">
-            <p class="s-reasons-head">Orgs</p>
-            ${ranked.map((x) => reasonRow(
-              by[x.k], x.label, `data-cstatus="${esc(x.k)}"`,
-              S.in === x.k ? `Showing ${x.label.toLowerCase()} only — show all ${members.length}`
-                : `Show only the ${plural(by[x.k], 'organization')} that are ${x.label.toLowerCase()}`,
-              S.in === x.k)).join('')}
+      ${!members.length
+        ? `<p class="s-none">Nothing on it yet. Build a list from its goal, or add one you already have.</p>`
+        : `<div class="s-sheet-block">
+        <h4 class="s-sub-h">Its lists</h4>
+        ${lists.length ? `<div class="s-clists">${lists.map((s) => {
+          const mine = campFromList(l, s);
+          const gap = listGap(s);
+          return `<div class="s-clist">
+            <button class="s-clist-name" type="button" data-quick="${esc(`on=leads&srcref=${s.k}&who=${s.kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=&camp=&in=`)}">${esc(s.name)}</button>
+            <span class="s-clist-facts"><b>${mine.length}</b> of its ${listPool(s).length} are on this campaign${
+              gap ? ` · ${gap.toLocaleString('en-GB')} more matched its criteria` : ''}</span>
           </div>`;
-        })()}
-        ${/* ══ AND THEN THE WORKBENCH STOPPED BEING INLINED ═════════════════
+        }).join('')}</div>` : ''}
+        ${/* Leads added one at a time belong to no list, and a stage that
+              only counted lists would report fewer than the campaign holds —
+              the head-counts-five-rows-draw-four defect, from the third
+              side it can arrive from. */ ''}
+        ${byHand.length ? `<p class="s-block-say"><b>${byHand.length}</b> ${
+          byHand.length === 1 ? 'was added' : 'were added'} one at a time and belong${byHand.length === 1 ? 's' : ''} to no list.</p>` : ''}
+      </div>
 
-              Twelve rows, 579px — fifty-five per cent of this tab — each one
-              a name, a headcount, a last-touched and a status, opening the
-              record when pressed. Which is the leads workbench, rendered
-              inside a campaign tab, one click from the real one.
-
-              The argument for it was that Find asks who we are going after
-              and a list of names answers that. It does, and so does the
-              block directly above it: a composition bar for the shape and
-              five ranked rows that each open their own slice. Those are the
-              same twenty-four organizations, described rather than
-              enumerated, in 223px instead of 802.
-
-              A previous pass had already made this cut once, from cards to
-              rows, on the reasoning that comparing one organization against
-              another is the leads surface's job and not this stage's. That
-              reasoning finishes here: it is not this stage's job at any row
-              height. The door stays, carrying whatever narrowing is on. */ ''}
-        <button class="s-inline-btn s-tab-more" type="button"
-          data-quick2="${esc(`on=leads&who=&campaign=${l.k}&status=${S.in || ''}&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">
-          ${narrowed ? `Open the ${shown.length} in the workbench` : `Open all ${members.length} in the workbench`}</button>
-      `}`;
+      ${/* ══ AND THE ORGANIZATIONS THEMSELVES, HERE ═══════════════════════
+            This was a link reading "Open all 24 in the workbench" — a stage
+            that named its subject and then sent you somewhere else to look
+            at it. The workbench is the right surface for a set you are
+            NARROWING; Find is not narrowing anything, it is showing what the
+            campaign holds, and the rows it would show are the rows this
+            product draws everywhere. So they are drawn here. */ ''}
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">${esc(plural(members.length, 'organization'))} on it</h4>
+        <div class="s-brows">${page.map((a) => buildRow(a, 'acc')).join('')}</div>
+        ${members.length > page.length
+          ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${members.length - page.length}</button>`
+          : open && members.length > LIST_PAGE
+            ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show fewer</button>` : ''}
+      </div>`}`;
   }
+  /* ══ WHAT IS WRONG, WHICH LIST IT IS WRONG IN, AND THE FIX ═════════════
+     The stage stated one gap — "13 of the 51 have neither an email nor a
+     phone number" — over a button reading `Look up what is missing`, which
+     is a verb with no subject: missing from WHICH of the campaign's six
+     lists, and fixed by running which one?
 
-  /* Twelve, against the six the card grid could afford. A row is one control
-     and one line, so the limit is what a person can scan rather than what
-     the markup can carry. */
-  const MEMBER_PAGE = 12;
+     So the reading names the worst list and the rows name the rest, and
+     every row carries the run that fills that list. `data-enrichlist` takes
+     a whole list at once, which is what the enrichment run has always done —
+     the button was already the right one, it just never said what it was
+     about to enrich.
 
-  /* One organization on a stage: its name, where it stands, and the one fact
-     that stage cares about. Same shape as `.s-write`, so moving between
-     stages does not mean learning a new row. */
-  function memberRow(a, c) {
-    const st = statusOf(a);
-    const row = BY.status[st] || { label: st, tone: 'neutral' };
-    const people = maySee(DB.con).filter((p) => !p.arch && p.acc === a.id);
-    const last = (DB.touchBy[a.id] || [])[0];
-    const facts = [
-      people.length ? plural(people.length, 'person') : 'nobody named yet',
-      last ? `last touched ${fmtAgo(last.at)}` : 'never touched',
-    ];
-    return `<button class="s-mrow" type="button" data-row="${esc(a.id)}">
-      <span class="s-mrow-name">${esc(a.name)}</span>
-      <span class="s-mrow-st tone-${esc(row.tone)}">${esc(row.label)}</span>
-      <span class="s-mrow-facts">${esc(facts.join(' · '))}</span>
-    </button>`;
-  }
-
-  /* ── ③ ENRICH ──
-     What we do not know about the people on this campaign, and one action to
-     go and find it. Bulk enrichment scoped to a campaign is the diagram's
-     "manual trigger for the enrichment of bulk contacts", and it existed
-     only against the whole book, from the home page. */
+     One AiMY block, not one per row. A full-width mark per finding is the
+     defect `grid`'s own note spent a paragraph on: six rows would be six
+     marks introducing six sentences. The reading accumulates; the rows carry
+     the verbs. */
   function stageEnrich(l) {
-    const people = campPeople(l);
+    const lists = campLists(l);
     const members = campMembers(l);
-    const noEmail = people.filter((p) => !p.email);
-    const noPhone = people.filter((p) => !p.phone);
+    const people = campPeople(l);
     const noWay = people.filter((p) => !p.email && !p.phone);
-    const thinAcc = members.filter((a) => a.emp == null || a.rev == null);
-    const gapIds = [...new Set(thinAcc.map((a) => a.id).concat(noWay.map((p) => p.acc)))];
 
-    /* ══ THE CLAUSES STAND ALONE NOW ═══════════════════════════════════════
+    /* Counted over the campaign's share of each list, not the whole list —
+       a campaign holding six of a hundred should not be told about the
+       other ninety-four's gaps. */
+    const rows = lists.map((s) => {
+      const mine = campFromList(l, s);
+      const ids = new Set(mine.map((a) => a.id));
+      const con = s.kind === 'con';
+      const at = maySee(DB.con).filter((p) => !p.arch && ids.has(p.acc));
+      const thin = con
+        ? at.filter((p) => !p.email || !p.phone)
+        : mine.filter((a) => a.emp == null || a.rev == null);
+      const stuck = at.filter((p) => !p.email && !p.phone);
+      return { s, mine, con, thin: thin.length, stuck: stuck.length };
+    }).filter((r) => r.thin || r.stuck).sort((a, b) => (b.stuck - a.stuck) || (b.thin - a.thin));
 
-       They were verb phrases agreeing with a count that opened them — "have
-       no phone number, so they cannot be rung" — because the count was the
-       first word of the sentence. With the figure lifted into its own column
-       the sentence has to start somewhere, and a capitalised verb phrase
-       ("Have no phone number…") is not a sentence, it is a fragment wearing
-       a capital.
+    if (!members.length) {
+      return stageRead('Nothing is on it yet, so there is nothing to fill in. <b>Find is where that starts.</b>');
+    }
+    if (!rows.length && !noWay.length) {
+      return stageRead('<b>Nothing is missing.</b> Every organization on it has a headcount and revenue, and everybody on it can be reached.');
+    }
 
-       Written as what they are: the gap itself, named. No number agreement
-       left to get wrong either, which is why the plural helpers are gone. */
-    const rows = [
-      { n: noWay.length, say: 'No way to reach them at all.', of: people.length,
-        ids: noWay.map((p) => p.id), who: 'contacts', worst: true },
-      { n: noPhone.length, say: 'No phone number, so they cannot be rung.', of: people.length,
-        ids: noPhone.map((p) => p.id), who: 'contacts' },
-      { n: noEmail.length, say: 'No email address.', of: people.length,
-        ids: noEmail.map((p) => p.id), who: 'contacts' },
-      { n: thinAcc.length, say: 'Missing headcount or revenue, so they cannot be sorted or scored.', of: members.length,
-        ids: thinAcc.map((a) => a.id), who: '' },
-    ].filter((r) => r.n)
-      /* ══ WORST FIRST, BY SHARE ═══════════════════════════════════════════
-         They were in the order they happened to be written — no way to reach,
-         phone, email, thin — which put a gap affecting a tenth of the
-         campaign above one affecting half of it whenever that was how the
-         data fell. Ranked by SHARE rather than count, because the four rows
-         count against two different totals: nine of thirty-one people and
-         nine of twenty-four organizations are not the same finding, and
-         sorting on the raw number silently claims they are.
+    /* The worst list leads, and "worst" is whichever blocks the most people
+       from being contacted at all — a thin headcount is a nuisance, no way
+       to reach somebody stops the campaign. */
+    const top = rows[0];
+    const say = !top
+      ? `<b>${plural(noWay.length, 'person')}</b> on it ${noWay.length === 1 ? 'has' : 'have'} no way to be reached, and ${noWay.length === 1 ? 'is' : 'they are'} on no list, so nothing here can fill ${noWay.length === 1 ? 'them' : 'them'} in.`
+      : `<b>${esc(top.s.name)}</b> is the thinnest of its lists — ${top.stuck
+          ? `<b>${plural(top.stuck, 'person')}</b> on it ${top.stuck === 1 ? 'cannot' : 'cannot'} be reached at all`
+          : `<b>${top.thin}</b> of the ${top.mine.length} here ${top.thin === 1 ? 'is' : 'are'} ${top.con ? 'missing an email or a phone number' : 'missing a headcount or revenue'}`}${
+          rows.length > 1 ? `, and <b>${rows.length - 1}</b> of the others ${rows.length - 1 === 1 ? 'has' : 'have'} a gap too` : ''}.`;
 
-         `noWay` keeps its place at the top when it exists regardless — it is
-         not a thin field, it is a lead that cannot be worked at all, and it
-         is a subset of the two rows under it. */
-      .sort((a, b) => (b.worst ? 1 : 0) - (a.worst ? 1 : 0)
-        || (b.n / (b.of || 1)) - (a.n / (a.of || 1)));
+    return `${stageRead(say, top && canWrite()
+        ? readAct(`Fill in ${esc(top.s.name)}`, `data-enrichlist="${esc(top.s.k)}"`) : null)}
 
-    /* ══ THE VERB RENDERS ONCE ═══════════════════════════════════════════
-       `Fill in what is missing on 11` was the stage's primary button AND the
-       reading's action, twelve pixels apart, both landing on
-       `data-enrichcamp`. `campPage` already solved this for the header's
-       lifecycle control — a control whose verb the recommendation carries
-       does not render — and the reading keeps it for the same reason: it is
-       the one that also says why. The row above keeps the secondary, which
-       is a different job, and disappears when that is all it would hold. */
-    return `${members.length && canWrite() ? `<div class="s-stage-acts">
-      ${/* ══ THE OTHER HALF OF R7.8 ═══════════════════════════════════════
+      ${rows.length ? `<div class="s-sheet-block">
+        <h4 class="s-sub-h">Its lists, thinnest first</h4>
+        <p class="s-block-say">Counted over this campaign's share of each list, not the whole of it.</p>
+        <div class="s-clists">${rows.map((r) => `<div class="s-clist">
+          <button class="s-clist-name" type="button" data-quick="${esc(`on=leads&srcref=${r.s.k}&who=${r.s.kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=&camp=&in=`)}">${esc(r.s.name)}</button>
+          <span class="s-clist-facts">${r.thin
+            ? `${r.thin === r.mine.length
+                ? (r.mine.length === 1 ? '<b>The one</b> here has' : `<b>All ${r.mine.length}</b> here have`)
+                : `<b>${r.thin}</b> of the ${r.mine.length} here ${r.thin === 1 ? 'has' : 'have'}`} ${
+                r.con ? 'no email or no phone number' : 'no headcount or revenue'}`
+            : ''}${r.thin && r.stuck ? ' · ' : ''}${r.stuck
+            ? `<b>${r.stuck}</b> ${r.stuck === 1 ? 'cannot' : 'cannot'} be reached at all` : ''}</span>
+          ${canWrite() ? `<span class="s-clist-act">${
+            BUSY === `enrich:${r.s.k}`
+              ? `<button class="s-finding-go is-busy" type="button" disabled>Asking…</button>`
+              : `<button class="s-finding-go" type="button" data-enrichlist="${esc(r.s.k)}">Fill this one in</button>`}</span>` : ''}
+        </div>`).join('')}</div>
+      </div>` : ''}
 
-            The brief's enrichment arrow has four branches — phone, email,
-            Google Maps, and "Search Google → news, financial reports,
-            blogs". Three of the four were served by the waterfall beside
-            this. The news branch was served by the CORPUS: `DB.signal`
-            carries funding rounds, job changes and hiring, they drive
-            `opportunitiesOf`, the rail and the record's flags — and nothing
-            in the product ever went and got one. They were seeded, so the
-            most load-bearing derived dataset here had no visible origin.
-
-            Secondary, always. Filling in a phone number nobody has is the
-            work; looking for news is the thing you do when that is done. */ ''}
-      ${members.length ? `<button class="entry-action em-review" type="button" data-newsfor="${esc(l.k)}">Look for news on ${members.length}</button>` : ''}
-    </div>` : ''}
-
-      ${!people.length ? `<p class="s-none">Nobody is on it yet, so there is nothing to fill in. Find some first.</p>`
-        : !rows.length ? `<p class="s-none">Everybody on it has a way to reach them and every organization is sized. Nothing to do here.</p>`
-        : `${/* ══ ENRICH IS COVERAGE, NOT A RANKING ═══════════════════════════
-
-              The other three lists on this page rank things against each
-              other: which obstacle is biggest, which reason loses most. Those
-              rows carry no bar, because obstacle counts running 4/4/3/3/2
-              draw as five identical stubs and the figure says it better.
-
-              This list is a different question. "9 have no phone number" is
-              not competing with "3 have no email" — each one is a GAP IN A
-              KNOWN TOTAL, and what a reader needs is how much of the
-              campaign it costs. Nine of thirty-one is a third of everybody
-              you might ring; three of thirty-one is a rounding error. The
-              denominator is the finding, and a count alone hides it.
-
-              So this one is drawn: the share as a length against the whole,
-              the way Apollo's data-health centre and Fresha's completion
-              meters both do it. The bar is honest here for exactly the
-              reason it was dishonest there — there is a real whole to be a
-              part of. */ ''}
-        ${(() => {
-          /* The reading names the widest gap and says what it COSTS, which
-             is the thing a list of four percentages does not: a phone number
-             missing on half the campaign matters because the sequence rings
-             people, and that connection is not in the data. */
-          const w = rows[0];
-          const pct = w.of ? Math.round((w.n / w.of) * 100) : 0;
-          const noun = w.who === 'contacts' ? 'the people' : 'the organizations';
-          /* Why it costs what it costs: a missing phone number only stops
-             the work if the sequence rings anybody, and the campaign's own
-             channel plan is what says whether it does. */
-          const rings = (l.plan || []).includes('phone');
-          const cost = w.worst
-            ? '<b>Nothing in the sequence can reach them.</b>'
-            : rings && w.say.indexOf('phone') > -1
-              ? '<b>The sequence rings people</b>, so this is what stops it.'
-              : 'Filling it in is what lets the rest of the campaign run.';
-          const said = w.worst
-            ? `<b>${pct}%</b> of ${noun} here have no way to reach them at all. ${cost}`
-            : `<b>${pct}%</b> of ${noun} here are missing something — ${esc(w.say.charAt(0).toLowerCase() + w.say.slice(1, -1))}. ${cost}`;
-          return stageRead(said, gapIds.length && canWrite()
-            ? readAct(`Fill in what is missing on ${gapIds.length}`, `data-enrichcamp="${esc(l.k)}"`)
-            : null);
-        })()}
-        <div class="s-covers">
-          ${rows.map((r) => {
-            const pct = r.of ? Math.round((r.n / r.of) * 100) : 0;
-            const noun = r.who === 'contacts' ? 'people' : 'organizations';
-            return `<button class="s-cover${r.worst ? ' is-worst' : ''}" type="button"
-              data-quick2="${esc(`on=leads&who=${r.who}&ids=${r.ids.join(',')}&status=&obstacle=&opp=&campaign=&srcref=&loose=&due=&q=&camp=&in=`)}"
-              aria-label="${esc(`${r.n} of ${r.of} ${noun} — ${r.say} Show them.`)}">
-              <span class="s-cover-say">${esc(r.say)}</span>
-              <span class="s-cover-fig">${r.n}<span class="s-cover-of">of ${r.of} ${esc(noun)}</span></span>
-              <span class="s-cover-track" aria-hidden="true"><span class="s-cover-fill" style="width:${Math.max(2, pct)}%"></span></span>
-              <span class="s-cover-pct" aria-hidden="true">${pct}%</span>
-            </button>`;
-          }).join('')}
-        </div>`}`;
+      ${/* The gap that belongs to no list: somebody added one at a time with
+            no way to be reached. It blocks Reach exactly as the others do,
+            and no list run will fix it, so it is stated on its own. */ ''}
+      ${noWay.length && !rows.some((r) => r.stuck) ? `<p class="s-block-say"><b>${noWay.length}</b> of the ${people.length} on it ${
+        noWay.length === 1 ? 'has' : 'have'} neither an email address nor a phone number, and ${
+        noWay.length === 1 ? 'is' : 'are'} on no list.</p>` : ''}`;
   }
-
-  /* ── ④ WRITE ──
-
-     CLAY'S THIRD VERB, AND THIS PRODUCT HAD NO EQUIVALENT AT ALL. Find and
-     Enrich answer who and what-do-we-know; Export answers where it goes.
-     Transform is where the thing that will actually be SAID gets made, and
-     until now the campaign carried a channel plan, a sequence of steps and
-     an outcome log with nothing in between: 188 controls on the old page,
-     none of which was a sentence anybody was going to send.
-
-     One member per row, because copy is per person or it is a mailshot.
-     Each row says WHY it is here — never written, or written before news
-     that changed what you would say — since those are different jobs and
-     lumping them under "needs copy" would hide the second one entirely. */
-  /* ══ WHAT USED TO BE THE WRITE STAGE ═══════════════════════════════════
-
-     A stage of its own, then a block of twelve full drafts inside Reach, and
-     now two lines. The cut is not squeamishness about copy — it is that the
-     drafts were being RENDERED TWICE on the same open node: once here at
-     full length, and again on every queue row below, which is where somebody
-     about to dial actually reads one. 728px of the node was the second copy
-     of what the queue already said.
-
-     What Reach owes about copy is the COUNT and the VERB — how many have
-     nothing agreed, how many were agreed before something changed, and one
-     press to fix each. The drafts themselves live where they are used: on
-     the queue row, and on the record.
-
-     `draftStale` keeps its whole job. It is what separates these two lines,
-     and the second one — agreed, then overtaken by news — is the mechanic
-     the README calls the product's best, so it is stated on its own rather
-     than folded into "needs copy". */
-  /* ══ COPY WAS A BLOCK; IT IS THE READING ═══════════════════════════════════
-
-     A `Copy` heading over one or two rows, each a sentence and a `Draft all
-     N` — sitting above a Queue whose every row already states its own draft
-     state ("AiMY drafted a line" / "Write one"). So the block was the
-     AGGREGATE of the list underneath it, given a heading of its own and the
-     first position on the tab.
-
-     That aggregate is worth having: the queue shows six of thirteen, so the
-     rows you cannot see are exactly the ones a count catches. What it is
-     NOT is a separate subject. A finding over the stage's own evidence, with
-     the bulk verb attached, is a reading — and Reach was the one stage on
-     this page that did not have one.
-
-     So it becomes the reading, and the tab goes from four blocks to three:
-     what AiMY makes of it, what gets sent, who is next. */
   function reachRead(l) {
     if (campOver(l)) return '';
     const unwritten = reachBy(l, 'unwritten');
@@ -11813,36 +13480,19 @@
 
     return `${reachRead(l)}
 
-      <div class="s-sheet-block">
-        ${/* ══ THE SEQUENCE STAYS, AND SAYS WHAT IT IS ═══════════════════════
+      ${/* ══ THE SEQUENCE BLOCK IS GONE ═════════════════════
+            Reach is the calls to be made and where each one stands. The
+            sequence was the other thing on it — what the plan sends and how
+            long it waits — and it is not what this stage was asked for.
 
-              `c.plan` is what a campaign is allowed to send on, and this is
-              the only surface anywhere that shows it or changes it — before
-              the block existed it lived as one line in the rail's history,
-              under "The plan was set", with no control on the campaign at
-              all. So it does not get cut.
-
-              What it got wrong was legibility. `SEQUENCE`, three cards, and
-              `3d` between them: nothing said these were steps that go out in
-              order, nothing said `3d` was a WAIT rather than an age, and
-              `SENT 6 / CALLED 11 / MET 8` gave three counts without saying
-              six of what. A reader who did not already know the model could
-              not learn it from the block.
-
-              Now it states what it is, labels the waits as waits, names each
-              step's channel, and marks the one that goes next — which is the
-              only thing on it that changes day to day and was the one thing
-              it never said. */ ''}
-        <div class="s-camp-list-head">
-          <h4 class="s-sub-h">Sequence</h4>
-          ${canWrite() && !campOver(l) && l.plan && l.plan.length
-            ? `<button class="s-inline-btn" type="button" data-plan="${esc(l.k)}">Change the channels</button>` : ''}
-        </div>
-        <p class="s-block-say">What this campaign sends, in order, and how long it waits between each one.</p>
-        ${l.trail && l.trail.length
-          ? trailBlock(l)
-          : `<p class="s-none">Nobody has decided how to work this yet, so nothing sends. Choose the channels and a window to start it &mdash; after that AiMY works the plan, and anything it sends is logged as AiMY&rsquo;s.</p>`}
-      </div>
+            STARTING A CAMPAIGN STILL WORKS. `campState` reads `plan`, so
+            cutting the writer would have made every campaign a permanent
+            draft — but `data-plan` was never only here: `campExit` puts
+            `Start it` in the header carrying the same attribute, which is
+            where somebody starting a campaign presses anyway. What goes with
+            the block is `Change the channels`, reachable once a campaign is
+            running and nowhere else, and `trailBlock`'s display of the
+            steps. Both are the sequence, which is the thing being cut. */ ''}
 
       ${/* THE CALL QUEUE, ON THE CAMPAIGN. Ranked the way `queueBlock` ranks
             the book — somebody who replied first, then somebody with an
@@ -11943,6 +13593,23 @@
               : `<button class="btn btn-ghost btn-sm s-qrow-go" type="button" data-callstart="${esc(p.id)}">${chIcon('phone')}Call</button>`) : ''}
             <div class="s-qrow-why">
               <span class="s-qrow-because">${esc(because(p))}</span>
+              ${/* ══ WHERE THIS ONE STANDS ══════════════════════════════════
+                    The row said who to ring and why they are ranked, and
+                    nothing about what has already happened to them — so
+                    "answered and nobody came back" and "nobody has ever
+                    rung them" read identically, and a caller had to open the
+                    record to find out which call they were about to make.
+
+                    The last touchpoint, in the words `touchPhrase` writes
+                    everywhere else, and the status beside it. Both are what
+                    the drawn flow asks for: the touchpoint of the current
+                    stage of each call. */ ''}
+              ${(() => {
+                const last = touchesFor(p)[0];
+                const st = statusOf(p);
+                return `<span class="s-lrow-st tone-${esc(toneOf(st))}">${esc(label('status', st))}</span>
+                  <span class="s-qrow-last">${last ? esc(touchPhrase(last)) : 'never contacted'}</span>`;
+              })()}
               ${/* ══ THE DRAFT IS NOT SIX TIMES, AND ITS ABSENCE IS NOT A
                      SENTENCE ═══════════════════════════════════════════════
                      Every row printed its whole agreed line, and `draftSay`
@@ -11972,6 +13639,176 @@
 
   /* ── ⑤ MEASURE ──
      How it is going, what came back, and what a client would be told. */
+  /* ══ WHAT IT COST, AND WHAT CAME BACK ══════════════════════════════════
+     `campaignCost` has computed all of this per campaign since v6 and only
+     the executive page read it — so a sales manager could see every meeting
+     a campaign booked and never what it cost to book them. Nothing new is
+     derived here; this is the same three costs and the same return the exec
+     page ranks campaigns by, scoped to the one you are looking at.
+
+     The three costs behave differently and are named separately for that
+     reason: people is hours logged at each person's rate, AiMY is what the
+     agent's own touches were priced at, and suppliers is what the leads
+     cost to source and enrich. A single total answers "how much" and none of
+     "which of these to stop", which is the question a cost is read for. */
+  function stageMoney(l) {
+    if (!seesCampMoney()) return '';
+    const m = campaignCost(l, campPeriod(l));
+    const when = campWhen(l);
+
+    if (!m.total && !m.arr) {
+      return `<p class="s-none">Nothing has been spent on it ${esc(when)}, so there is nothing to count.</p>`;
+    }
+
+    /* No ARR-over-spend ratio. See the note on `stageFigure`: this cost is
+       what is attributable to the campaign and carries no payroll, so
+       dividing a whole deal by it manufactures a return. The two figures sit
+       side by side and the reader draws their own conclusion, which is what
+       the executive page has always done with the same numbers.
+
+       The per-unit costs stay, because both sides of THOSE divisions come
+       from the same partial cost — so they compare campaigns like with like,
+       which a mixed ratio cannot. */
+    const perWin = m.wins ? m.total / m.wins : null;
+    const perMet = m.met ? m.total / m.met : null;
+
+    /* ══ WHAT THE MONEY BOUGHT ════════════════════════════════════════
+       The block states four costs and four returns and leaves the reader to
+       divide. The one division worth making is what a meeting cost, because
+       it is the only figure here whose two sides come from the same partial
+       cost — see the note on the return this stage refuses to compute. */
+    const read = m.wins
+      ? stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent and <b>${esc(fmtMoney(m.arr))}</b> signed${
+          perMet ? `, at <b>${esc(fmtMoney(perMet))}</b> a meeting` : ''}.`)
+      : m.met
+        ? stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent for <b>${plural(m.met, 'meeting')}</b>${
+            perMet ? `, at <b>${esc(fmtMoney(perMet))}</b> each` : ''}. <b>Nothing signed yet.</b>`)
+        : stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent and <b>no meeting out of it yet</b>. Everything here is cost so far.`);
+
+    return `${read}
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">What it cost</h4>
+        <div class="s-afs">
+          ${statFig(fmtMoney(m.total), 'Spent', `${plural(Math.round(m.hours), 'hour')} logged`)}
+          ${statFig(fmtMoney(m.people), 'People', m.crew.length ? `${plural(m.crew.length, 'person')} on it` : 'nobody logged time')}
+          ${statFig(fmtMoney(m.aimy), 'AiMY', 'what it sent and called')}
+          ${statFig(fmtMoney(m.suppliers), 'Suppliers', 'sourcing and enrichment')}
+        </div>
+        ${/* Per person, dearest first — the breakdown a total cannot give,
+              and the one that says where the time actually went. */ ''}
+        ${m.crew.length ? `<div class="s-money-crew">${m.crew.map((r) => `<div class="s-money-row">
+          <span class="s-money-who"><span class="avatar avatar-sm">${esc(actor(r.id).initials)}</span>${esc(actor(r.id).name)}</span>
+          <span class="s-money-sub">${esc(plural(r.touches, 'touchpoint'))} · ${esc((Math.round(r.hours * 10) / 10).toString())}h at ${esc(fmtMoney(r.rate))}</span>
+          <span class="s-money-fig">${esc(fmtMoney(r.cost))}</span>
+        </div>`).join('')}</div>` : ''}
+      </div>
+
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">What came back</h4>
+        <div class="s-afs">
+          ${statFig(m.arr ? fmtMoney(m.arr) : 'Nothing', 'Signed', m.wins ? plural(m.wins, 'deal') : 'no deal closed yet')}
+          ${statFig(String(m.met), 'Met', m.met ? 'organizations' : 'no meeting yet')}
+          ${statFig(perMet ? fmtMoney(perMet) : '—', 'Cost per meeting', m.met ? null : 'no meeting to divide by')}
+          ${statFig(perWin ? fmtMoney(perWin) : '—', 'Cost per win', m.wins ? null : 'no win to divide by')}
+        </div>
+        ${/* THE HONEST CAVEAT, because a return computed inside one window
+              flatters a campaign whose spend and whose win fall either side
+              of it. Said once, where the figures are, rather than left for
+              somebody to work out. */ ''}
+        ${/* ══ WHAT THIS COST IS, AND IS NOT ═══════════════════════════════
+              Two caveats, and both change how every figure above is read. The
+              cost is what can be attributed to this campaign — it carries no
+              share of the salary bill nobody logged against it — so it is a
+              floor, not the whole. And both sides are counted inside one
+              window, which flatters a campaign whose spend and whose win fall
+              either side of it. Neither is a reason to hide the numbers; both
+              are a reason to say what they are. */ ''}
+        ${/* The window caveat is gone with the chips: both sides are counted
+              over the campaign's own life, so there is no longer a slice for
+              a deal to fall the wrong side of. What remains is the one that
+              still bites — this cost is what can be ATTRIBUTED, and carries
+              no share of the salary nobody logged. */ ''}
+        <p class="s-money-note">Counted ${esc(when)}. This is what can be attributed to the campaign —
+          logged hours, AiMY's own touches and what its leads cost to source. It carries no share of
+          unlogged salary, so it is a floor rather than the whole.</p>
+      </div>`;
+  }
+
+  /* ══ THE THREE CUMULATIVE READINGS ═════════════════════════════════════
+     Measure held a funnel and a reply breakdown, and neither answered the
+     three questions somebody actually checks: how many meetings we got out
+     of it, how many calls we made and what share of them landed, and the
+     same for what we sent.
+
+     INTERESTED IS OUT OF CALLS MADE, not calls answered. Answered is the
+     kinder denominator and the wrong one: a call nobody picked up is a call
+     that cost the time and returned nothing, and hiding it makes a desk that
+     never gets through look as good as one that does. Stated on the row so
+     the choice is visible rather than assumed.
+
+     `aimy` is the only sending channel in the taxonomy, so "emails" is that
+     one — and a bounce is counted as sent, because it cost the send. It is
+     named in the sub-line rather than quietly dropped. */
+  function campReach(l) {
+    const ts = campSent(l);
+    const out = ts.filter((t) => t.dir !== 'in');
+    const calls = out.filter((t) => t.ch === 'phone');
+    const mails = out.filter((t) => t.ch === 'aimy');
+    const keen = (rows) => rows.filter((t) => t.outcome === 'positive' || t.outcome === 'meeting-booked').length;
+    /* ══ MEETINGS HELD, NOT MEETINGS BOOKED ═══════════════════════════
+       The first cut copied `metIn`'s test, which also counts a touchpoint
+       whose OUTCOME was `meeting-booked` — a call on which somebody agreed
+       to meet. That is the right test for "has this account met or agreed
+       to", and the wrong one here twice over: it counted a booking as a
+       meeting, and it put outcomes like `no answer` under a heading reading
+       Meetings, because the outcome belonged to the call.
+
+       It also disagreed with the mix line three inches up, which counts by
+       channel and said 8 where this said 15. Two numbers for meetings on
+       one screen is the thing a reader stops to check and then stops
+       trusting. Channel only, and the two now agree. */
+    const meets = ts.filter((t) => t.ch === 'meeting' || t.ch === 'physical');
+    const byOut = {};
+    meets.forEach((t) => { const k = t.outcome || 'none'; byOut[k] = (byOut[k] || 0) + 1; });
+    /* ══ DELIVERED, NOT SENT ══════════════════════════════════════════
+       A bounce never reached anybody, so it cannot have been interested —
+       counting it in the denominator charges the copy for a fault in the
+       list. This surface already says exactly that two inches below the
+       funnel ("that is the list, not the copy"), and `stageFigure`'s reply
+       rate has excluded bounces since v6 on the same reasoning. This was the
+       one figure on the page still dividing by sent.
+
+       The industry does the same: reply rate is replies over DELIVERED, and
+       the bounce is reported beside it as its own number rather than folded
+       into a rate it is not about. */
+    const bounced = mails.filter((t) => t.outcome === 'bounced').length;
+    return {
+      calls: calls.length, callsKeen: keen(calls),
+      mails: mails.length - bounced, mailsKeen: keen(mails),
+      bounced,
+      meets: meets.length,
+      outcomes: Object.keys(byOut).sort((a2, b2) => byOut[b2] - byOut[a2]).map((k) => ({ k, n: byOut[k] })),
+    };
+  }
+
+  const shareOf = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
+
+  /* ══ WHAT GOOD LOOKS LIKE, FROM OUTSIDE THIS BOOK ══════════════════════
+     A rate with nothing to compare it against is a number the reader has to
+     already know the industry to use. These are the published 2026 cold-
+     outbound benchmarks, and they are here so a figure can say whether it is
+     in trouble rather than leaving that to somebody's memory.
+
+       bounce  under 3% acceptable, under 1.5% best-in-class. Above it the
+               list is the fault, not the copy — which is the sentence this
+               surface was already making without a threshold behind it.
+       reply   ~3.4% average across a large published corpus, 5–10% solid.
+
+     `min` is the honesty guard. A rate on nine sends is not a rate, and
+     judging one against a benchmark is the sort of confident nonsense a
+     dashboard should refuse — so nothing is graded under it. */
+  const BENCH = { bounce: 0.03, reply: 0.034, min: 20 };
+
   function stageMeasure(l) {
     const st = campState(l);
     const kb = l.kb ? KB_BY[l.kb] : null;
@@ -11979,7 +13816,79 @@
     const byCat = {};
     reps.forEach((e) => (byCat[e.category || 'uncategorised'] = (byCat[e.category || 'uncategorised'] || 0) + 1));
 
-    return `${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
+    const r = campReach(l);
+    const anyReach = r.calls || r.mails || r.meets;
+    /* ══ WHICH CHANNEL IS DOING THE WORK ══════════════════════════════════
+       Four figures and a funnel said what happened and never which of the
+       two ways of reaching people was earning it. Both shares are out of
+       what was ATTEMPTED, so they are comparable — which is the whole reason
+       the denominator is calls made rather than calls answered. */
+    const cs = r.calls ? r.callsKeen / r.calls : null;
+    const ms = r.mails ? r.mailsKeen / r.mails : null;
+    const pc = (v) => `${Math.round(v * 100)}%`;
+    const read = !anyReach
+      ? stageRead('Nothing has gone out yet, so there is nothing to measure. <b>Reach is where that starts.</b>')
+      : cs != null && ms != null && Math.abs(cs - ms) > 0.1
+        ? stageRead(cs > ms
+            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of the emails that arrived.${r.bounced ? ` A further <b>${r.bounced}</b> never arrived, which is the list rather than the copy.` : ''}`
+            : `Email is landing better than the phone: <b>${pc(ms)}</b> against <b>${pc(cs)}</b>.`)
+        : r.meets
+          ? stageRead(`<b>${plural(r.meets, 'meeting')}</b> out of it so far, from <b>${r.calls + r.mails}</b> attempts.`)
+          : stageRead(`<b>${r.calls + r.mails}</b> attempts and <b>no meeting yet</b>. Nothing has converted into a conversation.`);
+
+    return `${read}
+      ${anyReach ? `<div class="s-sheet-block">
+        ${/* ══ NAMED FOR ITS SOURCE, BECAUSE THE PAGE HAS TWO ══════════════
+              Progress above reads "Touchpoints 25 · 11 calls · 8 meetings"
+              and this block counts 12 calls and 13 meetings on the same
+              campaign, because they read different things: that one counts
+              SEQUENCE EVENTS mapped through their step's channel, this one
+              counts the touchpoint record — which is where a hand-logged
+              call or a meeting somebody took lands, and a sequence never
+              hears about.
+
+              This is the source the question wants: "how many calls did we
+              make" is answered by the calls, not by the sends the plan
+              scheduled. So it stays, and it says what it counted rather
+              than letting two numbers pass for one claim.
+
+              FLAGGED, NOT FIXED: `campProgress` labels its figure
+              Touchpoints and sources it from `DB.eventsOf`. Its own note
+              argues the label is right BECAUSE "eleven of these were phone
+              calls and eight were online meetings" — but those are step
+              channels on sent events, not logged calls. Changing it moves
+              the Progress row on every campaign, which is not this pass. */ ''}
+        <h4 class="s-sub-h">What was logged</h4>
+        <div class="s-afs">
+          ${statFig(String(r.meets), 'Meetings held', r.outcomes.length
+            ? r.outcomes.map((o) => `${o.n} ${o.k === 'none' ? 'no outcome logged' : label('outcome', o.k).toLowerCase()}`).join(' · ')
+            : 'none yet')}
+          ${/* Out of calls MADE. Answered is the kinder denominator and the
+                wrong one — a call nobody picked up cost the time and
+                returned nothing, and hiding it makes a desk that never gets
+                through look like one that does. Said on the row, so the
+                choice is visible rather than assumed. */ ''}
+          ${statFig(shareOf(r.callsKeen, r.calls), 'Calls interested',
+            r.calls ? `${r.callsKeen} of ${r.calls} we made` : 'no call made yet')}
+          ${/* "Sent" named a direction, not a channel — and on a campaign
+                that is also 11 calls and 8 meetings, "sent" could have meant
+                any of them. `aimy` IS the email channel; the mix line in
+                Progress has said "AiMY emails" since v5, which names the
+                thing and keeps the sender visible, and this says it the same
+                way. */ ''}
+          ${/* Against the published average where there is enough volume to
+                judge one — a rate on six deliveries is not a rate. Only ever
+                said when it is UNDER: a figure above average on twelve sends
+                is noise, and praising it would be the surface flattering
+                itself off a sample it cannot stand on. */ ''}
+          ${statFig(shareOf(r.mailsKeen, r.mails), 'Emails interested',
+            !r.mails ? 'no email arrived yet'
+              : `${r.mailsKeen} of ${r.mails} that arrived${r.bounced ? `, ${r.bounced} more never did` : ''}${
+                  r.mails >= BENCH.min && (r.mailsKeen / r.mails) < BENCH.reply
+                    ? ` · under the ${Math.round(BENCH.reply * 100)}% typical` : ''}`)}
+        </div>
+      </div>` : ''}
+      ${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
         <h4 class="s-sub-h">Results</h4>
         ${campAnalytics(l)}
         ${/* THE NUMBERS HERE, WHAT THEY MEAN IN THE RAIL. "Seven metric cards
@@ -12097,11 +14006,11 @@
     if (avg != null && rate < avg * 0.7) {
       said.push({ key: 'rate', tone: 'warn', mine: Math.round(rate * 100), peers: Math.round(avg * 100), peerN: peers.length,
         text: `A ${Math.round(rate * 100)}% reply rate, against ${Math.round(avg * 100)}% across your other campaigns. What this one is sending is not landing as well.`,
-        act: 'Look at the sequence', stage: 'reach' });
+        act: 'Look at what it is sending', stage: 'reach' });
     } else if (avg != null && rate > avg * 1.3) {
       said.push({ key: 'rate', tone: 'ok', mine: Math.round(rate * 100), peers: Math.round(avg * 100), peerN: peers.length,
         text: `A ${Math.round(rate * 100)}% reply rate, against ${Math.round(avg * 100)}% across your other campaigns. Whatever this one is doing is worth copying.`,
-        act: 'Look at the sequence', stage: 'reach' });
+        act: 'Look at what it is sending', stage: 'reach' });
     }
     const waiting = campMembers(l).filter((a) => statusOf(a) === 'awaiting-us');
     if (waiting.length) {
@@ -13958,6 +15867,47 @@
             <span class="s-camp-row-stage">
               <span class="s-camp-row-n">${st.n}</span>${esc(st.label)}
             </span>
+            ${/* ══ HOW BIG IT IS, AND HOW FAR IT HAS ACTUALLY GOT ═════════
+                  The row said whose move it is and nothing else, so eight
+                  campaigns were eight names and a stage: "13 leads waiting
+                  on Engy" is the same sentence whether it is 13 of 14 or 13
+                  of 51, and the list gave no way to tell those apart.
+
+                  Two figures, from `campSteps` — the funnel's own sets, so
+                  the row and the campaign page cannot disagree. The size,
+                  which is the denominator every sentence on the row is
+                  implicitly against; and the FURTHEST step anything has
+                  reached, which is the one fact the stage badge does not
+                  carry: the badge says where work is waiting, this says
+                  what has come back. A campaign nothing has come back from
+                  draws the size alone rather than four zeros. */ ''}
+            ${(() => {
+              const steps = campSteps(c);
+              const fig = (n, w) => `<span class="s-camp-row-fig"><b>${n}</b> ${esc(w)}</span>`;
+              /* ══ THE SAME THREE, OR THE COLUMN COMPARES NOTHING ═══════
+                 The first cut drew the size and then whichever step the
+                 campaign had got furthest to — so one row read "2 won", the
+                 next "21 reached" and the next "5 booked a call", three
+                 different quantities stacked in one column. A column you
+                 have to read the noun of before you can use the number is
+                 not a column, and comparing eight campaigns is the whole
+                 reason these rows exist.
+
+                 Fixed: how many are in it, how many answered, how many
+                 closed. A zero is kept where it is a finding — 21 reached
+                 and none replied is the most useful thing this list can
+                 say — and dropped entirely where nothing has gone out,
+                 because "0 replied, 0 won" on an untouched campaign is two
+                 restatements of the sentence beside it. */
+              /* Anything past "in", not "reached" specifically. Gating on
+                 reached hid a campaign that had a win recorded against it
+                 and no outbound touchpoint — the fixture's shape, and
+                 exactly the row where the win is the whole story. */
+              const sent = steps.slice(1).some((x) => x.set.length);
+              return `<span class="s-camp-row-stat">${
+                fig(steps[0].set.length, 'in')}${sent ? fig(steps[2].set.length, 'replied') : ''}${
+                sent ? fig(steps[4].set.length, 'won') : ''}</span>`;
+            })()}
             ${/* WHOSE MOVE IT IS. This used to be AiMY's sentence about the
                   campaign, cut to a clause — true, and the same kind of
                   true for everybody. A row's one line is better spent on
@@ -14310,6 +16260,11 @@
       { k: 'open',      label: 'Something open', test: (r) => opportunitiesOf(r).length > 0 },
       { k: 'cold',      label: 'Never contacted', test: (r) => statusOf(r) === 'untouched' },
       { k: 'loose',     label: 'In no campaign', test: (r) => !campsOf(r).length },
+      /* The set "Fill in the gaps" has always counted and never had a place
+         to put you. Same threshold as the list readings use: a gap is a
+         gap. */
+      { k: 'gaps',      label: 'Missing headcount or revenue',
+        test: (r) => r.emp == null || r.rev == null },
     ],
     contacts: [
       { k: 'waiting',   label: 'Waiting on us',  test: (r) => statusOf(r) === 'awaiting-us' },
@@ -14343,11 +16298,30 @@
     ],
   };
 
-  const listPool = (s) => maySee(DB.acc).filter((a) => a.srcRef === s.k && !a.arch);
+  /* ══ WHAT IS IN A LIST, AND THE TWO WAYS IT GOT THERE ══════════════════
+
+     An account carries exactly one `srcRef` and it records how that account
+     ARRIVED. That is the whole basis of the Sources model, so a list that
+     wants a company you already hold cannot take it by re-pointing `srcRef`:
+     doing that would rewrite where the lead came from in order to record
+     where it was filed.
+
+     Membership is additive instead. `srcRef` still means arrived-through-this;
+     `has` means put-in-this-deliberately. One reader, and it is the same
+     mechanism that lets a list hold PEOPLE rather than companies. */
+  const listPool = (s) => (!s ? [] : maySee(s.kind === 'con' ? DB.con : DB.acc)
+    .filter((r) => !r.arch && (r.srcRef === s.k || (s.has || []).indexOf(r.id) >= 0)));
   function listCover(s) {
     const mine = listPool(s);
     if (!mine.length) return 0;
-    return Math.round((mine.filter((a) => a.emp != null && a.rev != null).length / mine.length) * 100);
+    /* What "filled in" means depends on what the list holds. A person is
+       usable when you can reach them; a company when it can be sorted and
+       scored. Measuring one with the other's fields made every people list
+       read 0% forever. */
+    const ok = s && s.kind === 'con'
+      ? mine.filter((p) => p.email && p.phone)
+      : mine.filter((a) => a.emp != null && a.rev != null);
+    return Math.round((ok.length / mine.length) * 100);
   }
   const listUsedBy = (s) => DB.camp.filter((c) => campMembers(c).some((a) => a.srcRef === s.k));
 
@@ -14373,8 +16347,443 @@
      fire. */
   const LIST_SHORT_MIN = 50;
   const LIST_SHORT_TAKE = 0.2;
-  const listThin = (s) => listPool(s).filter((a) => a.emp == null || a.rev == null).length;
+  const listThin = (s) => listPool(s).filter((r) => (s && s.kind === 'con'
+    ? (!r.email || !r.phone)
+    : (r.emp == null || r.rev == null))).length;
   const listGap = (s) => Math.max(0, s.found - listPool(s).length);
+
+  /* ══ A LIST NOTHING HAS HAPPENED TO YET ════════════════════════════════
+     Saving is not using. A list can be searched for, named, filled in and
+     then sit there — and until this it looked exactly like one being worked,
+     because every list carries an owner whether or not anybody agreed to be
+     it. `by` is where it landed, not somebody's answer.
+
+     Four ways out of it, and all four are real events: somebody blessed it
+     as kept (`kept`, written by `saveList`), it was handed to somebody
+     (`handed`, written by `assignList`), it was built FOR a campaign (`for`,
+     written at save), or a campaign draws on its members. Anything else is a
+     draft, and the surfaces say so rather than leaving the reader to notice
+     that nothing uses it. */
+  const listDraft = (s) => !!s && !s.kept && !s.handed && !s.for && !listUsedBy(s).length;
+
+  /* ══ THE TWO DECISIONS A DRAFT INVITES ═════════════════════════════════
+     Save clears the drafted state without doing anything else — the list is
+     already in the book, this is just "I have looked and I am keeping it".
+     Discard removes the whole thing, and every record its search brought in:
+     the accounts, and the people made from them on a people build. Merged-in
+     leads (`has`) stay, because they existed before this list and were only
+     borrowed by it — their `srcRef` points at their original arrival, not at
+     this key.
+
+     Both give an Undo, on the same rule the rest of the file follows for a
+     write with real consequence — the toast puts the previous state back. */
+  function saveList(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite() || !listDraft(s)) return;
+    s.kept = true;
+    paint(); paintRail();
+    toast(`Kept ${s.name}.`, () => {
+      delete s.kept;
+      paint(); paintRail();
+    });
+  }
+
+  /* ══ A LIST INTO A CAMPAIGN THAT ALREADY EXISTS ════════════════════════
+     `data-listcamp` makes a new campaign FROM a list, which is the rarer of
+     the two things somebody wants from a finished list — a book already
+     running eight campaigns more often has the right one already. Same
+     surface as `pickCampaignForSelection`, same shape, same undo: the two
+     are one act at two scales, so a reader who has done one knows this.
+
+     It counts the duplicates per campaign before you choose, because a list
+     built from criteria a campaign already works can be mostly the accounts
+     it already holds — and adding four of nineteen is a different decision
+     from adding nineteen. */
+  /* ══ THE SAME PAIRING, FROM THE CAMPAIGN'S SIDE ════════════════════════
+     `addListToCampaign` puts one list into campaigns you pick; this puts
+     lists you pick into one campaign. Two directions of one act, and both
+     had to exist — the reader is on whichever surface raised the question,
+     and making them navigate to the other one to answer it is the round
+     trip this pass keeps closing.
+
+     Multi-pick, and it counts what each list would actually add: a list
+     whose members are all already on the campaign is disabled rather than
+     offered, which is the same courtesy the other direction pays. */
+  /* ══ WHO THE CAMPAIGN IS AIMED AT, DECLARED ════════════════════════════
+     `campPersona` derives the titles actually on a campaign, which answers
+     "who did we end up with" and cannot answer "who were we after" — and the
+     gap between those two is the finding. A campaign aimed at QA Managers
+     holding thirteen VPs of Engineering has drifted, and nothing on the page
+     could say so because nothing recorded the aim.
+
+     Multi-pick from the corpus's own titles, the same surface the other
+     three pickers on this page use. Ticked where already chosen, so opening
+     it shows the current answer rather than a blank form. */
+  /* ══ WHO IT IS AIMED AT IS A SENTENCE, NOT A MENU ══════════════════════
+     This was the sixteen titles in the book, to tick. That was wrong twice
+     over. A picker can only offer roles the book has ALREADY MET, so a
+     campaign aimed at a title nobody in it holds — which is most of the
+     reasons you would start one — could not be described at all. And the
+     answer is a thing a seller says in words: "QA heads and engineering
+     VPs", not four boxes out of sixteen.
+
+     So it reads what was typed. It SNAPS to a corpus title where one is
+     recognisable, because the comparison the page makes — how many on it
+     are not who it is aimed at — is against role strings and only lands on
+     a matching one. Anything unrecognised is kept in the words used: a
+     target the book has not met yet is still a target, and the page then
+     says plainly that nobody on it matches, which is both the true answer
+     and, for a new campaign, the entire point.
+
+     `whole` IS WHETHER THE TEXT IS THE ANSWER. Read a dedicated field and
+     every word of it was typed to answer this, so an unrecognised phrase is
+     a role the book has not met. Read a GOAL sentence and most of it is
+     about something else — "…with 200 to 1000 staff, we want a scoping
+     call" put "we want a scoping call" on a campaign as its target — so a
+     sentence that merely contains the answer yields only what it can
+     name. */
+  function readPersonas(text, whole) {
+    const said = String(text || '').replace(/^\s*(?:aimed at|aiming at|targeting|target|aim at|for)\s+/i, '').trim();
+    if (!said) return [];
+    /* Punctuation out, the role nouns singularised, and the joining words
+       dropped — so "heads of QA" and "Head of QA" reduce to the same two
+       words, and the "&" inside "Head of Data & Analytics" cannot read as a
+       separator between two aims. */
+    const words = (str) => String(str).toLowerCase().replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(heads|vps|directors|managers|leads|coos|ctos)\b/g, (w) => w.slice(0, -1))
+      .split(' ')
+      .filter((w) => w && !/^(of|the|a|an|for|our|to|at|in|on|and|or)$/.test(w));
+    const FILLER = /^(aimed|aiming|target|targeting|targets|people|person|folks|anyone|everyone|whoever|owns|new|plus|also|any)$/;
+    const out = [];
+    const add = (t) => { const v = String(t).trim().replace(/\s+/g, ' '); if (v && out.indexOf(v) < 0) out.push(v); };
+    /* CHUNKS, NOT PHRASES. Split on the marks people list with and leave
+       "and" alone inside a chunk, so one chunk can name two titles — "QA
+       managers and heads of QA" is two aims, and "Head of Data & Analytics"
+       is one. */
+    said.split(/[,;\/\n]+/).forEach((chunk) => {
+      const set = new Set(words(chunk));
+      if (!set.size) return;
+      /* A title is named when every word of it is in the chunk. Order does
+         not have to match, so "engineering VPs" and "VP Engineering" both
+         land on the same role. */
+      const hit = TITLES.filter((t) => { const w = words(t); return w.length && w.every((x) => set.has(x)); });
+      hit.forEach(add);
+      if (!whole) return;
+      /* AND WHATEVER IS LEFT OF THE CHUNK. Recognising one title used to end
+         the chunk, so "heads of QA and procurement" came back as Head of QA
+         alone and the second aim was dropped without a word - the one case
+         where losing it matters most, since a role the book has not met is
+         exactly what free text is for. So the words the titles accounted for
+         are struck out and any phrase still standing is kept, split on the
+         joiners this time because "procurement and finance" is two aims. */
+      const used = new Set();
+      hit.forEach((t) => words(t).forEach((w) => used.add(w)));
+      chunk.split(/\band\b|&|\+/i).forEach((bit) => {
+        if (words(bit).filter((x) => !FILLER.test(x) && !used.has(x)).length) add(bit);
+      });
+    });
+    return out;
+  }
+
+  function setPersonas(k) {
+    const c = DB.campBy[k];
+    if (!c || !canWrite()) return;
+    const want = c.personas || [];
+    /* What it holds now, as a reading rather than a list to choose from —
+       the three commonest titles on it, so the sentence is written against
+       something instead of into the dark. */
+    const has = campPersona(c).slice(0, 3).map((r) => r.t);
+    commit({
+      title: `Who is ${esc(c.name)} aimed at?`,
+      body: `<p class="s-commit-lead">Say it in your own words. It changes nothing about who is on it — it is what the page compares them against.</p>
+        <label class="ds-field s-field">
+          <span class="s-field-label">Aimed at${has.length ? ` <span class="s-field-note">most on it now are ${esc(has.join(', '))}</span>` : ''}</span>
+          <input class="input" type="text" spellcheck="false" value="${esc(want.join(', '))}"
+            placeholder="${esc(has.length ? has.slice(0, 2).join(' and ') : 'heads of QA and engineering VPs')}" />
+        </label>`,
+      effects: [['ok', 'Nobody joins or leaves. The page says how many on it are not who you name.']],
+      reversible: 'Undoable from the toast',
+      confirm: 'Save it',
+      run() {
+        const said = String(($('#commitHost .s-field .input') || {}).value || '').trim();
+        const picked = readPersonas(said, true);
+        const was = c.personas;
+        if (picked.length) c.personas = picked; else delete c.personas;
+        paint(); paintRail();
+        toast(picked.length
+          ? `${c.name} is aimed at ${picked.join(', ')}.`
+          : `${c.name} is aimed at nobody in particular now.`,
+          () => { if (was) c.personas = was; else delete c.personas; paint(); paintRail(); });
+      },
+    });
+  }
+
+  function addListsToCampaign(k) {
+    const c = DB.campBy[k];
+    if (!c || !canWrite()) return;
+    const rows = DB.source.map((sc) => {
+      const pool = toAccountIds(listPool(sc));
+      const fresh = pool.filter((id) => c.members.indexOf(id) < 0);
+      return { sc, pool, fresh };
+    }).filter((r) => r.pool.length);
+    if (!rows.length) { toast('There is no list with anything in it to add.'); return; }
+    commit({
+      title: `Add a list to ${c.name}`,
+      body: `<div class="s-pick">${rows.map((r) => `<label class="ds-choice s-pick-row">
+        <input type="checkbox" value="${esc(r.sc.k)}"${r.fresh.length ? '' : ' disabled'} />
+        <span>${esc(r.sc.name)} <span class="s-pick-role">${esc(plural(r.pool.length, 'organization'))}${
+          r.fresh.length ? (r.fresh.length === r.pool.length ? '' : ` · ${r.pool.length - r.fresh.length} already here`)
+            : ' · all already here'}</span></span>
+      </label>`).join('')}</div>`,
+      effects: [['ok', 'Their organizations join the campaign. Nothing leaves the list.']],
+      confirm: 'Add them',
+      run() {
+        const picked = $$('#commitHost .s-pick input:checked')
+          .map((el) => rows.filter((r) => r.sc.k === el.value)[0]).filter(Boolean);
+        if (!picked.length) { toast('No list was picked, so nothing changed.'); return false; }
+        const prev = c.members.slice();
+        const add = [];
+        picked.forEach((r) => r.fresh.forEach((id) => { if (add.indexOf(id) < 0 && c.members.indexOf(id) < 0) add.push(id); }));
+        if (!add.length) { toast('Every one of them was already on it, so nothing changed.'); return false; }
+        c.members = prev.concat(add);
+        reindex(); paint(); paintChrome(); paintRail();
+        toast(`${plural(add.length, 'organization')} added to ${c.name} from ${
+          picked.length === 1 ? picked[0].sc.name : plural(picked.length, 'list')}.`,
+          () => { c.members = prev; reindex(); paint(); paintChrome(); paintRail(); });
+      },
+    });
+  }
+
+  function addListToCampaign(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite()) return;
+    const accIds = toAccountIds(listPool(s));
+    if (!accIds.length) { toast('Nothing on it to add.'); return; }
+    const open = DB.camp.filter((c) => campState(c) !== 'finished');
+    if (!open.length) { toast('Every campaign has finished, so there is none to add it to.'); return; }
+    commit({
+      title: `Add ${s.name} to a campaign`,
+      /* ══ MORE THAN ONE, BECAUSE A LIST OFTEN SUITS MORE THAN ONE ═══════
+           A list built from criteria three campaigns share is the ordinary
+           case, not the edge one, and a radio made you come back and repeat
+           the whole decision per campaign. The duplicate count per row is
+           what makes the multi-pick readable: it says, before you choose,
+           which of these would actually gain anything. */
+      body: `<div class="s-pick">${open.map((l) => {
+        const dupes = accIds.filter((a) => l.members.includes(a)).length;
+        const all = dupes === accIds.length;
+        return `<label class="ds-choice s-pick-row">
+          <input type="checkbox" value="${esc(l.k)}"${all ? ' disabled' : ''} />
+          <span>${esc(l.name)} <span class="s-pick-role">${esc(plural(l.members.length, 'account'))}${
+            all ? ' · already holds them all' : dupes ? ` · ${dupes} already there` : ''}</span></span>
+        </label>`;
+      }).join('')}</div>`,
+      effects: [['ok', `${plural(accIds.length, 'account')} from this list join every campaign you pick.`]],
+      confirm: 'Add them',
+      run() {
+        /* Structural, like the selection bar's own picker — the checkbox needs no
+           class of its own and an unstyled hook is a rule waiting to be orphaned. */
+        const picked = $$('.s-pick input:checked').map((el) => DB.campBy[el.value]).filter(Boolean);
+        if (!picked.length) { toast('No campaign was picked, so nothing changed.'); return false; }
+        /* Every campaign's previous membership, captured before any of them
+           moves, so one Undo puts all of them back — a multi-pick that
+           undid only the last campaign would be worse than no undo. */
+        const prev = picked.map((l) => [l, l.members.slice()]);
+        let added = 0;
+        picked.forEach((l) => {
+          const fresh = accIds.filter((a) => !l.members.includes(a));
+          added += fresh.length;
+          l.members = l.members.concat(fresh);
+        });
+        if (!added) { toast('Every one of them was already there, so nothing changed.'); return false; }
+        reindex(); paint(); paintChrome(); paintRail();
+        toast(`${plural(added, 'account')} added to ${picked.length === 1
+          ? picked[0].name : plural(picked.length, 'campaign')} — it is no longer a draft.`,
+          () => { prev.forEach(([l, m]) => { l.members = m; }); reindex(); paint(); paintChrome(); paintRail(); });
+      },
+    });
+  }
+
+  /* ══ LOOKING FOR MORE HAPPENS WHERE THE LIST IS ════════════════════════
+     `Look for more like these` used to reopen the whole builder on another
+     page, with the list's criteria pre-loaded and a Generate button at the
+     bottom — a four-step round trip to answer "and the rest of them, please".
+     Worse, finishing it minted a SECOND list rather than growing the one you
+     pressed it on, so the verb and the outcome disagreed.
+
+     One surface now: the criteria it already has, editable, and one press.
+     The work happens under the list you are looking at, the busy state is on
+     the control you pressed, and the receipt is a toast — so the answer to
+     "did that do anything" is on screen where the question was asked.
+
+     Dropping a criterion here does not remove rows the list already holds. A
+     list is a set of records, not a live query — what the criteria describe
+     is what it looks for NEXT, and the effects line says so. */
+  function listRunMore(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite()) return;
+    const kind = s.kind === 'con' ? 'con' : 'acc';
+    const terms = sourceTerms(s).terms.filter((t) => t.on);
+    const eg = kind === 'con' ? 'and heads of QA, 1000+ staff' : 'and logistics, 1000+ staff';
+    commit({
+      title: `Look for more like ${s.name}`,
+      body: `<p class="s-commit-lead">It looks for these. Untick anything too narrow, or add to them.</p>
+        <div class="s-pick">${terms.map((c, i) => `<label class="ds-choice s-pick-row">
+          <input type="checkbox" value="${i}" checked />
+          <span>${esc(critText(c))}</span>
+        </label>`).join('')}</div>
+        <label class="ds-field s-field">
+          <span class="s-field-label">And also, in your own words</span>
+          <input class="input" type="text" spellcheck="false" placeholder="${esc(eg)}" />
+        </label>`,
+      effects: [['ok', 'Anything new that matches joins this list. Nothing already on it moves or leaves.']],
+      reversible: 'Undoable from the toast',
+      confirm: 'Look now',
+      run() {
+        /* Structural, like the other two pickers on this surface — a class
+           that only exists to be queried is a rule waiting to be orphaned. */
+        const keep = $$('#commitHost .s-pick input:checked').map((el) => terms[Number(el.value)]).filter(Boolean);
+        const said = String(($('#commitHost .s-field .input') || {}).value || '').trim();
+        const add = said ? readSaid(said, kind) : [];
+        const has = (t) => keep.some((x) => x.axis === t.axis && x.val === t.val);
+        const merged = keep.concat(add.filter((t) => !has(t)));
+        if (!merged.length) { toast('Nothing left to look for, so nothing ran.'); return false; }
+        runMoreNow(k, merged);
+      },
+    });
+  }
+
+  /* The run itself, on the page you pressed it from. `buildBusy` holds the
+     working state for a second and skips it under reduced motion, which is
+     the same second every other trip to a supplier on this surface takes. */
+  function runMoreNow(k, terms) {
+    buildBusy('more:' + k, () => {
+      const s = DB.sourceBy[k];
+      if (!s) return;
+      const kind = s.kind === 'con' ? 'con' : 'acc';
+      /* Matched against what this list ALREADY holds, by domain — the index
+         is the same corpus every run reads, so without this the second press
+         would re-add every row the first one brought in. */
+      const mine = DB.acc.filter((a) => a.srcRef === k);
+      const have = new Set(mine.map((a) => String(a.domain || '').toLowerCase()));
+      const fresh = netMatched(terms).filter((r) => !have.has(String(r.domain || '').toLowerCase()));
+      const wasTerms = s.terms;
+      const wasCrit = s.crit;
+      const wasFound = s.found;
+      const wasImported = s.imported;
+      /* The criteria are updated whether or not anything came back: you
+         edited them, and a surface that quietly kept the old ones would be
+         lying about what it looks for next time. */
+      s.terms = terms.map((t) => ({ ...t }));
+      s.crit = critLine(terms);
+      s.found = buildReach(terms);
+      const restore = () => {
+        s.terms = wasTerms; s.crit = wasCrit; s.found = wasFound; s.imported = wasImported;
+      };
+      if (!fresh.length) {
+        reindex(); paint(); paintChrome(); paintRail();
+        toast('Nothing new matched, so the list is as it was.', () => {
+          restore(); reindex(); paint(); paintChrome(); paintRail();
+        });
+        return;
+      }
+      const liFind = (terms.filter((t) => t.axis === 'via')[0] || {}).val || null;
+      const wantTitles = terms.filter((t) => t.axis === 'title').map((t) => t.val);
+      const built = makeRows(k, fresh, { kind, by: s.by, liFind, wantTitles, at: mine.length });
+      built.accs.forEach((a) => DB.acc.push(a));
+      built.cons.forEach((c) => DB.con.push(c));
+      const n = kind === 'con' ? built.cons.length : built.accs.length;
+      s.imported = (s.imported || 0) + n;
+      reindex(); paint(); paintChrome(); paintRail();
+      toast(`${plural(n, kind === 'con' ? 'person' : 'organization')} added to ${s.name}.`, () => {
+        const gone = new Set(built.accs.map((a) => a.id));
+        const goneC = new Set(built.cons.map((c) => c.id));
+        DB.acc = DB.acc.filter((a) => !gone.has(a.id));
+        DB.con = DB.con.filter((c) => !goneC.has(c.id));
+        restore(); reindex(); paint(); paintChrome(); paintRail();
+      });
+    });
+  }
+
+  /* ══ WHICH DRAFTED LIST THE READER IS LOOKING AT, IF ANY ═══════════════
+     Both surfaces route to it: the drafted list opens under `?on=build&bsrc`
+     from the commit, and under `?on=leads&srcref` from the Lists tab. This
+     resolves either to the source key, or to `null` when the current page is
+     something else. It is what both the browser-close guard and the back
+     button read; they agree because they consult the same function. */
+  function draftedHere() {
+    const key = S.srcref || S.bsrc;
+    if (!key) return null;
+    const s = DB.sourceBy[key];
+    return (s && listDraft(s)) ? key : null;
+  }
+
+  /* ══ THE GUARD, ON THE PRODUCT'S OWN COMMIT SURFACE ════════════════════
+     A `beforeunload` prompt stood here for one pass and it was the wrong
+     instrument twice over: the browser draws it, so it is the one dialog in
+     this product that cannot say what it is about — no name, no counts, and
+     the same two words every site uses — and it can only ever offer leave or
+     stay, when the decision actually open has three answers.
+
+     `commit` has all three and is where every other consequential decision
+     in this file is made: Cancel stays, the alt discards, the confirm keeps.
+     The body says what is being decided about rather than making the reader
+     remember, which is the whole reason the native one had to go. */
+  function askLeaveDraft(k) {
+    const s = DB.sourceBy[k];
+    if (!s) { goBack(); return; }
+    const pool = listPool(s);
+    const noun = s.kind === 'con' ? 'person' : 'organization';
+    commit({
+      title: `${s.name} is still a draft`,
+      /* ══ THE FACT LEADS, AND THE RULE FOLLOWS IT ══════════════════════
+           It read "Nobody has said whether to keep it. It holds 108
+           organizations and no campaign draws on it yet" — one run of
+           footnote-grey prose that stated a state, a size and a symptom in
+           that order, and never said what would END the state. A reader who
+           does not already know what makes a list a draft learns nothing
+           from it about which of the buttons below to press.
+
+           So: what it holds, then the rule. The second line is the useful
+           half — it names both ways out, which are the two things the row
+           behind this modal offers. */
+      body: `<p class="s-commit-lead"><b>${esc(plural(pool.length, noun))}</b> are in it, and nothing is working them.</p>
+        <p class="s-more-note">A list stays a draft until a campaign draws on it or somebody is handed it.</p>`,
+      effects: [['warn', 'Discarding takes it and everything its search brought in back out of the book.']],
+      reversible: 'Either way, undoable from the toast',
+      confirm: 'Save the list',
+      run() { saveList(k); goBack(); },
+      alt: 'Discard it',
+      altRun() { discardList(k); },
+    });
+  }
+
+  function discardList(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite() || !listDraft(s)) return;
+    /* Snapshot before removing, so Undo can put it all back. Filtering on
+       `srcRef` matches the accounts the list's search created and the people
+       generated on a people build — both write that key at commit. */
+    const accs = DB.acc.filter((a) => a.srcRef === k);
+    const cons = DB.con.filter((c) => c.srcRef === k);
+    const srcIdx = DB.source.indexOf(s);
+    DB.acc = DB.acc.filter((a) => a.srcRef !== k);
+    DB.con = DB.con.filter((c) => c.srcRef !== k);
+    DB.source = DB.source.filter((x) => x.k !== k);
+    reindex();
+    go({ on: 'briefing', tab: 'lists', srcref: '', bsrc: '', bstep: '', bkind: '' });
+    paintChrome();
+    toast(`Threw away ${s.name}.`, () => {
+      DB.acc = DB.acc.concat(accs);
+      DB.con = DB.con.concat(cons);
+      DB.source.splice(srcIdx, 0, s);
+      reindex();
+      go({ on: 'leads', srcref: k, who: (s.kind === 'con' ? 'contacts' : ''),
+        status: [], obstacle: [], opp: [], campaign: [], ids: [], loose: '', q: '' });
+      paintChrome();
+    });
+  }
   function listShort(s) {
     const held = listPool(s).length;
     return !!held && s.found >= LIST_SHORT_MIN && held < s.found * LIST_SHORT_TAKE;
@@ -14521,7 +16930,19 @@
        above them: its rows open the same cuts, with the finding and the size
        of it attached, so the surface offers one narrowing control and not
        two that say the same three words. */
-    const reading = open === 'lists' ? listsReading(pool) : '';
+    /* ══ AND ON THE GAP CUT, THE SAME OFFER A LIST GETS ═══════════════
+       "Fill in the gaps" lands here. The reading slot was built for Lists
+       and is the right place for this: it says what is missing across the
+       set you are looking at, names the supplier and its hit rate on that
+       field, and fills it in place. */
+    const reading = open === 'lists' ? listsReading(pool)
+      : cut && cut.k === 'gaps'
+        ? fillBlockOf(fillOffers('book', shown, open === 'contacts' ? 'con' : 'acc'),
+          /* `listLede` ends "…about the list itself", and this is the book.
+             Same shape, right noun. */
+          `<b>${plural(shown.length, open === 'contacts' ? 'person' : 'organization')}</b> here ${
+            shown.length === 1 ? 'is' : 'are'} missing something I can go and get.`)
+        : '';
 
     return `<section class="s-block s-block-wide s-tabs-block" aria-label="Everything">
       <div class="s-tabstrip" role="tablist">
@@ -14547,7 +16968,32 @@
         <button class="s-inline-btn s-tab-shut" type="button" data-tab="">Close</button>
       </div>
 
-      ${reading}
+      ${/* ══ AND THE ONE VERB THIS TAB HAS ═══════════════════════════════
+
+            The strip above still refuses it, for the reason written there:
+            navigation says where you ARE, and a write inside it belongs to
+            whichever tab happens to be open. This belongs to one tab, so it
+            renders on that tab's own surface — present while Lists is open
+            and absent otherwise, which is precisely the thing a control in
+            the strip could not do.
+
+            It does not claim the primary. `claimPrimary` is spent by the
+            first list card's recommendation, and AiMY naming the list most
+            worth attention is a better use of the one accent on the page
+            than a door that is findable without it.
+
+            It is also the only way in when there are no lists at all: the
+            empty state below said "Nothing here" and offered nothing.
+
+            IT SHARES THE READING'S ROW. `.s-findings` is capped at 76ch and
+            leaves the right third of a wide page empty, so a row of its own
+            would have cost 40px of vertical space to say one short thing in
+            a band that was already blank. End of the reading's line, not
+            under it. */ ''}
+      ${open === 'lists' ? `<div class="s-lists-top">
+        ${reading}
+        ${canWrite() ? `<button class="btn btn-ghost btn-sm s-mklist" type="button" data-findco>Build a list</button>` : ''}
+      </div>` : reading}
       ${cuts.length && !reading ? `<div class="s-tabcuts" role="group" aria-label="Narrow these">
         ${cuts.map((c) => `<button class="chip${c.k === (cut && cut.k) ? ' active' : ' default'}" type="button" data-cut="${esc(c.k)}">${esc(c.label)} <span class="s-cut-n">${c.n}</span></button>`).join('')}
         ${cut ? `<button class="s-inline-btn" type="button" data-cut="">Show all ${pool.length}</button>` : ''}
@@ -14584,26 +17030,63 @@
      which the ladder would normally act on, but the consequence is that
      somebody else becomes answerable for it. Naming who, before it happens,
      is the point of the surface. */
+  /* ══ A LIST CAN BE MORE THAN ONE PERSON'S ══════════════════════════════
+     `by` stayed a single id — every reader in the file resolves it through
+     `actor()` and would break on an array — and the rest go in `with`. The
+     first person picked is `by`, so nothing downstream changes; `listOwners`
+     is the reader for anything that needs all of them.
+
+     Written as a sentence rather than a count, because "3 people own it"
+     answers a question nobody asks — you want to know WHICH, and at two or
+     three names that fits on the line it was already occupying. */
+  const listOwners = (s) => [s.by].concat(s.with || []).filter(Boolean);
+  function listOwnerSay(s) {
+    const names = listOwners(s).map((id) => actor(id).name);
+    if (names.length <= 1) return `${names[0] || 'Nobody'} owns it`;
+    const last = names.pop();
+    return `${names.join(', ')} and ${last} own it`;
+  }
+
   function assignList(k) {
     const s = DB.sourceBy[k];
     if (!s || !canWrite()) return;
     const was = s.by;
-    const pool = SELLERS.filter((p) => p.id !== s.by);
-    if (!pool.length) { toast('There is nobody else to assign it to.'); return; }
+    const wasWith = (s.with || []).slice();
+    const held = listOwners(s);
+    const pool = SELLERS.filter((p) => held.indexOf(p.id) < 0);
+    if (!pool.length) { toast('Everybody who could hold it already does.'); return; }
     commit({
       title: `Hand on ${s.name}`,
-      body: `<div class="s-pick">${pool.map((p, i) => `<label class="ds-choice s-pick-row">
-        <input type="radio" name="listto" class="s-list-to" value="${esc(p.id)}"${i === 0 ? ' checked' : ''} />
+      body: `${held.length > 1 ? `<p class="s-more-note">${esc(listOwnerSay(s))} today.</p>` : ''}
+        <div class="s-pick">${pool.map((p) => `<label class="ds-choice s-pick-row">
+        <input type="checkbox" class="s-list-to" value="${esc(p.id)}" />
         <span>${esc(p.name)} <span class="s-pick-role">${esc(roleOf(p))}</span></span>
       </label>`).join('')}</div>`,
-      effects: [['warn', `${listPool(s).length} organizations come with it.`]],
-      confirm: 'Assign it',
+      effects: [['warn', `${listPool(s).length} organizations come with it, to all of them.`]],
+      confirm: 'Hand it on',
       run() {
-        const to = ($('.s-list-to:checked') || {}).value;
-        if (!to) return false;
-        s.by = to;
+        const to = $$('.s-list-to:checked').map((el) => el.value);
+        if (!to.length) { toast('Nobody was picked, so nothing changed.'); return false; }
+        /* ══ HANDING IT ON REPLACES WHO HOLDS IT ══════════════════════════
+           Not "adds to" — the verb is hand ON, and a list that accumulated
+           every person it had ever passed through would name six people
+           none of whom had agreed to be the sixth. The first pick becomes
+           `by` so every single-owner reader keeps working. */
+        s.by = to[0];
+        if (to.length > 1) s.with = to.slice(1); else delete s.with;
+        /* Somebody agreed to be answerable for it, which is one of the ways
+           a list stops being a draft. Recorded rather than inferred from
+           `by`, because `by` has a value from the moment the list is saved
+           and says only where it landed. */
+        const wasHanded = s.handed;
+        s.handed = true;
         paint(); paintRail();
-        toast(`${s.name} is ${actor(to).name}'s now.`, () => { s.by = was; paint(); paintRail(); });
+        toast(`${listOwnerSay(s)} now — it is no longer a draft.`, () => {
+          s.by = was;
+          if (wasWith.length) s.with = wasWith; else delete s.with;
+          s.handed = wasHanded;
+          paint(); paintRail();
+        });
       },
     });
   }
@@ -14631,15 +17114,23 @@
      control at all. */
   function listHead(s, list) {
     const pool = listPool(s);
-    const thin = pool.filter((a) => a.emp == null || a.rev == null);
     const used = listUsedBy(s);
     const pct = listCover(s);
     const mine = canWrite();
 
-    /* One claim, at the head of the loop that is not yet satisfied. */
+    /* ══ THE FILLING IS NOT A BUTTON UP HERE ═════════════════════════════
+       `Look up what 45 are missing` was the primary of this row, and it
+       raised a run that asked for every thin field at once. Directly beneath
+       it, AiMY's own block now offers the same work FIELD BY FIELD, naming
+       the supplier and its hit rate for each — "I can get revenue for all 45
+       — Modelled from headcount answers 88% of the time". Two controls for
+       one job, and the weaker one shouting.
+
+       So the header keeps what only a header can do — what to do with the
+       list as a whole — and the filling belongs to the block that can say
+       what it would actually go and get. */
     const next = !mine ? null
-      : thin.length ? { label: `Fill in ${thin.length}`, attr: `data-enrichlist="${esc(s.k)}"` }
-      : !used.length ? { label: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"` }
+      : !used.length ? { label: 'Start a campaign from it', attr: `data-listcamp="${esc(s.k)}"` }
       : null;
 
     /* ══ FIVE FACTS THAT COULD BREAK IN HALF ═════════════════════════════
@@ -14660,16 +17151,35 @@
        then what the list actually is — so you read how well a thing is
        filled in before you were told what it collects. */
     const fact = (html) => `<span class="s-lf">${html}</span>`;
+    /* ══ "FILLED IN" WITH WHAT ═══════════════════════════════════════════
+       `24% filled in` was asked what it meant, which is the answer. It is
+       the share of the list carrying BOTH of the two fields that make its
+       kind usable — headcount and revenue for a company, an email and a
+       phone number for a person — and the label named neither, so the one
+       figure the header leads with was the one nobody could act on.
+
+       `listCover` has always been kind-aware; only the word for it was not.
+       Naming the fields also makes the AiMY block below legible as the same
+       subject: "3 — no revenue, so they cannot be sorted or scored" is this
+       percentage, itemised. */
+    const covers = s.kind === 'con' ? 'have an email and a phone number'
+      : 'have a headcount and revenue';
     const facts = [
-      fact(`<b>${pct}%</b> filled in`),
+      fact(`<b>${pct}%</b> ${covers}`),
       fact(`<b>${s.imported}</b> brought in of ${esc(s.found.toLocaleString('en-GB'))} found`),
       /* `by` IS WHO OWNS IT, and it used to read "made it" because nothing
          could change it. Now that handing a list on writes this field, "Omar
          made it 8 weeks ago" would be false the moment Ahmed handed it to
          him — one field cannot be both the author and the owner, and the
          owner is the one anybody needs. `at` keeps the date on its own. */
-      fact(`${esc(actor(s.by).name)} owns it`),
-      fact(`made ${esc(fmtAgo(s.at))}`),
+      fact(esc(listOwnerSay(s))),
+      /* ══ THE DATE IS A DATE ══════════════════════════════════════════
+         "made 5 weeks ago" is a duration, and a list's birthday is the one
+         fact on this line you might want to say out loud to somebody, quote
+         in a note, or line up against a quarter. `fmtAgo` is right for a
+         touchpoint — how stale is this — and wrong for a fixed point in the
+         past that never becomes more interesting by being fuzzy. */
+      fact(`made ${esc(fmtDate(s.at))}`),
       /* Only where it was actually sourced. A list dropped in as a CSV or
          synced from the CRM has a real origin already — `crit` says so — and
          attaching vendor names to it would be provenance theatre. */
@@ -14691,35 +17201,74 @@
          own last action back to them. */
       s.autoOff && s.autoOff.why
         ? fact(`stopped running itself when ${esc(s.autoOff.why)}`) : '',
+      /* The standing state moved to a chip beside the kind label — it is a
+         STATE, and this line is facts about the list. `stateChip('ongoing')`
+         draws "Runs itself", which is the same words the index card has used
+         since v4, from the same component every other state here wears. */
     ].join('');
 
-    return `<header class="s-listhead">
+    return `<header class="s-listhead${listDraft(s) ? ' is-draft' : ''}">
       <div class="s-listhead-main">
-        <div class="s-sheet-kind">List</div>
+        <div class="s-listhead-top">
+          ${/* SAVED IS NOT USED. A list nobody was handed and nothing draws
+                on is a draft, and the header is where that has to be said —
+                the facts line below carries "no campaign uses it" as one
+                item among six, which is a state reported as a statistic.
+                The chip is the same one every other drafted thing wears. */ ''}
+          <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}${
+            s.auto ? ` ${stateChip('ongoing')}` : ''}</div>
+          ${/* ══ THE TWO DECISIONS, WHERE THE DECIDING IS ════════════════
+                A draft asks one question and the answer belongs at the
+                corner where the state chip is. The ordinary action row
+                below still applies — handing it, starting a campaign or
+                letting AiMY keep filling it are each an implicit "keep",
+                and they still work — but a reader who wants to keep the
+                list as it is without any other decision has one press for
+                that, and one for the opposite.
+
+                Discard is the quieter of the two and sits first, on the
+                same order-of-consequence the preview foot used. */ ''}
+          ${mine && listDraft(s) ? `<div class="s-listhead-decide">
+            <button class="s-inline-btn s-listhead-drop" type="button" data-listdrop="${esc(s.k)}">Discard</button>
+            <button class="entry-action em-direct" type="button" data-listkeep="${esc(s.k)}">Save the list</button>
+          </div>` : ''}
+        </div>
         <h1 class="s-sheet-name">${editField(s, 'name')}</h1>
       </div>
       ${mine ? `<div class="s-listhead-acts">
         ${next ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')}" type="button" ${next.attr}>${esc(next.label)}</button>` : ''}
-        ${next && next.attr.indexOf('listcamp') < 0 ? `<button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Make a campaign</button>` : ''}
-        <button class="btn btn-ghost btn-sm" type="button" data-listassign="${esc(s.k)}">Assign</button>
-        ${/* ══ THE CONTROL THE FLAG NEVER HAD ═══════════════════════════════
-              `s.auto` had readers on four surfaces and a writer on none, so
-              "Runs itself" was a state the product could describe at length
-              and nobody could enter. This is the door, and it is the only
-              new control the whole standing loop needs.
+        ${next && next.attr.indexOf('listcamp') < 0 ? `<button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Start a campaign from it</button>` : ''}
+        ${/* ══ AND THE OTHER HALF OF THAT VERB ══════════════════════════════
+              "Start a campaign from it" made a NEW one, and there was no way
+              to put a list into a campaign that already exists — which is the
+              commoner of the two by a wide margin on a book already running
+              eight. The selection bar has had `Add to a campaign` since v5;
+              this is the same act at the scale the list already is, through
+              the same surface, so a reader who learned one knows the other.
 
-              A ghost rather than a primary: handing over standing work is
-              rarely the most useful thing to do to a list you have just
-              opened, and `claimPrimary` is already spoken for by whatever
-              the reading recommended. Always available, never shouted.
+              Only where there is an open campaign to add it to. A control
+              that opens a picker with nothing in it is the button-that-
+              refuses defect wearing a picker. */ ''}
+        ${DB.camp.some((c) => campState(c) !== 'finished')
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-listadd="${esc(s.k)}">Add it to a campaign</button>` : ''}
+        <button class="btn btn-ghost btn-sm" type="button" data-listassign="${esc(s.k)}">Hand it to someone</button>
+        ${/* ══ THE STANDING JOB IS NOT OFFERED FROM HERE ════════════════════
+              `Let AiMY keep finding and filling` sat beside `Look for more
+              like these` and the two were the same offer at two cadences —
+              one press against a standing grant — which made the row ask you
+              to decide how often before you had decided whether. Re-running
+              is the honest form of it: you see what came back each time.
 
-              Stop is not paired with Run it again, because a list that runs
-              itself has nothing to re-run — the same suppression this line
-              has always made, now with somewhere to go instead of nowhere. */ ''}
+              Stop stays, because a list ALREADY running itself has to be
+              stoppable from the surface that says it is running. And the
+              grant keeps its door: AiMY raises `keep-list` as an initiative
+              when a list has earned it, which is the moment the offer is
+              worth making and this row was not. */ ''}
         ${s.auto
-          ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop it running itself</button>`
-          : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Run it again</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|on">Let AiMY keep it up</button>`}
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop finding and filling</button>`
+          : BUSY === `more:${s.k}`
+            ? `<button class="btn btn-ghost btn-sm" type="button" disabled>Looking…</button>`
+            : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>`}
       </div>` : ''}
       ${/* THE CRITERIA ARE THE LIST. Editable in place, because what a list
             is FOR is the thing most likely to be wrong and the thing a
@@ -14796,9 +17345,12 @@
       <div class="s-findings-list">
         ${finds.map((f) => {
           const on = S.cut === f.k;
+          /* No dash on this one. These clauses were already written to read
+             on from the count beside them — "matched 3,974 between them and
+             brought in 148" — so folding the number into the sentence is
+             the shape they were drafted for. */
           return `<div class="s-finding">
-            <span class="s-finding-n">${f.n}</span>
-            <span class="s-finding-say">${f.say}</span>
+            <span class="s-finding-say"><b>${f.n}</b> ${f.say}</span>
             <button class="s-finding-pick${on ? ' is-on' : ''}" type="button" data-cut="${esc(on ? '' : f.k)}">${
               on ? `Show all ${pool.length}` : f.n === 1 ? 'Show it' : `Show these ${f.n}`}</button>
           </div>`;
@@ -14929,7 +17481,7 @@
             that the fifth thing was NOT true of them, which is a default
             printed as a fact — the standing ones say so and the rest say
             nothing, the same reduction `stateChip` makes two screens up. */ ''}
-      <p class="s-listrow-facts">${esc(actor(s.by).name)} owns it${s.auto ? ' · runs itself' : ''}</p>
+      <p class="s-listrow-facts">${esc(listOwnerSay(s))}${s.auto ? ' · runs itself' : ''}</p>
       ${/* ══ WHAT AiMY WOULD DO, AND WHAT IT WOULD ANSWER ══════════════════
 
             Two controls, both AiMY's, where there were four: its recommended
@@ -15368,7 +17920,7 @@
       : listShort(s)
         ? { state: 'recommended',
             text: `<b>${listGap(s).toLocaleString('en-GB')} more</b> match its criteria and were <b>never brought in</b>.`,
-            act: 'Bring in more of them', attr: `data-listrun="${esc(s.k)}"`,
+            act: 'Bring in more of them', attr: `data-listrun="${esc(s.k)}"`, busy: `more:${s.k}`,
             alt: 'Ask what is out there',
             altAsk: `${s.name} matched ${s.found.toLocaleString('en-GB')} organizations and ${pool.length} of them are in the book. What is in the rest, and which of it is worth bringing in first?` }
       /* ══ A LIST THAT RUNS ITSELF ANSWERS BEFORE THE BRANCHES BELOW ════════
@@ -15420,7 +17972,11 @@
               ? { alt: 'Ask about it', altAsk: `One organization on ${s.name} has no headcount or revenue. What is worth knowing about it before we use this list?` }
               : { alt: 'Ask which first', altAsk: `${pool.length - sized.length} organizations on ${s.name} have no headcount or revenue. Which of them are worth enriching first?` }) }
         : !used.length
-          ? { state: 'detected',
+          /* `drafted` rather than `detected`, which is in `WS_QUIET` and drew
+             no chip at all — so the one state on this card that means "and
+             then nothing happened to it" was the one the card would not
+             name. It is the state the whole save flow now writes toward. */
+          ? { state: listDraft(s) ? 'drafted' : 'detected',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, and <b>no campaign uses it</b>.`,
               act: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"`,
               alt: 'Ask what to build', altAsk: `${s.name} is ${plural(pool.length, 'organization')}, fully sized, and no campaign uses it. What campaign would suit them?` }
@@ -15443,7 +17999,7 @@
                 branch and was only ever applied to the last one. */
           : { state: 'completed',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, used by <b>${plural(used.length, 'campaign')}</b>.`,
-              act: 'Find more like these', attr: `data-listrun="${esc(s.k)}"`,
+              act: 'Find more like these', attr: `data-listrun="${esc(s.k)}"`, busy: `more:${s.k}`,
               alt: 'Ask how it is doing',
               altAsk: `${s.name} is used by ${plural(used.length, 'campaign')}. How are they doing with it, and is the list still the right shape?` };
 
@@ -15628,7 +18184,16 @@
               variable holding the attributes puts the mode outside the tag,
               where the check cannot see it and correctly refuses to take the
               claim on trust. */ ''}
-        ${c.act ? `<button class="s-insight-lnk rail-act" type="button"
+        ${/* ── AND IT SAYS WHEN IT IS WORKING ──
+              The rail carries `data-listrun` for whichever list it is
+              reading, so a press here is one of the three places that press
+              can happen — and it was the only one with no working state, so
+              pressing it from the rail gave a second of nothing before the
+              toast. `BUSY` is set by `buildBusy` for the run's whole life and
+              every surface reads the same key. */ ''}
+        ${c.busy && BUSY === c.busy
+          ? `<button class="s-insight-lnk rail-act" type="button" disabled>Looking…</button>`
+          : c.act ? `<button class="s-insight-lnk rail-act" type="button"
           ${c.init ? `data-init="${esc(c.init.k)}" data-entry-mode="${esc(c.init.mode)}" data-aimy-topic="${esc(c.init.k)}" data-aimy-ask="${esc(c.init.ask)}"`
             : c.brief != null ? `data-brief="${esc(String(c.brief))}"`
             : c.quick ? `data-quick="${esc(c.quick)}"`
@@ -17691,7 +20256,11 @@
     SESSIONS.build = { title: 'Building a campaign', at: iso(TODAY), state: qs() };
     cbuildPush('goal',
       'What is this campaign for? Say who you want and what you want to happen — I read that sentence to go and find them.',
-      [{ k: 'take', label: 'Use what your wins have in common' }],
+      /* The way out, from the first turn — the same offer `LB_OUT` makes on
+         the list side, and for the same reason: the earliest useful moment
+         to leave a conversation is before it has asked you anything. */
+      [{ k: 'take', label: 'Use what your wins have in common' },
+       { k: 'own', label: 'Fill it in myself', quiet: true }],
       suggested);
     openCanvas();
     paintTalk();
@@ -17704,9 +20273,15 @@
      count loop `findCompanies` runs — one derivation, two doorways. */
   function cbuildGoal(text) {
     CBUILD.goal = text;
-    FIND_CRIT = readGoal(text).concat(FIND_HYGIENE.map((h) => ({ ...h })));
-    findSetPool();
-    CBUILD.crit = FIND_CRIT.filter((c) => c.on).map((c) => c.label);
+    CBUILD.terms = readGoal(text).concat(FIND_HYGIENE.map((h) => ({ ...h })));
+    CBUILD.crit = CBUILD.terms.filter((c) => c.on).map(critText);
+    /* ══ AND WHO IT IS AIMED AT, IF THE SENTENCE SAID ═════════════════════
+       "a scoping call with whoever owns quality" names an industry and a
+       size to `readGoal` and a ROLE to this. Read here so the aim turn has
+       something to put to you rather than asking for a thing you have just
+       typed; nothing is invented, and an unstated aim stays unstated and is
+       asked for plainly. */
+    CBUILD.personas = readPersonas(text);
     CBUILD.step = 'who';
     cbuildSpend();
     threadPush({ who: 'you', text });
@@ -17715,6 +20290,39 @@
       [{ k: 'who-ok', label: `Bring in the ${netNew().length}` },
        { k: 'who-edit', label: 'Change the criteria' }]);
     paintTalk();
+  }
+
+  /* ══ AND THE SAME "AIMED AT" THE FORM ASKS FOR ═════════════════════════
+     The form has a field for it, pre-read from the goal sentence and
+     editable; the conversation read the same sentence the same way and then
+     never mentioned it, so the two doors produced different campaigns from
+     identical words — one with a target you had seen and could correct, one
+     with a target you had not been told about.
+
+     It is a TURN and not a silent read for the same reason the field is not
+     a picker: who a campaign is for is the decision the rest of it hangs
+     off, and a decision made on your behalf out of a clause in a longer
+     sentence should at least be said out loud. Read something, and it asks
+     you to confirm; read nothing, and it asks. Either way you answer in
+     words, and "nobody in particular" is a real answer with a button. */
+  function cbuildAim() {
+    const got = CBUILD.personas || [];
+    CBUILD.step = 'aim';
+    cbuildSpend();
+    cbuildPush('aim',
+      got.length
+        ? `From that, I have it aimed at ${got.join(', ')}. Type who instead if that is not right.`
+        : 'Who is it aimed at? Say the roles in your own words — it changes nothing about who is in it, it is what the campaign gets measured against.',
+      (got.length ? [{ k: 'aim-ok', label: 'That is who' }] : [])
+        .concat([{ k: 'aim-none', label: 'Nobody in particular', quiet: true }]),
+      got.length ? '' : 'heads of QA and engineering VPs');
+    paintTalk();
+  }
+
+  function cbuildAimSaid(text) {
+    CBUILD.personas = readPersonas(text, true);
+    threadPush({ who: 'you', text });
+    cbuildSells();
   }
 
   function cbuildSells() {
@@ -17735,8 +20343,9 @@
        campaign name has no such neighbours, and "Rotterdam — Industry:
        Logistics — QA" is a filter expression where a name should be. */
     const val = (c) => (c ? String(c.label).replace(/^[^:]+:\s*/, '') : null);
-    const c0 = FIND_CRIT.filter((x) => x.on && x.ind)[0];
-    const geo = FIND_CRIT.filter((x) => x.k === 'geo')[0];
+    const terms = CBUILD.terms || [];
+    const c0 = terms.filter((x) => x.on && x.axis === 'industry')[0];
+    const geo = terms.filter((x) => x.axis === 'where')[0];
     CBUILD.name = [val(geo), val(c0),
       CBUILD.sells[0] ? CBUILD.sells[0].name : null].filter(Boolean).join(' — ')
       || 'New campaign';
@@ -17755,14 +20364,26 @@
     const key = 'c' + (DB.camp.length + 100);
     const srcKey = 'src-build-' + (DB.source.length + 1);
     const before = DB.acc.length;
-    DB.source.push({ k: srcKey, name: CBUILD.name, kind: 'companies', by: me().id,
-      at: iso(TODAY), auto: false, crit: CBUILD.crit.join(' · '),
-      found: findCount(), imported: rows.length });
+    /* ══ THE LIST THIS CAMPAIGN MAKES IS A LIST LIKE ANY OTHER ═══════════
+       Three things were wrong once the list model gained a shape. `findCount`
+       is gone with the old flow and this was still calling it, so finishing a
+       campaign in the chat threw. `kind: 'companies'` is not a value
+       `listPool` dispatches on — it reads `'con'` or anything else as
+       accounts, so it happened to work, but the field means something now and
+       a made-up value in it is a lie the next reader will act on. And the
+       criteria were stored only as prose, which is the lossy round-trip
+       `terms` exists to end: re-running this list could recover its industry
+       and nothing else. */
+    DB.source.push({ k: srcKey, name: CBUILD.name, kind: 'acc', by: me().id,
+      at: iso(TODAY), auto: false, has: [],
+      terms: (CBUILD.terms || []).filter((c) => c.on).map((c) => ({ ...c })),
+      crit: CBUILD.crit.join(' · '),
+      found: buildReach(CBUILD.terms || []), imported: rows.length });
     const members = rows.map((row, i) => {
       const [nm, domain, city, emp, founded, industry] = row;
       const id = 'ab' + i + '-' + key;
       DB.acc.push({ id, kind: 'acc', name: nm, domain, city, country: 'Netherlands',
-        emp, founded, industry, region: 'nl', rev: null, svc: 'qa', icp: null,
+        emp, founded, industry, region: 'emea', rev: null, svc: 'qa', icp: null,
         src: 'scrape', srcRef: srcKey, owner: me().id, shared: [],
         next: null, outcome: null, outcomeWhy: null, arch: false,
         enrich: { emp: { conf: 'high', src: 'Company register', at: iso(TODAY) }, founded: null, rev: null } });
@@ -17774,14 +20395,25 @@
       crew: (() => { const by = CREW_SHAPE();
         if (by[me().fn]) by[me().fn].push(me().id); return by; })(),
       client: null, sells: CBUILD.sells.slice(),
+      personas: (CBUILD.personas || []).slice(),
       members, crit: {}, made: iso(TODAY),
       plan: null, from: null, to: null, svc: null, kb: null,
     };
     DB.camp.push(c);
     CBUILD = null;
     reindex();
+    const landsOn = CAMP_STAGE.filter((x) => x.k === campStage(c))[0];
     threadPush({ who: 'change',
-      text: `Built <b>${esc(c.name)}</b> — ${esc(plural(members.length, 'organization'))} in it, with what it is for and what we sell.`,
+      /* ══ SAID IN THE PAGE'S OWN VOCABULARY ═══════════════════════════
+         "with what it is for and what we sell" named two form fields, and a
+         campaign no longer presents itself as a form — it presents five
+         stages, and the one it opens on is the answer to "so what now". The
+         aim joins the sentence because the conversation has just asked for
+         it, and a turn that collects a thing and never repeats it back reads
+         as though the answer went nowhere. */
+      text: `Built <b>${esc(c.name)}</b> — ${esc(plural(members.length, 'organization'))} in it${
+        (c.personas || []).length ? `, aimed at <b>${esc(c.personas.join(', '))}</b>` : ''
+      }. That is Find done, and it opens on <b>${esc(landsOn ? landsOn.label : 'Find')}</b>: nobody at any of them has been found to talk to yet.`,
       /* `undo` IS THE FUNCTION, not a flag — `turnHtml` tests it for the
          button and the handler calls it. */
       undo: () => {
@@ -17919,7 +20551,7 @@
     const opens = [
       canRunCampaign() ? { k: 'newcamp', label: 'Build a campaign',
         why: loose.length ? `${plural(loose.length, 'organization')} are in no campaign yet` : 'from anything you have picked' } : null,
-      { k: 'findco', label: 'Find companies',
+      { k: 'findco', label: 'Find leads',
         why: won.length && inds.length
           ? `your ${won.length} wins all came from ${plural(inds.length, 'industry')}`
           : 'they arrive as a named list you can work' },
@@ -18093,6 +20725,34 @@
        question falls through to the filter parser, narrows the surface
        behind the conversation, and answers nothing that was asked. The
        question on screen is the thing your sentence is a reply to. */
+    if (LBUILD) {
+      /* Whatever you type belongs to the list being built. Which question is
+         open decides what it means: a name where a name was asked for, and
+         criteria to read anywhere else. */
+      if (LBUILD.step === 'name') { lbuildConfirm(t); return; }
+      lbuildRead(t);
+      return;
+    }
+
+    /* ══ AND SO DOES THE BUILDER'S OWN PAGE ════════════════════════════════
+       Same rule, from the surface rather than the conversation. The page asks
+       who you are looking for and this is the only box on it, so a sentence
+       typed here is the answer — left to fall through it would reach the
+       filter parser and silently narrow the leads surface behind the builder,
+       which is exactly what the guard above exists to stop.
+
+       Not once the list is made: `bsrc` is the saved result, and a question
+       asked while looking at it is a question about it. */
+    if (DRAFT && onBuild() && !S.bsrc) {
+      if (buildStep() <= 2) {
+        toast('Say companies or people first, then tell me who you are after.');
+        return;
+      }
+      buildScrape();
+      DRAFT.said = t;
+      buildReadLive(true);
+      return;
+    }
     if (CBUILD) {
       if (CBUILD.step === 'goal') { cbuildGoal(t); return; }
       if (CBUILD.step === 'name') {
@@ -18101,6 +20761,7 @@
         cbuildMake();
         return;
       }
+      if (CBUILD.step === 'aim') { cbuildAimSaid(t); return; }
       /* `who` and `sells` are answered with the buttons on the turn. A
          sentence there is a person talking past the question, so it is said
          back rather than silently swallowed. */
@@ -19117,7 +21778,11 @@
             </div>
             <p class="s-ans-none">Nothing is searched until you say so, and every one of those is a chip you can take away first.</p>`,
           citeLabel: 'Open the search to change any of it.',
-          then: c ? () => findCompanies(c.k) : () => findCompanies(),
+          then: () => lbuildStart({
+            camp: c ? c.k : null,
+            terms: inds.slice(0, 4)
+              .map((i) => ({ axis: 'industry', val: i, label: label('industry', i), on: true })),
+          }),
         };
       },
     },
@@ -20278,9 +22943,10 @@
                   attributes this file draws — a control whose name only
                   exists at runtime is a control the audit cannot pair with
                   its handler, and it said so. */ ''}
-            ${t.build.opts.map((o) => `<button class="s-cb-opt${t.build.spent ? ' is-spent' : ''}" type="button"
+            ${t.build.opts.map((o) => `<button class="s-cb-opt${t.build.spent ? ' is-spent' : ''}${o.quiet ? ' is-quiet' : ''}" type="button"
               ${t.build.spent ? 'disabled'
                 : t.build.step === 'calllog' ? `data-calllog="${esc(o.k)}"`
+                : LB_STEPS.indexOf(t.build.step) >= 0 ? `data-lbuild="${esc(o.k)}"`
                 : `data-cbuild="${esc(o.k)}"`}>${esc(o.label)}</button>`).join('')}
           </div>` : ''}
         </div></div>`;
@@ -21165,6 +23831,21 @@
        prioritised set of insights rather than an inventory of all available
        data" — and a filter row over the briefing would be an offer to
        narrow a set somebody has already narrowed for you. */
+    if (onBuild()) {
+      clearBars();
+      /* `buildkey`, not `build`. `[data-build]` would make `#wbStage` itself
+         match `closest('[data-build]')`, so every click anywhere on the page
+         would resolve to that handler first — the collision this file has
+         already paid for twice. */
+      const freshB = stage.dataset.buildkey !== (S.bkind || 'acc');
+      stage.dataset.buildkey = S.bkind || 'acc';
+      delete stage.dataset.campkey;
+      stage.innerHTML = buildPage();
+      if (freshB) $('#pageScroll').scrollTop = 0;
+      floatPlaceholder();
+      return;
+    }
+
     if (onBriefing()) {
       $('#filterBar').innerHTML = '';
       $('#chipBar').innerHTML = '';
@@ -21198,7 +23879,15 @@
        the same reason (doctrine §5.1: lead with a prioritised set, not an
        inventory). What is left is what a navigated page is: where you came
        from, what you are looking at, and the work. */
-    const scoped = campScope();
+    /* ── AND A LIST IS THE SAME ARRIVAL ──
+       Seven view chips with counts over the whole book, five axis dropdowns
+       and a date range, above eighteen rows that already answer a question
+       somebody wrote down, ran, and saved under a name. Every one of those
+       controls exists to help you FIND a set; you are looking at one that was
+       found. The argument above is the argument here — it was only ever
+       written about the campaign because the list had no page of its own to
+       arrive on. It has one now. */
+    const scoped = campScope() || listScope();
     $('#filterBar').innerHTML = scoped ? '' : filterRow();
     $('#chipBar').innerHTML = scoped ? '' : chipBar();
     stage.innerHTML = aiBanner() + resultLine(list) + scopeBar() + grid(list);
@@ -21221,8 +23910,12 @@
        has to know what this account may do. Offering "log a touchpoint" to
        somebody who cannot write is the button-that-refuses defect wearing a
        different hat. */
+    /* The builder's page has no field of its own; this bar is it, so it says
+       so while that page is open and asking. */
+    const drafting = DRAFT && onBuild() && !S.bsrc && buildStep() > 2;
     input.placeholder = aiDown() ? 'Type a filter — AiMY is unreachable…'
       : !canWrite() ? (rec ? `Ask about ${rec.name}…` : 'Ask or filter — this account does not write…')
+      : drafting ? 'Say who you are after, in your own words…'
       : rec ? `Log a touchpoint on ${rec.name}, or ask about it…`
       : SEL.size ? `What should I do with the ${plural(SEL.size, 'record')} you picked?`
       : 'Ask, filter, name a lead, or log a touchpoint…';
@@ -21349,10 +24042,7 @@
     /* Typing a date of your own clears the quick pick, because the two are
        one control and only one of them can be the answer. */
     if (e.target.classList.contains('s-when-date')) paintWhen(null);
-    /* The audience count follows the chips. Only the read-out is redrawn —
-       the fields above it are not rebuilt, so nothing you were typing is
-       lost to a tick. */
-    if (e.target.classList.contains('s-aud-pick')) paintAudience();
+    /* The audience chips went with the form that held them. */
   });
 
   document.addEventListener('dd:change', (e) => {
@@ -21581,7 +24271,6 @@
     if ((el = e.target.closest('[data-reschedule]'))) { reschedule(el.dataset.reschedule); return; }
     if ((el = e.target.closest('[data-share]'))) { shareRec(el.dataset.share); return; }
     if ((el = e.target.closest('[data-addlist]'))) { addRecToCampaign(el.dataset.addlist); return; }
-    if ((el = e.target.closest('[data-addto]'))) { addToCampaign(el.dataset.addto); return; }
     if ((el = e.target.closest('[data-assign]'))) { assignCampaign(el.dataset.assign); return; }
     if ((el = e.target.closest('[data-plan]'))) { givePlan(el.dataset.plan); return; }
     if ((el = e.target.closest('[data-addstep]'))) { addStep(el.dataset.addstep); return; }
@@ -21596,7 +24285,15 @@
        what makes `findCompanies`' goal branch reachable — that branch was
        written and every call site passed nothing, so the one place a
        campaign's goal fed sourcing could never run. */
-    if ((el = e.target.closest('[data-findfor]'))) { findCompanies(el.dataset.findfor); return; }
+    if ((el = e.target.closest('[data-findfor]'))) {
+      const c = DB.campBy[el.dataset.findfor];
+      buildOpen(c ? {
+        said: c.goal || '',
+        terms: (c.goal ? readGoal(c.goal) : []).concat(FIND_HYGIENE.map((h) => ({ ...h }))),
+        camp: c.k, step: 3,
+      } : null);
+      return;
+    }
     if ((el = e.target.closest('[data-addsell]'))) { editOffering(el.dataset.addsell); return; }
     if ((el = e.target.closest('[data-reportto]'))) { editReportTo(el.dataset.reportto); return; }
     /* Filling the name box rather than committing, because picking a service
@@ -21610,21 +24307,6 @@
     /* THE AUDIENCE CHIPS, ACTING ON THE CAMPAIGN THEY SIT ON. Reversible,
        single campaign, and the count is stated on the button's own line —
        the confirmation ladder says act and offer the way back. */
-    if ((el = e.target.closest('[data-audadd]'))) {
-      const c = DB.campBy[el.dataset.audadd];
-      if (!c) return;
-      const picked = $$('.s-aud-pick:checked');
-      if (!picked.length) { toast('Nothing is ticked, so there is nothing to add.'); return; }
-      const add = audienceFrom().map((a) => a.id).filter((id) => !c.members.includes(id));
-      if (!add.length) { toast('Everything that matches is already on it.'); return; }
-      c.members = c.members.concat(add);
-      reindex(); paint(); paintRail();
-      toast(`${plural(add.length, 'organization')} added to ${c.name}.`, () => {
-        c.members = c.members.filter((id) => !add.includes(id));
-        reindex(); paint(); paintRail();
-      });
-      return;
-    }
     if ((el = e.target.closest('[data-unsell]'))) {
       const [k, i] = el.dataset.unsell.split('|');
       const c = DB.campBy[k];
@@ -22077,14 +24759,6 @@
     /* Add-contacts' own controls redraw the block in place: changing the
        source or the search is not a new decision, it is the same one seen
        differently, so it must not stack a second block in the thread. */
-    if ((el = e.target.closest('[data-add-src]'))) {
-      if (!addTo) return;
-      addTo.src = el.dataset.addSrc;
-      dropWork();
-      paintAddWork();
-      return;
-    }
-    if (e.target.closest('.s-add-tick')) { paintAddCount(); return; }
 
     /* `data-talk-close` was here — the chevron that undocked the rail. There
        is no rail to undock, and the canvas already has one way out.
@@ -22101,22 +24775,76 @@
       if (CALL_LOG && CALL_LOG.r) callLogCommit();
       return;
     }
+    if ((el = e.target.closest('[data-lbuild]'))) {
+      const k = el.dataset.lbuild;
+      if (!LBUILD) return;
+      /* The way out, from any turn. It carries everything answered so far
+         into the page, so nothing is asked twice — the same hand-off
+         `who-edit` makes below, for the same reason: the surface built to do
+         this is better at it than a thread. */
+      if (k === 'open') {
+        lbuildSpend(); paintTalk();
+        const over = { terms: LBUILD.terms, kind: LBUILD.kind, camp: LBUILD.camp, step: 2 };
+        LBUILD = null;
+        closeCanvas();
+        buildOpen(over);
+        return;
+      }
+      /* Three presses, and none of them is an answer to a question — the
+         answers are typed. Go says you are done narrowing; reset takes the
+         criteria back off when nothing matches; the auto-name saves you
+         retyping what the chips already spell. */
+      if (k.indexOf('kind:') === 0) {
+        LBUILD.kind = k.slice(5) === 'con' ? 'con' : 'acc';
+        lbuildSpend();
+        threadPush({ who: 'you', text: LBUILD.kind === 'con' ? 'People' : 'Companies' });
+        lbuildPush('lb-said',
+          LBUILD.kind === 'con'
+            ? 'Who are you after? A job title, a sector, a size, a place — all of it in one sentence if you like.'
+            : 'Who are you after? A sector, a size, a place — all of it in one sentence if you like.',
+          [LB_OUT],
+          LBUILD.kind === 'con'
+            ? 'QA managers at Dutch software companies with 200 to 1000 staff'
+            : 'Banking companies in Amsterdam with 200 to 1000 staff');
+        paintTalk();
+        return;
+      }
+      if (k === 'go') { lbuildName(); return; }
+      if (k === 'reset') {
+        LBUILD.terms = [];
+        lbuildSpend();
+        threadPush({ who: 'you', text: 'Start the criteria again' });
+        lbuildReport(null);
+        return;
+      }
+      if (k === 'name-auto') { lbuildConfirm(lbuildAutoName()); return; }
+      return;
+    }
     if ((el = e.target.closest('[data-cbuild]'))) {
       const k = el.dataset.cbuild;
       if (!CBUILD) return;
       if (k === 'take') { cbuildGoal(CBUILD.suggested); return; }
-      if (k === 'who-ok') { cbuildSells(); return; }
+      /* Leaves for the page that IS the form. Nothing typed is lost because
+         nothing has been typed — this is the first turn's own escape. */
+      if (k === 'own') { CBUILD = null; closeCanvas(); newCampaignPage(); return; }
+      if (k === 'who-ok') { cbuildAim(); return; }
+      if (k === 'aim-ok') { cbuildSells(); return; }
+      if (k === 'aim-none') { CBUILD.personas = []; cbuildSells(); return; }
       if (k === 'who-edit') {
         /* THE ONE ANSWER THAT LEAVES THE CONVERSATION, and it leaves for the
            surface built to do this: `findCompanies` is the criteria builder,
            and reproducing a worse one inside a thread is the duplicate door
            this product keeps closing. It carries the goal in, so nothing is
            re-typed. */
+        /* THE ONE ANSWER THAT LEAVES THE CONVERSATION, and it leaves for the
+           surface built to do this. It carries the goal in as the sentence and
+           its reading as the criteria, so nothing is re-typed. */
         cbuildSpend(); paintTalk();
-        const goal = CBUILD.goal; CBUILD = null;
-        FIND_FROM = { kind: 'won', said: goal };
-        FIND_CRIT = readGoal(goal).concat(FIND_HYGIENE.map((h) => ({ ...h })));
-        findSetPool(); paintFind();
+        const goal = CBUILD.goal;
+        const terms = CBUILD.terms || readGoal(goal);
+        CBUILD = null;
+        closeCanvas();
+        buildOpen({ said: goal, terms, step: 3 });
         return;
       }
       if (k === 'sell-none') { cbuildName(); return; }
@@ -22216,6 +24944,11 @@
     if ((el = e.target.closest('[data-callstart]'))) { startCall(el.dataset.callstart); return; }
     if (e.target.closest('[data-callgo]')) { callGo(); return; }
     if ((el = e.target.closest('[data-callskip]'))) { callSkip(el.dataset.callskip); return; }
+    if ((el = e.target.closest('[data-fillnow]'))) {
+      const [k, f] = el.dataset.fillnow.split('|');
+      buildBusy('fill:' + f, () => buildFillNow(k, f));
+      return;
+    }
     if ((el = e.target.closest('[data-enrichone]'))) { enrichRun(new Set([el.dataset.enrichone])); return; }
     /* ── Home ──
        Every key to its default and nothing preserved but who you are looking
@@ -22247,12 +24980,32 @@
         else cbuildStart();
         return;
       }
-      if (k === 'findco') { findCompanies(); return; }
+      if (k === 'findco') { lbuildStart(); return; }
       if (k === 'call') { whoToRing(); return; }
       if (k === 'fillgaps') {
+        /* ══ THE RECORDS, NOT THE CANVAS ═══════════════════════════════
+           This opened `enrichRun`, which is the waterfall in a canvas block:
+           every provider for every field, ranked, behind one confirm. That
+           flow still exists and is still right for one record you are
+           looking at — `data-enrichone` reaches it. It is the wrong answer
+           to "three organizations are missing headcount or revenue", which
+           is a set, and the product now has the flow for a set: land on
+           them, read one line per missing field with the supplier and its
+           hit rate on it, and fill that field in place with an undo.
+
+           It is the same block a list draws, over the book instead. */
         const gaps = maySee(DB.acc).filter((a) => !a.arch && (a.emp == null || a.rev == null));
         if (!gaps.length) { toast('Nothing is missing headcount or revenue.'); return; }
-        enrichRun(new Set(gaps.map((a) => a.id)));
+        go({ on: DEFAULTS.on, tab: 'orgs', cut: 'gaps', srcref: '', lead: '', camp: '', task: '' });
+        /* ══ AND THE PAGE GOES THERE ═══════════════════════════════════
+           The tab block is at the FOOT of the briefing and this opener is
+           at the top, so the press narrowed a set 1,400px below the fold
+           and left the screen identical — the exact defect the note on
+           `Ring someone` documents, arrived at from the other direction.
+           `go` repaints synchronously, so the block exists to scroll to by
+           the time this runs. */
+        const seat = $('.s-tabs-block'); const sc = $('#pageScroll');
+        if (seat && sc) sc.scrollTop = Math.max(0, seat.offsetTop - sc.offsetTop - 12);
       }
       return;
     }
@@ -22315,10 +25068,10 @@
       if (s) createCampaign(listPool(s).map((a) => a.id), s.name);
       return;
     }
-    /* It passed nothing, so "Run it again" ran a fresh search and pushed a
-       SECOND list rather than re-running the one whose button was pressed.
-       The criteria the list already carries are what "again" means. */
-    if ((el = e.target.closest('[data-listrun]'))) { findCompanies(null, el.dataset.listrun); return; }
+    /* It reopened the builder on another page, pre-loaded, and finishing
+       there minted a SECOND list rather than growing the one you pressed —
+       so the verb and the outcome disagreed. It runs where the list is now. */
+    if ((el = e.target.closest('[data-listrun]'))) { listRunMore(el.dataset.listrun); return; }
     /* ── Standing work, on and off ──
        ON goes through the ladder because it grants authority that outlives
        the press. OFF does not: stopping is never the direction that needs
@@ -22335,7 +25088,7 @@
       return;
     }
     if ((el = e.target.closest('[data-listassign]'))) { assignList(el.dataset.listassign); return; }
-    if (e.target.closest('[data-findco]')) { findCompanies(); return; }
+    if (e.target.closest('[data-findco]')) { lbuildStart(); return; }
     /* ── The consent question, raised by Record and answered here ──
        "Not yet" is a real answer and the only honest one to leave on the
        button: it closes the question and starts nothing, which is what
@@ -22365,46 +25118,101 @@
     if (e.target.closest('[data-call-hold]')) { if (DB.call) { DB.call.held = !DB.call.held; paintCall(); } return; }
     if (e.target.closest('[data-call-end]')) { endCall(); return; }
 
-    /* Dropping a returned row, and putting it back. A toggle rather than a
-       removal for the same reason a rejected criterion greys out instead of
-       vanishing: you are refining, and a refinement you cannot reverse
-       without re-running the whole search is one people will not make. */
-    if ((el = e.target.closest('[data-finddrop]'))) {
-      const k = el.dataset.finddrop;
-      if (FIND_DROP.has(k)) FIND_DROP.delete(k); else FIND_DROP.add(k);
-      paintFind();
+    /* `[data-finddrop]` and `[data-crit]` went with the panel that drew
+       them. Both still referenced `FIND_DROP`, `FIND_CRIT`, `findSetPool`
+       and `paintFind` — four names the old flow took with it — so either one
+       firing would have thrown. Nothing draws them, so nothing could; that is
+       not a reason to keep the trap loaded. The chips on the builder use
+       `[data-bterm]`, which reads the draft. */
+    if ((el = e.target.closest('[data-bstep]'))) {
+      go({ bstep: el.dataset.bstep });
       return;
     }
-    if ((el = e.target.closest('[data-crit]'))) {
-      const c = FIND_CRIT.filter((x) => x.k === el.dataset.crit)[0];
-      if (!c) return;
-      /* Yours came off the sentence you typed, so taking it off takes it
-         away rather than greying it out. AiMY's stay, switched off, because
-         a reading you rejected is worth being able to put back. */
-      if (c.own && c.on) FIND_CRIT = FIND_CRIT.filter((x) => x !== c);
-      else c.on = !c.on;
-      findSetPool();
-      if (workRun) settleWork(workRun.id, 'Criteria changed.');
-      paintFind();
+    if ((el = e.target.closest('[data-bsugg]'))) {
+      const key = el.dataset.bsugg;
+      buildScrape();
+      buildBusy('sugg:' + key, () => {
+        const g = buildSuggests().filter((x) => x.k === key)[0];
+        if (!g) { paintBuild(); return; }
+        if (g.terms) {
+          const have = (t) => DRAFT.terms.some((x) => x.axis === t.axis && x.val === t.val);
+          g.terms.filter((t) => !have(t)).forEach((t) => DRAFT.terms.push({ ...t }));
+        }
+        if (g.take) g.take.forEach((id) => DRAFT.take.add(id));
+        paintBuild();
+      });
       return;
     }
-    if ((el = e.target.closest('[data-findread]'))) {
-      findReread((($('.s-find-said') || {}).value || '').trim());
+    if ((el = e.target.closest('[data-bkind]'))) {
+      /* Switching between companies and people drops the job title, which is
+         the one axis that means nothing on the other side. Everything else
+         describes the company and survives, because a people search is a
+         company search with a title on it. */
+      if (DRAFT) DRAFT.terms = DRAFT.terms.filter((t) => t.axis !== 'title');
+      if (DRAFT) DRAFT.take = new Set();
+      go({ bkind: el.dataset.bkind === 'con' ? 'con' : '', bstep: '3' });
       return;
     }
-    if ((el = e.target.closest('[data-critadd]'))) {
-      const inp = $('.s-find-new');
-      const said = ((inp || {}).value || '').trim();
-      if (!said) { toast('Type the criterion first.'); return; }
-      FIND_CRIT.push({ k: 'own' + FIND_CRIT.length, label: said, own: true, on: true });
-      findSetPool();
-      paintFind();
+    if ((el = e.target.closest('[data-bterm]'))) {
+      const [axis, ...rest] = el.dataset.bterm.split(':');
+      const val = rest.join(':');
+      if (!DRAFT) buildStart();
+      const at = DRAFT.terms.filter((t) => t.axis === axis && t.val === val)[0];
+      if (at) {
+        /* A term you typed goes away when you take it off — you wrote it on
+           purpose and there is no list of options to put it back from. An
+           option off a registry stays, switched off, because the chip row is
+           where you would go looking for it. */
+        if (axis === 'own') DRAFT.terms = DRAFT.terms.filter((t) => t !== at);
+        else DRAFT.terms = DRAFT.terms.filter((t) => t !== at);
+      } else {
+        const ax = AX_BY[axis];
+        const row = ax ? ax.rows().filter(([v]) => String(v) === val)[0] : null;
+        DRAFT.terms.push({ axis, val, label: row ? row[1] : val, on: true });
+      }
+      paintBuild();
       return;
     }
+    /* Taking one of your own leads into the list. It goes into `has`, never
+       into `srcRef` — see the note on `listPool`. */
+    if ((el = e.target.closest('[data-btake]'))) {
+      if (!DRAFT) buildStart();
+      const id = el.dataset.btake;
+      if (DRAFT.take.has(id)) DRAFT.take.delete(id); else DRAFT.take.add(id);
+      paintBuild();
+      return;
+    }
+    /* `data-bedit` went with the criteria chips it belonged to. It reopened
+       the builder carrying the saved list's terms — which is what
+       `data-listrun` does from the header, under a name that says what it is
+       for. Two controls, one act. */
+    if (e.target.closest('[data-close-build]')) {
+      const draft = draftedHere();
+      if (draft) { askLeaveDraft(draft); return; }
+      goBack();
+      return;
+    }
+    if (e.target.closest('[data-bgo]')) { buildRun(); return; }
+    /* `data-bsave` and `data-bdiscard` went with the interstitial preview
+       stage. Deciding to keep or throw a list now happens on the drafted list
+       itself, through `data-listkeep` and `data-listdrop` below. */
+    if ((el = e.target.closest('[data-listadd]'))) { addListToCampaign(el.dataset.listadd); return; }
+    if ((el = e.target.closest('[data-campaddlist]'))) { addListsToCampaign(el.dataset.campaddlist); return; }
+    if ((el = e.target.closest('[data-persona]'))) { setPersonas(el.dataset.persona); return; }
+    if ((el = e.target.closest('[data-listkeep]'))) { saveList(el.dataset.listkeep); return; }
+    if ((el = e.target.closest('[data-listdrop]'))) { discardList(el.dataset.listdrop); return; }
     if ((el = e.target.closest('[data-init]'))) {
       const k = el.dataset.init;
       if (k === 'draft-campaign') { createCampaign([]); return; }
-      if (k === 'find-lookalikes') { findCompanies(); return; }
+      if (k === 'find-lookalikes') {
+        /* "More like the ones we have won" is the sectors the wins came from,
+           read off `outcome` rather than off a sentence about it. */
+        const inds = [...new Set(maySee(DB.acc).filter((a) => a.outcome === 'won').map((a) => a.industry))];
+        lbuildStart({
+          terms: inds.map((k2) => ({ axis: 'industry', val: k2, label: label('industry', k2), on: true })),
+        });
+        return;
+      }
       if (k === 'enrich') {
         const gaps = maySee(DB.acc).filter((a) => !a.arch && (a.emp == null || a.rev == null));
         enrichRun(new Set(gaps.map((a) => a.id)));
@@ -22562,16 +25370,10 @@
     }
     if (e.key !== 'Enter' || e.shiftKey) return;
     if (e.target.id === 'floatInput') { e.preventDefault(); submitFloat(); }
-    /* Type a criterion, press Enter. Reaching for a button after typing is
-       the sort of thing you only forgive once. */
-    if (e.target.classList.contains('s-find-new')) {
-      e.preventDefault();
-      const said = e.target.value.trim();
-      if (!said) return;
-      FIND_CRIT.push({ k: 'own' + FIND_CRIT.length, label: said, own: true, on: true });
-      findSetPool(); paintFind();
-    }
-    if (e.target.classList.contains('s-find-said')) { e.preventDefault(); findReread(e.target.value.trim()); }
+    /* The old panel's two Enter bindings went with it — `.s-find-new` and
+       `.s-find-said` are classes nothing renders, and both bodies called into
+       `FIND_CRIT`, `findSetPool`, `paintFind` and `findReread`, all deleted.
+       The builder's sentence needs no binding: it reads as you type. */
   });
   /* Capture, because focusout does not bubble the way focus events are
      usually listened for and an input that is removed mid-blur never
@@ -23328,50 +26130,71 @@
      Within a row the tests are OR — "banking or software" is one question
      with two acceptable answers. Between rows they are AND, because the rows
      ask about different things. */
-  const AUDIENCE_ASKS = [
-    { ask: 'Where they stand', opts: [
-      { v: 'net-new', t: 'Never contacted', test: (a) => statusOf(a) === 'untouched' },
-      { v: 'warm',    t: 'Already spoken to', test: (a) => ['awaiting-us', 'awaiting-them'].includes(statusOf(a)) },
-      { v: 'revive',  t: 'Went quiet',      test: (a) => obstaclesOf(a).some((o) => o === 'gone-quiet' || o === 'stalled') },
-    ] },
-    { ask: 'Who they are', opts: [
-      { v: 'fin',  t: 'Banking & finance',        test: (a) => a.industry === 'banking' },
-      { v: 'soft', t: 'Software & manufacturing', test: (a) => a.industry === 'software' || a.industry === 'industry' },
-      { v: 'big',  t: 'The large ones',           test: (a) => sizeBand(a.emp) === 'ent' },
-    ] },
-  ];
+  /* `AUDIENCE_ASKS`, `audienceFrom` and `paintAudience` are gone with the
+     chip form they served. It asked "where they stand" and "who they are"
+     and added whatever matched — a third list builder, inline, on a stage
+     whose two other doors reach the real one. Find is the campaign's lists
+     now, and a list is where criteria are written. */
 
-  /* Read off the DOM rather than held in a variable: the chips ARE the
-     state, and a second copy is a second thing that can disagree with what
-     the reader can see ticked. */
-  function audienceFrom(root) {
-    const scope = root || document;
-    const picked = [...scope.querySelectorAll('.s-aud-pick:checked')];
-    let pool = maySee(DB.acc).filter((a) => !a.arch);
-    AUDIENCE_ASKS.forEach((row, q) => {
-      const chosen = picked.filter((i) => +i.dataset.aud === q).map((i) => i.value);
-      if (!chosen.length) return;
-      const tests = row.opts.filter((o) => chosen.includes(o.v)).map((o) => o.test);
-      pool = pool.filter((a) => tests.some((t) => t(a)));
+  /* ══ THE CAMPAIGN'S OWN KEY, MONOTONIC ═════════════════════════════════
+     `'c' + (DB.camp.length + 100)` collided after an undo — undo removes the
+     campaign, the length drops back, and the next one reuses the key of the
+     campaign you just took away. The same defect the source key had and the
+     same fix; flagged rather than left, because both writers below mint keys
+     and a collision here attaches members to the wrong campaign. */
+  let campSeq = 0;
+  const campKey = () => 'c' + (DB.camp.length + 100) + '-' + (++campSeq);
+
+  /* ══ AND THE MANUAL WAY IN ═════════════════════════════════════════════
+     The conversation asks four questions and the seeded form asks eight, and
+     both were the only ways to make a campaign — so somebody who knew
+     exactly what they wanted still had to be interviewed about it.
+
+     The page is already the form. `campPage` edits the name and the goal in
+     place, `campIdentity` carries Products, Team and Client each with their
+     own control, and the Find stage owns "who is in it" — which is the whole
+     of "add campaign details" in the drawn flow. So the manual path makes an
+     EMPTY campaign and lands on it, and the filling in happens on the thing
+     rather than in front of it. Same move the list builder ended at: the
+     page becomes the list.
+
+     It starts as a draft by construction — `campState` reads `plan`, and
+     nothing here writes one — so nothing sends, and the page opens on the
+     lifecycle control that would start it. */
+  function newCampaignPage() {
+    if (!canRunCampaign() || !canWrite()) return;
+    const owner = me().id;
+    const crew = CREW_SHAPE();
+    const ownerFn = REP[owner] && REP[owner].fn;
+    if (crew[ownerFn]) crew[ownerFn].push(owner);
+    const c = {
+      k: campKey(),
+      /* Named, because `editField` refuses to empty a name and an unnamed
+         campaign is one nobody can find in the index it lands in. Dated, the
+         same shape a list's derived name takes, so the placeholder reads as
+         a placeholder rather than as somebody's word. */
+      name: `Untitled campaign — ${fmtDate(iso(TODAY))}`,
+      description: 'No description yet.',
+      goal: null,
+      owner, assignees: [], crew,
+      client: null, sells: [], members: [], personas: [],
+      crit: Object.assign({}, S),
+      made: iso(TODAY),
+      plan: null, from: null, to: null, svc: null, kb: null,
+    };
+    DB.camp.push(c);
+    reindex();
+    /* `chat` clears with it. Arriving here from the conversation means the
+       conversation handed over, and leaving its key would reopen an answered
+       thread on reload — the same clause `buildOpen` carries for the same
+       hand-off on the list side. */
+    go({ camp: c.k, lead: '', task: '', stage: '', in: '', chat: '',
+      from: hereRef('camp', 'lead', 'task', 'stage', 'in') });
+    paintChrome();
+    toast('An empty campaign. Fill it in on the page — nothing sends until you start it.', () => {
+      DB.camp = DB.camp.filter((x) => x.k !== c.k);
+      reindex(); goBack(); paintChrome();
     });
-    return ordered(pool);
-  }
-
-  /* The count and the preview, redrawn in place. Re-rendering the whole
-     block on a chip press is what `paintFind` does and what its own comment
-     warns about — it has to hand-save the sentence you were typing, because
-     the rebuild would take it with it. Two elements are updated instead, so
-     the Name and What-it-is-for fields are never rebuilt under the cursor. */
-  function paintAudience() {
-    const host = $('.s-aud-out');
-    if (!host) return;
-    const list = audienceFrom();
-    const all = maySee(DB.acc).filter((a) => !a.arch).length;
-    host.innerHTML = list.length
-      ? `<span class="s-aud-n">${list.length}</span> of ${all} organizations${
-          list.length === all ? ' — everyone you can see' : ''}
-         <span class="s-aud-names">${list.slice(0, 6).map((a) => esc(a.name)).join(' · ')}${list.length > 6 ? ` and ${list.length - 6} more` : ''}</span>`
-      : `<span class="s-aud-n">Nothing</span> matches both of those. It would start empty.`;
   }
 
   function createCampaign(seedIds, named, opts) {
@@ -23424,6 +26247,24 @@
           <span class="s-field-label">What it is for${seed && seed.goal ? ' <span class="s-field-note">suggested</span>' : ''}</span>
           <textarea class="ds-textarea s-new-desc" rows="2" placeholder="Who is in it and why, in a sentence.">${esc((seed && seed.goal) || '')}</textarea>
         </label>
+        ${/* ══ AND WHO IT IS AIMED AT ════════════════════════════════════
+              The form collected who is IN it and never who it is FOR, so
+              every campaign made here was born with no target and the page's
+              persona reading had nothing to compare against. Typed, not
+              picked — a campaign aimed at a role the book has not met yet is
+              the ordinary case, and a menu of the sixteen roles it HAS met
+              cannot express it.
+
+              Pre-read from the goal sentence when that names a role, because
+              "a scoping call with whoever owns quality" has already answered
+              this, and asking again would be asking twice. */ ''}
+        ${(() => {
+          const from = readPersonas((seed && seed.goal) || '');
+          return `<label class="ds-field s-field">
+          <span class="s-field-label">Aimed at<span class="s-field-note">${from.length ? 'read from the goal' : 'optional'}</span></span>
+          <input class="field-input s-new-aim" type="text" spellcheck="false" value="${esc(from.join(', '))}" placeholder="heads of QA and engineering VPs" />
+        </label>`;
+        })()}
         ${/* ══ WHAT WE WOULD BE SELLING ══════════════════════════════════
               Read off the ICPs the accounts matched. This field was the
               diagram's own complaint — "for people working on it they don't
@@ -23578,7 +26419,7 @@
         const said = (($('.s-new-desc') || {}).value || '').trim();
         const kept = $$('.s-new-sell:checked').map((i) => Number(i.value));
         const c = {
-          k: 'c' + (DB.camp.length + 100),
+          k: campKey(),
           name,
           description: said || 'No description yet.',
           goal: said || null,
@@ -23614,6 +26455,10 @@
              Its former partner, `stakeholders`, is gone — see the note where
              the field used to be. */
           client: ($('.s-new-client:checked') || {}).value || null,
+          /* Read from the field above, in the words that were typed. The
+             page checks it against who is actually on it and says how many
+             are not — which is the whole reason it is collected. */
+          personas: readPersonas(($('.s-new-aim') || {}).value || '', true),
           sells: seed ? kept.map((i) => seed.sells[i]).filter(Boolean) : [],
           /* Handed in, or empty. A campaign made from nothing starts with
              nobody in it and Find fills it — which is what Find is, and what
@@ -23666,10 +26511,7 @@
         });
       },
     });
-    /* The read-out states the audience BEFORE anything is ticked, because
-       "everyone you can see" is the answer to the default and a blank line
-       under two rows of chips reads as a control that has not loaded. */
-    paintAudience();
+
   }
 
   /* ── Add contacts ──
@@ -23683,102 +26525,16 @@
      right, which is that existing members are SHOWN AND DISABLED rather
      than hidden. A contact you cannot find is worse than one you cannot
      select, because you go looking for it. */
-  let addTo = null;
+  /* `addToCampaign` and its whole panel are gone: the source tabs, the
+     search, the candidate list, `addCandidates` and `paintAddWork`. It put
+     `Add ones we have` beside `Add an existing list` on Find, and the two
+     were one offer — both add leads you already hold, and the list is the
+     shape this product keeps them in. A picker of individual accounts, on a
+     stage whose subject is lists, was the third way to do the same thing.
 
-  function addToCampaign(key) {
-    const c = DB.campBy[key];
-    if (!c) return;
-    addTo = { k: key, src: '', q: '' };
-    paintAddWork();
-  }
+     `paintAddCount`, the `.s-add-q` listener and the `data-add-src` branch
+     went with it, because they only ever served that panel. */
 
-  function addCandidates() {
-    const c = DB.campBy[addTo.k];
-    let pool = (onCons() ? DB.con : DB.acc).filter((r) => !r.arch);
-    if (addTo.src) pool = pool.filter((r) => accOf(r).src === addTo.src);
-    if (addTo.q) {
-      const q = addTo.q.toLowerCase();
-      pool = pool.filter((r) => [r.name, accOf(r).name, r.role].filter(Boolean).join(' ').toLowerCase().includes(q));
-    }
-    return { c, pool: pool.slice(0, 60) };
-  }
-
-  /* NEW · PROSPECT · EXISTING. V1 shows these and they are the only three
-     things you need to know before ticking a row: never contacted, being
-     worked, or already here. */
-  function addBadge(r, c) {
-    if (c.members.includes(accOf(r).id)) return ['is-already', 'Already in it'];
-    return statusOf(r) === 'untouched' ? ['is-new', 'New'] : ['is-prospect', 'Prospect'];
-  }
-
-  function paintAddWork() {
-    const { c, pool } = addCandidates();
-    const already = pool.filter((r) => c.members.includes(accOf(r).id));
-    const fresh = pool.filter((r) => !c.members.includes(accOf(r).id));
-
-    canvasWork({
-      title: `Add to ${c.name}`,
-      lede: `${campState(c) === 'running' ? 'It is running, so anything you add starts receiving the plan.' : 'It is a draft, so nothing will send until you start it.'}`,
-      body: `
-        <div class="s-add-tools">
-          <div class="seg s-add-src" role="group" aria-label="Where they came from">
-            <button class="seg-btn${addTo.src === '' ? ' active' : ''}" type="button" data-add-src="">All sources</button>
-            ${TAX.src.map((s) => `<button class="seg-btn${addTo.src === s.k ? ' active' : ''}" type="button" data-add-src="${esc(s.k)}">${esc(s.label)}</button>`).join('')}
-          </div>
-          <div class="search-field s-add-search">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-            <input type="text" class="s-add-q" value="${esc(addTo.q)}" placeholder="Search by name, company or title…" aria-label="Search candidates" />
-          </div>
-        </div>
-        ${already.length ? `<div class="banner warn s-commit-banner">
-          <div class="banner-body"><strong>${esc(plural(already.length, 'record'))}</strong> ${already.length === 1 ? 'is' : 'are'} already in this campaign. ${already.length === 1 ? 'It is' : 'They are'} shown and cannot be picked.</div>
-        </div>` : ''}
-        <div class="s-pick s-pick-scroll">
-          ${pool.length ? pool.map((r) => {
-            const [cls, badge] = addBadge(r, c);
-            const off = cls === 'is-already';
-            return `<label class="ds-choice s-pick-row${off ? ' is-already' : ''}">
-              <input type="checkbox" value="${esc(r.id)}" ${off ? 'disabled' : 'checked'} class="s-add-tick" />
-              <span class="s-add-main">
-                <span class="s-add-name">${esc(r.name)}</span>
-                <span class="s-pick-role">${esc(r.kind === 'con' ? r.role + ' · ' + accOf(r).name : label('industry', accOf(r).industry) + ' · ' + (fmtSize(accOf(r).emp) || 'size not known'))}</span>
-              </span>
-              <span class="s-add-badge ${cls}">${esc(badge)}</span>
-            </label>`;
-          }).join('') : '<p class="s-none">Nothing matches that.</p>'}
-        </div>`,
-      effects: [campState(c) === 'running' ? ['warn', `${c.name} is running — anything added starts receiving the plan, including AiMY's step.`] : null],
-      confirm: `Add selected (${fresh.length})`,
-      run(id) {
-        const ids = $$('.s-add-tick:checked').map((i) => i.value);
-        if (!ids.length) { toast('Nothing was ticked, so nothing was added.'); return false; }
-        const accIds = toAccountIds(ids.map(recBy).filter(Boolean)).filter((a) => !c.members.includes(a));
-        c.members = c.members.concat(accIds);
-        addTo = null;
-        reindex(); paint(); paintChrome();
-        settleWork(id, `${plural(accIds.length, 'account')} added.`);
-        toast(`${plural(accIds.length, 'account')} added to ${c.name}.`, () => {
-          c.members = c.members.filter((m) => !accIds.includes(m));
-          reindex(); paint(); paintChrome();
-        });
-      },
-    });
-  }
-
-  /* ── Assign ──
-     The sharing model already built, widened from a record to a list. */
-  /* ══ THE OFFERING, AND WHO READS THE CAMPAIGN ═════════════════════════════
-
-     Two things the process diagram says a campaign has and this product could
-     never set. `sells` was written once at creation from whatever ICPs the
-     seeded accounts happened to match — so an empty campaign could never say
-     what it sells, and no campaign could ever say something the ICPs had not
-     already said. `client` was never written at all: the fixtures carry it,
-     the client's whole surface is scoped by it, and no form has ever asked.
-
-     The diagram's own words for the first one: *"For people working on it
-     they don't know what they are selling properly."* That is not a training
-     problem. */
   function editOffering(key) {
     const l = DB.campBy[key];
     if (!l) return;
@@ -24369,7 +27125,7 @@
       city:   { label: 'city' },
       domain: { label: 'domain' },
       emp:    { label: 'headcount', num: true },
-      rev:    { label: 'revenue', num: true },
+      rev:    { label: 'revenue', num: true, none: 'add the revenue' },
     },
     con: {
       name:  { label: 'name' },
@@ -24379,12 +27135,17 @@
     },
     camp: {
       name:        { label: 'name' },
-      goal:        { label: 'what it is for', long: true },
+      /* ══ THE EMPTY STATE IS NOT ALWAYS "ADD A " + LABEL ═══════════════
+         It was, and on the three labels that are not bare nouns it produced
+         "add a what it is for", "add a criteria" and "add a revenue". The
+         label names the field for the tooltip; `none` is what the gap
+         itself should say, and only the fields that need it carry one. */
+      goal:        { label: 'what it is for', long: true, none: 'say what it is for' },
       description: { label: 'description', long: true },
     },
     src: {
       name: { label: 'name' },
-      crit: { label: 'criteria', long: true },
+      crit: { label: 'criteria', long: true, none: 'add the criteria' },
     },
     /* What we are going to say, corrected where it sits. AiMY writes the
        first version and you fix it in the same place you read it — the
@@ -24419,7 +27180,7 @@
     if (!spec || !canWrite()) return esc(text);
     const key = (o.id || o.k) + '|' + field;
     return `<button class="s-edit" type="button" data-edit="${esc(key)}"
-      title="Change the ${esc(spec.label)}">${text ? esc(text) : `<span class="s-edit-none">add a ${esc(spec.label)}</span>`}<svg class="s-edit-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
+      title="Change the ${esc(spec.label)}">${text ? esc(text) : `<span class="s-edit-none">${esc(spec.none || `add a ${spec.label}`)}</span>`}<svg class="s-edit-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>`;
   }
 
   /* Swap the button for an input, in place and WITHOUT repainting. A repaint
@@ -25140,4 +27901,12 @@
   initRailDrawer();
 
   window.addEventListener('popstate', () => { parse(); paint(); paintChrome(); });
+
+  /* No `beforeunload`. It stood here for one pass, and the browser's own
+     prompt is the one dialog in this product that cannot name what it is
+     about or offer the third answer the decision actually has. The guard is
+     `askLeaveDraft`, on the commit surface every other consequential
+     decision here uses. The cost is real and taken deliberately: closing the
+     tab on a draft still loses it, as it loses everything else in a
+     prototype with no persistence. */
 })();

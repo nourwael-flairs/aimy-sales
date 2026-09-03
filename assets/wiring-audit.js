@@ -279,7 +279,7 @@ if (surfaces.size > 1) {
    Checked per RENDER FUNCTION rather than per file: `recordPage`, `campPage`
    and `taskSheet` each return one page, and one page gets one Back. */
 const BACK_MARK = /class="s-back"|class="modal-close"/g;
-['recordPage', 'campPage', 'taskSheet'].forEach((fn) => {
+['recordPage', 'campPage', 'taskSheet', 'buildPage'].forEach((fn) => {
   const at = src.indexOf('function ' + fn + '(');
   if (at < 0) { problems.push(`NO SUCH PAGE   ${fn}() is gone — the Back check cannot see it`); return; }
   /* To the next top-level `function` at two-space indent, which is how every
