@@ -19046,9 +19046,21 @@
     const key = 'c' + (DB.camp.length + 100);
     const srcKey = 'src-build-' + (DB.source.length + 1);
     const before = DB.acc.length;
-    DB.source.push({ k: srcKey, name: CBUILD.name, kind: 'companies', by: me().id,
-      at: iso(TODAY), auto: false, crit: CBUILD.crit.join(' · '),
-      found: findCount(), imported: rows.length });
+    /* ══ THE LIST THIS CAMPAIGN MAKES IS A LIST LIKE ANY OTHER ═══════════
+       Three things were wrong once the list model gained a shape. `findCount`
+       is gone with the old flow and this was still calling it, so finishing a
+       campaign in the chat threw. `kind: 'companies'` is not a value
+       `listPool` dispatches on — it reads `'con'` or anything else as
+       accounts, so it happened to work, but the field means something now and
+       a made-up value in it is a lie the next reader will act on. And the
+       criteria were stored only as prose, which is the lossy round-trip
+       `terms` exists to end: re-running this list could recover its industry
+       and nothing else. */
+    DB.source.push({ k: srcKey, name: CBUILD.name, kind: 'acc', by: me().id,
+      at: iso(TODAY), auto: false, has: [],
+      terms: (CBUILD.terms || []).filter((c) => c.on).map((c) => ({ ...c })),
+      crit: CBUILD.crit.join(' · '),
+      found: buildReach(CBUILD.terms || []), imported: rows.length });
     const members = rows.map((row, i) => {
       const [nm, domain, city, emp, founded, industry] = row;
       const id = 'ab' + i + '-' + key;
