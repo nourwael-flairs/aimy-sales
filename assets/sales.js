@@ -12185,10 +12185,25 @@
     const conv = steps.slice(1).map((st, i) => {
       const prev = steps[i].set.length;
       const n = st.set.length;
-      return { st, from: steps[i], n, prev, rate: prev ? n / prev : null };
+      return { st, from: steps[i], n, prev, lost: prev - n, rate: prev ? n / prev : null };
     });
     const rated = conv.filter((x) => x.rate != null && x.prev);
-    const weak = rated.slice().sort((a2, b2) => a2.rate - b2.rate)[0] || null;
+    /* ══ THE BIGGEST DROP IS THE ABSOLUTE ONE ═════════════════════════════
+       This ranked by RATE for one pass, and it named Won — 40%, which is
+       three organizations — while twelve were lost at Reached. Fixing
+       Reached is worth four times as much, so the sentence was pointing at
+       the smaller problem.
+
+       Amplitude's funnel documentation is explicit about the same thing for
+       its "largest drop-off step": the relevant comparison is the absolute
+       decrease and not the percentage decrease. The rate still earns its
+       column — it is what says whether a STEP is working — but where to
+       spend the next hour is a question about how many people fell out.
+
+       So the two are separated: the loss is counted, the strength is rated,
+       and the sentence says which is which. */
+    const worst = conv.slice().sort((a2, b2) => b2.lost - a2.lost)[0] || null;
+    const weak = worst && worst.lost ? worst : null;
     const strong = rated.slice().sort((a2, b2) => b2.rate - a2.rate)[0] || null;
     const booked = steps[3].set.length;
     /* The denominator moved here from a row of its own, so the sentence says
@@ -12197,9 +12212,9 @@
     const read = !ts.length
       ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
       : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
-          weak ? ` Its weakest step is <b>${esc(weak.st.label.toLowerCase())}</b> — only <b>${pcOf(weak.rate)}</b> of the ${weak.prev} that ${esc(weak.from.label.toLowerCase())} get there.` : ''}${
-          strong && weak && strong !== weak && strong.rate > 0.6
-            ? ` Its strongest is <b>${esc(strong.st.label.toLowerCase())}</b>, at <b>${pcOf(strong.rate)}</b>.`
+          weak ? ` It loses most at <b>${esc(weak.st.label.toLowerCase())}</b> — <b>${weak.lost}</b> of the ${weak.prev} never get there.` : ''}${
+          strong && strong !== weak && strong.rate > 0.6
+            ? ` Its strongest conversion is <b>${esc(strong.st.label.toLowerCase())}</b>, at <b>${pcOf(strong.rate)}</b>.`
             : ''}`;
 
     /* ══ FOUR ENCODINGS OF ONE DROP, AND A ROW THAT WAS ALWAYS 100% ══════

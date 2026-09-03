@@ -5076,9 +5076,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
   align-items: baseline; gap: 4px 16px;
   padding: 12px; margin-left: -12px; border-radius: var(--r-md);
 }
-/* The step that leaks worst, marked — the reading names it in words and this
-   is the same claim in the column, so the sentence and the row agree. */
-.s-fn-row.is-weak .s-fn-pct { color: var(--warn-text); }
+/* The step that loses most, marked on the COUNT rather than the rate — the
+   sentence above ranks by how many fell out, and the mark has to be on the
+   figure it ranked. Toning the percentage would have pointed at a different
+   row from the one the sentence names. */
+.s-fn-row.is-weak .s-fn-n { color: var(--warn-text); }
 .s-fn-row.is-goal { background: var(--card-bg-raised); }
 /* 168, and the name does not wrap. At 132 the goal row broke `Booked a call`
    over two lines to fit its own marker beside it, which put one row of a
