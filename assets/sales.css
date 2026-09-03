@@ -4060,6 +4060,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
    block, which is the whole reason it is a column.
 
    Ranked dearest first by `campaignCost`, so the order is the finding. */
+/* ══ A CAMPAIGN'S LISTS ════════════════════════════════════════════════════
+   Find and Enrich both draw the same row — which list, and one fact about
+   what it is doing here. The name is the target because a list is a thing
+   you open, and the fact under it is the only thing the stage is asking
+   about, so there is nothing to rank against it and it sits plainly below. */
+.s-clists { display: flex; flex-direction: column; margin-top: 8px; }
+.s-clist {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 0; border-bottom: 1px solid var(--hairline);
+}
+.s-clist:last-child { border-bottom: 0; }
+.s-clist-name {
+  font-family: inherit; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  color: var(--d50); text-align: left; background: none; border: 0; padding: 0;
+  cursor: pointer; align-self: flex-start;
+  transition: color var(--t-fast);
+}
+.s-clist-name:hover { color: var(--accent-text); }
+.s-clist-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+/* One step down and secondary ink — not faded, because it carries the only
+   number on the row and the number is the reason the row is here. */
+.s-clist-facts { font-size: var(--fs-xs); color: var(--d200); }
+.s-clist-facts b { color: var(--d50); font-weight: var(--fw-extrabold); font-variant-numeric: tabular-nums; }
+
 .s-money-crew { display: flex; flex-direction: column; margin-top: 12px; }
 .s-money-row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
@@ -4325,82 +4349,17 @@ body.is-calling { --fb-reserve: var(--call-width); }
    two-letter word at 13px reads as a rendering fault. */
 .s-crew-none { font-size: var(--ty-body); color: var(--ink-faint); }
 
-/* ═══════════════════════════════════════════════
-   THE TRAIL
-
-   Connected steps with the waits between them. `flex-wrap` rather than a
-   scroller: a four-step sequence on a narrow column should fold onto two
-   rows, not hide its own end behind an edge — the whole point of drawing it
-   is that you can see the shape without scrolling to it.
-
-   The connector is a `::before` on the wait rather than a border on the
-   step, so the line belongs to the gap it describes and disappears with it
-   when the trail wraps.
-═══════════════════════════════════════════════ */
-.s-trail { display: flex; align-items: stretch; flex-wrap: wrap; gap: 8px; }
-.s-trail-step {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  padding: 12px; min-width: 148px;
-  border: 1px solid var(--card-border); border-radius: var(--r-lg);
-  background: var(--card-bg); cursor: pointer; text-align: left;
-  transition: border-color var(--t-fast), background-color var(--t-fast);
-}
-.s-trail-step:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
-.s-trail-step:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-trail-step.is-here { border-color: var(--accent); }
-/* ── THE ONE THAT GOES NEXT ──
-   The only thing on this block that changes day to day, and the only thing
-   it never said: three cards with counts, and no indication which of them
-   the campaign is standing in front of. A raised surface and a label, both,
-   because a border alone is already spoken for by `is-here` — which is
-   which step you are LOOKING at, a different question. */
-.s-trail-step.is-next { background: var(--card-bg-raised); }
-.s-trail-top { display: flex; align-items: center; gap: 8px; width: 100%; }
-.s-trail-n {
-  font-size: var(--ty-micro); font-weight: var(--fw-extrabold);
-  color: var(--ink-faint); font-variant-numeric: tabular-nums;
-}
-/* The channel, named and drawn. A step's channel is the difference between
-   an email and a phone call and the card said neither — it named the step
-   ("Call") and left the reader to infer that a step called Call is a call. */
-.s-trail-ch {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.s-trail-ch svg { width: 12px; height: 12px; }
-.s-trail-next {
-  margin-left: auto;
-  font-size: var(--ty-micro); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--accent-text);
-}
-.s-trail-name {
-  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-primary);
-  line-height: var(--lh-tight);
-}
-/* ── WHAT A BLOCK HOLDS, IN ONE LINE ──
-   The same device the stage head got, one rank down: a sub-block that names
-   itself and nothing else leaves a reader to infer the model from the data.
-   `Sequence` over three cards and a `3d` is not enough to learn it from. */
+/* `.s-trail*` went with `trailBlock`. It drew the sequence — the steps a
+   campaign sends and the waits between them — and Reach is the calls to be
+   made now. `.s-block-say` survives it: it was declared inside that block
+   and is the line every sub-block on the campaign page uses to say what it
+   holds. Secondary ink rather than faint, on the rule this pass has been
+   applying everywhere — a line that explains the block is not the half to
+   dim. */
 .s-block-say {
-  font-size: var(--ty-meta); color: var(--ink-faint);
+  font-size: var(--ty-meta); color: var(--ink-secondary);
   max-width: 62ch; margin: -8px 0 16px;
 }
-/* The wait, and the line that says it is a wait. */
-.s-trail-wait {
-  display: flex; align-items: center; gap: 4px; align-self: center;
-  font-size: var(--fs-xs); color: var(--d500); font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.s-trail-wait::before,
-.s-trail-wait::after {
-  content: ""; width: 12px; height: 1px; background: var(--card-border);
-}
-/* 16, not 12. Two links a body-gap apart read as one phrase — "Add a step
-   Is this the right order?" — rather than as two things you could do. */
-.s-trail-tools { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
 
 /* ═══════════════════════════════════════════════
    ANALYTICS AS CARDS
@@ -4983,11 +4942,20 @@ body.is-calling { --fb-reserve: var(--call-width); }
    there is a line to read them are one question — should I call this one
    next — so they share a line, and a narrow column moves the second half
    down rather than clipping it. */
+/* `--d200`, not `--d400`. This line carries the reason a person is ranked
+   where they are and what last happened to them — the two things a caller
+   reads before pressing Call — and it was set two steps below the name it
+   qualifies in ink as well as size. Size ranks it; dimming it as well made
+   the deciding half of the row the faint half. */
 .s-qrow-why {
   grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
-  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-relaxed);
+  font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-relaxed);
 }
 .s-qrow-because { min-width: 0; }
+/* What last happened to them, beside why they are ranked — two halves of one
+   answer to "should I ring this one next", so they share a step and a line
+   and are told apart by the row's own gap. */
+.s-qrow-last { min-width: 0; }
 /* WHETHER there is a line, not what it says — and attributed, because
    "AiMY drafted" and "Lina wrote" are different claims. */
 .s-qrow-lead {
@@ -5213,66 +5181,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-fn-note b { color: var(--warn-text); }
 
-/* ══ THE COVERAGE METER ════════════════════════════════════════════════════
-
-   Enrich's rows, and the one list on this page that earns a bar.
-
-   The distinction is worth stating because it is the whole reason there are
-   two row components rather than one. `.s-reason` ranks things AGAINST EACH
-   OTHER — which obstacle is biggest, which reason loses most — and a bar
-   there compares a 4 with a 3 and draws two stubs. These rows are each a gap
-   in a KNOWN TOTAL, and the total is the finding: nine of thirty-one people
-   with no phone number is a third of everyone you could ring, and the same
-   nine out of two hundred would be a rounding error. A count alone cannot
-   tell those apart. The share can, so it is drawn.
-
-   Two lines, following Apollo's data-health rows and Fresha's completion
-   meters: the gap named, its figure against the whole, then the meter and
-   the percentage. The sentence leads because these are not ranked and there
-   is nothing to scan down a figure column for. */
-.s-covers { display: flex; flex-direction: column; gap: 4px; }
-.s-cover {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline; gap: 8px 16px;
-  width: 100%; max-width: 62ch;
-  margin-left: -12px; padding: 12px;
-  background: none; border: 0; border-radius: var(--r-md);
-  font-family: inherit; text-align: left; cursor: pointer;
-  transition: background-color var(--t-fast);
-}
-.s-cover:hover { background: var(--card-bg-raised); }
-.s-cover:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.s-cover-say {
-  font-size: var(--ty-heading); font-weight: var(--fw-medium);
-  line-height: var(--lh-base); color: var(--ink-secondary); text-wrap: pretty;
-}
-.s-cover-fig {
-  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
-  font-size: var(--ty-title); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-tight); color: var(--ink-primary);
-  font-variant-numeric: tabular-nums;
-}
-/* The denominator is the point of the row, so it is stated rather than
-   implied by the bar's length. */
-.s-cover-of {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.s-cover-track {
-  grid-column: 1; height: 6px; border-radius: var(--r-pill);
-  background: var(--d750); overflow: hidden;
-}
-.s-cover-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
-/* The gap that stops the work entirely — no way to reach them at all — is
-   the one that is not merely thin data. It is toned, and the sentence says
-   so as well, because colour never carries a state alone. */
-.s-cover.is-worst .s-cover-fill { background: var(--err); }
-.s-cover-pct {
-  grid-column: 2; justify-self: end;
-  font-size: var(--ty-meta); font-weight: var(--fw-bold);
-  color: var(--ink-faint); font-variant-numeric: tabular-nums;
-}
+/* `.s-cover*` went with Enrich's per-record rows. The stage listed every
+   thin organization and every unreachable person with a meter each — the
+   enrichment run drawn as a worklist. It reports its LISTS' gaps now and
+   opens the list to fix them, which is the surface the supplier offers are
+   on; see `.s-clists`. */
 
 /* ══ THE SECTION HEAD ══════════════════════════════════════════════════════
 
@@ -6715,22 +6628,6 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 /* The audience panel. STICKY, because the whole reason the flow moved here
    is that you could not see what your answers were doing — a preview that
    scrolls out from under the question is the same defect with extra steps. */
-.s-aud {
-  /* `top: 0` parked it under `.overlay-context-bar`, which is absolutely
-     positioned over the first 104px of the thread. The thread's own
-     `padding-top: 80px` scrolls away with the content, so the offset has to
-     be stated here. */
-  position: sticky; top: -8px; z-index: 2;
-  margin-bottom: var(--sp-4); padding: var(--sp-3) var(--sp-4);
-  border: 1px solid var(--card-border); border-radius: var(--r-lg);
-  background: var(--card-bg-raised);
-  backdrop-filter: blur(12px);
-}
-.s-aud-n {
-  font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--d50);
-  font-variant-numeric: tabular-nums;
-}
-.s-aud-names { margin-top: var(--sp-3); }
 
 /* The build's own message. Being a `.chat-msg` gives it the same 640px cap as
    everything else in the thread; the bubble then has to FILL that cap rather
@@ -6987,7 +6884,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    free, since clicking a label is clicking its input. */
 .s-tick, .s-add-tick, .s-new-assign, .s-new-owner,
 .s-new-con, .s-new-sell, .s-new-client, .s-task-pick, .s-enrich-tick,
-.s-aud-pick, .s-log-reply, .s-log-obj, .s-list-to {
+.s-log-reply, .s-log-obj, .s-list-to {
   width: 15px; height: 15px; accent-color: var(--accent);
 }
 /* Inside `.ds-choice` the library draws its own 18px control at a higher
@@ -7078,26 +6975,10 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 .s-gov:not([open]) .s-gov-body { display: none; }
 .s-gov-body { display: flex; flex-direction: column; gap: 16px; }
 
-/* ── The audience, as two rows of chips on the Find node ──
-   What the guided build's two turns became, and where the create form used
-   to ask before the campaign existed. The read-out under them is the only
-   part that changes on a press, so nothing above is rebuilt under a tick. */
-.s-aud { margin-top: 16px; }
-.s-aud-add { margin-top: 12px; }
-.s-aud-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-.s-aud-ask {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
-}
-/* Body, not meta: it is the sentence that tells you what you just chose —
-   "9 of 118 organizations" — and it is the only thing in this block that
-   answers the question the two rows above it are asking. */
-.s-aud-out {
-  font-size: var(--fs-base); color: var(--d400); line-height: var(--lh-base);
-  padding-top: 4px; border-top: 1px solid var(--hairline);
-}
-.s-aud-n { font-weight: var(--fw-bold); color: var(--d100); font-variant-numeric: tabular-nums; }
-.s-aud-names { display: block; color: var(--d600); margin-top: 2px; }
+/* The audience chip form is gone from the Find node, and its rules with it.
+   It asked "where they stand" and "who they are" and added whatever matched
+   — a third list builder, inline, on a stage whose two doors reach the real
+   one. Find draws the campaign's LISTS now; see `.s-clists`. */
 
 /* `.s-newstage*` went with the static four-stage preview it drew inside the
    create form. Creating now lands on `.s-flow` — the same four stages
@@ -8315,9 +8196,7 @@ body.is-figures .filter-tray { display: none; }
    Fixed to the VIEWPORT, because a canvas you cannot read is not a surface. ══ */
 @media (max-width: 611.98px) { /* 720 layout px */
   .aimy-overlay { position: fixed; inset: 0; }
-  .s-build, .s-aud, .s-work, .s-work-body { min-width: 0; }
-  /* An account name longer than the panel breaks rather than pushing it. */
-  .s-aud-names .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .s-work, .s-work-body { min-width: 0; }
 }
 
 /* ══ PASS 12 FOLLOW-UP ═══════════════════════════════════════════════════ */
@@ -8331,11 +8210,7 @@ body.is-figures .filter-tray { display: none; }
    is `--fs-lg` and the qualifier `--fs-xs`, so a baseline-aligned flex gap
    read as no gap at all against the larger glyphs. Stated explicitly. */
 
-/* The name row ran off the panel — eight company names plus "and 110 more"
-   is wider than the block, and the trailing note was clipped mid-word. Six
-   names now, and nothing in the row may exceed the panel it sits in. */
-.s-aud-names { flex-wrap: wrap; row-gap: 4px; }
-.s-aud-names > * { max-width: 100%; min-width: 0; }
+/* `.s-aud-names` went with the audience read-out it wrapped. */
 
 /* The build stamp in the prototype panel — which file the browser actually
    loaded, not which file is on disk. Small, quiet, and the first thing to

@@ -12111,70 +12111,12 @@
     return 'next';
   }
 
-  function trailBlock(l) {
-    return `<div class="s-trail" role="list">
-      ${l.trail.map((s, i) => {
-        const st = stepState(l, s);
-        const evs = (DB.eventsOf[l.k] || []).filter((e) => e.step === s.n);
-        const went = evs.filter((e) => e.kind === 'sent').length;
-        const here = String(S.step) === String(s.n);
-        /* ── THE WAIT SAYS IT IS A WAIT ──
-           `3d` between two cards is three days of WHAT: since the last one,
-           until the next, how old it is. Spelled out, with the direction in
-           the word, it is one reading instead of a guess. */
-        const wait = i ? `<span class="s-trail-wait" aria-hidden="true">${s.wait} ${s.wait === 1 ? 'day' : 'days'} later</span>` : '';
-        /* ── AND THE COUNT SAYS WHAT IT COUNTED ──
-           `SENT 6` is six of something, on a block whose other two cards say
-           11 and 8. The unit is people: six of them have had this step. */
-        const done = went ? `${stepWord(st, s.ch)} to ${went}` : stepWord(st, s.ch);
-        return `${wait}
-          <button class="s-trail-step${here ? ' is-here' : ''}${st === 'staged' ? ' is-next' : ''}" type="button" role="listitem"
-                  data-step="${esc(l.k)}|${s.n}"
-                  aria-label="Step ${s.n}, ${esc(s.name)}, on ${esc(label('channel', s.ch))}, ${esc(done)}${st === 'staged' ? ', goes next' : ''}">
-            <span class="s-trail-top">
-              <span class="s-trail-n">${s.n}</span>
-              <span class="s-trail-ch">${chIcon(s.ch)}${esc(label('channel', s.ch))}</span>
-              ${st === 'staged' ? '<span class="s-trail-next">Next</span>' : ''}
-            </span>
-            <span class="s-trail-name">${esc(s.name)}</span>
-            <span class="work-state ws-${esc(st)}" data-work-state="${esc(st)}">${esc(done)}</span>
-          </button>`;
-      }).join('')}
-    </div>
-    ${canWrite() && !campOver(l) ? `<div class="s-trail-tools">
-      ${/* ══ A LABEL IS A PROMISE ══════════════════════════════════════════
-            "Add a step" added nothing. It typed a question into the canvas
-            and waited for you to press send — as did "Check the order",
-            which checked nothing. Doctrine §11 forbids exactly this, and
-            two controls doing one thing under two verbs that name a
-            different thing each is how a surface stops being trustworthy.
+  /* `trailBlock` went with the Sequence block it drew. It was the only
+     surface anywhere that showed `c.plan` — what a campaign sends, in order,
+     with the waits between — and Reach is the calls to be made now. The plan
+     is still WRITTEN, by `Start it` in the header, because `campState` reads
+     it; it is simply not displayed. */
 
-            Adding a step is a write the campaign already models, so it is
-            one: `addStep` appends to `l.trail` with the same vocabulary
-            `buildTrail` uses. Asking about the order is a real thing to
-            want, so it keeps its control and says what it does. */ ''}
-      <button class="s-inline-btn" type="button" data-addstep="${esc(l.k)}">Add a step</button>
-      ${/* `prompt`, not `investigate`. This opens the canvas with a question
-            typed in and waits for you to press send — which is what
-            `em-prompt` means. `em-investigate` claims AiMY has already
-            looked, and it has not. */ ''}
-      <button class="s-inline-btn" type="button" data-entry-mode="prompt" data-aimy-topic="trail-order-${esc(l.k)}"
-        data-aimy-ask="${esc(`Is the order and the waits on ${l.name} right? Show me what each step got back and whether the gaps are helping or hurting.`)}">Ask about the order</button>
-    </div>` : ''}`;
-  }
-
-  /* ═══════════════════════════════════════════════
-     ANALYTICS — as cards, because that is what the numbers are
-
-     Clay's campaign analytics is five metric cards, three tinted engagement
-     panels and three lead counts. Not a table, on a screen whose entire job
-     is reporting numbers — which is the clearest statement anywhere in that
-     product about when a grid earns its place and when it does not.
-
-     Every figure is computed from `DB.event`, which is derived from the
-     touchpoints, so nothing here can disagree with the trail above it or
-     with what a record says happened.
-  ═══════════════════════════════════════════════ */
   function campAnalytics(l) {
     const evs = DB.eventsOf[l.k] || [];
     const n = (k) => evs.filter((e) => e.kind === k).length;
@@ -13188,341 +13130,146 @@
   /* ── ② FIND ──
      The organizations on it, and the control the product has never had: get
      MORE of them, from here, read off this campaign's goal. */
+  /* ══ WHICH LISTS A CAMPAIGN DRAWS ON ═══════════════════════════════════
+     The reverse of `listUsedBy`, and it has to be, or the two would disagree
+     about the same pairing. A member belongs to a list if it arrived through
+     that list's search or was merged into it — the same membership rule
+     `listPool` uses, read from the campaign's side. */
+  function campLists(c) {
+    if (!c) return [];
+    const mem = campMembers(c);
+    if (!mem.length) return [];
+    return DB.source.filter((s) => mem.some((a) => a.srcRef === s.k || (s.has || []).indexOf(a.id) >= 0));
+  }
+
+  /* How many of the campaign's members came in through this list. Not
+     `listPool(s).length`, which is the whole list — a campaign often takes
+     part of one, and reporting the list's own size here would say the
+     campaign holds leads it does not. */
+  const campFromList = (c, s) => campMembers(c)
+    .filter((a) => a.srcRef === s.k || (s.has || []).indexOf(a.id) >= 0);
+
+  /* ══ FIND IS THE LISTS, NOT THE ORGANIZATIONS ══════════════════════════
+     It drew the campaign's twenty-four organizations and a criteria form
+     that added more — a second list builder, on a page that has one. What
+     a campaign is FOUND from is its lists, and every question this stage
+     answers is about them: which ones, how much of each came in, and where
+     the next batch comes from.
+
+     The organizations themselves are one press away and always were: the
+     count opens the workbench scoped to the campaign, which is the surface
+     built to read a set of leads. Drawing them here made Find a worse copy
+     of it. */
   function stageFind(l) {
     const members = campMembers(l);
-    const by = {};
-    members.forEach((a) => (by[statusOf(a)] = (by[statusOf(a)] || 0) + 1));
-    const narrowed = !!S.in;
-    const shown = narrowed ? members.filter((a) => statusOf(a) === S.in) : members;
+    const lists = campLists(l);
+    const inLists = new Set();
+    lists.forEach((s) => campFromList(l, s).forEach((a) => inLists.add(a.id)));
+    const byHand = members.filter((a) => !inLists.has(a.id));
+    const q = `on=leads&campaign=${l.k}&who=&status=&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`;
 
     return `${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
-      ${/* THE ARROW THE DIAGRAM DRAWS AND THE PRODUCT NEVER HAD.
-            "Add contacts" picks from leads you already own. Getting NEW ones
-            meant leaving the campaign for the home page, running a search,
-            landing on a list, selecting, and adding — eight moves across four
-            surfaces to do something to the campaign you were standing on.
+        ${/* Two doors and no third. One reaches the lists that already
+              exist, the other builds one from this campaign's own goal —
+              which is what `data-findfor` has always carried into the
+              builder. The criteria form that used to sit here was the
+              builder again, worse, and inline. */ ''}
+        <button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-findfor="${esc(l.k)}">Build a new list</button>
+        ${DB.source.length ? `<button class="btn btn-ghost btn-sm" type="button" data-campaddlist="${esc(l.k)}">Add an existing list</button>` : ''}
+        <button class="btn btn-ghost btn-sm" type="button" data-addto="${esc(l.k)}">Add ones we have</button>
+      </div>` : ''}
 
-            It passes `l.k`, which also makes `findCompanies`' goal branch
-            reachable for the first time: it was written, and every call site
-            passed nothing, so the one place a campaign's goal fed sourcing
-            could never run. */ ''}
-      <button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-findfor="${esc(l.k)}">Find more like these</button>
-      <button class="btn btn-ghost btn-sm" type="button" data-addto="${esc(l.k)}">Add ones we have</button>
-    </div>` : ''}
-
-      ${!members.length ? `<p class="s-none">Nothing on it yet.</p>
-        ${/* ══ WHO IS IN IT, ASKED WHERE IT BELONGS ═══════════════════════
-              These six chips were the last block of the create form, so the
-              audience had to be decided before the campaign — and before the
-              goal it should follow from was written down. Here they sit on
-              the step named after the question, against a live count of what
-              they would bring in, on a campaign that already has a goal
-              AiMY can read. Unchanged otherwise: same rows, same tests,
-              same `audienceFrom` reading the ticks off the DOM. */ ''}
-        ${canWrite() && !campOver(l) ? `<div class="s-field s-aud">
-          <span class="s-field-label">Criteria</span>
-          ${AUDIENCE_ASKS.map((row, q) => `<div class="s-aud-row">
-            <span class="s-aud-ask">${esc(row.ask)}</span>
-            <div class="s-assign-grid">${row.opts.map((o) => `<label class="s-assign-chip">
-              <input type="checkbox" class="s-aud-pick" data-aud="${q}" value="${esc(o.v)}" />
-              <span class="s-assign-name">${esc(o.t)}</span>
-            </label>`).join('')}</div>
-          </div>`).join('')}
-          <p class="s-aud-out"></p>
-          <button class="btn btn-ghost btn-sm s-aud-add" type="button" data-audadd="${esc(l.k)}">Add the ones that match</button>
-        </div>` : ''}` : `
-        ${/* ══ THE NOUN, AND THE NARROWING AS A CHIP ══════════════════════
-              This said "10 organizations" twenty-eight pixels under a node
-              head reading "10 in" — the same count, twice, in one glance.
-              The heading is what the block holds; the node head above it is
-              how many, and that is the head's whole job.
-
-              Narrowed, the count is NOT the node's any more, so it is worth
-              stating — as the chip the rest of the product uses for a live
-              filter, which also puts the way out on the thing that narrowed
-              rather than in a sentence beside it. */ ''}
+      ${!members.length
+        ? `<p class="s-none">Nothing on it yet. Build a list from its goal, or add one you already have.</p>`
+        : `<div class="s-sheet-block">
         <div class="s-camp-list-head">
-          <h4 class="s-sub-h">Organizations</h4>
-          ${narrowed ? `<button class="chip active s-chip" type="button" data-cstatus=""
-            aria-label="Showing ${esc(label('status', S.in).toLowerCase())} only — show all ${members.length}">
-            ${esc(label('status', S.in))} &middot; ${shown.length}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>` : ''}
+          <h4 class="s-sub-h">Its lists</h4>
+          <button class="s-inline-btn" type="button" data-quick="${esc(q)}">Open all ${members.length} in the workbench</button>
         </div>
-        ${(() => {
-          /* One status is not a spread — a single full-width bar compares
-             a set against itself. The rows still carry the narrowing, so
-             where there is nothing to choose between there is nothing to
-             draw: the chips above and the per-row status say it already. */
-          const spread = TAX.status.filter((x) => by[x.k]);
-          if (spread.length < 2) return '';
-          /* ══ THE SAME ROW AS EVERY OTHER COUNT ON THE PAGE ═══════════════
-             This drew its own thing — a name, a tinted bar and a figure at
-             the far right — while three other lists on the same page each
-             drew a different one. It is a count and a door like all of them,
-             so it is `.s-reason` like all of them; and the tinted bar goes
-             with the argument the ranked rows already settled, that statuses
-             running 9/6/5/3/1 against a total of 24 draw as five stubs and
-             the figure says it better.
-
-             It keeps the one thing none of the others need: `is-on`, so the
-             status you are currently filtered to is marked. */
-          /* ══ A COMPOSITION IS ONE SHAPE, NOT SEVEN ═══════════════════════
-
-             Every organization on the campaign is in exactly one status, so
-             these counts are PARTS OF ONE WHOLE — and the question a reader
-             brings is what the whole looks like: mostly working, mostly
-             stalled, mostly closed. Seven separate rows make that a sum you
-             have to do; seven separate bars make it seven comparisons you
-             have to hold. One stacked bar makes it a shape.
-
-             This is the tally bar from Progress, on the same argument and
-             the same component. The list under it stays, because the bar
-             answers "what does it look like" and the list is how you get
-             into any part of it — and because status has to be carried by
-             text as well as colour. */
-          /* The BAR keeps taxonomy order, because a composition is read
-             left to right as a pipeline and shuffling the segments by size
-             would break the one thing it is for. The LIST ranks by count,
-             because a list is read top-down and the biggest group is the one
-             worth opening first. Two orders, two jobs. */
-          const segs = spread.map((x) => `<span class="s-tally-seg tone-${esc(x.tone)}" style="flex-grow:${by[x.k]}" title="${esc(`${by[x.k]} ${x.label.toLowerCase()}`)}"></span>`).join('');
-          const ranked = [...spread].sort((a, b) => by[b.k] - by[a.k]);
-          const top = ranked[0];
-          return `${stageRead(
-              `<b>${by[top.k]} of the ${members.length}</b> are <b>${esc(top.label.toLowerCase())}</b>, more than any other state. ${
-                top.k === 'untouched' ? 'Nothing has gone to them yet.'
-                  : top.k === 'awaiting-us' ? 'They answered and the campaign has not.'
-                  : 'That is where most of this campaign currently stands.'}`,
-              S.in === top.k ? null : readAct(`Show me the ${by[top.k]}`, `data-cstatus="${esc(top.k)}"`))}
-            <div class="s-tally-bar" role="img"
-              aria-label="${esc(`Of ${members.length} organizations: ${spread.map((x) => `${by[x.k]} ${x.label.toLowerCase()}`).join(', ')}.`)}">${segs}</div>
-            <div class="s-reasons">
-            <p class="s-reasons-head">Orgs</p>
-            ${ranked.map((x) => reasonRow(
-              by[x.k], x.label, `data-cstatus="${esc(x.k)}"`,
-              S.in === x.k ? `Showing ${x.label.toLowerCase()} only — show all ${members.length}`
-                : `Show only the ${plural(by[x.k], 'organization')} that are ${x.label.toLowerCase()}`,
-              S.in === x.k)).join('')}
+        ${lists.length ? `<div class="s-clists">${lists.map((s) => {
+          const mine = campFromList(l, s);
+          const gap = listGap(s);
+          return `<div class="s-clist">
+            <button class="s-clist-name" type="button" data-quick="${esc(`on=leads&srcref=${s.k}&who=${s.kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=&camp=&in=`)}">${esc(s.name)}</button>
+            <span class="s-clist-facts"><b>${mine.length}</b> of its ${listPool(s).length} are on this campaign${
+              gap ? ` · ${gap.toLocaleString('en-GB')} more matched its criteria` : ''}</span>
           </div>`;
-        })()}
-        ${/* ══ AND THEN THE WORKBENCH STOPPED BEING INLINED ═════════════════
-
-              Twelve rows, 579px — fifty-five per cent of this tab — each one
-              a name, a headcount, a last-touched and a status, opening the
-              record when pressed. Which is the leads workbench, rendered
-              inside a campaign tab, one click from the real one.
-
-              The argument for it was that Find asks who we are going after
-              and a list of names answers that. It does, and so does the
-              block directly above it: a composition bar for the shape and
-              five ranked rows that each open their own slice. Those are the
-              same twenty-four organizations, described rather than
-              enumerated, in 223px instead of 802.
-
-              A previous pass had already made this cut once, from cards to
-              rows, on the reasoning that comparing one organization against
-              another is the leads surface's job and not this stage's. That
-              reasoning finishes here: it is not this stage's job at any row
-              height. The door stays, carrying whatever narrowing is on. */ ''}
-        <button class="s-inline-btn s-tab-more" type="button"
-          data-quick2="${esc(`on=leads&who=&campaign=${l.k}&status=${S.in || ''}&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">
-          ${narrowed ? `Open the ${shown.length} in the workbench` : `Open all ${members.length} in the workbench`}</button>
-      `}`;
+        }).join('')}</div>` : ''}
+        ${/* Leads added one at a time belong to no list, and a stage that
+              only counted lists would report fewer than the campaign holds —
+              the head-counts-five-rows-draw-four defect, from the third
+              side it can arrive from. */ ''}
+        ${byHand.length ? `<p class="s-block-say"><b>${byHand.length}</b> ${
+          byHand.length === 1 ? 'was added' : 'were added'} one at a time and belong${byHand.length === 1 ? 's' : ''} to no list.</p>` : ''}
+      </div>`}`;
   }
+  /* ══ ENRICH IS THE LISTS' GAPS, NOT EACH RECORD'S ══════════════════════
+     It listed every thin organization and every unreachable person on the
+     campaign — twenty-odd rows of "no headcount", each with its own control
+     — which is the enrichment run drawn as a worklist. The run already
+     exists and takes a whole list at once, and a list is where a gap gets
+     fixed, because that is the surface with the supplier offers on it.
 
-  /* `memberRow()` and `MEMBER_PAGE` went with the Find stage's inlined
-     membership list. That list was 579px of a 1045px tab — 55% of the stage
-     spent restating rows the workbench already holds — and cutting it left
-     the row renderer and its page size behind with no caller. `.s-mrows`,
-     `.s-mrow` and its three children came out of `sales.css` at the same
-     time, since `css-audit` check 1b fails a rule nothing renders.
-     `Open all N in the workbench` is the whole of what the block did that
-     anybody needed. */
-
-  /* ── ③ ENRICH ──
-     What we do not know about the people on this campaign, and one action to
-     go and find it. Bulk enrichment scoped to a campaign is the diagram's
-     "manual trigger for the enrichment of bulk contacts", and it existed
-     only against the whole book, from the home page. */
+     So this says which of the campaign's lists are thin, in what way, and
+     opens the one you press. The per-record view is the workbench, one
+     press away, and it was never this stage's job. */
   function stageEnrich(l) {
-    const people = campPeople(l);
+    const lists = campLists(l);
     const members = campMembers(l);
-    const noEmail = people.filter((p) => !p.email);
-    const noPhone = people.filter((p) => !p.phone);
-    const noWay = people.filter((p) => !p.email && !p.phone);
+    const people = campPeople(l);
     const thinAcc = members.filter((a) => a.emp == null || a.rev == null);
-    const gapIds = [...new Set(thinAcc.map((a) => a.id).concat(noWay.map((p) => p.acc)))];
+    const noWay = people.filter((p) => !p.email && !p.phone);
 
-    /* ══ THE CLAUSES STAND ALONE NOW ═══════════════════════════════════════
+    /* Counted over the campaign's share of each list, not the whole list —
+       a campaign holding six of a hundred should not be told about the
+       other ninety-four's gaps. */
+    const rows = lists.map((s) => {
+      const mine = campFromList(l, s);
+      const con = s.kind === 'con';
+      const thin = con
+        ? maySee(DB.con).filter((p) => !p.arch && mine.some((a) => a.id === p.acc) && (!p.email || !p.phone))
+        : mine.filter((a) => a.emp == null || a.rev == null);
+      return { s, mine, con, thin: thin.length };
+    }).filter((r) => r.thin).sort((a, b) => b.thin - a.thin);
 
-       They were verb phrases agreeing with a count that opened them — "have
-       no phone number, so they cannot be rung" — because the count was the
-       first word of the sentence. With the figure lifted into its own column
-       the sentence has to start somewhere, and a capitalised verb phrase
-       ("Have no phone number…") is not a sentence, it is a fragment wearing
-       a capital.
+    if (!members.length) {
+      return `<p class="s-none">Nothing on it yet, so there is nothing to fill in. Find is where that starts.</p>`;
+    }
+    if (!rows.length && !noWay.length) {
+      return `<p class="s-none">Nothing is missing. Every organization on it has a headcount and revenue, and everybody has a way to be reached.</p>`;
+    }
 
-       Written as what they are: the gap itself, named. No number agreement
-       left to get wrong either, which is why the plural helpers are gone. */
-    const rows = [
-      { n: noWay.length, say: 'No way to reach them at all.', of: people.length,
-        ids: noWay.map((p) => p.id), who: 'contacts', worst: true },
-      { n: noPhone.length, say: 'No phone number, so they cannot be rung.', of: people.length,
-        ids: noPhone.map((p) => p.id), who: 'contacts' },
-      { n: noEmail.length, say: 'No email address.', of: people.length,
-        ids: noEmail.map((p) => p.id), who: 'contacts' },
-      { n: thinAcc.length, say: 'Missing headcount or revenue, so they cannot be sorted or scored.', of: members.length,
-        ids: thinAcc.map((a) => a.id), who: '' },
-    ].filter((r) => r.n)
-      /* ══ WORST FIRST, BY SHARE ═══════════════════════════════════════════
-         They were in the order they happened to be written — no way to reach,
-         phone, email, thin — which put a gap affecting a tenth of the
-         campaign above one affecting half of it whenever that was how the
-         data fell. Ranked by SHARE rather than count, because the four rows
-         count against two different totals: nine of thirty-one people and
-         nine of twenty-four organizations are not the same finding, and
-         sorting on the raw number silently claims they are.
+    return `${rows.length ? `<div class="s-sheet-block">
+        <h4 class="s-sub-h">What its lists are missing</h4>
+        <p class="s-block-say">Counted over this campaign's share of each list, not the whole of it. Opening one lands on the offers that fill it.</p>
+        <div class="s-clists">${rows.map((r) => `<div class="s-clist">
+          <button class="s-clist-name" type="button" data-quick="${esc(`on=leads&srcref=${r.s.k}&who=${r.s.kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=&camp=&in=`)}">${esc(r.s.name)}</button>
+          ${/* "1 of its 1 here have" was wrong twice: a ratio of a number to
+                itself is arithmetic rather than a finding, and the verb
+                agreed with the wrong half of it. */ ''}
+          <span class="s-clist-facts">${r.thin === r.mine.length
+            ? (r.mine.length === 1 ? '<b>The one</b> here has' : `<b>All ${r.mine.length}</b> here have`)
+            : `<b>${r.thin}</b> of the ${r.mine.length} here ${r.thin === 1 ? 'has' : 'have'}`} ${
+            r.con ? 'no email or no phone number' : 'no headcount or revenue'}</span>
+        </div>`).join('')}</div>
+      </div>` : ''}
 
-         `noWay` keeps its place at the top when it exists regardless — it is
-         not a thin field, it is a lead that cannot be worked at all, and it
-         is a subset of the two rows under it. */
-      .sort((a, b) => (b.worst ? 1 : 0) - (a.worst ? 1 : 0)
-        || (b.n / (b.of || 1)) - (a.n / (a.of || 1)));
+      ${/* The one gap that is not a list's: somebody with no way to be
+            reached at all. It blocks Reach rather than Enrich's own
+            arithmetic, so it is stated separately and counted over people
+            rather than over organizations. */ ''}
+      ${noWay.length ? `<div class="s-sheet-block">
+        <h4 class="s-sub-h">Nobody can reach them</h4>
+        <p class="s-block-say"><b>${noWay.length}</b> of the ${people.length} on it ${
+          noWay.length === 1 ? 'has' : 'have'} neither an email address nor a phone number, so Reach cannot start on ${
+          noWay.length === 1 ? 'them' : 'any of them'}.</p>
+        ${canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-enrichcamp="${esc(l.k)}">Look up what is missing</button>` : ''}
+      </div>` : ''}
 
-    /* ══ THE VERB RENDERS ONCE ═══════════════════════════════════════════
-       `Fill in what is missing on 11` was the stage's primary button AND the
-       reading's action, twelve pixels apart, both landing on
-       `data-enrichcamp`. `campPage` already solved this for the header's
-       lifecycle control — a control whose verb the recommendation carries
-       does not render — and the reading keeps it for the same reason: it is
-       the one that also says why. The row above keeps the secondary, which
-       is a different job, and disappears when that is all it would hold. */
-    return `${members.length && canWrite() ? `<div class="s-stage-acts">
-      ${/* ══ THE OTHER HALF OF R7.8 ═══════════════════════════════════════
-
-            The brief's enrichment arrow has four branches — phone, email,
-            Google Maps, and "Search Google → news, financial reports,
-            blogs". Three of the four were served by the waterfall beside
-            this. The news branch was served by the CORPUS: `DB.signal`
-            carries funding rounds, job changes and hiring, they drive
-            `opportunitiesOf`, the rail and the record's flags — and nothing
-            in the product ever went and got one. They were seeded, so the
-            most load-bearing derived dataset here had no visible origin.
-
-            Secondary, always. Filling in a phone number nobody has is the
-            work; looking for news is the thing you do when that is done. */ ''}
-      ${members.length ? `<button class="entry-action em-review" type="button" data-newsfor="${esc(l.k)}">Look for news on ${members.length}</button>` : ''}
-    </div>` : ''}
-
-      ${!people.length ? `<p class="s-none">Nobody is on it yet, so there is nothing to fill in. Find some first.</p>`
-        : !rows.length ? `<p class="s-none">Everybody on it has a way to reach them and every organization is sized. Nothing to do here.</p>`
-        : `${/* ══ ENRICH IS COVERAGE, NOT A RANKING ═══════════════════════════
-
-              The other three lists on this page rank things against each
-              other: which obstacle is biggest, which reason loses most. Those
-              rows carry no bar, because obstacle counts running 4/4/3/3/2
-              draw as five identical stubs and the figure says it better.
-
-              This list is a different question. "9 have no phone number" is
-              not competing with "3 have no email" — each one is a GAP IN A
-              KNOWN TOTAL, and what a reader needs is how much of the
-              campaign it costs. Nine of thirty-one is a third of everybody
-              you might ring; three of thirty-one is a rounding error. The
-              denominator is the finding, and a count alone hides it.
-
-              So this one is drawn: the share as a length against the whole,
-              the way Apollo's data-health centre and Fresha's completion
-              meters both do it. The bar is honest here for exactly the
-              reason it was dishonest there — there is a real whole to be a
-              part of. */ ''}
-        ${(() => {
-          /* The reading names the widest gap and says what it COSTS, which
-             is the thing a list of four percentages does not: a phone number
-             missing on half the campaign matters because the sequence rings
-             people, and that connection is not in the data. */
-          const w = rows[0];
-          const pct = w.of ? Math.round((w.n / w.of) * 100) : 0;
-          const noun = w.who === 'contacts' ? 'the people' : 'the organizations';
-          /* Why it costs what it costs: a missing phone number only stops
-             the work if the sequence rings anybody, and the campaign's own
-             channel plan is what says whether it does. */
-          const rings = (l.plan || []).includes('phone');
-          const cost = w.worst
-            ? '<b>Nothing in the sequence can reach them.</b>'
-            : rings && w.say.indexOf('phone') > -1
-              ? '<b>The sequence rings people</b>, so this is what stops it.'
-              : 'Filling it in is what lets the rest of the campaign run.';
-          const said = w.worst
-            ? `<b>${pct}%</b> of ${noun} here have no way to reach them at all. ${cost}`
-            : `<b>${pct}%</b> of ${noun} here are missing something — ${esc(w.say.charAt(0).toLowerCase() + w.say.slice(1, -1))}. ${cost}`;
-          return stageRead(said, gapIds.length && canWrite()
-            ? readAct(`Fill in what is missing on ${gapIds.length}`, `data-enrichcamp="${esc(l.k)}"`)
-            : null);
-        })()}
-        <div class="s-covers">
-          ${rows.map((r) => {
-            const pct = r.of ? Math.round((r.n / r.of) * 100) : 0;
-            const noun = r.who === 'contacts' ? 'people' : 'organizations';
-            return `<button class="s-cover${r.worst ? ' is-worst' : ''}" type="button"
-              data-quick2="${esc(`on=leads&who=${r.who}&ids=${r.ids.join(',')}&status=&obstacle=&opp=&campaign=&srcref=&loose=&due=&q=&camp=&in=`)}"
-              aria-label="${esc(`${r.n} of ${r.of} ${noun} — ${r.say} Show them.`)}">
-              <span class="s-cover-say">${esc(r.say)}</span>
-              <span class="s-cover-fig">${r.n}<span class="s-cover-of">of ${r.of} ${esc(noun)}</span></span>
-              <span class="s-cover-track" aria-hidden="true"><span class="s-cover-fill" style="width:${Math.max(2, pct)}%"></span></span>
-              <span class="s-cover-pct" aria-hidden="true">${pct}%</span>
-            </button>`;
-          }).join('')}
-        </div>`}`;
+      ${thinAcc.length && !rows.length ? `<p class="s-block-say"><b>${thinAcc.length}</b> ${
+        thinAcc.length === 1 ? 'organization was' : 'organizations were'} added one at a time and ${
+        thinAcc.length === 1 ? 'is' : 'are'} thin, so no list covers ${thinAcc.length === 1 ? 'it' : 'them'}.</p>` : ''}`;
   }
-
-  /* ── ④ WRITE ──
-
-     CLAY'S THIRD VERB, AND THIS PRODUCT HAD NO EQUIVALENT AT ALL. Find and
-     Enrich answer who and what-do-we-know; Export answers where it goes.
-     Transform is where the thing that will actually be SAID gets made, and
-     until now the campaign carried a channel plan, a sequence of steps and
-     an outcome log with nothing in between: 188 controls on the old page,
-     none of which was a sentence anybody was going to send.
-
-     One member per row, because copy is per person or it is a mailshot.
-     Each row says WHY it is here — never written, or written before news
-     that changed what you would say — since those are different jobs and
-     lumping them under "needs copy" would hide the second one entirely. */
-  /* ══ WHAT USED TO BE THE WRITE STAGE ═══════════════════════════════════
-
-     A stage of its own, then a block of twelve full drafts inside Reach, and
-     now two lines. The cut is not squeamishness about copy — it is that the
-     drafts were being RENDERED TWICE on the same open node: once here at
-     full length, and again on every queue row below, which is where somebody
-     about to dial actually reads one. 728px of the node was the second copy
-     of what the queue already said.
-
-     What Reach owes about copy is the COUNT and the VERB — how many have
-     nothing agreed, how many were agreed before something changed, and one
-     press to fix each. The drafts themselves live where they are used: on
-     the queue row, and on the record.
-
-     `draftStale` keeps its whole job. It is what separates these two lines,
-     and the second one — agreed, then overtaken by news — is the mechanic
-     the README calls the product's best, so it is stated on its own rather
-     than folded into "needs copy". */
-  /* ══ COPY WAS A BLOCK; IT IS THE READING ═══════════════════════════════════
-
-     A `Copy` heading over one or two rows, each a sentence and a `Draft all
-     N` — sitting above a Queue whose every row already states its own draft
-     state ("AiMY drafted a line" / "Write one"). So the block was the
-     AGGREGATE of the list underneath it, given a heading of its own and the
-     first position on the tab.
-
-     That aggregate is worth having: the queue shows six of thirteen, so the
-     rows you cannot see are exactly the ones a count catches. What it is
-     NOT is a separate subject. A finding over the stage's own evidence, with
-     the bulk verb attached, is a reading — and Reach was the one stage on
-     this page that did not have one.
-
-     So it becomes the reading, and the tab goes from four blocks to three:
-     what AiMY makes of it, what gets sent, who is next. */
   function reachRead(l) {
     if (campOver(l)) return '';
     const unwritten = reachBy(l, 'unwritten');
@@ -13585,36 +13332,19 @@
 
     return `${reachRead(l)}
 
-      <div class="s-sheet-block">
-        ${/* ══ THE SEQUENCE STAYS, AND SAYS WHAT IT IS ═══════════════════════
+      ${/* ══ THE SEQUENCE BLOCK IS GONE ═════════════════════
+            Reach is the calls to be made and where each one stands. The
+            sequence was the other thing on it — what the plan sends and how
+            long it waits — and it is not what this stage was asked for.
 
-              `c.plan` is what a campaign is allowed to send on, and this is
-              the only surface anywhere that shows it or changes it — before
-              the block existed it lived as one line in the rail's history,
-              under "The plan was set", with no control on the campaign at
-              all. So it does not get cut.
-
-              What it got wrong was legibility. `SEQUENCE`, three cards, and
-              `3d` between them: nothing said these were steps that go out in
-              order, nothing said `3d` was a WAIT rather than an age, and
-              `SENT 6 / CALLED 11 / MET 8` gave three counts without saying
-              six of what. A reader who did not already know the model could
-              not learn it from the block.
-
-              Now it states what it is, labels the waits as waits, names each
-              step's channel, and marks the one that goes next — which is the
-              only thing on it that changes day to day and was the one thing
-              it never said. */ ''}
-        <div class="s-camp-list-head">
-          <h4 class="s-sub-h">Sequence</h4>
-          ${canWrite() && !campOver(l) && l.plan && l.plan.length
-            ? `<button class="s-inline-btn" type="button" data-plan="${esc(l.k)}">Change the channels</button>` : ''}
-        </div>
-        <p class="s-block-say">What this campaign sends, in order, and how long it waits between each one.</p>
-        ${l.trail && l.trail.length
-          ? trailBlock(l)
-          : `<p class="s-none">Nobody has decided how to work this yet, so nothing sends. Choose the channels and a window to start it &mdash; after that AiMY works the plan, and anything it sends is logged as AiMY&rsquo;s.</p>`}
-      </div>
+            STARTING A CAMPAIGN STILL WORKS. `campState` reads `plan`, so
+            cutting the writer would have made every campaign a permanent
+            draft — but `data-plan` was never only here: `campExit` puts
+            `Start it` in the header carrying the same attribute, which is
+            where somebody starting a campaign presses anyway. What goes with
+            the block is `Change the channels`, reachable once a campaign is
+            running and nowhere else, and `trailBlock`'s display of the
+            steps. Both are the sequence, which is the thing being cut. */ ''}
 
       ${/* THE CALL QUEUE, ON THE CAMPAIGN. Ranked the way `queueBlock` ranks
             the book — somebody who replied first, then somebody with an
@@ -13715,6 +13445,23 @@
               : `<button class="btn btn-ghost btn-sm s-qrow-go" type="button" data-callstart="${esc(p.id)}">${chIcon('phone')}Call</button>`) : ''}
             <div class="s-qrow-why">
               <span class="s-qrow-because">${esc(because(p))}</span>
+              ${/* ══ WHERE THIS ONE STANDS ══════════════════════════════════
+                    The row said who to ring and why they are ranked, and
+                    nothing about what has already happened to them — so
+                    "answered and nobody came back" and "nobody has ever
+                    rung them" read identically, and a caller had to open the
+                    record to find out which call they were about to make.
+
+                    The last touchpoint, in the words `touchPhrase` writes
+                    everywhere else, and the status beside it. Both are what
+                    the drawn flow asks for: the touchpoint of the current
+                    stage of each call. */ ''}
+              ${(() => {
+                const last = touchesFor(p)[0];
+                const st = statusOf(p);
+                return `<span class="s-lrow-st tone-${esc(toneOf(st))}">${esc(label('status', st))}</span>
+                  <span class="s-qrow-last">${last ? esc(touchPhrase(last)) : 'never contacted'}</span>`;
+              })()}
               ${/* ══ THE DRAFT IS NOT SIX TIMES, AND ITS ABSENCE IS NOT A
                      SENTENCE ═══════════════════════════════════════════════
                      Every row printed its whole agreed line, and `draftSay`
@@ -14034,11 +13781,11 @@
     if (avg != null && rate < avg * 0.7) {
       said.push({ key: 'rate', tone: 'warn', mine: Math.round(rate * 100), peers: Math.round(avg * 100), peerN: peers.length,
         text: `A ${Math.round(rate * 100)}% reply rate, against ${Math.round(avg * 100)}% across your other campaigns. What this one is sending is not landing as well.`,
-        act: 'Look at the sequence', stage: 'reach' });
+        act: 'Look at what it is sending', stage: 'reach' });
     } else if (avg != null && rate > avg * 1.3) {
       said.push({ key: 'rate', tone: 'ok', mine: Math.round(rate * 100), peers: Math.round(avg * 100), peerN: peers.length,
         text: `A ${Math.round(rate * 100)}% reply rate, against ${Math.round(avg * 100)}% across your other campaigns. Whatever this one is doing is worth copying.`,
-        act: 'Look at the sequence', stage: 'reach' });
+        act: 'Look at what it is sending', stage: 'reach' });
     }
     const waiting = campMembers(l).filter((a) => statusOf(a) === 'awaiting-us');
     if (waiting.length) {
@@ -16381,6 +16128,52 @@
      built from criteria a campaign already works can be mostly the accounts
      it already holds — and adding four of nineteen is a different decision
      from adding nineteen. */
+  /* ══ THE SAME PAIRING, FROM THE CAMPAIGN'S SIDE ════════════════════════
+     `addListToCampaign` puts one list into campaigns you pick; this puts
+     lists you pick into one campaign. Two directions of one act, and both
+     had to exist — the reader is on whichever surface raised the question,
+     and making them navigate to the other one to answer it is the round
+     trip this pass keeps closing.
+
+     Multi-pick, and it counts what each list would actually add: a list
+     whose members are all already on the campaign is disabled rather than
+     offered, which is the same courtesy the other direction pays. */
+  function addListsToCampaign(k) {
+    const c = DB.campBy[k];
+    if (!c || !canWrite()) return;
+    const rows = DB.source.map((sc) => {
+      const pool = toAccountIds(listPool(sc));
+      const fresh = pool.filter((id) => c.members.indexOf(id) < 0);
+      return { sc, pool, fresh };
+    }).filter((r) => r.pool.length);
+    if (!rows.length) { toast('There is no list with anything in it to add.'); return; }
+    commit({
+      title: `Add a list to ${c.name}`,
+      body: `<div class="s-pick">${rows.map((r) => `<label class="ds-choice s-pick-row">
+        <input type="checkbox" value="${esc(r.sc.k)}"${r.fresh.length ? '' : ' disabled'} />
+        <span>${esc(r.sc.name)} <span class="s-pick-role">${esc(plural(r.pool.length, 'organization'))}${
+          r.fresh.length ? (r.fresh.length === r.pool.length ? '' : ` · ${r.pool.length - r.fresh.length} already here`)
+            : ' · all already here'}</span></span>
+      </label>`).join('')}</div>`,
+      effects: [['ok', 'Their organizations join the campaign. Nothing leaves the list.']],
+      confirm: 'Add them',
+      run() {
+        const picked = $$('#commitHost .s-pick input:checked')
+          .map((el) => rows.filter((r) => r.sc.k === el.value)[0]).filter(Boolean);
+        if (!picked.length) { toast('No list was picked, so nothing changed.'); return false; }
+        const prev = c.members.slice();
+        const add = [];
+        picked.forEach((r) => r.fresh.forEach((id) => { if (add.indexOf(id) < 0 && c.members.indexOf(id) < 0) add.push(id); }));
+        if (!add.length) { toast('Every one of them was already on it, so nothing changed.'); return false; }
+        c.members = prev.concat(add);
+        reindex(); paint(); paintChrome(); paintRail();
+        toast(`${plural(add.length, 'organization')} added to ${c.name} from ${
+          picked.length === 1 ? picked[0].sc.name : plural(picked.length, 'list')}.`,
+          () => { c.members = prev; reindex(); paint(); paintChrome(); paintRail(); });
+      },
+    });
+  }
+
   function addListToCampaign(k) {
     const s = DB.sourceBy[k];
     if (!s || !canWrite()) return;
@@ -23804,10 +23597,7 @@
     /* Typing a date of your own clears the quick pick, because the two are
        one control and only one of them can be the answer. */
     if (e.target.classList.contains('s-when-date')) paintWhen(null);
-    /* The audience count follows the chips. Only the read-out is redrawn —
-       the fields above it are not rebuilt, so nothing you were typing is
-       lost to a tick. */
-    if (e.target.classList.contains('s-aud-pick')) paintAudience();
+    /* The audience chips went with the form that held them. */
   });
 
   document.addEventListener('dd:change', (e) => {
@@ -24073,21 +23863,6 @@
     /* THE AUDIENCE CHIPS, ACTING ON THE CAMPAIGN THEY SIT ON. Reversible,
        single campaign, and the count is stated on the button's own line —
        the confirmation ladder says act and offer the way back. */
-    if ((el = e.target.closest('[data-audadd]'))) {
-      const c = DB.campBy[el.dataset.audadd];
-      if (!c) return;
-      const picked = $$('.s-aud-pick:checked');
-      if (!picked.length) { toast('Nothing is ticked, so there is nothing to add.'); return; }
-      const add = audienceFrom().map((a) => a.id).filter((id) => !c.members.includes(id));
-      if (!add.length) { toast('Everything that matches is already on it.'); return; }
-      c.members = c.members.concat(add);
-      reindex(); paint(); paintRail();
-      toast(`${plural(add.length, 'organization')} added to ${c.name}.`, () => {
-        c.members = c.members.filter((id) => !add.includes(id));
-        reindex(); paint(); paintRail();
-      });
-      return;
-    }
     if ((el = e.target.closest('[data-unsell]'))) {
       const [k, i] = el.dataset.unsell.split('|');
       const c = DB.campBy[k];
@@ -24964,6 +24739,7 @@
        stage. Deciding to keep or throw a list now happens on the drafted list
        itself, through `data-listkeep` and `data-listdrop` below. */
     if ((el = e.target.closest('[data-listadd]'))) { addListToCampaign(el.dataset.listadd); return; }
+    if ((el = e.target.closest('[data-campaddlist]'))) { addListsToCampaign(el.dataset.campaddlist); return; }
     if ((el = e.target.closest('[data-listkeep]'))) { saveList(el.dataset.listkeep); return; }
     if ((el = e.target.closest('[data-listdrop]'))) { discardList(el.dataset.listdrop); return; }
     if ((el = e.target.closest('[data-init]'))) {
@@ -25895,51 +25671,11 @@
      Within a row the tests are OR — "banking or software" is one question
      with two acceptable answers. Between rows they are AND, because the rows
      ask about different things. */
-  const AUDIENCE_ASKS = [
-    { ask: 'Where they stand', opts: [
-      { v: 'net-new', t: 'Never contacted', test: (a) => statusOf(a) === 'untouched' },
-      { v: 'warm',    t: 'Already spoken to', test: (a) => ['awaiting-us', 'awaiting-them'].includes(statusOf(a)) },
-      { v: 'revive',  t: 'Went quiet',      test: (a) => obstaclesOf(a).some((o) => o === 'gone-quiet' || o === 'stalled') },
-    ] },
-    { ask: 'Who they are', opts: [
-      { v: 'fin',  t: 'Banking & finance',        test: (a) => a.industry === 'banking' },
-      { v: 'soft', t: 'Software & manufacturing', test: (a) => a.industry === 'software' || a.industry === 'industry' },
-      { v: 'big',  t: 'The large ones',           test: (a) => sizeBand(a.emp) === 'ent' },
-    ] },
-  ];
-
-  /* Read off the DOM rather than held in a variable: the chips ARE the
-     state, and a second copy is a second thing that can disagree with what
-     the reader can see ticked. */
-  function audienceFrom(root) {
-    const scope = root || document;
-    const picked = [...scope.querySelectorAll('.s-aud-pick:checked')];
-    let pool = maySee(DB.acc).filter((a) => !a.arch);
-    AUDIENCE_ASKS.forEach((row, q) => {
-      const chosen = picked.filter((i) => +i.dataset.aud === q).map((i) => i.value);
-      if (!chosen.length) return;
-      const tests = row.opts.filter((o) => chosen.includes(o.v)).map((o) => o.test);
-      pool = pool.filter((a) => tests.some((t) => t(a)));
-    });
-    return ordered(pool);
-  }
-
-  /* The count and the preview, redrawn in place. Re-rendering the whole
-     block on a chip press is what `paintFind` does and what its own comment
-     warns about — it has to hand-save the sentence you were typing, because
-     the rebuild would take it with it. Two elements are updated instead, so
-     the Name and What-it-is-for fields are never rebuilt under the cursor. */
-  function paintAudience() {
-    const host = $('.s-aud-out');
-    if (!host) return;
-    const list = audienceFrom();
-    const all = maySee(DB.acc).filter((a) => !a.arch).length;
-    host.innerHTML = list.length
-      ? `<span class="s-aud-n">${list.length}</span> of ${all} organizations${
-          list.length === all ? ' — everyone you can see' : ''}
-         <span class="s-aud-names">${list.slice(0, 6).map((a) => esc(a.name)).join(' · ')}${list.length > 6 ? ` and ${list.length - 6} more` : ''}</span>`
-      : `<span class="s-aud-n">Nothing</span> matches both of those. It would start empty.`;
-  }
+  /* `AUDIENCE_ASKS`, `audienceFrom` and `paintAudience` are gone with the
+     chip form they served. It asked "where they stand" and "who they are"
+     and added whatever matched — a third list builder, inline, on a stage
+     whose two other doors reach the real one. Find is the campaign's lists
+     now, and a list is where criteria are written. */
 
   /* ══ THE CAMPAIGN'S OWN KEY, MONOTONIC ═════════════════════════════════
      `'c' + (DB.camp.length + 100)` collided after an undo — undo removes the
@@ -26294,10 +26030,7 @@
         });
       },
     });
-    /* The read-out states the audience BEFORE anything is ticked, because
-       "everyone you can see" is the answer to the default and a blank line
-       under two rows of chips reads as a control that has not loaded. */
-    paintAudience();
+
   }
 
   /* ── Add contacts ──
