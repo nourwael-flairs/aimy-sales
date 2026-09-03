@@ -7305,7 +7305,7 @@
     const key = 'src-b' + (++srcSeq) + '-' + Date.now().toString(36).slice(-4);
     const before = DB.acc.length;
 
-    DB.source.push({
+    const srcRec = {
       k: key, name, by, at: iso(TODAY), auto: false,
       kind, has: take.slice(),
       via: liFind ? [liFind] : FINDERS.map(([w]) => w),
@@ -7317,8 +7317,12 @@
          reader renders. One is derived from the other, so they cannot
          disagree the way a hand-written string and its parse used to. */
       terms, crit: critLine(terms),
+      /* `imported` is corrected below once the people exist. A people build
+         writes its contacts after this record, so counting them here is not
+         possible and counting the companies instead was wrong. */
       found: buildReach(terms), imported: rows.length + take.length,
-    });
+    };
+    DB.source.push(srcRec);
 
     /* Which titles this list is about, so a people build narrows to them
        rather than returning whoever the generator happened to make. */
@@ -7360,9 +7364,16 @@
       }
     });
     made.forEach((p) => DB.con.push(p));
-    reindex();
 
+    /* ══ "N BROUGHT IN" COUNTS WHAT THE LIST HOLDS ═══════════════════════
+       A people build makes one or two contacts per company, so the number
+       of companies its search matched is not the size of the list — six
+       companies can be nine people. The header read the first and `listPool`
+       returned the second, which is the head-counts-five-rows-draw-four
+       defect this file has already fixed once from the other side. */
     const took = (kind === 'con' ? made.length : rows.length) + take.length;
+    srcRec.imported = took;
+    reindex();
     DRAFT = null;
     /* `chat` clears with it. The conversation that built this is over, and
        leaving its key in the URL would reopen an answered thread on reload. */
@@ -9836,7 +9847,28 @@
   const onTasks = () => S.on === 'running';
   const onCamps = () => S.on === 'campaigns';
   const onBriefing = () => S.on === 'briefing';
-  const onCons = () => S.who === 'contacts';
+  /* ══ AND A LIST OF PEOPLE IS READ AS PEOPLE, WHOEVER OPENED IT ═════════
+
+     `who` is a workbench control, and the workbench's controls come off
+     inside a list — so a list of PEOPLE opened without `who=contacts` in the
+     query landed on the six COMPANIES behind it, while the block above it
+     offered to go and fetch email addresses for them. The surface
+     contradicted itself twice on one screen, and what produced it was a
+     `data-quick` string on a card that had forgotten a parameter.
+
+     The kind is on the list, so it is derived here rather than spelt into
+     every door: a door can forget and a derivation cannot. `who=contacts`
+     still answers first, so asking a COMPANY list for its people is
+     unaffected — the derivation only supplies what nobody stated.
+
+     Inlined rather than calling `listScope`, which is declared further down
+     this file: a `const` arrow read before its line is a TDZ throw, and this
+     is called from `records()` two thousand lines above. */
+  const onCons = () => {
+    if (S.who === 'contacts') return true;
+    const s = onLeads() && S.srcref ? DB.sourceBy[S.srcref] : null;
+    return !!(s && s.kind === 'con');
+  };
   /* A leads-shaped list: the corpus surface itself, and the member list
      inside an open campaign or source. All three want the same axes, the
      same cards and the same date range. */
