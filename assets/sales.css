@@ -1861,6 +1861,18 @@ body.is-calling { --fb-reserve: var(--call-width); }
   gap: 8px; margin-bottom: 20px;
 }
 .s-listhead-main { min-width: 0; width: 100%; }
+/* ── THE KIND LABEL AND THE DRAFT DECISION SHARE A ROW ──
+   For a drafted list the state chip sits at the left where the kind label
+   already was, and the two verbs sit at the right — same row, so the eye
+   sees the state and the answer as one thing. On any other list `s-listhead-
+   top` still runs, but it only holds the kind label, and `justify-content:
+   space-between` puts nothing where the decide row would have been. */
+.s-listhead-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-width: 0; width: 100%;
+}
+.s-listhead-decide { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.s-listhead-drop { white-space: nowrap; }
 .s-listhead-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* ── FULL WIDTH, AND NO FACT MAY BREAK IN HALF ──
    These sat in the left column, which the buttons on the right squeezed to
@@ -4747,13 +4759,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-variant-numeric: tabular-nums;
 }
 .s-build-go { white-space: nowrap; }
-/* ── THE TWO ANSWERS TO A FINISHED RUN ──
-   Kept together at the end of the line so the pair reads as one decision
-   rather than as two unrelated controls that happen to share a row. Discard
-   is the quieter of the two and sits first: the order is the order of
-   consequence, and the eye arrives at the one that writes. */
-.s-build-keep { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.s-build-drop { white-space: nowrap; }
+/* `.s-build-keep` and `.s-build-drop` went with the interstitial preview
+   stage. Deciding to keep or throw a list now happens on the drafted list
+   itself — see `.s-listhead-decide` below. */
 
 /* ══ THE STEPS, FOLDED ══════════════════════════════════════════════════
    Once the list exists the criteria stop being a form and become a caption on

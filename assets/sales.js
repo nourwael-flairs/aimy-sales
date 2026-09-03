@@ -6476,21 +6476,15 @@
     const take = [...DRAFT.take];
     const total = rows.length + take.length;
     if (!total) { toast('Nothing matches these criteria, so there is nothing to save.'); return; }
-    /* ══ AND IT STOPS AT WHAT IT FOUND ═══════════════════════════════════
-       Generating used to be saving: the last tick wrote the list, the
-       accounts and the people, and the only way back out was the Undo inside
-       a toast that clears itself. A search you cannot look at before it
-       enters the book is a search you have to undo rather than decide about.
-
-       So the run ends in a preview and the two verbs that answer it. Nothing
-       is written until Save; Discard writes nothing at all, which is why it
-       needs no undo of its own. */
+    /* ══ THE STREAM COMMITS INTO A DRAFT, AND THE DRAFT IS WHERE YOU DECIDE
+       An interstitial preview stage sat between the stream and the list, with
+       the same Save and Discard verbs on it. Two places to make the same
+       decision, and the earlier one was blind to the enrichment gaps, the
+       campaign fits, and every other reading the list's own page produces —
+       so the deciding was moved to the page that shows the evidence. The run
+       now streams into a `drafted` list. */
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (still) {
-      DRAFT.run = { rows, take, at: total, total, step: total, ms: 0, done: true };
-      paintBuild();
-      return;
-    }
+    if (still) { buildCommit(); return; }
     /* ══ A BOUNDED NUMBER OF TICKS, NOT ONE PER ROW ═══════════════════════
        A row per tick is fine at eight and wrong at a hundred — and worse than
        wrong in a background tab, where the browser clamps `setTimeout` to
@@ -6511,10 +6505,9 @@
   function buildTick() {
     if (!DRAFT || !DRAFT.run) return;
     const r = DRAFT.run;
-    /* The rows stay where they are and the page repaints once, from state —
-       they arrived by `insertAdjacentHTML` and a repaint would take them with
-       it, so `buildRunning` draws them all itself once the run is over. */
-    if (r.at >= r.total) { r.done = true; paintBuild(); return; }
+    /* A short pause after the last row lands, so the transition to the
+       drafted list page does not swallow the last thing you saw stream. */
+    if (r.at >= r.total) { DRAFT.run = null; setTimeout(buildCommit, 400); return; }
     const i = r.at;
     r.at += 1;
     /* Appended, not repainted. Re-rendering the whole page per row would
@@ -6546,14 +6539,12 @@
 
   function buildRunning() {
     const r = DRAFT.run;
-    const kind = buildKind();
-    const done = !!r.done;
     return `<div class="s-sheet-head">
         <div class="s-sheet-head-main">
-          <div class="s-sheet-kind">${aiMark()}${done ? 'Found' : 'Looking'}</div>
-          ${/* The name stays editable at the moment you decide to keep it —
-                which is the last moment it is free, and the one where you
-                have finally seen what it is a name for. */ ''}
+          <div class="s-sheet-kind">${aiMark()}Looking</div>
+          ${/* The name stays editable through the stream so you have a spare
+                second to disagree with the derived one before the drafted
+                page takes over. */ ''}
           <h1 class="s-sheet-name">${canWrite()
             ? `<input class="s-build-name" type="text" spellcheck="false"
                  value="${esc(buildName())}" data-auto="${esc(buildAutoName())}"
@@ -6562,26 +6553,9 @@
         </div>
       </div>
       <p class="s-stream-cap">
-        <span class="s-stream-n">${done ? r.total : 0}</span> of ${r.total} · asked ${FINDERS.map(([w]) => esc(w)).join(' · ')}
+        <span class="s-stream-n">0</span> of ${r.total} · asked ${FINDERS.map(([w]) => esc(w)).join(' · ')}
       </p>
-      ${/* Redrawn from state once the run is over: the streamed rows were
-            appended to the live node and this repaint replaces it. */ ''}
-      <div class="s-stream${done ? ' is-done' : ''}">${
-        done ? r.rows.map((x, i) => buildStreamRow(i)).concat(
-          r.take.map((x, i) => buildStreamRow(r.rows.length + i))).join('') : ''}</div>
-      ${done ? `<div class="s-build-foot">
-        ${/* WHAT SAVING WOULD ACTUALLY DO, before it is done. A people build
-              searches for companies and makes the people at them, so the
-              count on the button is not the count in the rows above it —
-              saying so here is cheaper than explaining it afterwards. */ ''}
-        <p class="s-build-total">${kind === 'con'
-          ? `<b>${r.total}</b> ${r.total === 1 ? 'company' : 'companies'} — saving takes the people at them into the book.`
-          : `<b>${r.total}</b> ${r.total === 1 ? 'organization' : 'organizations'} — nothing is in the book until you save.`}</p>
-        ${canWrite() ? `<span class="s-build-keep">
-          <button class="s-inline-btn s-build-drop" type="button" data-bdiscard>Discard</button>
-          <button class="entry-action em-direct s-build-go" type="button" data-bsave>Save the list</button>
-        </span>` : ''}
-      </div>` : ''}`;
+      <div class="s-stream"></div>`;
   }
 
 
@@ -16029,12 +16003,74 @@
      because every list carries an owner whether or not anybody agreed to be
      it. `by` is where it landed, not somebody's answer.
 
-     Three ways out of it, and all three are real events: it was handed to
-     somebody (`handed`, written by `assignList`), it was built FOR a campaign
-     (`for`, written at save), or a campaign draws on its members. Anything
-     else is a draft, and the surfaces say so rather than leaving the reader
-     to notice that nothing uses it. */
-  const listDraft = (s) => !!s && !s.handed && !s.for && !listUsedBy(s).length;
+     Four ways out of it, and all four are real events: somebody blessed it
+     as kept (`kept`, written by `saveList`), it was handed to somebody
+     (`handed`, written by `assignList`), it was built FOR a campaign (`for`,
+     written at save), or a campaign draws on its members. Anything else is a
+     draft, and the surfaces say so rather than leaving the reader to notice
+     that nothing uses it. */
+  const listDraft = (s) => !!s && !s.kept && !s.handed && !s.for && !listUsedBy(s).length;
+
+  /* ══ THE TWO DECISIONS A DRAFT INVITES ═════════════════════════════════
+     Save clears the drafted state without doing anything else — the list is
+     already in the book, this is just "I have looked and I am keeping it".
+     Discard removes the whole thing, and every record its search brought in:
+     the accounts, and the people made from them on a people build. Merged-in
+     leads (`has`) stay, because they existed before this list and were only
+     borrowed by it — their `srcRef` points at their original arrival, not at
+     this key.
+
+     Both give an Undo, on the same rule the rest of the file follows for a
+     write with real consequence — the toast puts the previous state back. */
+  function saveList(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite() || !listDraft(s)) return;
+    s.kept = true;
+    paint(); paintRail();
+    toast(`Kept ${s.name}.`, () => {
+      delete s.kept;
+      paint(); paintRail();
+    });
+  }
+
+  /* ══ WHICH DRAFTED LIST THE READER IS LOOKING AT, IF ANY ═══════════════
+     Both surfaces route to it: the drafted list opens under `?on=build&bsrc`
+     from the commit, and under `?on=leads&srcref` from the Lists tab. This
+     resolves either to the source key, or to `null` when the current page is
+     something else. It is what both the browser-close guard and the back
+     button read; they agree because they consult the same function. */
+  function draftedHere() {
+    const key = S.srcref || S.bsrc;
+    if (!key) return null;
+    const s = DB.sourceBy[key];
+    return (s && listDraft(s)) ? key : null;
+  }
+
+  function discardList(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite() || !listDraft(s)) return;
+    /* Snapshot before removing, so Undo can put it all back. Filtering on
+       `srcRef` matches the accounts the list's search created and the people
+       generated on a people build — both write that key at commit. */
+    const accs = DB.acc.filter((a) => a.srcRef === k);
+    const cons = DB.con.filter((c) => c.srcRef === k);
+    const srcIdx = DB.source.indexOf(s);
+    DB.acc = DB.acc.filter((a) => a.srcRef !== k);
+    DB.con = DB.con.filter((c) => c.srcRef !== k);
+    DB.source = DB.source.filter((x) => x.k !== k);
+    reindex();
+    go({ on: 'briefing', tab: 'lists', srcref: '', bsrc: '', bstep: '', bkind: '' });
+    paintChrome();
+    toast(`Threw away ${s.name}.`, () => {
+      DB.acc = DB.acc.concat(accs);
+      DB.con = DB.con.concat(cons);
+      DB.source.splice(srcIdx, 0, s);
+      reindex();
+      go({ on: 'leads', srcref: k, who: (s.kind === 'con' ? 'contacts' : ''),
+        status: [], obstacle: [], opp: [], campaign: [], ids: [], loose: '', q: '' });
+      paintChrome();
+    });
+  }
   function listShort(s) {
     const held = listPool(s).length;
     return !!held && s.found >= LIST_SHORT_MIN && held < s.found * LIST_SHORT_TAKE;
@@ -16399,14 +16435,31 @@
       s.auto ? fact('AiMY keeps finding and filling it') : '',
     ].join('');
 
-    return `<header class="s-listhead">
+    return `<header class="s-listhead${listDraft(s) ? ' is-draft' : ''}">
       <div class="s-listhead-main">
-        ${/* SAVED IS NOT USED. A list nobody was handed and nothing draws on
-              is a draft, and the header is where that has to be said — the
-              facts line below carries "no campaign uses it" as one item among
-              six, which is a state reported as a statistic. The chip is the
-              same one every other drafted thing in this product wears. */ ''}
-        <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}</div>
+        <div class="s-listhead-top">
+          ${/* SAVED IS NOT USED. A list nobody was handed and nothing draws
+                on is a draft, and the header is where that has to be said —
+                the facts line below carries "no campaign uses it" as one
+                item among six, which is a state reported as a statistic.
+                The chip is the same one every other drafted thing wears. */ ''}
+          <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}</div>
+          ${/* ══ THE TWO DECISIONS, WHERE THE DECIDING IS ════════════════
+                A draft asks one question and the answer belongs at the
+                corner where the state chip is. The ordinary action row
+                below still applies — handing it, starting a campaign or
+                letting AiMY keep filling it are each an implicit "keep",
+                and they still work — but a reader who wants to keep the
+                list as it is without any other decision has one press for
+                that, and one for the opposite.
+
+                Discard is the quieter of the two and sits first, on the
+                same order-of-consequence the preview foot used. */ ''}
+          ${mine && listDraft(s) ? `<div class="s-listhead-decide">
+            <button class="s-inline-btn s-listhead-drop" type="button" data-listdrop="${esc(s.k)}">Discard</button>
+            <button class="entry-action em-direct" type="button" data-listkeep="${esc(s.k)}">Save the list</button>
+          </div>` : ''}
+        </div>
         <h1 class="s-sheet-name">${editField(s, 'name')}</h1>
       </div>
       ${mine ? `<div class="s-listhead-acts">
@@ -24303,22 +24356,26 @@
        the builder carrying the saved list's terms — which is what
        `data-listrun` does from the header, under a name that says what it is
        for. Two controls, one act. */
-    if (e.target.closest('[data-close-build]')) { goBack(); return; }
-    if (e.target.closest('[data-bgo]')) { buildRun(); return; }
-    /* ── The two answers to a finished run ──
-       Save writes; Discard has nothing to unwrite, which is the whole point
-       of the preview — so it takes no confirm and offers no undo. The
-       criteria survive it, because the likely next act is not "leave" but
-       "that was the wrong search". */
-    if (e.target.closest('[data-bsave]')) { buildCommit(); return; }
-    if (e.target.closest('[data-bdiscard]')) {
-      if (!DRAFT) return;
-      buildScrape();
-      DRAFT.run = null;
-      paintBuild();
-      toast('Thrown away. Nothing was saved.');
+    if (e.target.closest('[data-close-build]')) {
+      /* ── GUARD ──
+         A drafted list is unfinished — nobody has said whether to keep it or
+         throw it. Back leaving it silent is the same defect the browser-
+         close guard below stops, from the other end: a state the surface has
+         a decision about, walked away from without deciding. The buttons are
+         on the same page, at the top; the toast points at them. */
+      if (draftedHere()) {
+        toast('Save or discard this draft first — the buttons are at the top right.');
+        return;
+      }
+      goBack();
       return;
     }
+    if (e.target.closest('[data-bgo]')) { buildRun(); return; }
+    /* `data-bsave` and `data-bdiscard` went with the interstitial preview
+       stage. Deciding to keep or throw a list now happens on the drafted list
+       itself, through `data-listkeep` and `data-listdrop` below. */
+    if ((el = e.target.closest('[data-listkeep]'))) { saveList(el.dataset.listkeep); return; }
+    if ((el = e.target.closest('[data-listdrop]'))) { discardList(el.dataset.listdrop); return; }
     if ((el = e.target.closest('[data-init]'))) {
       const k = el.dataset.init;
       if (k === 'draft-campaign') { createCampaign([]); return; }
@@ -27060,4 +27117,19 @@
   initRailDrawer();
 
   window.addEventListener('popstate', () => { parse(); paint(); paintChrome(); });
+
+  /* ══ AND THE BROWSER'S OWN LEAVING GESTURE ═════════════════════════════
+     A reload wipes the fixture prototype's whole in-memory book, so leaving
+     a drafted list by closing or reloading loses it entirely — not just its
+     draft state. The `beforeunload` prompt is the browser's own guard,
+     matched to the same condition the in-app back guard reads (`draftedHere`)
+     so the two cannot disagree about when to fire. */
+  window.addEventListener('beforeunload', (e) => {
+    if (!draftedHere()) return;
+    e.preventDefault();
+    /* Firefox and Safari need `returnValue` set; Chrome takes preventDefault
+       alone. Setting both is the belt-and-braces the spec asks for and every
+       browser respects — the text is ignored, each browser draws its own. */
+    e.returnValue = '';
+  });
 })();
