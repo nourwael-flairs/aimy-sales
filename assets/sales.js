@@ -6530,21 +6530,68 @@
      The whole row is a target. Selecting it and opening it are the two things
      you do to a lead, and they are the two the rest of the product already
      wires — `data-row` picks, `data-open` goes. */
-  function buildRow(rec, kind) {
+  /* ══ AND IT IS THE SAME ROW ONCE THE LIST IS SAVED ═════════════════════
+
+     Opening a saved list drew `leadRow` instead: a name, whatever is late
+     about it, an owner and a verb. On a list of people that produced rows
+     reading "Sofie van der Berg · site visit is 40 days past its date" — a
+     row about a person that will not say who the person is, what she does,
+     which company she is at, or how to reach her. The row shown the moment
+     the list was GENERATED said all of that, and then the surface you
+     actually work the list on threw it away. Two anatomies for one record,
+     and the thinner one on the surface where the time goes.
+
+     One row now, carrying both halves. Sourcing keeps what it had: what they
+     do, where, how big, the addresses. Working adds what it had: the
+     finding, how long it has been, whose it is, and the move the finding
+     implies. Every one of those comes from the reader the worklist already
+     used — `topFlag`, `whyFlag`, `leadUrgency`, `exitFor` — so a record
+     cannot say one thing on the build page and another in the workbench.
+
+     THE FINDING IS SEPARATED BY INK, NOT BY A FIFTH TYPE STEP. Four steps
+     are the whole reason this row scans, and a fifth would flatten them. The
+     finding takes body size in primary ink and the description drops to
+     secondary — the token roles already mean exactly that — while the ALARM
+     stays where the worklist puts it, in the right-hand column, on the one
+     figure built to carry a tone.
+
+     `showUrg` is a fact about the SET rather than the row, so `buildRows`
+     decides it: a list an hour old reads "never contacted" down every row,
+     which is the filter restated once per row and a column of amber that
+     separates nothing from nothing. */
+  function buildRow(rec, showUrg) {
+    const kind = rec.kind === 'con' ? 'con' : 'acc';
     const picked = SEL.has(rec.id);
     const tick = canWrite() ? `<label class="s-pick-tick">
         <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${picked ? ' checked' : ''}
           aria-label="Pick ${esc(rec.name)}" />
       </label>` : '<span class="s-brow-nopick"></span>';
 
+    /* ── What is wrong with it, how long it has been, and the one move ── */
+    const flag = topFlag(rec);
+    const said = flag
+      ? `<span class="s-brow-say">${esc(whyFlag(rec, flag.k))}</span>` : '';
+    const urg = leadUrgency(rec);
+    const ex = canWrite() ? exitFor(rec) : null;
+    const ask = ex && FLAG_ASK[ex.k];
+    const go = ex ? `<button class="s-brow-go" type="button" data-exit="${esc(rec.id)}"
+        data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
+        data-aimy-topic="${esc(ex.k)}"
+        ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${esc(ex.label)}</button>` : '<span></span>';
+    /* The status only where no finding says something more specific, then how
+       long and whose. The same three lines and the same suppression the
+       worklist row makes, so the two columns can be read the same way. */
+    const state = `${flag ? '' : `<span class="s-brow-tag">${esc(label('status', statusOf(rec)))}</span>`}
+      ${showUrg ? `<span class="s-brow-urg${urg.tone ? ` tone-${esc(urg.tone)}` : ''}">${esc(urg.text)}</span>` : ''}
+      <span class="s-brow-own">${esc(actor(rec.owner).name)}</span>`;
+
     if (kind === 'con') {
       const acc = accOf(rec) || {};
-      const about = NET_ABOUT[acc.name];
-      const reach = [rec.email || null, rec.phone || null].filter(Boolean);
       return `<article class="s-brow${picked ? ' is-picked' : ''}" data-row="${esc(rec.id)}">
         ${tick}
         <span class="s-brow-main">
           <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
+          ${said}
           <span class="s-brow-desc">${esc(rec.role || 'Role not known')}${acc.name ? ` at ${esc(acc.name)}` : ''}</span>
           <span class="s-brow-facts">${[
             acc.city || null,
@@ -6566,8 +6613,9 @@
                 row. */ ''}
           <span class="s-brow-fig">${acc.emp == null ? '—' : esc(fmtSize(acc.emp))}</span>
           <span class="s-brow-rev">${rec.svc ? `buys ${esc(label('service', rec.svc))}` : 'fit unknown'}</span>
-          <span class="s-brow-tag">${esc(label('status', statusOf(rec)))}</span>
+          ${state}
         </span>
+        ${go}
       </article>`;
     }
 
@@ -6579,11 +6627,17 @@
       ${tick}
       <span class="s-brow-main">
         <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
+        ${said}
         ${about ? `<span class="s-brow-desc">${esc(about[1])}</span>` : ''}
+        ${/* The legal shape moved off the right edge and in here. It is an
+              identity fact — the same kind of thing as the sector and the
+              year — and the column it used to sit in now carries the working
+              state, which is a different question about a different thing. */ ''}
         <span class="s-brow-facts">${[
           label('industry', rec.industry),
           rec.city || null,
           rec.founded ? `founded ${rec.founded}` : null,
+          about ? about[0] : null,
         ].filter(Boolean).map(esc).join(' · ')}</span>
         ${/* Both addresses, and both real links. A website rendered as text on
               a row about a company you have never contacted is the one thing
@@ -6600,15 +6654,20 @@
               pressing "Get revenue" changed the header's percentage and
               nothing you could see. */ ''}
         <span class="s-brow-rev">${rec.rev == null ? 'revenue unknown' : esc(fmtMoney(rec.rev))}</span>
-        ${about ? `<span class="s-brow-tag">${esc(about[0])}</span>` : ''}
+        ${state}
       </span>
+      ${go}
     </article>`;
   }
+
+  /* A figure true of every row is not a figure. See `showUrg` above. */
+  const urgVaries = (pool) => new Set(pool.map((r) => leadUrgency(r).text)).size > 1;
 
   function buildRows(pool, kind) {
     if (!pool.length) return '';
     const shown = pool.slice(0, LIST_PAGE);
-    return `<div class="s-brows">${shown.map((r) => buildRow(r, kind)).join('')}</div>
+    const showUrg = urgVaries(pool);
+    return `<div class="s-brows">${shown.map((r) => buildRow(r, showUrg)).join('')}</div>
       ${pool.length > shown.length
         ? `<button class="s-inline-btn" type="button" data-quick="${esc(`on=leads&srcref=${S.bsrc}&who=${kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=`)}">Open all ${pool.length} in the workbench</button>`
         : ''}`;
@@ -10979,6 +11038,10 @@
        Every row still says which finding put it there — `whyFlag` writes it
        into the row itself — so flattening loses no attribution. What it
        loses is the same sentence repeated as a heading above every group. */
+    /* Whether the set on screen IS a named list rather than a cut through the
+       book. `listOf` reads it to choose a row; see the note down there. */
+    const asList = !!(onLeads() && S.srcref && DB.sourceBy[S.srcref]);
+
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
     let flagged = 0;
@@ -11020,7 +11083,21 @@
          showed three of each and no way to see it whole. */
       const open = OPEN_GROUPS.has('_all');
       const page = open ? sorted : sorted.slice(0, LIST_PAGE);
-      return `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>
+      /* ══ A LIST IS READ AS THE LIST IT WAS BUILT AS ════════════════════
+         Same records, same order, same ranking — a different row, because a
+         list opened from the Lists tab is answering "who did I collect" as
+         well as "what needs doing", and `leadRow` only ever answered the
+         second. `buildRow` answers both and is what the build page already
+         draws, so the list looks the same the day after it was made as it
+         did the moment it appeared.
+
+         Only when a LIST is the scope. Every other way onto this surface —
+         a status gate, a campaign, a picked set — is a cut through the book
+         rather than a thing somebody described and named, and the worklist
+         row is the right shape for a cut. */
+      return `${asList
+          ? `<div class="s-brows">${page.map((r) => buildRow(r, urgVaries(recs))).join('')}</div>`
+          : `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>`}
         ${recs.length > page.length
           ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${recs.length - page.length}</button>`
           : open && recs.length > LIST_PAGE
