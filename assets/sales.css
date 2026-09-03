@@ -4052,6 +4052,43 @@ body.is-calling { --fb-reserve: var(--call-width); }
   color: var(--d50); font-weight: var(--fw-extrabold);
   font-variant-numeric: tabular-nums;
 }
+
+/* ══ WHERE THE MONEY WENT, PER PERSON ══════════════════════════════════════
+   A total answers "how much" and none of "which of these to stop", which is
+   the question a cost is read for. Three columns: who, what they did, what it
+   cost — the figure last and right, so the column can be compared down the
+   block, which is the whole reason it is a column.
+
+   Ranked dearest first by `campaignCost`, so the order is the finding. */
+.s-money-crew { display: flex; flex-direction: column; margin-top: 12px; }
+.s-money-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline; gap: 16px; padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.s-money-row:last-child { border-bottom: 0; }
+.s-money-who {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 0;
+  font-size: var(--fs-base); color: var(--d50); font-weight: var(--fw-semibold);
+}
+/* What they did, not dimmed to make the name louder — the name is already
+   heavier and the figure is already to the right. */
+.s-money-sub { font-size: var(--fs-xs); color: var(--d200); white-space: nowrap; }
+.s-money-fig {
+  font-size: var(--fs-base); font-weight: var(--fw-extrabold); color: var(--d50);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* The caveat under the return. One line, at the size of the block's own
+   supporting copy — it qualifies every figure above it and a reader who
+   misses it reads all four wrong. */
+.s-money-note {
+  font-size: var(--fs-xs); color: var(--d200);
+  line-height: var(--lh-base); margin-top: 12px; max-width: 72ch;
+}
+@media (max-width: 611.98px) { /* 720 layout px */
+  .s-money-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .s-money-sub { grid-column: 1; }
+}
 /* `.s-id-item` was the offering row — a name, a Knowledge link and a `×`
    sharing one flex line, where the only thing binding the three together was
    the gap between them. `.s-sell-pill` binds them with a border instead, so

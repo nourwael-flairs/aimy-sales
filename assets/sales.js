@@ -2670,6 +2670,18 @@
       does: 'What gets sent, in what order, and who is next.' },
     { k: 'measure', n: 4, label: 'Measure', verb: 'Measuring', fn: 'sales-manager', scope: 'member',
       does: 'What came back.' },
+    /* ══ AND WHAT IT COST ═════════════════════════════════════════════════
+       The fifth node, and the only one not everybody sees. `campaignCost`
+       has computed this per campaign since v6 and the executive page was
+       the only surface that read it — so a sales manager could see every
+       meeting a campaign booked and never what it cost to book them, which
+       is the one question they answer for.
+
+       `money`, not `financials`, as the key: `?stage=` values are typed by
+       people and read in three places, and the short one is the one that
+       does not get mistyped. */
+    { k: 'money', n: 5, label: 'Financials', verb: 'Counting', fn: 'sales-manager', scope: 'camp',
+      does: 'What it cost, and what came back.' },
   ];
   const STAGE_BY = Object.create(null);
   CAMP_STAGE.forEach((s) => (STAGE_BY[s.k] = s));
@@ -2951,6 +2963,23 @@
       const sent = evs.filter((e) => e.kind === 'sent').length;
       const back = evs.filter((e) => e.kind === 'replied').length;
       return sent ? { fig: `${Math.round((back / sent) * 100)}%`, unit: 'back' } : { fig: 'None', unit: 'sent yet', state: true };
+    }
+    /* ══ WHAT IT COST, AND NEVER A RETURN ═════════════════════════════
+       The first cut of this divided ARR by spend and put `114× back` on
+       the node. `campaignCost.total` is ATTRIBUTABLE cost — hours logged
+       against this campaign, AiMY's own touches, and what its leads cost to
+       source — and it carries none of the payroll `bookMoney` loads for the
+       book. Dividing a whole deal by a part of a cost produces a number
+       shaped like ROI that is wrong by whatever fraction of the salary bill
+       nobody logged, and 114 was that fraction showing.
+
+       The exec page has always put the two side by side and never divided
+       them. So does this. Always the spend, so the node is comparable
+       between campaigns rather than flipping subject when one closes. */
+    if (k === 'money') {
+      const m = campaignCost(c, periodOf(S.period));
+      return m.total ? { fig: fmtMoney(m.total), unit: 'spent' }
+        : { fig: 'Nothing', unit: 'spent yet', state: true };
     }
     return n ? { fig: String(n), unit: 'waiting' } : { fig: 'Clear', unit: '', state: true };
   }
@@ -8885,6 +8914,15 @@
      and the markup together. */
   const canRunCampaign = () => !!FUNCTIONS[me().fn].runsCampaigns;
 
+  /* ══ WHO MAY READ WHAT A CAMPAIGN COST ═════════════════════════════════
+     The two functions the money is FOR — a sales manager answers for the
+     spend on their campaigns, a C-level for the book's — and admin, which
+     sees everything by definition. A BDR works the campaign and is not
+     asked what it cost; a client is shown their own engagement and never
+     our margins, which is the same line `bookMoney` already draws when it
+     loads no heads for them. */
+  const seesCampMoney = () => ['sales-manager', 'c-level', 'admin'].indexOf(me().fn) >= 0;
+
   /* Scope is the opposite: a question you did ask, so the switch shows it and
      nothing has to be disclosed. It is still bounded by tier — a rep asking
      for "everyone" gets everyone they are entitled to, and the switch says
@@ -12338,13 +12376,21 @@
        list and the call queue back in through the address bar — the gate has
        to be here, not only in what `campHeadline` proposes. */
     const report = !canWrite();
-    const here = report ? 'measure' : STAGE_BY[S.stage] ? S.stage : campHeadline(l).stage;
+    /* ══ THE FIFTH NODE IS NOT EVERYBODY'S ═══════════════════════════════
+       `?stage=` is a URL parameter, so a BDR typing `stage=money` would
+       reach the cost of a campaign they are not asked to answer for. The
+       gate is on the SET the strip is built from, and `here` is clamped to
+       it — the same argument the report gate above makes, one tier down. */
+    const mine = CAMP_STAGE.filter((st) => st.k !== 'money' || seesCampMoney());
+    const legal = (k) => mine.some((st) => st.k === k);
+    const here = report ? 'measure'
+      : STAGE_BY[S.stage] && legal(S.stage) ? S.stage : campHeadline(l).stage;
     const at = campStage(l);
     const total = campMembers(l).length;
 
     /* Which stages are holding work, worst first — the deck's subject, and
        the set that earns a track. */
-    const held = CAMP_STAGE
+    const held = mine
       .filter((st) => st.scope === 'member' && st.k !== 'measure')
       .map((st) => ({ st, n: stageMembers(l, st.k).length }))
       .filter((x) => x.n)
@@ -12362,7 +12408,7 @@
     const hereMine = hereCrew.includes(me().id);
     const hereN = hereSt.scope === 'member' && hereSt.k !== 'measure' ? stageMembers(l, hereSt.k).length : 0;
 
-    const strip = CAMP_STAGE.map((st) => {
+    const strip = mine.map((st) => {
       const open = st.k === here;
       /* Nothing to press where nothing would happen: on the report every
          cell but Measure is a readout, so it is not a button. A disabled
@@ -12423,6 +12469,7 @@
         hereSt.k === 'find' ? stageFind(l)
           : hereSt.k === 'enrich' ? stageEnrich(l)
           : hereSt.k === 'reach' ? stageReach(l)
+          : hereSt.k === 'money' ? stageMoney(l)
           : stageMeasure(l)}</div>
     </section>`;
   }
@@ -13697,6 +13744,84 @@
 
   /* ── ⑤ MEASURE ──
      How it is going, what came back, and what a client would be told. */
+  /* ══ WHAT IT COST, AND WHAT CAME BACK ══════════════════════════════════
+     `campaignCost` has computed all of this per campaign since v6 and only
+     the executive page read it — so a sales manager could see every meeting
+     a campaign booked and never what it cost to book them. Nothing new is
+     derived here; this is the same three costs and the same return the exec
+     page ranks campaigns by, scoped to the one you are looking at.
+
+     The three costs behave differently and are named separately for that
+     reason: people is hours logged at each person's rate, AiMY is what the
+     agent's own touches were priced at, and suppliers is what the leads
+     cost to source and enrich. A single total answers "how much" and none of
+     "which of these to stop", which is the question a cost is read for. */
+  function stageMoney(l) {
+    if (!seesCampMoney()) return '';
+    const p = periodOf(S.period);
+    const m = campaignCost(l, p);
+    const when = (PERIODS.find((r) => r.k === p.k) || PERIODS[0]).label.toLowerCase();
+
+    if (!m.total && !m.arr) {
+      return `<p class="s-none">Nothing has been spent on it ${esc(when)}, so there is nothing to count.</p>`;
+    }
+
+    /* No ARR-over-spend ratio. See the note on `stageFigure`: this cost is
+       what is attributable to the campaign and carries no payroll, so
+       dividing a whole deal by it manufactures a return. The two figures sit
+       side by side and the reader draws their own conclusion, which is what
+       the executive page has always done with the same numbers.
+
+       The per-unit costs stay, because both sides of THOSE divisions come
+       from the same partial cost — so they compare campaigns like with like,
+       which a mixed ratio cannot. */
+    const perWin = m.wins ? m.total / m.wins : null;
+    const perMet = m.met ? m.total / m.met : null;
+
+    return `${periodChips()}
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">What it cost</h4>
+        <div class="s-afs">
+          ${statFig(fmtMoney(m.total), 'Spent', `${plural(Math.round(m.hours), 'hour')} logged`)}
+          ${statFig(fmtMoney(m.people), 'People', m.crew.length ? `${plural(m.crew.length, 'person')} on it` : 'nobody logged time')}
+          ${statFig(fmtMoney(m.aimy), 'AiMY', 'what it sent and called')}
+          ${statFig(fmtMoney(m.suppliers), 'Suppliers', 'sourcing and enrichment')}
+        </div>
+        ${/* Per person, dearest first — the breakdown a total cannot give,
+              and the one that says where the time actually went. */ ''}
+        ${m.crew.length ? `<div class="s-money-crew">${m.crew.map((r) => `<div class="s-money-row">
+          <span class="s-money-who"><span class="avatar avatar-sm">${esc(actor(r.id).initials)}</span>${esc(actor(r.id).name)}</span>
+          <span class="s-money-sub">${esc(plural(r.touches, 'touchpoint'))} · ${esc((Math.round(r.hours * 10) / 10).toString())}h at ${esc(fmtMoney(r.rate))}</span>
+          <span class="s-money-fig">${esc(fmtMoney(r.cost))}</span>
+        </div>`).join('')}</div>` : ''}
+      </div>
+
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">What came back</h4>
+        <div class="s-afs">
+          ${statFig(m.arr ? fmtMoney(m.arr) : 'Nothing', 'Signed', m.wins ? plural(m.wins, 'deal') : 'no deal closed yet')}
+          ${statFig(String(m.met), 'Met', m.met ? 'organizations' : 'no meeting yet')}
+          ${statFig(perMet ? fmtMoney(perMet) : '—', 'Cost per meeting', m.met ? null : 'no meeting to divide by')}
+          ${statFig(perWin ? fmtMoney(perWin) : '—', 'Cost per win', m.wins ? null : 'no win to divide by')}
+        </div>
+        ${/* THE HONEST CAVEAT, because a return computed inside one window
+              flatters a campaign whose spend and whose win fall either side
+              of it. Said once, where the figures are, rather than left for
+              somebody to work out. */ ''}
+        ${/* ══ WHAT THIS COST IS, AND IS NOT ═══════════════════════════════
+              Two caveats, and both change how every figure above is read. The
+              cost is what can be attributed to this campaign — it carries no
+              share of the salary bill nobody logged against it — so it is a
+              floor, not the whole. And both sides are counted inside one
+              window, which flatters a campaign whose spend and whose win fall
+              either side of it. Neither is a reason to hide the numbers; both
+              are a reason to say what they are. */ ''}
+        <p class="s-money-note">This is what can be attributed to the campaign — logged hours, AiMY's own
+          touches and what its leads cost to source. It carries no share of unlogged salary, so it is a
+          floor rather than the whole. Both sides are counted ${esc(when)}.</p>
+      </div>`;
+  }
+
   function stageMeasure(l) {
     const st = campState(l);
     const kb = l.kb ? KB_BY[l.kb] : null;
