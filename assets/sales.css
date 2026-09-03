@@ -1892,11 +1892,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-base); color: var(--d200);
   line-height: var(--lh-relaxed); max-width: 72ch;
 }
-/* The count steps down when a list is open, because the list's name is the
-   anchor and a surface gets one. */
-.s-result-count.is-sub {
-  font-size: var(--fs-2xl); font-weight: var(--fw-extrabold); color: var(--d200);
-}
+/* `.is-sub` is gone with the line it sized. The count stepped down when a
+   list was open, because the list's name is the anchor and a surface gets
+   one — and a count that has to shrink to avoid competing with the header
+   above it and the reading below it, both of which state the same number,
+   was a line arguing for its own removal. */
 @media (max-width: 526.98px) { /* 620 layout px */
   .s-listhead { grid-template-columns: minmax(0, 1fr); }
 }

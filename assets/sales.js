@@ -10136,6 +10136,13 @@
      has no single scope to preserve. */
   const campScope = () => (onLeads() && S.campaign.length === 1 ? S.campaign[0] : null);
 
+  /* ── AND THE OTHER KIND OF NAMED SET ARRIVES THE SAME WAY ──
+     A list is a campaign's twin for this purpose: somebody wrote criteria,
+     ran a search, chose what to import and gave the result a name. Landing on
+     one is being handed a set, not going looking for one — so the surface
+     owes it the same treatment `campScope` earns, and for the same reason. */
+  const listScope = () => (onLeads() && S.srcref && DB.sourceBy[S.srcref] ? S.srcref : null);
+
   function viewChips() {
     if (!onLeads()) return '';
     const scope = campScope();
@@ -10501,37 +10508,39 @@
             are rows of that one block now — `grid` folds them in, because
             that is where the other half of the same reader's sentence already
             was. */ ''}
+      ${/* ══ AND NOT AT ALL, WHEN THE LIST IS THE SET ═══════════════════════
+
+            "29 contacts at 18 accounts · 3 waiting on a person" over a list
+            whose header two lines up already reads `18 brought in of 1,240
+            found`, and whose reading directly below it opens `11 of the 29
+            need something doing`. The count was said three times on one
+            screen, and this was the copy with the least to add — the header
+            says what the list holds, the reading says how much of it is
+            stuck, and this said how many rows there are.
+
+            The waiting pointer goes with it rather than surviving alone. It
+            is a narrowing, and every other narrowing on this surface has just
+            come off for the same reason; the reading below offers the same
+            cut with the finding attached, which is the better half of it. */ ''}
+      ${src ? '' : `
       <div class="s-result-row">
         <div class="s-result-main">
-          ${/* One anchor per surface. When a list is open its NAME is the
-                anchor — `listHead` draws it as the `h1` — so the count steps
-                down to the title size and stops competing. */ ''}
-          ${src ? `<p class="s-result-count is-sub">${plural(list.length, noun)}</p>`
-            : `<h1 class="s-result-count">${plural(list.length, noun)}</h1>`}
+          <h1 class="s-result-count">${plural(list.length, noun)}</h1>
           ${/* Contacts say what they sit inside. "236 contacts" over a grid
                 the Accounts tab calls 118 gives no clue the first is the
                 people in the second — the same relation the account card
                 states from its own side. */ ''}
           ${onCons() && list.length
             ? `<span class="s-result-scope">at ${esc(plural(new Set(list.map((r) => accOf(r).id)).size, 'account'))}</span>` : ''}
-          ${/* ══ NOT WHEN THE HEADER IS ALREADY THE NAME ═══════════════════
-                `scopeName` exists because "a list opened with no name on it" —
-                pressing a list landed on a surface headed "20 accounts" and
-                the surface would not say which list. `listHead` answered that
-                in v4 by making the name the `h1`, and this line went on
-                answering it too: "16 accounts in Banking & finance, 50–1,000,
-                Netherlands — 5 Aug 2026", a hundred pixels under an `h1`
-                reading exactly that.
-
-                A stale premise, like the rail's `display: none` and its
-                `:has()` exception before it. The campaign and picked-set
-                branches keep theirs — nothing else on the leads surface
-                names those. */ ''}
-          ${scope && !src ? `<span class="s-result-scope">in ${scope}</span>` : ''}
+          ${/* The campaign and picked-set branches keep this. Nothing else on
+                the leads surface names those, where a list has `listHead`
+                drawing its name as the `h1` — which is why the whole row
+                above is suppressed there rather than just this line. */ ''}
+          ${scope ? `<span class="s-result-scope">in ${scope}</span>` : ''}
           ${need ? `<span class="s-result-dot" aria-hidden="true">·</span>
             <button class="s-result-need" type="button" data-quick="status=awaiting-us,stalled">${need} waiting on a person</button>` : ''}
         </div>
-      </div>
+      </div>`}
       ${/* The frame, under the count and over the grid — it is the reason
             the number is the size it is, so it reads in the order it is
             needed rather than as a footnote to something two rows below. */ ''}
@@ -11160,7 +11169,7 @@
        loses is the same sentence repeated as a heading above every group. */
     /* Whether the set on screen IS a named list rather than a cut through the
        book. `listOf` reads it to choose a row; see the note down there. */
-    const asList = !!(onLeads() && S.srcref && DB.sourceBy[S.srcref]);
+    const asList = !!listScope();
 
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
@@ -22806,7 +22815,15 @@
        the same reason (doctrine §5.1: lead with a prioritised set, not an
        inventory). What is left is what a navigated page is: where you came
        from, what you are looking at, and the work. */
-    const scoped = campScope();
+    /* ── AND A LIST IS THE SAME ARRIVAL ──
+       Seven view chips with counts over the whole book, five axis dropdowns
+       and a date range, above eighteen rows that already answer a question
+       somebody wrote down, ran, and saved under a name. Every one of those
+       controls exists to help you FIND a set; you are looking at one that was
+       found. The argument above is the argument here — it was only ever
+       written about the campaign because the list had no page of its own to
+       arrive on. It has one now. */
+    const scoped = campScope() || listScope();
     $('#filterBar').innerHTML = scoped ? '' : filterRow();
     $('#chipBar').innerHTML = scoped ? '' : chipBar();
     stage.innerHTML = aiBanner() + resultLine(list) + scopeBar() + grid(list);
