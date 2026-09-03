@@ -237,6 +237,9 @@ const WRITE_KEYS = [
   'unsell', 'audadd', 'addstep', 'plan', 'stop', 'merge', 'reportto',
   'newcamp', 'newlist', 'addsel', 'taskgo', 'taskpause', 'taskstop',
   'taskundo', 'writeall', 'callend', 'callrec', 'callmute', 'callhold',
+  /* The list builder's generate. `buildCommit` opens with the same
+     `canWrite()` guard every other writer takes. */
+  'bgo', 'fillnow',
 ];
 
 function checkReadOnly() {

@@ -2642,16 +2642,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
    while the flag chip kept its slot. The row's meta is a grid cell now, so
    the shrinking is the grid's job. `.tc-gov-sep` stays — the row still
    separates owner from last-touch with it. */
-/* The flag sits at the end of the facts line rather than on a line of its
-   own — it is one more fact about the record, and giving it a row made every
-   card in a group 20px taller for two words. */
-/* `min-height` matches the facts' line box (13px × 1.6 relaxed ≈ 20px), so
-   the flag's centre lands on the first line's centre rather than on its own
-   17px box's. */
-.s-card-meta .s-flagchip {
-  flex: none; margin-left: auto; padding: 0;
-  min-height: 20px; display: inline-flex; align-items: center;
-}
+/* The flag chip that sat at the end of this facts line is gone. It was the
+   grouped card grid's share of the insight, and `leadRow` says which finding
+   put a record on screen in the row itself — so `flagChip()` lost its only
+   call site, `wiring-audit` reported it UNMOUNTED, and the function and both
+   of its rules went out together. */
 /* ═══════════════════════════════════════════════
    THE STATUS IS THE PRODUCT'S ONE COMPUTED CLAIM, AND IT LOOKED LIKE TEXT
 
@@ -3834,11 +3829,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Which suppliers were asked, and how often each answers — the same reading
    the enrichment waterfall has carried since v4, on the surface that until
    now asserted a match count from nowhere. */
-.s-find-via {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px;
-  font-size: var(--fs-xs); color: var(--d300); margin-top: 8px;
-}
-.s-find-hit { color: var(--d400); font-variant-numeric: tabular-nums; }
 
 /* ── A FOURTH CONFIDENCE TIER, AND THE ONLY ONE A LOOKUP CANNOT PRODUCE ──
    The library styles high · medium · low, which are all a provider's answer
@@ -4341,68 +4331,49 @@ body.is-calling { --fb-reserve: var(--call-width); }
    one say which way pressing it goes — a chip that only changes colour
    makes you press it to find out.
 ═══════════════════════════════════════════════ */
-.s-find { display: flex; flex-direction: column; gap: 12px; }
+.s-find { display: flex; flex-direction: column; }
+
+/* ══ THREE STEPS, ONE OPEN ═════════════════════════════════════════════════
+
+   The block held nine sections at one visual level: 1,927px of content in a
+   379px scroll viewport, 27 controls, and a `Save 8` pinned to the foot
+   above 1,100px nobody had seen — the rows it counted began at 330px, the
+   name at 619px, the owner at 690px.
+
+   A closed step keeps its head and shows ITS ANSWER on the same line, so
+   all three answers are legible above the confirm at all times; only the
+   open one draws a body, which is what makes that fit. Airbnb's listing
+   rail is the reference — `Location 10640`, `Photos 5 photos` — and Circle's
+   checklist is the same move in a single column.
+
+   Hairlines between, not boxes. Three bordered cards inside a bordered
+   panel inside a bubble is three nested regions to say one thing, and the
+   step heads already carry a number apiece. */
+/* The number IS the step marker. A tick would say a question was answered
+   and not what the answer was, and the answer is the whole point of the
+   line it sits on. */
+/* What you answered, on the head, right-aligned so the three read down a
+   column rather than trailing three different name lengths. */
+
+/* ── WHERE YOU START, AND THAT IT IS A CHOICE ──
+   Label over strip rather than beside it: at this width a right-hand segment
+   would leave each button about forty pixels, and the two names are the
+   whole point of the control. */
+/* ── WHAT AiMY UNDERSTOOD, AS CHIPS YOU CAN TAKE BACK OFF ──
+   Not a menu you picked from: these are the criteria read out of the sentence
+   you typed, so each carries the × that says "you read that wrong". */
 .s-find-crit { display: flex; flex-wrap: wrap; gap: 4px; }
 .s-crit-x { margin-left: 8px; opacity: 0.6; font-weight: var(--fw-bold); }
-.s-find-count { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); }
-.s-find-count b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
-/* ── THE RETURNED SET, EACH ROW DROPPABLE ──
-   `.s-find-names` was six name chips: a sample of a decision you could not
-   change. These are every row that would be saved, with the three facts that
-   decide whether to keep one, and the × that says no.
 
-   Rows on a shared ground with hairlines between, not cards: they are one
-   kind of thing being compared down a column, which is what a divided list
-   is for and what separated rectangles destroy. No column headers — each row
-   reads on its own — so this stays inside the no-tables rule. */
-.s-find-rows {
-  display: flex; flex-direction: column;
-  border: 1px solid var(--card-border); border-radius: var(--r-lg);
-  background: var(--card-bg); overflow: hidden;
-}
-.s-find-row {
-  display: flex; align-items: baseline; gap: 12px;
-  padding: 8px 12px;
-}
-.s-find-row + .s-find-row { border-top: 1px solid var(--hairline); }
-.s-find-row-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100);
-  flex: 0 0 auto;
-}
-.s-find-row-facts {
-  font-size: var(--fs-xs); color: var(--d400);
-  min-width: 0; flex: 1 1 auto;
-}
-/* Dropped rows stay on screen, struck through and dimmed, because the
-   control is a toggle — a row that vanished would leave you unable to put it
-   back without re-running the search, and unable to see what you had
-   removed. */
-.s-find-row.is-out .s-find-row-name,
-.s-find-row.is-out .s-find-row-facts { color: var(--d600); text-decoration: line-through; }
-.s-find-row-x {
-  margin-left: auto; flex: 0 0 auto;
-  min-width: 24px; min-height: 24px;
-  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-bold);
-  color: var(--d400); cursor: pointer;
-  transition: color var(--t-fast);
-}
-.s-find-row-x:hover { color: var(--err); }
-.s-find-row.is-out .s-find-row-x { color: var(--accent-text); }
-.s-find-row-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 /* Same 15px box as every other pick on a commit surface. */
-.s-find-by { width: 15px; height: 15px; accent-color: var(--accent); }
 
 /* The reading sits directly under the sentence it was read from, and the
    note beside the button says how much was understood — so a description
    that yields nothing says so where you are typing, not further down. */
 .s-find-said { min-height: 56px; resize: vertical; line-height: var(--lh-base); }
-.s-find-read { display: flex; align-items: baseline; gap: 8px; margin-top: -8px; }
-.s-find-readnote { font-size: var(--fs-xs); color: var(--d400); }
-.s-find-add { display: flex; gap: 4px; align-items: stretch; }
 .s-find-new { flex: 1; min-width: 0; }
 /* Yours reads as yours. Same size and same shape as AiMY's, one border
    apart — a criterion you wrote is not a different KIND of criterion. */
-.chip.s-crit-own { border-style: dashed; }
 
 /* ═══════════════════════════════════════════════
    THE WATERFALL
@@ -4565,6 +4536,238 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Whose it is, and whether it keeps itself — attribution, so it sits under
    the sentence it qualifies at the quietest step the card uses. */
 .s-listrow-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
+
+
+
+/* ══ THE LIST BUILDER ══════════════════════════════════════════════════════
+
+   A page, not a panel — the canvas version caps at `min(72vh, 520px)` and put
+   nine sections inside 379px of scroll.
+
+   AND NOT AN ACCORDION EITHER. The first cut of this page was five collapsing
+   steps holding six grids of options with a count on every chip: eighty-odd
+   controls to answer a question you could have said in a sentence. A grid of
+   options asks you to recognise the product's vocabulary before you are
+   allowed to use it. So the criteria are TYPED, AiMY reads them back as chips
+   you can take away, and the only things you press are two cards and one
+   button. */
+
+/* ── TWO CARDS, NOT A CHOICE LIST ──
+   Each carries its own reason, because a card with only a name makes you
+   press one to find out what it does. */
+/* The page's own stack. One rhythm for every state it has — the two cards,
+   the sentence and its suggestions, the rows arriving, and the list at the
+   end — so moving between them does not re-space the page under you. */
+.s-build-page .s-rec-main { display: flex; flex-direction: column; gap: 16px; }
+.s-build-page .s-sheet-head { padding-bottom: 0; }
+
+/* 24 between, 20 inside. More space around a card than within it, or two of
+   them read as one surface with a line down the middle. */
+.s-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 24px; margin-top: 8px; }
+.s-way {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 20px; text-align: left; cursor: pointer;
+  border: 1px solid var(--card-border); border-radius: var(--r-lg);
+  background: var(--card-bg); font-family: inherit;
+  transition: border-color var(--t-fast), background-color var(--t-fast);
+}
+.s-way:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
+.s-way:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.s-way-name {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: var(--ty-title); font-weight: var(--fw-bold);
+  color: var(--ink-primary); letter-spacing: var(--ls-tight);
+}
+.s-way-why { font-size: var(--ty-meta); color: var(--ink-faint); line-height: var(--lh-base); }
+.s-way-why b { color: var(--ink-secondary); font-weight: var(--fw-extrabold); font-variant-numeric: tabular-nums; }
+
+.s-describe { margin-top: 8px; }
+.s-build-said { min-height: 72px; resize: vertical; line-height: var(--lh-base); font-size: var(--ty-body); }
+.s-build-name { width: 100%; }
+.s-build-by { width: 15px; height: 15px; accent-color: var(--accent); }
+
+/* ══ WHAT AiMY NOTICED, AND THE ONE PRESS THAT APPLIES IT ══════════════════
+   Not a pre-fill. Each row is something derived from the book or the index,
+   and the verb beside it is what accepting it would do — so the criteria on
+   screen are always the ones you asked for. */
+.s-sugg {
+  background: var(--card-bg-raised); border-radius: var(--r-lg);
+  padding: 16px; max-width: 76ch;
+}
+.s-sugg-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 12px; padding: 8px 0;
+}
+.s-sugg-row + .s-sugg-row { border-top: 1px solid var(--hairline); }
+.s-sugg-say { font-size: var(--ty-meta); color: var(--ink-secondary); line-height: var(--lh-base); }
+.s-sugg-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+.s-sugg-go {
+  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--ink-quiet); cursor: pointer; white-space: nowrap;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); background: none;
+  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
+}
+.s-sugg-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
+.s-sugg-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Waiting on a supplier. Dimmed and inert rather than replaced, so the row
+   keeps its height and the sentence above it does not jump. */
+.s-sugg-go.is-busy { opacity: 0.6; cursor: default; }
+
+/* ══ THE LIST ARRIVING ═════════════════════════════════════════════════════
+   A search that returns instantly reads as a lookup. This one is going out to
+   four named suppliers, and the rows landing one after another is what that
+   actually looks like — it is also the only moment the flow has to show its
+   work, because afterwards the list simply exists.
+
+   `transform` and `opacity` only, under 300ms, and the whole thing is skipped
+   at the source under `prefers-reduced-motion` — `buildRun` writes
+   immediately rather than animating faster. */
+.s-stream-cap { font-size: var(--ty-meta); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.s-stream-n { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+.s-stream { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+.s-stream-row {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 0; border-bottom: 1px solid var(--hairline);
+  animation: s-stream-in 200ms var(--ease-out, ease-out) both;
+}
+.s-stream-name { font-size: var(--ty-body); font-weight: var(--fw-bold); color: var(--ink-primary); }
+.s-stream-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
+.s-stream-row.is-yours .s-stream-facts { color: var(--accent-text); }
+@keyframes s-stream-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .s-stream-row { animation: none; }
+}
+
+/* ══ THE TOTAL, ONCE ════════════════════════════════════════════════════════
+   A hairline above rather than a box: the foot ends the page, it is not a
+   separate region. */
+.s-build-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  border-top: 1px solid var(--card-border); padding-top: 16px; margin-top: 8px;
+}
+.s-build-total {
+  flex: 1 1 24ch; min-width: 0;
+  font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base);
+}
+.s-build-total b {
+  color: var(--ink-primary); font-weight: var(--fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+.s-build-go { white-space: nowrap; }
+
+/* ══ THE STEPS, FOLDED ══════════════════════════════════════════════════
+   Once the list exists the criteria stop being a form and become a caption on
+   the thing they produced — still pressable, because refining is the
+   commonest next move. */
+.s-build-done { display: flex; flex-direction: column; gap: 16px; }
+.s-build-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.s-build-sum-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.s-build-edit { white-space: nowrap; }
+
+.s-build-ai {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: var(--ty-body); color: var(--ink-secondary);
+  line-height: var(--lh-base); max-width: 72ch;
+}
+.s-build-ai .s-insight-mark { flex: none; width: 14px; height: 16px; margin-top: 2px; }
+.s-build-ai-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+
+@media (max-width: 611.98px) { /* 720 layout px */
+  .s-build-foot { flex-direction: column; align-items: stretch; }
+}
+
+
+/* ══ THE ROWS A TABLE WOULD HAVE HEADED ════════════════════════════════════
+
+   Four fixed tracks, so the eye reads DOWN a column instead of across each
+   row in turn — and no header, because every value says what it is on its
+   own: "480 staff", "founded 2012", "bunq.com". That is the whole difference
+   from a table. A table needs a legend at the top and loses it the moment you
+   scroll; these rows carry their own.
+
+   Two lines per cell, the second quieter: what it is over where to find it,
+   what sector over what place, how big over how old, what state over whose. */
+.s-brows { display: flex; flex-direction: column; }
+
+/* ══ ONE ROW, AND YOU CAN SEE ITS RANK FROM ACROSS THE DESK ════════════════
+
+   Everything on this row was within one step of everything else — a bold
+   14px name over 13px and 11px greys — so it read as a paragraph with a
+   heading rather than as a record with fields. Four steps now, and they are
+   far enough apart to be steps:
+
+     20  the name          what it is, and the thing you press
+     14  what they do      the line the row exists for
+     13  where and when    the facts that qualify it
+     11  the addresses     the only things here you would copy
+
+   And the right edge carries the two figures you compare between rows — the
+   headcount, and the revenue the enrichment offer above fills in. */
+.s-brows { display: flex; flex-direction: column; }
+.s-brow {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start; column-gap: 24px;
+  padding: 16px 12px; margin-left: -12px; border-radius: var(--r-md);
+  border-bottom: 1px solid var(--hairline);
+  transition: background-color var(--t-fast);
+}
+.s-brow:last-child { border-bottom: 0; }
+.s-brow:hover { background: var(--card-bg-raised); }
+.s-brow.is-picked { background: var(--accent-dim); }
+.s-brow-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.s-brow-nopick { width: 0; }
+
+.s-brow-name {
+  font-family: var(--font-display);
+  font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary);
+  letter-spacing: var(--ls-tight); line-height: var(--lh-tight);
+  text-align: left; cursor: pointer; background: none; border: 0; padding: 0;
+  transition: color var(--t-fast);
+}
+.s-brow-name:hover { color: var(--accent-text); }
+.s-brow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+
+/* The one line here that has to be READ rather than scanned, so it keeps
+   primary ink at body size. */
+.s-brow-desc { font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base); }
+.s-brow-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
+.s-brow i { font-style: normal; color: var(--ink-faint); }
+
+.s-brow-links { display: flex; flex-wrap: wrap; gap: 4px 16px; min-width: 0; margin-top: 2px; }
+/* Addresses, at the quietest step. Not uppercased and not truncated to a
+   word: a URL you cannot read is a URL you cannot check. */
+.s-brow-link {
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; max-width: 100%;
+  transition: color var(--t-fast);
+}
+.s-brow-link:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+
+.s-brow-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.s-brow-fig {
+  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ls-tight); white-space: nowrap;
+}
+.s-brow-rev {
+  font-size: var(--ty-meta); color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.s-brow-tag {
+  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--ink-faint); white-space: nowrap; margin-top: 4px;
+}
+
+@media (max-width: 611.98px) { /* 720 layout px */
+  .s-brow { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
+  .s-brow-side { grid-column: 2; align-items: flex-start; text-align: left; }
+}
 
 /* ── The call queue, for Sales ──
    Name, who they are, why now, and the control that starts it. The reason
@@ -6193,6 +6396,19 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-cb-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* Answered, not removed: the thread is a record and what you chose between
    is part of it. Spent reads as spent — no hover, no pointer, no border. */
+/* ══ THE WAY OUT IS NOT ONE OF THE ANSWERS ═════════════════════════════════
+   Every turn carries a control that leaves the conversation for the page. It
+   was drawn as a third option beside Companies and People, so a question with
+   two answers looked like a question with three — and the one that was not an
+   answer sat at the same weight as the two that were.
+
+   Borderless and quiet: still there on every turn, still one press, and no
+   longer competing with the thing actually being asked. */
+.s-cb-opt.is-quiet {
+  border-color: transparent; background: none;
+  color: var(--ink-faint); font-weight: var(--fw-medium);
+}
+.s-cb-opt.is-quiet:hover { color: var(--ink-primary); background: none; border-color: var(--card-border); }
 .s-cb-opt.is-spent {
   cursor: default; color: var(--d600);
   border-color: transparent; background: none;
@@ -6369,19 +6585,10 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-group { margin-bottom: 24px; }
 .s-group-more { margin-top: 8px; }
 
-/* What the card keeps of the insight: which finding put it in this group.
-   Two words, in the finding's tone, at the caption step because it is a
-   label and not a sentence. */
-.s-flagchip {
-  align-self: flex-start;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  padding: 0 16px 12px;
-}
-.s-flagchip.tone-err { color: var(--err-text); }
-.s-flagchip.tone-warn { color: var(--warn-text); }
-.s-flagchip.tone-ok { color: var(--ok-text); }
-.s-flagchip.tone-neutral { color: var(--d500); }
+/* `.s-flagchip` was what a card kept of the insight when its group heading
+   carried the sentence — two words in the finding's tone. Both are gone with
+   the grouping: `.s-findings` states every finding once above one flat list,
+   and `leadRow` writes which one applies into the row. */
 
 /* ── WHICH CAMPAIGNS THIS RECORD IS IN, AND WHERE IT STANDS IN EACH ──
    Two lines per campaign, not one 342px strip. The grid puts the name and its
@@ -7019,25 +7226,11 @@ div.s-pipe-cell { cursor: default; }
 .s-stage-body { display: block; }
 
 
-/* One organization on a stage. A row, not a card: the card is for comparing
-   one against another and that is the leads surface, not this one. Grid so
-   the status column lines up down the list — a ragged middle column is what
-   makes a list of ten read as ten separate things. */
-.s-mrows { display: flex; flex-direction: column; gap: 0; }
-.s-mrow {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px;
-  align-items: baseline; text-align: left; cursor: pointer; font-family: inherit;
-  padding: 8px 12px; border-bottom: 1px solid var(--hairline);
-  transition: background-color var(--t-fast);
-}
-.s-mrow:last-child { border-bottom: 0; }
-.s-mrow:hover { background: var(--accent-dim); }
-.s-mrow:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.s-mrow-name {
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
-}
-.s-mrow-st { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); }
-.s-mrow-facts { grid-column: 1 / -1; font-size: var(--fs-xs); color: var(--d500); }
+/* `.s-mrow` drew one organization on a stage, in a list the Find stage
+   inlined under its figures. That list was 579px of a 1045px tab, restating
+   rows the workbench already holds, and it went; `memberRow()` outlived it
+   with no caller until `wiring-audit` named it, and these rules outlived
+   both. `Open all N in the workbench` is what the block was actually for. */
 /* ── ④ WRITE ──
    One row per lead, because copy is per person or it is a mailshot. The row
    leads with the name and says why it is here beside it — never written, or
