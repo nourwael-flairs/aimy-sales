@@ -11248,7 +11248,7 @@
   };
   let OPEN_GROUPS = new Set();
 
-  function grid(list) {
+  function grid(list, opts) {
     if (!list.length) return empty();
     if (onTasks()) return `<div class="s-grid s-stagger">${list.map((r, i) => taskCard(r, i)).join('')}</div>`;
     if (onCamps()) return `<div class="s-grid s-stagger">${list.map((r, i) => campCard(r, i)).join('')}</div>`;
@@ -11276,9 +11276,19 @@
        Every row still says which finding put it there — `whyFlag` writes it
        into the row itself — so flattening loses no attribution. What it
        loses is the same sentence repeated as a heading above every group. */
-    /* Whether the set on screen IS a named list rather than a cut through the
-       book. `listOf` reads it to choose a row; see the note down there. */
-    const asList = !!listScope();
+    /* ══ WHERE THE FULL RECORD ROW BELONGS ═══════════════════════════════
+       Two callers earn it. A named list, because somebody chose these — the
+       set is an inventory rather than a cut through the book. And the
+       briefing's Organizations and Contacts tabs, which show the whole book
+       and are the other place the reader arrives asking "who are these"
+       rather than "who is stuck".
+
+       `rich` is the caller's opt-in from the tab surface. Every other route
+       to `grid` — a status gate, a campaign, a picked set — is a cut, and
+       the worklist row is the right shape for a cut. The finding above the
+       rows still comes down to a per-row verb through Pick, so removing the
+       row's own Fix button costs nothing that has moved. */
+    const asList = !!listScope() || !!(opts && opts.rich);
 
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
@@ -11369,7 +11379,10 @@
        clause, and the verb that answers it. What differs is the weight of
        the verb, and it differs honestly — picking a set stages a selection,
        sending AiMY to a supplier goes and does something. */
-    const listSrc = asList ? DB.sourceBy[S.srcref] : null;
+    /* Offers about the LIST only where a list is the scope. Rich tab rows
+       are not a list, so the block above the rows keeps just the leads'
+       findings — the tab surface has no list-shaped question to ask. */
+    const listSrc = listScope() ? DB.sourceBy[S.srcref] : null;
     const offers = listSrc
       ? listOffers(listSrc, listPool(listSrc), listSrc.kind === 'con' ? 'con' : 'acc',
           (listReading(listSrc).card || {}).attr)
@@ -16233,7 +16246,7 @@
       ${page.length
         ? (open === 'lists'
             ? `<div class="s-lists s-stagger">${page.map((x, i) => listCard(x, i)).join('')}</div>`
-            : grid(page))
+            : grid(page, { rich: true }))
         : `<p class="s-none">Nothing here${cut ? ` is ${esc(cut.label.toLowerCase())}` : ''}.</p>`}
 
       ${/* THE WAY TO THE REST. A capped list that does not say it is capped
