@@ -12829,6 +12829,50 @@
     </div>`;
   }
 
+  /* ══ WHO IT IS AIMED AT, READ OFF WHO IS ON IT ═════════════════════════
+     A campaign's persona was a thing you could only learn by opening its
+     people and noticing they were all QA managers. It is the same
+     derivation the audience criteria already run — `role` on the contacts —
+     ranked, so the shape of the target reads at a glance and a campaign that
+     has drifted into three unrelated titles says so. */
+  function campPersona(l) {
+    const n = Object.create(null);
+    campPeople(l).forEach((p) => { if (p.role) n[p.role] = (n[p.role] || 0) + 1; });
+    return Object.keys(n).sort((a, b) => n[b] - n[a]).map((t) => ({ t, n: n[t] }));
+  }
+
+  /* ══ THE RATE, NOT THE TOTAL ═══════════════════════════════════════════
+     `campTally` counts touchpoints and meetings for the whole life of a
+     campaign, which answers "how much has happened" and not "is it keeping
+     up" — and the second is the one somebody checks on a Monday. Divided by
+     the weeks the campaign has actually been running, so two campaigns of
+     different ages are comparable, which a total never is.
+
+     Its window is the campaign's own: `from` to today, or to `to` once it
+     has closed. A campaign with no `from` has not started, so there is no
+     window to divide by and this returns nothing rather than dividing by a
+     week it invented. */
+  function campWeekly(l) {
+    if (!l || !l.from) return null;
+    const to = l.to && daysAgo(l.to) > 0 ? l.to : iso(TODAY);
+    if (to < l.from) return null;
+    const weeks = Math.max(1, (daysBetween(l.from, new Date(to)) + 1) / 7);
+    let touches = 0;
+    let meetings = 0;
+    campMembers(l).forEach((a) => touchesFor(a).forEach((t) => {
+      if (!inPeriod(t.at, { from: l.from, to })) return;
+      touches += 1;
+      /* The same test `metIn` makes, so a meeting counts here exactly where
+         it counts on the funnel — one definition, two readers. */
+      if (t.ch === 'meeting' || t.ch === 'physical' || t.outcome === 'meeting-booked') meetings += 1;
+    }));
+    return { weeks, touches, meetings, tpw: touches / weeks, mpw: meetings / weeks };
+  }
+
+  /* One decimal, and no trailing ".0" — "3 a week" is what somebody says out
+     loud, and "3.0 a week" is a spreadsheet talking. */
+  const perWeek = (v) => (Math.round(v * 10) / 10).toString();
+
   function campIdentity(l) {
     const crew = l.crew || {};
     const internal = canWrite();
@@ -12914,6 +12958,37 @@
             four zeroes would be a worse answer than the sentence that says
             nobody is on it yet. */ ''}
       ${row('Progress', campTally(l) || `<span class="s-goal-text">${esc(campProgressSay(l))}</span>`)}
+
+      ${/* ══ WHO IT IS AIMED AT, AND WHETHER IT IS KEEPING UP ═════════════
+            Two questions the page could answer and did not. The persona was
+            learnable only by opening the people and noticing they were all
+            QA managers; the rate was learnable not at all, because every
+            figure on this page is a life-to-date total and a total cannot
+            say whether a campaign has gone quiet this month.
+
+            Under Progress, because both qualify it: the tally says how much
+            has happened, these say to whom and how fast. */ ''}
+      ${(() => {
+        const who = campPersona(l);
+        if (!who.length) return '';
+        const top = who.slice(0, 3);
+        /* No wrapper: `.s-id-vals` is already the wrapping flex row every
+           other row in this block lays its values out in. */
+        return row('Persona', `${top.map((x) =>
+          `<span class="s-persona"><b>${esc(x.t)}</b> ${x.n}</span>`).join('')}${
+          who.length > top.length ? `<span class="s-goal-text">and ${who.length - top.length} more</span>` : ''}`);
+      })()}
+      ${(() => {
+        const w = campWeekly(l);
+        if (!w) return '';
+        /* Named for the window it measured, because "2.4 a week" over three
+           weeks and over thirty are different claims and only one of them
+           is worth acting on. */
+        const over = `over ${plural(Math.round(w.weeks), 'week')}`;
+        return row('Every week', `<span class="s-persona"><b>${esc(perWeek(w.tpw))}</b> touchpoints</span>
+          <span class="s-persona"><b>${esc(perWeek(w.mpw))}</b> meetings</span>
+          <span class="s-goal-text">${esc(over)}</span>`);
+      })()}
 
       ${/* ══ ONE OFFERING PER LINE, FOR THE SAME REASON AS TEAM ═══════════
             Two products, each carrying a `Knowledge` link and a remove `×`,

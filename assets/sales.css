@@ -4038,6 +4038,20 @@ body.is-calling { --fb-reserve: var(--call-width); }
    indent. Stacked, everything in the row starts at the same edge and "who is
    on BDR" is a glance down it. */
 .s-id-line { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+/* ── A FIGURE AND WHAT IT COUNTS, INSIDE AN IDENTITY ROW ──
+   Persona and the weekly rate are both "this number, of that thing", which
+   is what every stat on this page is — but at the rank a row inside the
+   identity block carries rather than the tally's. The figure takes full ink
+   and the heaviest weight, the noun stays at secondary: rank by weight, not
+   by fading the half that says what the number means. */
+.s-persona {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  font-size: var(--fs-base); color: var(--d200); white-space: nowrap;
+}
+.s-persona b {
+  color: var(--d50); font-weight: var(--fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
 /* `.s-id-item` was the offering row — a name, a Knowledge link and a `×`
    sharing one flex line, where the only thing binding the three together was
    the gap between them. `.s-sell-pill` binds them with a border instead, so
