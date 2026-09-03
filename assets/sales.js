@@ -13669,10 +13669,22 @@
     const meets = ts.filter((t) => t.ch === 'meeting' || t.ch === 'physical');
     const byOut = {};
     meets.forEach((t) => { const k = t.outcome || 'none'; byOut[k] = (byOut[k] || 0) + 1; });
+    /* ══ DELIVERED, NOT SENT ══════════════════════════════════════════
+       A bounce never reached anybody, so it cannot have been interested —
+       counting it in the denominator charges the copy for a fault in the
+       list. This surface already says exactly that two inches below the
+       funnel ("that is the list, not the copy"), and `stageFigure`'s reply
+       rate has excluded bounces since v6 on the same reasoning. This was the
+       one figure on the page still dividing by sent.
+
+       The industry does the same: reply rate is replies over DELIVERED, and
+       the bounce is reported beside it as its own number rather than folded
+       into a rate it is not about. */
+    const bounced = mails.filter((t) => t.outcome === 'bounced').length;
     return {
       calls: calls.length, callsKeen: keen(calls),
-      mails: mails.length, mailsKeen: keen(mails),
-      bounced: mails.filter((t) => t.outcome === 'bounced').length,
+      mails: mails.length - bounced, mailsKeen: keen(mails),
+      bounced,
       meets: meets.length,
       outcomes: Object.keys(byOut).sort((a2, b2) => byOut[b2] - byOut[a2]).map((k) => ({ k, n: byOut[k] })),
     };
@@ -13701,7 +13713,7 @@
       ? stageRead('Nothing has gone out yet, so there is nothing to measure. <b>Reach is where that starts.</b>')
       : cs != null && ms != null && Math.abs(cs - ms) > 0.1
         ? stageRead(cs > ms
-            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of the emails.${r.bounced ? ` <b>${r.bounced}</b> of those never arrived at all.` : ''}`
+            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of the emails that arrived.${r.bounced ? ` A further <b>${r.bounced}</b> never arrived, which is the list rather than the copy.` : ''}`
             : `Email is landing better than the phone: <b>${pc(ms)}</b> against <b>${pc(cs)}</b>.`)
         : r.meets
           ? stageRead(`<b>${plural(r.meets, 'meeting')}</b> out of it so far, from <b>${r.calls + r.mails}</b> attempts.`)
@@ -13748,7 +13760,7 @@
                 thing and keeps the sender visible, and this says it the same
                 way. */ ''}
           ${statFig(shareOf(r.mailsKeen, r.mails), 'Emails interested',
-            r.mails ? `${r.mailsKeen} of ${r.mails} AiMY emails${r.bounced ? `, ${r.bounced} never arrived` : ''}` : 'no email sent yet')}
+            r.mails ? `${r.mailsKeen} of ${r.mails} that arrived${r.bounced ? `, ${r.bounced} more never did` : ''}` : 'no email arrived yet')}
         </div>
       </div>` : ''}
       ${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
