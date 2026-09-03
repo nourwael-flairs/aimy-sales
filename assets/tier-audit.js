@@ -239,7 +239,11 @@ const WRITE_KEYS = [
   'taskundo', 'writeall', 'callend', 'callrec', 'callmute', 'callhold',
   /* The list builder's generate. `buildCommit` opens with the same
      `canWrite()` guard every other writer takes. */
-  'bgo', 'fillnow',
+  /* `bsave` is the write the run used to do by itself; `bdiscard` writes
+     nothing, and is listed anyway on the same rule as `kbfix` above — a
+     control that appears beside a write is one a later edit could turn into
+     one. */
+  'bgo', 'fillnow', 'bsave', 'bdiscard',
 ];
 
 function checkReadOnly() {

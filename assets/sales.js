@@ -6476,8 +6476,21 @@
     const take = [...DRAFT.take];
     const total = rows.length + take.length;
     if (!total) { toast('Nothing matches these criteria, so there is nothing to save.'); return; }
+    /* ══ AND IT STOPS AT WHAT IT FOUND ═══════════════════════════════════
+       Generating used to be saving: the last tick wrote the list, the
+       accounts and the people, and the only way back out was the Undo inside
+       a toast that clears itself. A search you cannot look at before it
+       enters the book is a search you have to undo rather than decide about.
+
+       So the run ends in a preview and the two verbs that answer it. Nothing
+       is written until Save; Discard writes nothing at all, which is why it
+       needs no undo of its own. */
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (still) { buildCommit(); return; }
+    if (still) {
+      DRAFT.run = { rows, take, at: total, total, step: total, ms: 0, done: true };
+      paintBuild();
+      return;
+    }
     /* ══ A BOUNDED NUMBER OF TICKS, NOT ONE PER ROW ═══════════════════════
        A row per tick is fine at eight and wrong at a hundred — and worse than
        wrong in a background tab, where the browser clamps `setTimeout` to
@@ -6498,7 +6511,10 @@
   function buildTick() {
     if (!DRAFT || !DRAFT.run) return;
     const r = DRAFT.run;
-    if (r.at >= r.total) { DRAFT.run = null; buildCommit(); return; }
+    /* The rows stay where they are and the page repaints once, from state —
+       they arrived by `insertAdjacentHTML` and a repaint would take them with
+       it, so `buildRunning` draws them all itself once the run is over. */
+    if (r.at >= r.total) { r.done = true; paintBuild(); return; }
     const i = r.at;
     r.at += 1;
     /* Appended, not repainted. Re-rendering the whole page per row would
@@ -6530,16 +6546,42 @@
 
   function buildRunning() {
     const r = DRAFT.run;
+    const kind = buildKind();
+    const done = !!r.done;
     return `<div class="s-sheet-head">
         <div class="s-sheet-head-main">
-          <div class="s-sheet-kind">${aiMark()}Looking</div>
-          <h1 class="s-sheet-name">${esc(buildName())}</h1>
+          <div class="s-sheet-kind">${aiMark()}${done ? 'Found' : 'Looking'}</div>
+          ${/* The name stays editable at the moment you decide to keep it —
+                which is the last moment it is free, and the one where you
+                have finally seen what it is a name for. */ ''}
+          <h1 class="s-sheet-name">${canWrite()
+            ? `<input class="s-build-name" type="text" spellcheck="false"
+                 value="${esc(buildName())}" data-auto="${esc(buildAutoName())}"
+                 aria-label="Name this list" />`
+            : esc(buildName())}</h1>
         </div>
       </div>
       <p class="s-stream-cap">
-        <span class="s-stream-n">0</span> of ${r.total} · asked ${FINDERS.map(([w]) => esc(w)).join(' · ')}
+        <span class="s-stream-n">${done ? r.total : 0}</span> of ${r.total} · asked ${FINDERS.map(([w]) => esc(w)).join(' · ')}
       </p>
-      <div class="s-stream"></div>`;
+      ${/* Redrawn from state once the run is over: the streamed rows were
+            appended to the live node and this repaint replaces it. */ ''}
+      <div class="s-stream${done ? ' is-done' : ''}">${
+        done ? r.rows.map((x, i) => buildStreamRow(i)).concat(
+          r.take.map((x, i) => buildStreamRow(r.rows.length + i))).join('') : ''}</div>
+      ${done ? `<div class="s-build-foot">
+        ${/* WHAT SAVING WOULD ACTUALLY DO, before it is done. A people build
+              searches for companies and makes the people at them, so the
+              count on the button is not the count in the rows above it —
+              saying so here is cheaper than explaining it afterwards. */ ''}
+        <p class="s-build-total">${kind === 'con'
+          ? `<b>${r.total}</b> ${r.total === 1 ? 'company' : 'companies'} — saving takes the people at them into the book.`
+          : `<b>${r.total}</b> ${r.total === 1 ? 'organization' : 'organizations'} — nothing is in the book until you save.`}</p>
+        ${canWrite() ? `<span class="s-build-keep">
+          <button class="s-inline-btn s-build-drop" type="button" data-bdiscard>Discard</button>
+          <button class="entry-action em-direct s-build-go" type="button" data-bsave>Save the list</button>
+        </span>` : ''}
+      </div>` : ''}`;
   }
 
 
@@ -15967,6 +16009,19 @@
     ? (!r.email || !r.phone)
     : (r.emp == null || r.rev == null))).length;
   const listGap = (s) => Math.max(0, s.found - listPool(s).length);
+
+  /* ══ A LIST NOTHING HAS HAPPENED TO YET ════════════════════════════════
+     Saving is not using. A list can be searched for, named, filled in and
+     then sit there — and until this it looked exactly like one being worked,
+     because every list carries an owner whether or not anybody agreed to be
+     it. `by` is where it landed, not somebody's answer.
+
+     Three ways out of it, and all three are real events: it was handed to
+     somebody (`handed`, written by `assignList`), it was built FOR a campaign
+     (`for`, written at save), or a campaign draws on its members. Anything
+     else is a draft, and the surfaces say so rather than leaving the reader
+     to notice that nothing uses it. */
+  const listDraft = (s) => !!s && !s.handed && !s.for && !listUsedBy(s).length;
   function listShort(s) {
     const held = listPool(s).length;
     return !!held && s.found >= LIST_SHORT_MIN && held < s.found * LIST_SHORT_TAKE;
@@ -16219,8 +16274,16 @@
         const to = ($('.s-list-to:checked') || {}).value;
         if (!to) return false;
         s.by = to;
+        /* Somebody agreed to be answerable for it, which is one of the three
+           things that makes a list stop being a draft. Recorded rather than
+           inferred from `by`, because `by` has a value from the moment the
+           list is saved and says only where it landed. */
+        const wasHanded = s.handed;
+        s.handed = true;
         paint(); paintRail();
-        toast(`${s.name} is ${actor(to).name}'s now.`, () => { s.by = was; paint(); paintRail(); });
+        toast(`${s.name} is ${actor(to).name}'s now.`, () => {
+          s.by = was; s.handed = wasHanded; paint(); paintRail();
+        });
       },
     });
   }
@@ -16325,7 +16388,12 @@
 
     return `<header class="s-listhead">
       <div class="s-listhead-main">
-        <div class="s-sheet-kind">List</div>
+        ${/* SAVED IS NOT USED. A list nobody was handed and nothing draws on
+              is a draft, and the header is where that has to be said — the
+              facts line below carries "no campaign uses it" as one item among
+              six, which is a state reported as a statistic. The chip is the
+              same one every other drafted thing in this product wears. */ ''}
+        <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}</div>
         <h1 class="s-sheet-name">${editField(s, 'name')}</h1>
       </div>
       ${mine ? `<div class="s-listhead-acts">
@@ -17064,7 +17132,11 @@
               ? { alt: 'Ask about it', altAsk: `One organization on ${s.name} has no headcount or revenue. What is worth knowing about it before we use this list?` }
               : { alt: 'Ask which first', altAsk: `${pool.length - sized.length} organizations on ${s.name} have no headcount or revenue. Which of them are worth enriching first?` }) }
         : !used.length
-          ? { state: 'detected',
+          /* `drafted` rather than `detected`, which is in `WS_QUIET` and drew
+             no chip at all — so the one state on this card that means "and
+             then nothing happened to it" was the one the card would not
+             name. It is the state the whole save flow now writes toward. */
+          ? { state: listDraft(s) ? 'drafted' : 'detected',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, and <b>no campaign uses it</b>.`,
               act: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"`,
               alt: 'Ask what to build', altAsk: `${s.name} is ${plural(pool.length, 'organization')}, fully sized, and no campaign uses it. What campaign would suit them?` }
@@ -24220,6 +24292,20 @@
        for. Two controls, one act. */
     if (e.target.closest('[data-close-build]')) { goBack(); return; }
     if (e.target.closest('[data-bgo]')) { buildRun(); return; }
+    /* ── The two answers to a finished run ──
+       Save writes; Discard has nothing to unwrite, which is the whole point
+       of the preview — so it takes no confirm and offers no undo. The
+       criteria survive it, because the likely next act is not "leave" but
+       "that was the wrong search". */
+    if (e.target.closest('[data-bsave]')) { buildCommit(); return; }
+    if (e.target.closest('[data-bdiscard]')) {
+      if (!DRAFT) return;
+      buildScrape();
+      DRAFT.run = null;
+      paintBuild();
+      toast('Thrown away. Nothing was saved.');
+      return;
+    }
     if ((el = e.target.closest('[data-init]'))) {
       const k = el.dataset.init;
       if (k === 'draft-campaign') { createCampaign([]); return; }
