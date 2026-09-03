@@ -244,6 +244,9 @@ const WRITE_KEYS = [
      a later edit might reintroduce without its guard. `listkeep` blesses a
      draft; `listdrop` removes it and every record its search brought in. */
   'bgo', 'fillnow', 'bsave', 'bdiscard', 'listkeep', 'listdrop', 'listadd',
+  /* `campaddlist` puts lists into a campaign; `persona` writes who it is
+     aimed at. Both change the record, so both are declared. */
+  'campaddlist', 'persona',
 ];
 
 function checkReadOnly() {

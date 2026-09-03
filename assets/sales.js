@@ -13015,13 +13015,47 @@
             has happened, these say to whom and how fast. */ ''}
       ${(() => {
         const who = campPersona(l);
-        if (!who.length) return '';
-        const top = who.slice(0, 3);
-        /* No wrapper: `.s-id-vals` is already the wrapping flex row every
-           other row in this block lays its values out in. */
-        return row('Persona', `${top.map((x) =>
-          `<span class="s-persona"><b>${esc(x.t)}</b> ${x.n}</span>`).join('')}${
-          who.length > top.length ? `<span class="s-goal-text">and ${who.length - top.length} more</span>` : ''}`);
+        const want = l.personas || [];
+        if (!who.length && !want.length) {
+          /* Nobody is on it yet, but the campaign can still say who it is
+             FOR — which is the half of this row that is a decision rather
+             than a count, and the half the creation flow needs. */
+          return internal ? row('Persona', '<span class="s-goal-text">Nobody has said who it is aimed at.</span>',
+            canWrite() ? `<button class="s-inline-btn" type="button" data-persona="${esc(l.k)}">Add</button>` : '') : '';
+        }
+        /* ══ THE NUMBER NEEDED A NOUN ══════════════════════════════════════
+             It read `VP Engineering 5` and the 5 was unexplained — five what,
+             out of what. It is how many PEOPLE on this campaign hold that
+             title, so it says so, and the row states the total it is a
+             share of.
+
+             Expanded in place through the same `OPEN_GROUPS` latch every
+             other capped set on this product uses, rather than a link to a
+             surface that would list them again. */
+        const open = OPEN_GROUPS.has('personas');
+        const shown = open ? who : who.slice(0, 3);
+        const people = campPeople(l).length;
+        const off = want.length ? who.filter((x) => want.indexOf(x.t) < 0) : [];
+        const offN = off.reduce((n2, x) => n2 + x.n, 0);
+        return row('Persona', `${
+          want.length ? `<span class="s-persona-want">Aimed at <b>${esc(want.join(', '))}</b></span>` : ''}${
+          shown.map((x) => `<span class="s-persona${want.length && want.indexOf(x.t) < 0 ? ' is-off' : ''}"><b>${esc(x.t)}</b> ${
+            x.n} ${x.n === 1 ? 'person' : 'people'}</span>`).join('')}${
+          who.length > shown.length
+            ? `<button class="s-inline-btn" type="button" data-opengroup="personas">and ${who.length - shown.length} more</button>`
+            : open && who.length > 3
+              ? `<button class="s-inline-btn" type="button" data-opengroup="personas">Show fewer</button>` : ''}${
+          who.length ? `<span class="s-goal-text">of ${plural(people, 'person')} on it</span>`
+            /* A campaign made an hour ago is aimed at somebody and holds
+               nobody, and the row printed the aim and then stopped — true,
+               but it reads as though the sentence was cut off. */
+            : `<span class="s-goal-text">${people
+              ? `no job title on any of the ${people} on it yet` : 'nobody on it yet'}</span>`}${
+          /* The gap between who it is FOR and who is on it — the same kind
+             of finding a list's criteria-versus-contents makes, and the
+             reason declaring a persona is worth doing at all. */
+          offN ? `<span class="s-persona-off">${offN} ${offN === 1 ? 'is' : 'are'} not who it is aimed at</span>` : ''}`,
+          canWrite() ? `<button class="s-inline-btn" type="button" data-persona="${esc(l.k)}">${want.length ? 'Change' : 'Add'}</button>` : '');
       })()}
       ${(() => {
         const w = campWeekly(l);
@@ -16301,6 +16335,116 @@
      Multi-pick, and it counts what each list would actually add: a list
      whose members are all already on the campaign is disabled rather than
      offered, which is the same courtesy the other direction pays. */
+  /* ══ WHO THE CAMPAIGN IS AIMED AT, DECLARED ════════════════════════════
+     `campPersona` derives the titles actually on a campaign, which answers
+     "who did we end up with" and cannot answer "who were we after" — and the
+     gap between those two is the finding. A campaign aimed at QA Managers
+     holding thirteen VPs of Engineering has drifted, and nothing on the page
+     could say so because nothing recorded the aim.
+
+     Multi-pick from the corpus's own titles, the same surface the other
+     three pickers on this page use. Ticked where already chosen, so opening
+     it shows the current answer rather than a blank form. */
+  /* ══ WHO IT IS AIMED AT IS A SENTENCE, NOT A MENU ══════════════════════
+     This was the sixteen titles in the book, to tick. That was wrong twice
+     over. A picker can only offer roles the book has ALREADY MET, so a
+     campaign aimed at a title nobody in it holds — which is most of the
+     reasons you would start one — could not be described at all. And the
+     answer is a thing a seller says in words: "QA heads and engineering
+     VPs", not four boxes out of sixteen.
+
+     So it reads what was typed. It SNAPS to a corpus title where one is
+     recognisable, because the comparison the page makes — how many on it
+     are not who it is aimed at — is against role strings and only lands on
+     a matching one. Anything unrecognised is kept in the words used: a
+     target the book has not met yet is still a target, and the page then
+     says plainly that nobody on it matches, which is both the true answer
+     and, for a new campaign, the entire point.
+
+     `whole` IS WHETHER THE TEXT IS THE ANSWER. Read a dedicated field and
+     every word of it was typed to answer this, so an unrecognised phrase is
+     a role the book has not met. Read a GOAL sentence and most of it is
+     about something else — "…with 200 to 1000 staff, we want a scoping
+     call" put "we want a scoping call" on a campaign as its target — so a
+     sentence that merely contains the answer yields only what it can
+     name. */
+  function readPersonas(text, whole) {
+    const said = String(text || '').replace(/^\s*(?:aimed at|aiming at|targeting|target|aim at|for)\s+/i, '').trim();
+    if (!said) return [];
+    /* Punctuation out, the role nouns singularised, and the joining words
+       dropped — so "heads of QA" and "Head of QA" reduce to the same two
+       words, and the "&" inside "Head of Data & Analytics" cannot read as a
+       separator between two aims. */
+    const words = (str) => String(str).toLowerCase().replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(heads|vps|directors|managers|leads|coos|ctos)\b/g, (w) => w.slice(0, -1))
+      .split(' ')
+      .filter((w) => w && !/^(of|the|a|an|for|our|to|at|in|on|and|or)$/.test(w));
+    const FILLER = /^(aimed|aiming|target|targeting|targets|people|person|folks|anyone|everyone|whoever|owns|new|plus|also|any)$/;
+    const out = [];
+    const add = (t) => { const v = String(t).trim().replace(/\s+/g, ' '); if (v && out.indexOf(v) < 0) out.push(v); };
+    /* CHUNKS, NOT PHRASES. Split on the marks people list with and leave
+       "and" alone inside a chunk, so one chunk can name two titles — "QA
+       managers and heads of QA" is two aims, and "Head of Data & Analytics"
+       is one. */
+    said.split(/[,;\/\n]+/).forEach((chunk) => {
+      const set = new Set(words(chunk));
+      if (!set.size) return;
+      /* A title is named when every word of it is in the chunk. Order does
+         not have to match, so "engineering VPs" and "VP Engineering" both
+         land on the same role. */
+      const hit = TITLES.filter((t) => { const w = words(t); return w.length && w.every((x) => set.has(x)); });
+      hit.forEach(add);
+      if (!whole) return;
+      /* AND WHATEVER IS LEFT OF THE CHUNK. Recognising one title used to end
+         the chunk, so "heads of QA and procurement" came back as Head of QA
+         alone and the second aim was dropped without a word - the one case
+         where losing it matters most, since a role the book has not met is
+         exactly what free text is for. So the words the titles accounted for
+         are struck out and any phrase still standing is kept, split on the
+         joiners this time because "procurement and finance" is two aims. */
+      const used = new Set();
+      hit.forEach((t) => words(t).forEach((w) => used.add(w)));
+      chunk.split(/\band\b|&|\+/i).forEach((bit) => {
+        if (words(bit).filter((x) => !FILLER.test(x) && !used.has(x)).length) add(bit);
+      });
+    });
+    return out;
+  }
+
+  function setPersonas(k) {
+    const c = DB.campBy[k];
+    if (!c || !canWrite()) return;
+    const want = c.personas || [];
+    /* What it holds now, as a reading rather than a list to choose from —
+       the three commonest titles on it, so the sentence is written against
+       something instead of into the dark. */
+    const has = campPersona(c).slice(0, 3).map((r) => r.t);
+    commit({
+      title: `Who is ${esc(c.name)} aimed at?`,
+      body: `<p class="s-commit-lead">Say it in your own words. It changes nothing about who is on it — it is what the page compares them against.</p>
+        <label class="ds-field s-field">
+          <span class="s-field-label">Aimed at${has.length ? ` <span class="s-field-note">most on it now are ${esc(has.join(', '))}</span>` : ''}</span>
+          <input class="input" type="text" spellcheck="false" value="${esc(want.join(', '))}"
+            placeholder="${esc(has.length ? has.slice(0, 2).join(' and ') : 'heads of QA and engineering VPs')}" />
+        </label>`,
+      effects: [['ok', 'Nobody joins or leaves. The page says how many on it are not who you name.']],
+      reversible: 'Undoable from the toast',
+      confirm: 'Save it',
+      run() {
+        const said = String(($('#commitHost .s-field .input') || {}).value || '').trim();
+        const picked = readPersonas(said, true);
+        const was = c.personas;
+        if (picked.length) c.personas = picked; else delete c.personas;
+        paint(); paintRail();
+        toast(picked.length
+          ? `${c.name} is aimed at ${picked.join(', ')}.`
+          : `${c.name} is aimed at nobody in particular now.`,
+          () => { if (was) c.personas = was; else delete c.personas; paint(); paintRail(); });
+      },
+    });
+  }
+
   function addListsToCampaign(k) {
     const c = DB.campBy[k];
     if (!c || !canWrite()) return;
@@ -20045,6 +20189,13 @@
     CBUILD.goal = text;
     CBUILD.terms = readGoal(text).concat(FIND_HYGIENE.map((h) => ({ ...h })));
     CBUILD.crit = CBUILD.terms.filter((c) => c.on).map(critText);
+    /* ══ AND WHO IT IS AIMED AT, IF THE SENTENCE SAID ═════════════════════
+       "a scoping call with whoever owns quality" names an industry and a
+       size to `readGoal` and a ROLE to this. Read here so the aim turn has
+       something to put to you rather than asking for a thing you have just
+       typed; nothing is invented, and an unstated aim stays unstated and is
+       asked for plainly. */
+    CBUILD.personas = readPersonas(text);
     CBUILD.step = 'who';
     cbuildSpend();
     threadPush({ who: 'you', text });
@@ -20053,6 +20204,39 @@
       [{ k: 'who-ok', label: `Bring in the ${netNew().length}` },
        { k: 'who-edit', label: 'Change the criteria' }]);
     paintTalk();
+  }
+
+  /* ══ AND THE SAME "AIMED AT" THE FORM ASKS FOR ═════════════════════════
+     The form has a field for it, pre-read from the goal sentence and
+     editable; the conversation read the same sentence the same way and then
+     never mentioned it, so the two doors produced different campaigns from
+     identical words — one with a target you had seen and could correct, one
+     with a target you had not been told about.
+
+     It is a TURN and not a silent read for the same reason the field is not
+     a picker: who a campaign is for is the decision the rest of it hangs
+     off, and a decision made on your behalf out of a clause in a longer
+     sentence should at least be said out loud. Read something, and it asks
+     you to confirm; read nothing, and it asks. Either way you answer in
+     words, and "nobody in particular" is a real answer with a button. */
+  function cbuildAim() {
+    const got = CBUILD.personas || [];
+    CBUILD.step = 'aim';
+    cbuildSpend();
+    cbuildPush('aim',
+      got.length
+        ? `From that, I have it aimed at ${got.join(', ')}. Type who instead if that is not right.`
+        : 'Who is it aimed at? Say the roles in your own words — it changes nothing about who is in it, it is what the campaign gets measured against.',
+      (got.length ? [{ k: 'aim-ok', label: 'That is who' }] : [])
+        .concat([{ k: 'aim-none', label: 'Nobody in particular', quiet: true }]),
+      got.length ? '' : 'heads of QA and engineering VPs');
+    paintTalk();
+  }
+
+  function cbuildAimSaid(text) {
+    CBUILD.personas = readPersonas(text, true);
+    threadPush({ who: 'you', text });
+    cbuildSells();
   }
 
   function cbuildSells() {
@@ -20125,14 +20309,25 @@
       crew: (() => { const by = CREW_SHAPE();
         if (by[me().fn]) by[me().fn].push(me().id); return by; })(),
       client: null, sells: CBUILD.sells.slice(),
+      personas: (CBUILD.personas || []).slice(),
       members, crit: {}, made: iso(TODAY),
       plan: null, from: null, to: null, svc: null, kb: null,
     };
     DB.camp.push(c);
     CBUILD = null;
     reindex();
+    const landsOn = CAMP_STAGE.filter((x) => x.k === campStage(c))[0];
     threadPush({ who: 'change',
-      text: `Built <b>${esc(c.name)}</b> — ${esc(plural(members.length, 'organization'))} in it, with what it is for and what we sell.`,
+      /* ══ SAID IN THE PAGE'S OWN VOCABULARY ═══════════════════════════
+         "with what it is for and what we sell" named two form fields, and a
+         campaign no longer presents itself as a form — it presents five
+         stages, and the one it opens on is the answer to "so what now". The
+         aim joins the sentence because the conversation has just asked for
+         it, and a turn that collects a thing and never repeats it back reads
+         as though the answer went nowhere. */
+      text: `Built <b>${esc(c.name)}</b> — ${esc(plural(members.length, 'organization'))} in it${
+        (c.personas || []).length ? `, aimed at <b>${esc(c.personas.join(', '))}</b>` : ''
+      }. That is Find done, and it opens on <b>${esc(landsOn ? landsOn.label : 'Find')}</b>: nobody at any of them has been found to talk to yet.`,
       /* `undo` IS THE FUNCTION, not a flag — `turnHtml` tests it for the
          button and the handler calls it. */
       undo: () => {
@@ -20480,6 +20675,7 @@
         cbuildMake();
         return;
       }
+      if (CBUILD.step === 'aim') { cbuildAimSaid(t); return; }
       /* `who` and `sells` are answered with the buttons on the turn. A
          sentence there is a person talking past the question, so it is said
          back rather than silently swallowed. */
@@ -24545,7 +24741,9 @@
       /* Leaves for the page that IS the form. Nothing typed is lost because
          nothing has been typed — this is the first turn's own escape. */
       if (k === 'own') { CBUILD = null; closeCanvas(); newCampaignPage(); return; }
-      if (k === 'who-ok') { cbuildSells(); return; }
+      if (k === 'who-ok') { cbuildAim(); return; }
+      if (k === 'aim-ok') { cbuildSells(); return; }
+      if (k === 'aim-none') { CBUILD.personas = []; cbuildSells(); return; }
       if (k === 'who-edit') {
         /* THE ONE ANSWER THAT LEAVES THE CONVERSATION, and it leaves for the
            surface built to do this: `findCompanies` is the criteria builder,
@@ -24894,6 +25092,7 @@
        itself, through `data-listkeep` and `data-listdrop` below. */
     if ((el = e.target.closest('[data-listadd]'))) { addListToCampaign(el.dataset.listadd); return; }
     if ((el = e.target.closest('[data-campaddlist]'))) { addListsToCampaign(el.dataset.campaddlist); return; }
+    if ((el = e.target.closest('[data-persona]'))) { setPersonas(el.dataset.persona); return; }
     if ((el = e.target.closest('[data-listkeep]'))) { saveList(el.dataset.listkeep); return; }
     if ((el = e.target.closest('[data-listdrop]'))) { discardList(el.dataset.listdrop); return; }
     if ((el = e.target.closest('[data-init]'))) {
@@ -25872,7 +26071,7 @@
       description: 'No description yet.',
       goal: null,
       owner, assignees: [], crew,
-      client: null, sells: [], members: [],
+      client: null, sells: [], members: [], personas: [],
       crit: Object.assign({}, S),
       made: iso(TODAY),
       plan: null, from: null, to: null, svc: null, kb: null,
@@ -25942,6 +26141,24 @@
           <span class="s-field-label">What it is for${seed && seed.goal ? ' <span class="s-field-note">suggested</span>' : ''}</span>
           <textarea class="ds-textarea s-new-desc" rows="2" placeholder="Who is in it and why, in a sentence.">${esc((seed && seed.goal) || '')}</textarea>
         </label>
+        ${/* ══ AND WHO IT IS AIMED AT ════════════════════════════════════
+              The form collected who is IN it and never who it is FOR, so
+              every campaign made here was born with no target and the page's
+              persona reading had nothing to compare against. Typed, not
+              picked — a campaign aimed at a role the book has not met yet is
+              the ordinary case, and a menu of the sixteen roles it HAS met
+              cannot express it.
+
+              Pre-read from the goal sentence when that names a role, because
+              "a scoping call with whoever owns quality" has already answered
+              this, and asking again would be asking twice. */ ''}
+        ${(() => {
+          const from = readPersonas((seed && seed.goal) || '');
+          return `<label class="ds-field s-field">
+          <span class="s-field-label">Aimed at<span class="s-field-note">${from.length ? 'read from the goal' : 'optional'}</span></span>
+          <input class="field-input s-new-aim" type="text" spellcheck="false" value="${esc(from.join(', '))}" placeholder="heads of QA and engineering VPs" />
+        </label>`;
+        })()}
         ${/* ══ WHAT WE WOULD BE SELLING ══════════════════════════════════
               Read off the ICPs the accounts matched. This field was the
               diagram's own complaint — "for people working on it they don't
@@ -26132,6 +26349,10 @@
              Its former partner, `stakeholders`, is gone — see the note where
              the field used to be. */
           client: ($('.s-new-client:checked') || {}).value || null,
+          /* Read from the field above, in the words that were typed. The
+             page checks it against who is actually on it and says how many
+             are not — which is the whole reason it is collected. */
+          personas: readPersonas(($('.s-new-aim') || {}).value || '', true),
           sells: seed ? kept.map((i) => seed.sells[i]).filter(Boolean) : [],
           /* Handed in, or empty. A campaign made from nothing starts with
              nobody in it and Find fills it — which is what Find is, and what

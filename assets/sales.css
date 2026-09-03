@@ -3972,6 +3972,22 @@ body.is-calling { --fb-reserve: var(--call-width); }
   color: var(--d50); font-weight: var(--fw-extrabold);
   font-variant-numeric: tabular-nums;
 }
+/* ── WHO IT IS FOR, AND WHO TURNED UP ──
+   The aim leads the row because it is the claim the counts beside it are
+   measured against — a campaign holding five VPs of Engineering is a fact,
+   and whether that is drift depends entirely on this line. */
+.s-persona-want {
+  font-size: var(--fs-base); color: var(--d200); white-space: nowrap;
+}
+.s-persona-want b { color: var(--d50); font-weight: var(--fw-semibold); }
+/* A title on it that the campaign did not aim at. Toned rather than hidden:
+   it is not an error, it is the drift, and the reader decides whether it
+   matters. */
+.s-persona.is-off b { color: var(--warn-text); }
+.s-persona-off {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--warn-text);
+  white-space: nowrap;
+}
 
 /* ══ WHERE THE MONEY WENT, PER PERSON ══════════════════════════════════════
    A total answers "how much" and none of "which of these to stop", which is
@@ -6778,7 +6794,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 }
 .s-assignee.is-owner { color: var(--d50); font-weight: var(--fw-semibold); }
 .s-sheet-head-main { min-width: 0; }
-.s-new-name, .s-new-desc, .s-note, .s-addr, .s-kb-why { width: 100%; }
+.s-new-name, .s-new-desc, .s-new-aim, .s-note, .s-addr, .s-kb-why { width: 100%; }
 .s-note, .s-kb-why { resize: vertical; }
 /* THE CHECKMARK IS NOT CENTRED IN ITS OWN BOX, and it is the library's rule.
 
