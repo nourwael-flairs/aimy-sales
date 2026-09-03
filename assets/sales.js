@@ -16033,6 +16033,67 @@
     });
   }
 
+  /* ══ A LIST INTO A CAMPAIGN THAT ALREADY EXISTS ════════════════════════
+     `data-listcamp` makes a new campaign FROM a list, which is the rarer of
+     the two things somebody wants from a finished list — a book already
+     running eight campaigns more often has the right one already. Same
+     surface as `pickCampaignForSelection`, same shape, same undo: the two
+     are one act at two scales, so a reader who has done one knows this.
+
+     It counts the duplicates per campaign before you choose, because a list
+     built from criteria a campaign already works can be mostly the accounts
+     it already holds — and adding four of nineteen is a different decision
+     from adding nineteen. */
+  function addListToCampaign(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite()) return;
+    const accIds = toAccountIds(listPool(s));
+    if (!accIds.length) { toast('Nothing on it to add.'); return; }
+    const open = DB.camp.filter((c) => campState(c) !== 'finished');
+    if (!open.length) { toast('Every campaign has finished, so there is none to add it to.'); return; }
+    commit({
+      title: `Add ${s.name} to a campaign`,
+      /* ══ MORE THAN ONE, BECAUSE A LIST OFTEN SUITS MORE THAN ONE ═══════
+           A list built from criteria three campaigns share is the ordinary
+           case, not the edge one, and a radio made you come back and repeat
+           the whole decision per campaign. The duplicate count per row is
+           what makes the multi-pick readable: it says, before you choose,
+           which of these would actually gain anything. */
+      body: `<div class="s-pick">${open.map((l) => {
+        const dupes = accIds.filter((a) => l.members.includes(a)).length;
+        const all = dupes === accIds.length;
+        return `<label class="ds-choice s-pick-row">
+          <input type="checkbox" value="${esc(l.k)}"${all ? ' disabled' : ''} />
+          <span>${esc(l.name)} <span class="s-pick-role">${esc(plural(l.members.length, 'account'))}${
+            all ? ' · already holds them all' : dupes ? ` · ${dupes} already there` : ''}</span></span>
+        </label>`;
+      }).join('')}</div>`,
+      effects: [['ok', `${plural(accIds.length, 'account')} from this list join every campaign you pick.`]],
+      confirm: 'Add them',
+      run() {
+        /* Structural, like the selection bar's own picker — the checkbox needs no
+           class of its own and an unstyled hook is a rule waiting to be orphaned. */
+        const picked = $$('.s-pick input:checked').map((el) => DB.campBy[el.value]).filter(Boolean);
+        if (!picked.length) { toast('No campaign was picked, so nothing changed.'); return false; }
+        /* Every campaign's previous membership, captured before any of them
+           moves, so one Undo puts all of them back — a multi-pick that
+           undid only the last campaign would be worse than no undo. */
+        const prev = picked.map((l) => [l, l.members.slice()]);
+        let added = 0;
+        picked.forEach((l) => {
+          const fresh = accIds.filter((a) => !l.members.includes(a));
+          added += fresh.length;
+          l.members = l.members.concat(fresh);
+        });
+        if (!added) { toast('Every one of them was already there, so nothing changed.'); return false; }
+        reindex(); paint(); paintChrome(); paintRail();
+        toast(`${plural(added, 'account')} added to ${picked.length === 1
+          ? picked[0].name : plural(picked.length, 'campaign')} — it is no longer a draft.`,
+          () => { prev.forEach(([l, m]) => { l.members = m; }); reindex(); paint(); paintChrome(); paintRail(); });
+      },
+    });
+  }
+
   /* ══ WHICH DRAFTED LIST THE READER IS LOOKING AT, IF ANY ═══════════════
      Both surfaces route to it: the drafted list opens under `?on=build&bsrc`
      from the commit, and under `?on=leads&srcref` from the Lists tab. This
@@ -16044,6 +16105,35 @@
     if (!key) return null;
     const s = DB.sourceBy[key];
     return (s && listDraft(s)) ? key : null;
+  }
+
+  /* ══ THE GUARD, ON THE PRODUCT'S OWN COMMIT SURFACE ════════════════════
+     A `beforeunload` prompt stood here for one pass and it was the wrong
+     instrument twice over: the browser draws it, so it is the one dialog in
+     this product that cannot say what it is about — no name, no counts, and
+     the same two words every site uses — and it can only ever offer leave or
+     stay, when the decision actually open has three answers.
+
+     `commit` has all three and is where every other consequential decision
+     in this file is made: Cancel stays, the alt discards, the confirm keeps.
+     The body says what is being decided about rather than making the reader
+     remember, which is the whole reason the native one had to go. */
+  function askLeaveDraft(k) {
+    const s = DB.sourceBy[k];
+    if (!s) { goBack(); return; }
+    const pool = listPool(s);
+    const noun = s.kind === 'con' ? 'person' : 'organization';
+    commit({
+      title: `${s.name} is still a draft`,
+      body: `<p class="s-more-note">Nobody has said whether to keep it. It holds
+        <b>${esc(plural(pool.length, noun))}</b> and no campaign draws on it yet.</p>`,
+      effects: [['warn', 'Discarding takes it and everything its search brought in back out of the book.']],
+      reversible: 'Either way, undoable from the toast',
+      confirm: 'Save the list',
+      run() { saveList(k); goBack(); },
+      alt: 'Discard it',
+      altRun() { discardList(k); },
+    });
   }
 
   function discardList(k) {
@@ -16305,33 +16395,62 @@
      which the ladder would normally act on, but the consequence is that
      somebody else becomes answerable for it. Naming who, before it happens,
      is the point of the surface. */
+  /* ══ A LIST CAN BE MORE THAN ONE PERSON'S ══════════════════════════════
+     `by` stayed a single id — every reader in the file resolves it through
+     `actor()` and would break on an array — and the rest go in `with`. The
+     first person picked is `by`, so nothing downstream changes; `listOwners`
+     is the reader for anything that needs all of them.
+
+     Written as a sentence rather than a count, because "3 people own it"
+     answers a question nobody asks — you want to know WHICH, and at two or
+     three names that fits on the line it was already occupying. */
+  const listOwners = (s) => [s.by].concat(s.with || []).filter(Boolean);
+  function listOwnerSay(s) {
+    const names = listOwners(s).map((id) => actor(id).name);
+    if (names.length <= 1) return `${names[0] || 'Nobody'} owns it`;
+    const last = names.pop();
+    return `${names.join(', ')} and ${last} own it`;
+  }
+
   function assignList(k) {
     const s = DB.sourceBy[k];
     if (!s || !canWrite()) return;
     const was = s.by;
-    const pool = SELLERS.filter((p) => p.id !== s.by);
-    if (!pool.length) { toast('There is nobody else to assign it to.'); return; }
+    const wasWith = (s.with || []).slice();
+    const held = listOwners(s);
+    const pool = SELLERS.filter((p) => held.indexOf(p.id) < 0);
+    if (!pool.length) { toast('Everybody who could hold it already does.'); return; }
     commit({
       title: `Hand on ${s.name}`,
-      body: `<div class="s-pick">${pool.map((p, i) => `<label class="ds-choice s-pick-row">
-        <input type="radio" name="listto" class="s-list-to" value="${esc(p.id)}"${i === 0 ? ' checked' : ''} />
+      body: `${held.length > 1 ? `<p class="s-more-note">${esc(listOwnerSay(s))} today.</p>` : ''}
+        <div class="s-pick">${pool.map((p) => `<label class="ds-choice s-pick-row">
+        <input type="checkbox" class="s-list-to" value="${esc(p.id)}" />
         <span>${esc(p.name)} <span class="s-pick-role">${esc(roleOf(p))}</span></span>
       </label>`).join('')}</div>`,
-      effects: [['warn', `${listPool(s).length} organizations come with it.`]],
-      confirm: 'Assign it',
+      effects: [['warn', `${listPool(s).length} organizations come with it, to all of them.`]],
+      confirm: 'Hand it on',
       run() {
-        const to = ($('.s-list-to:checked') || {}).value;
-        if (!to) return false;
-        s.by = to;
-        /* Somebody agreed to be answerable for it, which is one of the three
-           things that makes a list stop being a draft. Recorded rather than
-           inferred from `by`, because `by` has a value from the moment the
-           list is saved and says only where it landed. */
+        const to = $$('.s-list-to:checked').map((el) => el.value);
+        if (!to.length) { toast('Nobody was picked, so nothing changed.'); return false; }
+        /* ══ HANDING IT ON REPLACES WHO HOLDS IT ══════════════════════════
+           Not "adds to" — the verb is hand ON, and a list that accumulated
+           every person it had ever passed through would name six people
+           none of whom had agreed to be the sixth. The first pick becomes
+           `by` so every single-owner reader keeps working. */
+        s.by = to[0];
+        if (to.length > 1) s.with = to.slice(1); else delete s.with;
+        /* Somebody agreed to be answerable for it, which is one of the ways
+           a list stops being a draft. Recorded rather than inferred from
+           `by`, because `by` has a value from the moment the list is saved
+           and says only where it landed. */
         const wasHanded = s.handed;
         s.handed = true;
         paint(); paintRail();
-        toast(`${s.name} is ${actor(to).name}'s now.`, () => {
-          s.by = was; s.handed = wasHanded; paint(); paintRail();
+        toast(`${listOwnerSay(s)} now — it is no longer a draft.`, () => {
+          s.by = was;
+          if (wasWith.length) s.with = wasWith; else delete s.with;
+          s.handed = wasHanded;
+          paint(); paintRail();
         });
       },
     });
@@ -16405,7 +16524,7 @@
          made it 8 weeks ago" would be false the moment Ahmed handed it to
          him — one field cannot be both the author and the owner, and the
          owner is the one anybody needs. `at` keeps the date on its own. */
-      fact(`${esc(actor(s.by).name)} owns it`),
+      fact(esc(listOwnerSay(s))),
       fact(`made ${esc(fmtAgo(s.at))}`),
       /* Only where it was actually sourced. A list dropped in as a CSV or
          synced from the CRM has a real origin already — `crit` says so — and
@@ -16465,36 +16584,35 @@
       ${mine ? `<div class="s-listhead-acts">
         ${next ? `<button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')}" type="button" ${next.attr}>${esc(next.label)}</button>` : ''}
         ${next && next.attr.indexOf('listcamp') < 0 ? `<button class="btn btn-ghost btn-sm" type="button" data-listcamp="${esc(s.k)}">Start a campaign from it</button>` : ''}
+        ${/* ══ AND THE OTHER HALF OF THAT VERB ══════════════════════════════
+              "Start a campaign from it" made a NEW one, and there was no way
+              to put a list into a campaign that already exists — which is the
+              commoner of the two by a wide margin on a book already running
+              eight. The selection bar has had `Add to a campaign` since v5;
+              this is the same act at the scale the list already is, through
+              the same surface, so a reader who learned one knows the other.
+
+              Only where there is an open campaign to add it to. A control
+              that opens a picker with nothing in it is the button-that-
+              refuses defect wearing a picker. */ ''}
+        ${DB.camp.some((c) => campState(c) !== 'finished')
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-listadd="${esc(s.k)}">Add it to a campaign</button>` : ''}
         <button class="btn btn-ghost btn-sm" type="button" data-listassign="${esc(s.k)}">Hand it to someone</button>
-        ${/* ══ THE CONTROL THE FLAG NEVER HAD ═══════════════════════════════
-              `s.auto` had readers on four surfaces and a writer on none, so
-              "Runs itself" was a state the product could describe at length
-              and nobody could enter. This is the door, and it is the only
-              new control the whole standing loop needs.
+        ${/* ══ THE STANDING JOB IS NOT OFFERED FROM HERE ════════════════════
+              `Let AiMY keep finding and filling` sat beside `Look for more
+              like these` and the two were the same offer at two cadences —
+              one press against a standing grant — which made the row ask you
+              to decide how often before you had decided whether. Re-running
+              is the honest form of it: you see what came back each time.
 
-              A ghost rather than a primary: handing over standing work is
-              rarely the most useful thing to do to a list you have just
-              opened, and `claimPrimary` is already spoken for by whatever
-              the reading recommended. Always available, never shouted.
-
-              Stop is not paired with Run it again, because a list that runs
-              itself has nothing to re-run — the same suppression this line
-              has always made, now with somewhere to go instead of nowhere. */ ''}
-        ${/* ══ AND IT SAYS WHAT IT WOULD DO ════════════════════════════════
-              "Let AiMY keep it topped up" was asked what it meant, which is
-              the answer. Two things happen behind it — `autoAsk` grants a
-              cycle that FINDS up to a cap of new matches and FILLS up to a
-              cap of thin records — and "topped up" named neither, so the
-              only way to learn what you were authorising was to press a
-              button and read the confirm.
-
-              Both verbs, in the label. "keep" carries the standing part; the
-              confirm still carries the caps, which is detail a button cannot
-              hold and a grant surface must. */ ''}
+              Stop stays, because a list ALREADY running itself has to be
+              stoppable from the surface that says it is running. And the
+              grant keeps its door: AiMY raises `keep-list` as an initiative
+              when a list has earned it, which is the moment the offer is
+              worth making and this row was not. */ ''}
         ${s.auto
           ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop finding and filling</button>`
-          : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|on">Let AiMY keep finding and filling</button>`}
+          : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>`}
       </div>` : ''}
       ${/* THE CRITERIA ARE THE LIST. Editable in place, because what a list
             is FOR is the thing most likely to be wrong and the thing a
@@ -16707,7 +16825,7 @@
             that the fifth thing was NOT true of them, which is a default
             printed as a fact — the standing ones say so and the rest say
             nothing, the same reduction `stateChip` makes two screens up. */ ''}
-      <p class="s-listrow-facts">${esc(actor(s.by).name)} owns it${s.auto ? ' · runs itself' : ''}</p>
+      <p class="s-listrow-facts">${esc(listOwnerSay(s))}${s.auto ? ' · runs itself' : ''}</p>
       ${/* ══ WHAT AiMY WOULD DO, AND WHAT IT WOULD ANSWER ══════════════════
 
             Two controls, both AiMY's, where there were four: its recommended
@@ -24357,16 +24475,8 @@
        `data-listrun` does from the header, under a name that says what it is
        for. Two controls, one act. */
     if (e.target.closest('[data-close-build]')) {
-      /* ── GUARD ──
-         A drafted list is unfinished — nobody has said whether to keep it or
-         throw it. Back leaving it silent is the same defect the browser-
-         close guard below stops, from the other end: a state the surface has
-         a decision about, walked away from without deciding. The buttons are
-         on the same page, at the top; the toast points at them. */
-      if (draftedHere()) {
-        toast('Save or discard this draft first — the buttons are at the top right.');
-        return;
-      }
+      const draft = draftedHere();
+      if (draft) { askLeaveDraft(draft); return; }
       goBack();
       return;
     }
@@ -24374,6 +24484,7 @@
     /* `data-bsave` and `data-bdiscard` went with the interstitial preview
        stage. Deciding to keep or throw a list now happens on the drafted list
        itself, through `data-listkeep` and `data-listdrop` below. */
+    if ((el = e.target.closest('[data-listadd]'))) { addListToCampaign(el.dataset.listadd); return; }
     if ((el = e.target.closest('[data-listkeep]'))) { saveList(el.dataset.listkeep); return; }
     if ((el = e.target.closest('[data-listdrop]'))) { discardList(el.dataset.listdrop); return; }
     if ((el = e.target.closest('[data-init]'))) {
@@ -27118,18 +27229,11 @@
 
   window.addEventListener('popstate', () => { parse(); paint(); paintChrome(); });
 
-  /* ══ AND THE BROWSER'S OWN LEAVING GESTURE ═════════════════════════════
-     A reload wipes the fixture prototype's whole in-memory book, so leaving
-     a drafted list by closing or reloading loses it entirely — not just its
-     draft state. The `beforeunload` prompt is the browser's own guard,
-     matched to the same condition the in-app back guard reads (`draftedHere`)
-     so the two cannot disagree about when to fire. */
-  window.addEventListener('beforeunload', (e) => {
-    if (!draftedHere()) return;
-    e.preventDefault();
-    /* Firefox and Safari need `returnValue` set; Chrome takes preventDefault
-       alone. Setting both is the belt-and-braces the spec asks for and every
-       browser respects — the text is ignored, each browser draws its own. */
-    e.returnValue = '';
-  });
+  /* No `beforeunload`. It stood here for one pass, and the browser's own
+     prompt is the one dialog in this product that cannot name what it is
+     about or offer the third answer the decision actually has. The guard is
+     `askLeaveDraft`, on the commit surface every other consequential
+     decision here uses. The cost is real and taken deliberately: closing the
+     tab on a draft still loses it, as it loses everything else in a
+     prototype with no persistence. */
 })();

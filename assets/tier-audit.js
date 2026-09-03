@@ -243,7 +243,7 @@ const WRITE_KEYS = [
      on the same rule as `kbfix` above — a removed write is exactly the one
      a later edit might reintroduce without its guard. `listkeep` blesses a
      draft; `listdrop` removes it and every record its search brought in. */
-  'bgo', 'fillnow', 'bsave', 'bdiscard', 'listkeep', 'listdrop',
+  'bgo', 'fillnow', 'bsave', 'bdiscard', 'listkeep', 'listdrop', 'listadd',
 ];
 
 function checkReadOnly() {
