@@ -4753,9 +4753,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the thing they produced — still pressable, because refining is the
    commonest next move. */
 .s-build-done { display: flex; flex-direction: column; gap: 16px; }
-.s-build-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.s-build-sum-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
-.s-build-edit { white-space: nowrap; }
+/* `.s-build-sum` and its two children are gone. They drew the saved list's
+   criteria as chips directly above `listHead`, which draws the same criteria
+   as its own editable line — the same facts twice, with two different ways
+   to change them eight pixels apart. */
 
 /* `.s-build-ai` is gone. It drew the campaign fit as a standalone marked
    paragraph ending "Adding this list there is one press below" — an insight

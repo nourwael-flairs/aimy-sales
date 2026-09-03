@@ -6969,20 +6969,21 @@
   }
   function buildDone(src) {
     const pool = listPool(src);
-    const terms = sourceTerms(src).terms.filter((t) => t.on);
     const kind = src.kind === 'con' ? 'con' : 'acc';
 
     return `<div class="s-build-done">
-      ${/* THE CRITERIA STAY ABOVE WHAT THEY PRODUCED, and pressing one opens
-            the step it came from with the list's own terms loaded — so
-            refining is a press rather than starting again. */ ''}
-      <div class="s-build-sum">
-        <div class="s-build-sum-chips">
-          ${terms.map((t) => `<button class="chip default" type="button" data-bedit="${esc(t.axis)}">${esc(critText(t))}</button>`).join('')}
-        </div>
-        ${canWrite() ? `<button class="s-inline-btn s-build-edit" type="button" data-bedit="">Change the criteria</button>` : ''}
-      </div>
+      ${/* ══ THE CRITERIA ARE STATED ONCE, BY THE HEADER ═══════════════════
+            A chip row and `Change the criteria` sat above `listHead`, which
+            draws those same criteria as its own editable line eight pixels
+            below — the same facts twice, and two different ways to change
+            them adjacent to each other: the chips reopened the builder at the
+            step a term came from, the line edits the string in place.
 
+            Three ways, in fact. `Look for more like these` in the header
+            reopens the builder with exactly the terms the chips loaded, which
+            is the same act with a name that says what it is for. So the row
+            goes, `data-bedit` goes with it, and what is left is the line that
+            says what the list collects and the verb that runs it again. */ ''}
       ${listHead(src, pool)}
 
       ${/* WHAT IT ARRIVED MISSING, before anybody tries to work it. Headcount
@@ -7229,8 +7230,10 @@
          conversation handed over — leaving its key would reopen a thread whose
          questions this page is now answering. */
       camp: '', lead: '', task: '', tab: '', cut: '', srcref: '', stage: '', in: '', chat: '',
-      from: (over && over.keepFrom) ? S.from
-        : hereRef('on', 'bstep', 'bkind', 'bsrc', 'camp', 'lead', 'task', 'tab', 'cut', 'srcref', 'stage', 'in') });
+      /* `keepFrom` was for `data-bedit`, which reopened this page FROM this
+         page — the referrer had to survive or Back looped. Every caller left
+         arrives from somewhere else, so the referrer is always this hop. */
+      from: hereRef('on', 'bstep', 'bkind', 'bsrc', 'camp', 'lead', 'task', 'tab', 'cut', 'srcref', 'stage', 'in') });
   }
 
   /* ══ THE LIVE FIELDS GO INTO THE DRAFT BEFORE ANYTHING READS IT ════════
@@ -24211,16 +24214,10 @@
       paintBuild();
       return;
     }
-    if ((el = e.target.closest('[data-bedit]'))) {
-      const src = S.bsrc ? DB.sourceBy[S.bsrc] : null;
-    if (!src && !DRAFT) buildStart();
-      const ax = el.dataset.bedit;
-      buildOpen(src ? {
-        terms: sourceTerms(src).terms, name: src.name, by: src.by, kind: src.kind,
-        camp: src.for || null, step: (ax === 'via' || ax === 'own') ? 3 : 2, keepFrom: true,
-      } : { step: 2 });
-      return;
-    }
+    /* `data-bedit` went with the criteria chips it belonged to. It reopened
+       the builder carrying the saved list's terms — which is what
+       `data-listrun` does from the header, under a name that says what it is
+       for. Two controls, one act. */
     if (e.target.closest('[data-close-build]')) { goBack(); return; }
     if (e.target.closest('[data-bgo]')) { buildRun(); return; }
     if ((el = e.target.closest('[data-init]'))) {
