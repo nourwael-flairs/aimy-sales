@@ -3492,13 +3492,17 @@ body.is-calling { --fb-reserve: var(--call-width); }
    no-ops on part of its scope reports a success nobody has reason to
    distrust. */
 .s-effect.is-skip::before { content: "–"; color: var(--d500); }
-.s-effect.is-skip { color: var(--d500); }
+.s-effect.is-skip { color: var(--d200); }
 
 .s-pick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
 .s-pick-row { padding: 8px; border-radius: var(--r-md); cursor: pointer; }
 .s-pick-row:hover { background: rgba(255,255,255,0.04); }
 :root[data-theme="light"] .s-pick-row:hover { background: rgba(16,24,40,0.04); }
-.s-pick-role { color: var(--d500); font-size: var(--fs-xs); }
+/* The qualifier inside a choice — a role, a count, what is already there.
+   One step below the name it follows, and no dimmer: at `--d500` the thing
+   telling you WHICH of two similar campaigns to pick was the least legible
+   text on the surface that asked you to pick. */
+.s-pick-role { color: var(--d200); font-size: var(--fs-xs); }
 /* Two textareas inside a commit dialog, and one rule. `.s-raise` is the
    read-only tier's question; `.s-why` is a disqualification reason. Same
    box, same behaviour — separate class names because the audits read the
@@ -6378,7 +6382,24 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    stylesheet under the name `.s-cols-note`, which was never what it was for:
    the column manager happened to be the first thing that needed it. Renamed
    to what it does, and moved out of a block that no longer exists. */
-.s-more-note { font-size: var(--fs-xs); color: var(--d500); margin-top: 4px; }
+/* ══ A NOTE RANKS BY SIZE, NOT BY FADING ══════════════════════════════════
+   `--d500` is two steps below the dimmest ink role this product has a name
+   for, and nine surfaces reached for it to mean "supporting" — so the
+   supporting half of every commit body was the half you had to lean in to
+   read. One step of SIZE below the copy above it does that job; losing the
+   ink as well was the second device doing the first one's work badly. */
+.s-more-note { font-size: var(--fs-xs); color: var(--d200); margin-top: 4px; }
+/* ── AND THE COMMIT SURFACE GETS A BODY VOICE ──
+   Every commit wanting prose reached for `.s-more-note` — a FOOTNOTE class
+   — because there was nothing else, so the one paragraph a decision surface
+   exists to make readable was set at the smallest step in the dimmest ink.
+   This is the lead: what is being decided about, at a size that says so. */
+.s-commit-lead {
+  font-size: var(--fs-lg); font-weight: var(--fw-medium);
+  color: var(--d50); line-height: var(--lh-base);
+  margin: 0 0 4px; text-wrap: pretty;
+}
+.s-commit-lead b { font-weight: var(--fw-extrabold); color: var(--d50); }
 
 /* The tones the status word shares with the cards and the rail. */
 .tone-err { color: var(--err-text); }

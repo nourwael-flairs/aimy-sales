@@ -16125,8 +16125,19 @@
     const noun = s.kind === 'con' ? 'person' : 'organization';
     commit({
       title: `${s.name} is still a draft`,
-      body: `<p class="s-more-note">Nobody has said whether to keep it. It holds
-        <b>${esc(plural(pool.length, noun))}</b> and no campaign draws on it yet.</p>`,
+      /* ══ THE FACT LEADS, AND THE RULE FOLLOWS IT ══════════════════════
+           It read "Nobody has said whether to keep it. It holds 108
+           organizations and no campaign draws on it yet" — one run of
+           footnote-grey prose that stated a state, a size and a symptom in
+           that order, and never said what would END the state. A reader who
+           does not already know what makes a list a draft learns nothing
+           from it about which of the buttons below to press.
+
+           So: what it holds, then the rule. The second line is the useful
+           half — it names both ways out, which are the two things the row
+           behind this modal offers. */
+      body: `<p class="s-commit-lead"><b>${esc(plural(pool.length, noun))}</b> are in it, and nothing is working them.</p>
+        <p class="s-more-note">A list stays a draft until a campaign draws on it or somebody is handed it.</p>`,
       effects: [['warn', 'Discarding takes it and everything its search brought in back out of the book.']],
       reversible: 'Either way, undoable from the toast',
       confirm: 'Save the list',
@@ -16516,8 +16527,21 @@
        then what the list actually is — so you read how well a thing is
        filled in before you were told what it collects. */
     const fact = (html) => `<span class="s-lf">${html}</span>`;
+    /* ══ "FILLED IN" WITH WHAT ═══════════════════════════════════════════
+       `24% filled in` was asked what it meant, which is the answer. It is
+       the share of the list carrying BOTH of the two fields that make its
+       kind usable — headcount and revenue for a company, an email and a
+       phone number for a person — and the label named neither, so the one
+       figure the header leads with was the one nobody could act on.
+
+       `listCover` has always been kind-aware; only the word for it was not.
+       Naming the fields also makes the AiMY block below legible as the same
+       subject: "3 — no revenue, so they cannot be sorted or scored" is this
+       percentage, itemised. */
+    const covers = s.kind === 'con' ? 'have an email and a phone number'
+      : 'have a headcount and revenue';
     const facts = [
-      fact(`<b>${pct}%</b> filled in`),
+      fact(`<b>${pct}%</b> ${covers}`),
       fact(`<b>${s.imported}</b> brought in of ${esc(s.found.toLocaleString('en-GB'))} found`),
       /* `by` IS WHO OWNS IT, and it used to read "made it" because nothing
          could change it. Now that handing a list on writes this field, "Omar
