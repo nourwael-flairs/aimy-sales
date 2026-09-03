@@ -6817,10 +6817,12 @@
 
   function buildFillNow(key, field) {
     if (!canWrite()) return;
-    const src = DB.sourceBy[key];
-    if (!src) return;
-    const kind = src.kind === 'con' ? 'con' : 'acc';
-    const pool = listPool(src);
+    /* `book` is not a list and deliberately cannot be one: `DB.sourceBy` is
+       keyed by `src-…`, so the word can never collide with a real list. */
+    const src = key === 'book' ? null : DB.sourceBy[key];
+    if (key !== 'book' && !src) return;
+    const kind = src && src.kind === 'con' ? 'con' : 'acc';
+    const pool = src ? listPool(src) : maySee(DB.acc).filter((a) => !a.arch);
     const missing = pool.filter((r) => (kind === 'con' ? !r[field] : r[field] == null));
     if (!missing.length) { toast('Nothing is missing that here.'); return; }
     const best = (PROVIDERS[field] || [])[0];
@@ -6892,10 +6894,16 @@
      need them in different company: `grid` folds them in after the leads'
      own findings, and the build page — where a list an hour old has no
      findings at all — draws them alone. */
-  function listOffers(src, pool, kind, railSaid) {
+  /* ══ ONE OFFER PER MISSING FIELD, FOR ANY SET AT ALL ═══════════════════
+     Lifted out of `listOffers` because the set with the most gaps in it is
+     not a list — it is the book. "Fill in the gaps" on the opener strip is
+     corpus-wide and had nowhere to send that press but the canvas, so the
+     one flow that fills a field in place, names the supplier and its hit
+     rate, and hands back an undo was reachable from a list and from nowhere
+     else. `scope` is what `data-fillnow` carries back: a source key, or
+     `book` for everything the reader may see. */
+  function fillOffers(scope, pool, kind) {
     const rows = [];
-
-    /* ── One offer per missing FIELD, naming who would answer it ── */
     (kind === 'con' ? ['email', 'phone'] : ['emp', 'rev']).forEach((f) => {
       const missing = pool.filter((r) => (kind === 'con' ? !r[f] : r[f] == null));
       if (!missing.length) return;
@@ -6908,9 +6916,14 @@
         busy: `fill:${f}`,
         busySay: `Asking ${(best && best[0]) || 'the suppliers'}…`,
         act: `Get ${noun.replace(/^an? /, '')}`,
-        attr: `data-fillnow="${esc(src.k)}|${esc(f)}"`,
+        attr: `data-fillnow="${esc(scope)}|${esc(f)}"`,
       });
     });
+    return rows;
+  }
+
+  function listOffers(src, pool, kind, railSaid) {
+    const rows = fillOffers(src.k, pool, kind);
 
     /* ── WHAT THE CRITERIA MATCHED AND NOBODY TOOK ──
        `listGap` is the subtraction the index card makes and the list's own
@@ -6983,14 +6996,20 @@
      same mark — the lede is the only thing that differs, and it differs
      because what is true differs. */
   function buildFillBlock(src, pool, kind, railSaid) {
-    const offers = listOffers(src, pool, kind, railSaid);
+    return fillBlockOf(listOffers(src, pool, kind, railSaid));
+  }
+
+  /* The markup, given rows from either door — the list's `listOffers` or the
+     book's `fillOffers`. Split out when the gap cut started drawing these,
+     because two blocks that must agree about what a gap is are one block. */
+  function fillBlockOf(offers, lede) {
     if (!offers.length) return '';
     return `<div class="s-findings is-panel">
       <p class="s-lead-mark">
         <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
         AiMY reads it
       </p>
-      <p class="s-findings-say">${listLede(0, 0, 0, offers.length)}</p>
+      <p class="s-findings-say">${lede || listLede(0, 0, 0, offers.length)}</p>
       <div class="s-findings-list">${offers.map(offerRow).join('')}</div>
     </div>`;
   }
@@ -16191,6 +16210,11 @@
       { k: 'open',      label: 'Something open', test: (r) => opportunitiesOf(r).length > 0 },
       { k: 'cold',      label: 'Never contacted', test: (r) => statusOf(r) === 'untouched' },
       { k: 'loose',     label: 'In no campaign', test: (r) => !campsOf(r).length },
+      /* The set "Fill in the gaps" has always counted and never had a place
+         to put you. Same threshold as the list readings use: a gap is a
+         gap. */
+      { k: 'gaps',      label: 'Missing headcount or revenue',
+        test: (r) => r.emp == null || r.rev == null },
     ],
     contacts: [
       { k: 'waiting',   label: 'Waiting on us',  test: (r) => statusOf(r) === 'awaiting-us' },
@@ -16856,7 +16880,19 @@
        above them: its rows open the same cuts, with the finding and the size
        of it attached, so the surface offers one narrowing control and not
        two that say the same three words. */
-    const reading = open === 'lists' ? listsReading(pool) : '';
+    /* ══ AND ON THE GAP CUT, THE SAME OFFER A LIST GETS ═══════════════
+       "Fill in the gaps" lands here. The reading slot was built for Lists
+       and is the right place for this: it says what is missing across the
+       set you are looking at, names the supplier and its hit rate on that
+       field, and fills it in place. */
+    const reading = open === 'lists' ? listsReading(pool)
+      : cut && cut.k === 'gaps'
+        ? fillBlockOf(fillOffers('book', shown, open === 'contacts' ? 'con' : 'acc'),
+          /* `listLede` ends "…about the list itself", and this is the book.
+             Same shape, right noun. */
+          `<b>${plural(shown.length, open === 'contacts' ? 'person' : 'organization')}</b> here ${
+            shown.length === 1 ? 'is' : 'are'} missing something I can go and get.`)
+        : '';
 
     return `<section class="s-block s-block-wide s-tabs-block" aria-label="Everything">
       <div class="s-tabstrip" role="tablist">
@@ -24897,9 +24933,20 @@
       if (k === 'findco') { lbuildStart(); return; }
       if (k === 'call') { whoToRing(); return; }
       if (k === 'fillgaps') {
+        /* ══ THE RECORDS, NOT THE CANVAS ═══════════════════════════════
+           This opened `enrichRun`, which is the waterfall in a canvas block:
+           every provider for every field, ranked, behind one confirm. That
+           flow still exists and is still right for one record you are
+           looking at — `data-enrichone` reaches it. It is the wrong answer
+           to "three organizations are missing headcount or revenue", which
+           is a set, and the product now has the flow for a set: land on
+           them, read one line per missing field with the supplier and its
+           hit rate on it, and fill that field in place with an undo.
+
+           It is the same block a list draws, over the book instead. */
         const gaps = maySee(DB.acc).filter((a) => !a.arch && (a.emp == null || a.rev == null));
         if (!gaps.length) { toast('Nothing is missing headcount or revenue.'); return; }
-        enrichRun(new Set(gaps.map((a) => a.id)));
+        go({ on: DEFAULTS.on, tab: 'orgs', cut: 'gaps', srcref: '', lead: '', camp: '', task: '' });
       }
       return;
     }
