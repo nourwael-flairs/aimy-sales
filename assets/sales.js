@@ -12172,18 +12172,35 @@
        Where a campaign loses its people is the one thing the funnel is for,
        and it is a comparison between adjacent rows rather than any row's own
        number — so nothing in a list of five figures states it. */
-    let worst = null;
-    for (let i = 1; i < steps.length; i++) {
-      const lost = steps[i - 1].set.length - steps[i].set.length;
-      if (!worst || lost > worst.lost) worst = { lost, from: steps[i - 1], to: steps[i] };
-    }
+    /* ══ THE SHARE THAT MATTERS IS OF THE STEP BEFORE ════════════════════
+       Every percentage here was of the campaign's whole size — 50 · 25 · 21
+       · 8 — which answers "how many got this far" and hides the only thing a
+       funnel is read for. On this campaign 25% to 21% looks like a small
+       fall and is in fact an 83% conversion: five of the six who replied
+       booked a call, which is the best thing this campaign does and was
+       invisible. Meanwhile the two 50%s are where it actually leaks.
+
+       So each row converts from the row above it, and the reading names both
+       ends — the step to fix, and the step that is working. */
+    const conv = steps.slice(1).map((st, i) => {
+      const prev = steps[i].set.length;
+      const n = st.set.length;
+      return { st, from: steps[i], n, prev, rate: prev ? n / prev : null };
+    });
+    const rated = conv.filter((x) => x.rate != null && x.prev);
+    const weak = rated.slice().sort((a2, b2) => a2.rate - b2.rate)[0] || null;
+    const strong = rated.slice().sort((a2, b2) => b2.rate - a2.rate)[0] || null;
     const booked = steps[3].set.length;
     /* The denominator moved here from a row of its own, so the sentence says
        what everything below it is a share OF. */
+    const pcOf = (v) => `${Math.round(v * 100)}%`;
     const read = !ts.length
       ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
       : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
-          worst && worst.lost ? ` The biggest fall is at <b>${esc(worst.to.label.toLowerCase())}</b> — <b>${worst.lost}</b> never got that far.` : ''}`;
+          weak ? ` Its weakest step is <b>${esc(weak.st.label.toLowerCase())}</b> — only <b>${pcOf(weak.rate)}</b> of the ${weak.prev} that ${esc(weak.from.label.toLowerCase())} get there.` : ''}${
+          strong && weak && strong !== weak && strong.rate > 0.6
+            ? ` Its strongest is <b>${esc(strong.st.label.toLowerCase())}</b>, at <b>${pcOf(strong.rate)}</b>.`
+            : ''}`;
 
     /* ══ FOUR ENCODINGS OF ONE DROP, AND A ROW THAT WAS ALWAYS 100% ══════
        Each row carried a bar, a count, a percentage and "N lost here" — four
@@ -12203,15 +12220,20 @@
        four rows, one line each. */
     return `${stageRead(read)}
     <div class="s-funnel">
-      ${steps.slice(1).map((s) => {
-        const n = s.set.length;
-        return `<div class="s-fn-row${s.k === 'booked' ? ' is-goal' : ''}">
-          <span class="s-fn-name">${esc(s.label)}${s.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
-          <span class="s-fn-say">${esc(s.say)}</span>
-          <span class="s-fn-n">${n}</span>
-          <span class="s-fn-pct">${Math.round((n / top) * 100)}%</span>
-        </div>`;
-      }).join('')}
+      ${conv.map((x, i) => `<div class="s-fn-row${x.st.k === 'booked' ? ' is-goal' : ''}${
+          weak && x === weak ? ' is-weak' : ''}">
+          <span class="s-fn-name">${esc(x.st.label)}${x.st.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
+          ${/* The conversion leads, because it is the column you scan: 83
+                against two 50s says where to look, and four shares of the
+                same denominator said nothing at all. */ ''}
+          <span class="s-fn-pct">${x.rate == null ? '—' : `${Math.round(x.rate * 100)}%`}</span>
+          <span class="s-fn-n">${x.n} <span class="s-fn-of">of ${x.prev}</span></span>
+          ${/* No "of those that replied" suffix: `5 of 6` states the
+                denominator and the row above it is literally named. The
+                suffix said it a third time and wrapped every other row to
+                two lines doing it. */ ''}
+          <span class="s-fn-say">${esc(x.st.say)}</span>
+        </div>`).join('')}
     </div>
     ${bounced ? `<div class="s-fn-note">
       ${/* Not a funnel step — nobody passes THROUGH a bounce. A fault in the

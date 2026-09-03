@@ -4138,10 +4138,15 @@ body.is-calling { --fb-reserve: var(--call-width); }
    micro-label idiom the rest of the page uses for exactly this job. Caps and
    tracking make them a different TEXTURE from the names beside them, which
    is what separates a label from a value at one pixel of size difference. */
+/* ── UPPERCASE RANKS IT; THE INK DOES NOT HAVE TO ──
+   Every caption on this page was small, uppercase, tracked, bold AND dim —
+   four devices for one job, and the dimming was the one that cost legibility
+   for nothing. The first three still say "this is a label"; the ink stops at
+   secondary so the label can be read. */
 .s-id-fn {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-secondary);
 }
 
 /* The fold is gone: it hid three lines behind a press on a block that is
@@ -4171,7 +4176,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-tally { display: flex; flex-direction: column; gap: 16px; }
 .s-tally-figs { margin-bottom: 0; gap: 20px; }
 .s-tally-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
-.s-tally-figs .s-af-cap { color: var(--ink-faint); }
+.s-tally-figs .s-af-cap { color: var(--ink-secondary); }
 /* The channel breakdown, spanning the grid under the figure it breaks down.
    `Touchpoints 25` is honest but incomplete: eleven of those were calls and
    eight were meetings, and a campaign being worked on the phone is a
@@ -4256,7 +4261,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   flex: none;
   font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-quiet);
+  color: var(--ink-secondary);
 }
 /* An empty function says so. A row that simply vanishes when nobody holds it
    answers "who is doing the BDR work here" with silence, which reads as
@@ -4273,7 +4278,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the quietest thing in its own row. Italic was carrying "this is a default
    rather than a choice"; the row title already carries that, and italic on a
    two-letter word at 13px reads as a rendering fault. */
-.s-crew-none { font-size: var(--ty-body); color: var(--ink-faint); }
+.s-crew-none { font-size: var(--ty-body); color: var(--ink-secondary); }
 
 /* `.s-trail*` went with `trailBlock`. It drew the sequence — the steps a
    campaign sends and the waits between them — and Reach is the calls to be
@@ -4863,7 +4868,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-qrow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* Both are lowercase sentences, so both belong on the meta step rather than
    the caps-only caption step. */
-.s-qrow-sub { font-size: var(--fs-xs); color: var(--d500); }
+.s-qrow-sub { font-size: var(--fs-xs); color: var(--d200); }
 /* WRAPS, NEVER TRUNCATES. Why this person is worth ringing and whether
    there is a line to read them are one question — should I call this one
    next — so they share a line, and a narrow column moves the second half
@@ -5067,10 +5072,13 @@ body.is-calling { --fb-reserve: var(--call-width); }
    rather than wrapped underneath it. */
 .s-fn-row {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr) 48px 48px;
-  align-items: baseline; gap: 4px 12px;
+  grid-template-columns: 168px 56px 96px minmax(0, 1fr);
+  align-items: baseline; gap: 4px 16px;
   padding: 12px; margin-left: -12px; border-radius: var(--r-md);
 }
+/* The step that leaks worst, marked — the reading names it in words and this
+   is the same claim in the column, so the sentence and the row agree. */
+.s-fn-row.is-weak .s-fn-pct { color: var(--warn-text); }
 .s-fn-row.is-goal { background: var(--card-bg-raised); }
 /* 168, and the name does not wrap. At 132 the goal row broke `Booked a call`
    over two lines to fit its own marker beside it, which put one row of a
@@ -5088,14 +5096,23 @@ body.is-calling { --fb-reserve: var(--call-width); }
    a percentage and "N lost here" — four ways of saying one fall, and the bar
    was the least precise. The percentages descend 50 · 25 · 21 · 8, which is
    the shape the bars were drawing. */
+/* `12 of 24` — the conversion's own two numbers, so the percentage above can
+   be checked rather than taken. The count is full ink, the denominator one
+   step down in weight, because they are not the same claim. */
 .s-fn-n {
-  justify-self: end;
-  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
-  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-body); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
+.s-fn-of { font-weight: var(--fw-regular); color: var(--ink-secondary); }
+/* THE COLUMN YOU SCAN. Every percentage here used to be of the campaign's
+   whole size — 50 · 25 · 21 · 8 — which answers "how many got this far" and
+   hides the only thing a funnel is read for. Each row converts from the row
+   above it now, so 83 against two 50s says where to look, and the figure is
+   sized to be looked at. */
 .s-fn-pct {
-  justify-self: end;
-  font-size: var(--ty-meta); color: var(--ink-secondary); font-variant-numeric: tabular-nums;
+  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
+  color: var(--ink-primary); font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ls-tight);
 }
 /* What the row means and what it cost, under the bar rather than beside it —
    at this width a fifth column would squeeze the track to nothing. */
@@ -5104,7 +5121,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    line. Body-adjacent ink, not faint: it is the half that makes the number
    readable. */
 .s-fn-say {
-  grid-column: 2;
+  grid-column: 4;
   font-size: var(--ty-meta); color: var(--ink-secondary); min-width: 0;
 }
 /* Bounces are not a stage. Stated beside the funnel they distort, with the
@@ -5788,7 +5805,7 @@ body.is-calling .overlay-chats { display: none; }
   background: var(--warn-bg); border: 1px solid rgba(247,144,9,0.35);
   font-variant-numeric: tabular-nums; letter-spacing: 0;
 }
-.s-camp-row-why { font-size: var(--fs-base); color: var(--d400); min-width: 0; }
+.s-camp-row-why { font-size: var(--fs-base); color: var(--d200); min-width: 0; }
 /* WHY IT IS THIS FAR UP, on the rows that have a reason. Amber rather than
    red: a closing window is a reason to look, and `is-mine` already owns red
    for the rows you are personally holding up.
@@ -6120,7 +6137,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-seed-con input { flex: none; }
 .s-seed-con-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-seed-con-name { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); }
-.s-seed-con-role { font-size: var(--fs-xs); color: var(--d500); }
+.s-seed-con-role { font-size: var(--fs-xs); color: var(--d200); }
 /* The reason, last and to the right — it qualifies the person, it does not
    introduce them. Hidden under 520px, where a two-column row stops being one. */
 .s-seed-con-why {
@@ -6997,7 +7014,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   font-size: var(--fs-3xl); font-weight: var(--fw-extrabold); color: var(--d50);
   letter-spacing: var(--ls-tight); margin-top: 2px;
 }
-.s-sheet-when { font-size: var(--fs-xs); color: var(--d400); margin-top: 4px; }
+.s-sheet-when { font-size: var(--fs-xs); color: var(--d200); margin-top: 4px; }
 
 /* ═══════════════════════════════════════════════
    THE CAMPAIGN PAGE
@@ -7040,8 +7057,8 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   line-height: 1.05; color: var(--ink-primary);
   margin-top: 4px; text-wrap: balance;
 }
-.s-camp-page .s-sheet-kind { font-size: var(--ty-meta); color: var(--ink-quiet); }
-.s-camp-page .s-sheet-when { font-size: var(--ty-meta); color: var(--ink-faint); margin-top: 8px; }
+.s-camp-page .s-sheet-kind { font-size: var(--ty-meta); color: var(--ink-secondary); }
+.s-camp-page .s-sheet-when { font-size: var(--ty-meta); color: var(--ink-secondary); margin-top: 8px; }
 @media (max-width: 764.98px) { /* 900 layout px */
   .s-camp-page .s-sheet-name { font-size: var(--ty-lead); }
 }
@@ -7144,7 +7161,7 @@ div.s-pipe-cell { cursor: default; }
 .s-pipe-name {
   font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-quiet); min-width: 0;
+  color: var(--ink-secondary); min-width: 0;
 }
 .s-pipe-cell.is-here .s-pipe-name { color: var(--ink-primary); }
 
@@ -7204,7 +7221,7 @@ div.s-pipe-cell { cursor: default; }
 .s-stage-fn {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-secondary);
 }
 /* Only ever "waiting on you" or "nobody on it" — the two things the Team row
    above cannot say, and both of them are findings, so they are toned. */
@@ -7260,7 +7277,7 @@ div.s-pipe-cell { cursor: default; }
    faintest ink in the product on the labels doing the most wayfinding. */
 .s-sub-h {
   font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-secondary);
   margin-bottom: 12px;
 }
 
@@ -7629,7 +7646,7 @@ body.is-figures .filter-tray { display: none; }
 .s-af-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d400);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d200);
 }
 .s-af-val {
   font-family: var(--font-sans); font-size: var(--fs-2xl);
