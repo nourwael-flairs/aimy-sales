@@ -3986,10 +3986,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    you open, and the fact under it is the only thing the stage is asking
    about, so there is nothing to rank against it and it sits plainly below. */
 .s-clists { display: flex; flex-direction: column; margin-top: 8px; }
+/* Two columns where a row carries a verb: the name and its fact stack on the
+   left, the control holds the right edge so the buttons share one down the
+   block — which is the only reason a column is a column. */
 .s-clist {
-  display: flex; flex-direction: column; gap: 2px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; column-gap: 16px; row-gap: 2px;
   padding: 12px 0; border-bottom: 1px solid var(--hairline);
 }
+.s-clist-facts { grid-column: 1; }
+.s-clist-act { grid-column: 2; grid-row: 1 / span 2; justify-self: end; }
 .s-clist:last-child { border-bottom: 0; }
 .s-clist-name {
   font-family: inherit; font-size: var(--fs-base); font-weight: var(--fw-semibold);

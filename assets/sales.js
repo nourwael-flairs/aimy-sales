@@ -13093,7 +13093,31 @@
     const open = OPEN_GROUPS.has('_all');
     const page = open ? members : members.slice(0, LIST_PAGE);
 
-    return `${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
+    /* ══ WHAT FIND HAS TO SAY ═════════════════════════════════════════
+       Every stage on this page now opens with one, because a step that
+       shows its evidence and never states a finding leaves the reader to do
+       the accumulating — which is the argument `grid` makes about lead rows
+       and `campSectHead` makes about sections, applied to the fourth place
+       it was still missing.
+
+       Find's finding is where the next batch comes from: the list whose
+       criteria matched most that nobody took. */
+    const gaps = lists.map((sc) => ({ sc, gap: listGap(sc) })).filter((x) => x.gap)
+      .sort((x, y) => y.gap - x.gap);
+    const top = gaps[0];
+    const read = !members.length
+      ? stageRead('Nothing is on it yet. <b>A list is how leads get here</b> — build one from its goal, or add one you already have.')
+      : !lists.length
+        ? stageRead(`<b>${plural(members.length, 'organization')}</b> on it, and <b>none came from a list</b> — every one was added on its own, so there is nothing here to re-run for more.`)
+        : !top
+          ? stageRead(`<b>${plural(members.length, 'organization')}</b> from ${plural(lists.length, 'list')}, and <b>every one of those lists is exhausted</b> — their criteria have brought in everything they match.`)
+          : stageRead(
+              `<b>${plural(members.length, 'organization')}</b> from ${plural(lists.length, 'list')}. <b>${esc(top.sc.name)}</b> matched <b>${top.gap.toLocaleString('en-GB')} more</b> that were never brought in${
+                gaps.length > 1 ? `, and ${gaps.length - 1} of the others ${gaps.length - 1 === 1 ? 'has' : 'have'} a gap too` : ''}.`,
+              canWrite() ? readAct('Bring in more', `data-listrun="${esc(top.sc.k)}"`) : null);
+
+    return `${read}
+      ${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
         ${/* Two doors and no third. One reaches the lists that already
               exist, the other builds one from this campaign's own goal —
               which is what `data-findfor` has always carried into the
@@ -13140,21 +13164,26 @@
             ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show fewer</button>` : ''}
       </div>`}`;
   }
-  /* ══ ENRICH IS THE LISTS' GAPS, NOT EACH RECORD'S ══════════════════════
-     It listed every thin organization and every unreachable person on the
-     campaign — twenty-odd rows of "no headcount", each with its own control
-     — which is the enrichment run drawn as a worklist. The run already
-     exists and takes a whole list at once, and a list is where a gap gets
-     fixed, because that is the surface with the supplier offers on it.
+  /* ══ WHAT IS WRONG, WHICH LIST IT IS WRONG IN, AND THE FIX ═════════════
+     The stage stated one gap — "13 of the 51 have neither an email nor a
+     phone number" — over a button reading `Look up what is missing`, which
+     is a verb with no subject: missing from WHICH of the campaign's six
+     lists, and fixed by running which one?
 
-     So this says which of the campaign's lists are thin, in what way, and
-     opens the one you press. The per-record view is the workbench, one
-     press away, and it was never this stage's job. */
+     So the reading names the worst list and the rows name the rest, and
+     every row carries the run that fills that list. `data-enrichlist` takes
+     a whole list at once, which is what the enrichment run has always done —
+     the button was already the right one, it just never said what it was
+     about to enrich.
+
+     One AiMY block, not one per row. A full-width mark per finding is the
+     defect `grid`'s own note spent a paragraph on: six rows would be six
+     marks introducing six sentences. The reading accumulates; the rows carry
+     the verbs. */
   function stageEnrich(l) {
     const lists = campLists(l);
     const members = campMembers(l);
     const people = campPeople(l);
-    const thinAcc = members.filter((a) => a.emp == null || a.rev == null);
     const noWay = people.filter((p) => !p.email && !p.phone);
 
     /* Counted over the campaign's share of each list, not the whole list —
@@ -13162,50 +13191,62 @@
        other ninety-four's gaps. */
     const rows = lists.map((s) => {
       const mine = campFromList(l, s);
+      const ids = new Set(mine.map((a) => a.id));
       const con = s.kind === 'con';
+      const at = maySee(DB.con).filter((p) => !p.arch && ids.has(p.acc));
       const thin = con
-        ? maySee(DB.con).filter((p) => !p.arch && mine.some((a) => a.id === p.acc) && (!p.email || !p.phone))
+        ? at.filter((p) => !p.email || !p.phone)
         : mine.filter((a) => a.emp == null || a.rev == null);
-      return { s, mine, con, thin: thin.length };
-    }).filter((r) => r.thin).sort((a, b) => b.thin - a.thin);
+      const stuck = at.filter((p) => !p.email && !p.phone);
+      return { s, mine, con, thin: thin.length, stuck: stuck.length };
+    }).filter((r) => r.thin || r.stuck).sort((a, b) => (b.stuck - a.stuck) || (b.thin - a.thin));
 
     if (!members.length) {
-      return `<p class="s-none">Nothing on it yet, so there is nothing to fill in. Find is where that starts.</p>`;
+      return stageRead('Nothing is on it yet, so there is nothing to fill in. <b>Find is where that starts.</b>');
     }
     if (!rows.length && !noWay.length) {
-      return `<p class="s-none">Nothing is missing. Every organization on it has a headcount and revenue, and everybody has a way to be reached.</p>`;
+      return stageRead('<b>Nothing is missing.</b> Every organization on it has a headcount and revenue, and everybody on it can be reached.');
     }
 
-    return `${rows.length ? `<div class="s-sheet-block">
-        <h4 class="s-sub-h">What its lists are missing</h4>
-        <p class="s-block-say">Counted over this campaign's share of each list, not the whole of it. Opening one lands on the offers that fill it.</p>
+    /* The worst list leads, and "worst" is whichever blocks the most people
+       from being contacted at all — a thin headcount is a nuisance, no way
+       to reach somebody stops the campaign. */
+    const top = rows[0];
+    const say = !top
+      ? `<b>${plural(noWay.length, 'person')}</b> on it ${noWay.length === 1 ? 'has' : 'have'} no way to be reached, and ${noWay.length === 1 ? 'is' : 'they are'} on no list, so nothing here can fill ${noWay.length === 1 ? 'them' : 'them'} in.`
+      : `<b>${esc(top.s.name)}</b> is the thinnest of its lists — ${top.stuck
+          ? `<b>${plural(top.stuck, 'person')}</b> on it ${top.stuck === 1 ? 'cannot' : 'cannot'} be reached at all`
+          : `<b>${top.thin}</b> of the ${top.mine.length} here ${top.thin === 1 ? 'is' : 'are'} ${top.con ? 'missing an email or a phone number' : 'missing a headcount or revenue'}`}${
+          rows.length > 1 ? `, and <b>${rows.length - 1}</b> of the others ${rows.length - 1 === 1 ? 'has' : 'have'} a gap too` : ''}.`;
+
+    return `${stageRead(say, top && canWrite()
+        ? readAct(`Fill in ${esc(top.s.name)}`, `data-enrichlist="${esc(top.s.k)}"`) : null)}
+
+      ${rows.length ? `<div class="s-sheet-block">
+        <h4 class="s-sub-h">Its lists, thinnest first</h4>
+        <p class="s-block-say">Counted over this campaign's share of each list, not the whole of it.</p>
         <div class="s-clists">${rows.map((r) => `<div class="s-clist">
           <button class="s-clist-name" type="button" data-quick="${esc(`on=leads&srcref=${r.s.k}&who=${r.s.kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=&camp=&in=`)}">${esc(r.s.name)}</button>
-          ${/* "1 of its 1 here have" was wrong twice: a ratio of a number to
-                itself is arithmetic rather than a finding, and the verb
-                agreed with the wrong half of it. */ ''}
-          <span class="s-clist-facts">${r.thin === r.mine.length
-            ? (r.mine.length === 1 ? '<b>The one</b> here has' : `<b>All ${r.mine.length}</b> here have`)
-            : `<b>${r.thin}</b> of the ${r.mine.length} here ${r.thin === 1 ? 'has' : 'have'}`} ${
-            r.con ? 'no email or no phone number' : 'no headcount or revenue'}</span>
+          <span class="s-clist-facts">${r.thin
+            ? `${r.thin === r.mine.length
+                ? (r.mine.length === 1 ? '<b>The one</b> here has' : `<b>All ${r.mine.length}</b> here have`)
+                : `<b>${r.thin}</b> of the ${r.mine.length} here ${r.thin === 1 ? 'has' : 'have'}`} ${
+                r.con ? 'no email or no phone number' : 'no headcount or revenue'}`
+            : ''}${r.thin && r.stuck ? ' · ' : ''}${r.stuck
+            ? `<b>${r.stuck}</b> ${r.stuck === 1 ? 'cannot' : 'cannot'} be reached at all` : ''}</span>
+          ${canWrite() ? `<span class="s-clist-act">${
+            BUSY === `enrich:${r.s.k}`
+              ? `<button class="s-finding-go is-busy" type="button" disabled>Asking…</button>`
+              : `<button class="s-finding-go" type="button" data-enrichlist="${esc(r.s.k)}">Fill this one in</button>`}</span>` : ''}
         </div>`).join('')}</div>
       </div>` : ''}
 
-      ${/* The one gap that is not a list's: somebody with no way to be
-            reached at all. It blocks Reach rather than Enrich's own
-            arithmetic, so it is stated separately and counted over people
-            rather than over organizations. */ ''}
-      ${noWay.length ? `<div class="s-sheet-block">
-        <h4 class="s-sub-h">Nobody can reach them</h4>
-        <p class="s-block-say"><b>${noWay.length}</b> of the ${people.length} on it ${
-          noWay.length === 1 ? 'has' : 'have'} neither an email address nor a phone number, so Reach cannot start on ${
-          noWay.length === 1 ? 'them' : 'any of them'}.</p>
-        ${canWrite() ? `<button class="btn btn-ghost btn-sm" type="button" data-enrichcamp="${esc(l.k)}">Look up what is missing</button>` : ''}
-      </div>` : ''}
-
-      ${thinAcc.length && !rows.length ? `<p class="s-block-say"><b>${thinAcc.length}</b> ${
-        thinAcc.length === 1 ? 'organization was' : 'organizations were'} added one at a time and ${
-        thinAcc.length === 1 ? 'is' : 'are'} thin, so no list covers ${thinAcc.length === 1 ? 'it' : 'them'}.</p>` : ''}`;
+      ${/* The gap that belongs to no list: somebody added one at a time with
+            no way to be reached. It blocks Reach exactly as the others do,
+            and no list run will fix it, so it is stated on its own. */ ''}
+      ${noWay.length && !rows.some((r) => r.stuck) ? `<p class="s-block-say"><b>${noWay.length}</b> of the ${people.length} on it ${
+        noWay.length === 1 ? 'has' : 'have'} neither an email address nor a phone number, and ${
+        noWay.length === 1 ? 'is' : 'are'} on no list.</p>` : ''}`;
   }
   function reachRead(l) {
     if (campOver(l)) return '';
@@ -13462,7 +13503,21 @@
     const perWin = m.wins ? m.total / m.wins : null;
     const perMet = m.met ? m.total / m.met : null;
 
-    return `${periodChips()}
+    /* ══ WHAT THE MONEY BOUGHT ════════════════════════════════════════
+       The block states four costs and four returns and leaves the reader to
+       divide. The one division worth making is what a meeting cost, because
+       it is the only figure here whose two sides come from the same partial
+       cost — see the note on the return this stage refuses to compute. */
+    const read = m.wins
+      ? stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent and <b>${esc(fmtMoney(m.arr))}</b> signed${
+          perMet ? `, at <b>${esc(fmtMoney(perMet))}</b> a meeting` : ''}.`)
+      : m.met
+        ? stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent for <b>${plural(m.met, 'meeting')}</b>${
+            perMet ? `, at <b>${esc(fmtMoney(perMet))}</b> each` : ''}. <b>Nothing signed yet.</b>`)
+        : stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent and <b>no meeting out of it yet</b>. Everything here is cost so far.`);
+
+    return `${read}
+      ${periodChips()}
       <div class="s-sheet-block">
         <h4 class="s-sub-h">What it cost</h4>
         <div class="s-afs">
@@ -13562,8 +13617,26 @@
 
     const r = campReach(l);
     const anyReach = r.calls || r.mails || r.meets;
+    /* ══ WHICH CHANNEL IS DOING THE WORK ══════════════════════════════════
+       Four figures and a funnel said what happened and never which of the
+       two ways of reaching people was earning it. Both shares are out of
+       what was ATTEMPTED, so they are comparable — which is the whole reason
+       the denominator is calls made rather than calls answered. */
+    const cs = r.calls ? r.callsKeen / r.calls : null;
+    const ms = r.mails ? r.mailsKeen / r.mails : null;
+    const pc = (v) => `${Math.round(v * 100)}%`;
+    const read = !anyReach
+      ? stageRead('Nothing has gone out yet, so there is nothing to measure. <b>Reach is where that starts.</b>')
+      : cs != null && ms != null && Math.abs(cs - ms) > 0.1
+        ? stageRead(cs > ms
+            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of what was sent.${r.bounced ? ` <b>${r.bounced}</b> of the sends never arrived at all.` : ''}`
+            : `What is sent is landing better than what is called: <b>${pc(ms)}</b> against <b>${pc(cs)}</b> on the phone.`)
+        : r.meets
+          ? stageRead(`<b>${plural(r.meets, 'meeting')}</b> out of it so far, from <b>${r.calls + r.mails}</b> attempts.`)
+          : stageRead(`<b>${r.calls + r.mails}</b> attempts and <b>no meeting yet</b>. Nothing has converted into a conversation.`);
 
-    return `${anyReach ? `<div class="s-sheet-block">
+    return `${read}
+      ${anyReach ? `<div class="s-sheet-block">
         ${/* ══ NAMED FOR ITS SOURCE, BECAUSE THE PAGE HAS TWO ══════════════
               Progress above reads "Touchpoints 25 · 11 calls · 8 meetings"
               and this block counts 12 calls and 13 meetings on the same
