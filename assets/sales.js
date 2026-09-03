@@ -12130,7 +12130,9 @@
       { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
         say: 'answered at least once' },
       { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
-        say: 'the goal of this campaign' },
+        /* Not 'the goal of this campaign' — the marker beside the name
+           already says that, and the column is for what the step MEANS. */
+        say: 'agreed to a call' },
       { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
         say: 'closed' },
     ];
@@ -12146,23 +12148,38 @@
       if (!worst || lost > worst.lost) worst = { lost, from: steps[i - 1], to: steps[i] };
     }
     const booked = steps[3].set.length;
+    /* The denominator moved here from a row of its own, so the sentence says
+       what everything below it is a share OF. */
     const read = !ts.length
       ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
-      : `<b>${booked === 0 ? 'No one' : plural(booked, 'organization')}</b> ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
-          worst && worst.lost ? ` It loses most of them between <b>${esc(worst.from.label.toLowerCase())}</b> and <b>${esc(worst.to.label.toLowerCase())}</b> — <b>${worst.lost}</b> of them.` : ''}`;
+      : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
+          worst && worst.lost ? ` The biggest fall is at <b>${esc(worst.to.label.toLowerCase())}</b> — <b>${worst.lost}</b> never got that far.` : ''}`;
 
+    /* ══ FOUR ENCODINGS OF ONE DROP, AND A ROW THAT WAS ALWAYS 100% ══════
+       Each row carried a bar, a count, a percentage and "N lost here" — four
+       ways of saying the same fall, and the bar was the least precise of
+       them. The percentages already descend 50 · 25 · 21 · 8, which IS the
+       shape the bars were drawing; and where the biggest fall happens is a
+       comparison between adjacent rows, which the reading above states in
+       words and no row could.
+
+       `On the campaign — 24 of 24` went too. It is the denominator every
+       other row divides by, not a step anybody passes: a row whose value is
+       100% by construction is arithmetic about a filter, which is the defect
+       this file has now cut from three surfaces. It is stated once, in the
+       reading, where it belongs.
+
+       What is left is the name, what it means, the count and the share —
+       four rows, one line each. */
     return `${stageRead(read)}
     <div class="s-funnel">
-      ${steps.map((s, i) => {
+      ${steps.slice(1).map((s) => {
         const n = s.set.length;
-        const prev = i ? steps[i - 1].set.length : n;
-        const drop = i && prev ? prev - n : 0;
         return `<div class="s-fn-row${s.k === 'booked' ? ' is-goal' : ''}">
           <span class="s-fn-name">${esc(s.label)}${s.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
-          <span class="s-fn-track" aria-hidden="true"><span class="s-fn-fill" style="width:${Math.max(1, Math.round((n / top) * 100))}%"></span></span>
+          <span class="s-fn-say">${esc(s.say)}</span>
           <span class="s-fn-n">${n}</span>
-          <span class="s-fn-pct">${i ? `${Math.round((n / top) * 100)}%` : `of ${top}`}</span>
-          <span class="s-fn-say">${esc(s.say)}${drop ? ` · <b>${drop} lost here</b>` : ''}</span>
+          <span class="s-fn-pct">${Math.round((n / top) * 100)}%</span>
         </div>`;
       }).join('')}
     </div>
