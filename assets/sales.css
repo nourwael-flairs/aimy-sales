@@ -1795,7 +1795,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
    its size is a door you have to open to find out whether it was worth it. */
 .s-tab-n { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d500); font-variant-numeric: tabular-nums; }
 .s-tab.is-on .s-tab-n { color: var(--d300); }
-/* The one thing you can make from this surface, at the end of its own row. */
+/* THE VERB IS NOT IN THE STRIP. `.s-build` sat at the end of this row with
+   `margin-left: auto`, and its rules outlived the control they styled —
+   `css-audit` reads `.s-build-page` as covering `.s-build`, so a dead rule
+   with a live prefix is exactly the orphan it cannot see. Making a list now
+   happens on the Lists tab's own surface, in `.s-mklist` below. */
 
 .s-tabcuts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 20px; }
 /* The count sits inside the chip rather than after it, so pressing the
@@ -1803,8 +1807,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; }
 .s-tab-more { margin-top: 16px; }
 
-.s-build { margin-left: auto; flex-shrink: 0; }
-.s-build svg { width: 13px; height: 13px; }
+/* The one thing you can make from this surface, on the one tab it belongs
+   to. A row of its own rather than an end-stop on the strip, so it keeps its
+   position whichever tab is open — it simply is not drawn on the other two. */
+.s-mklist { margin-bottom: 16px; }
 
 /* ═══════════════════════════════════════════════
    THE RESULT LINE — what came back, directly above it
@@ -7431,9 +7437,6 @@ div.s-pipe-cell { cursor: default; }
   .s-tabs { overflow-x: auto; scrollbar-width: none; }
   .s-tabs::-webkit-scrollbar { display: none; }
   .s-tab { flex-shrink: 0; }
-  /* Build is the whole width under them rather than a stub squeezed onto the
-     end of a strip that is already scrolling. */
-  .s-build { margin-left: 0; width: 100%; justify-content: center; }
 
   /* The count and the view switcher stop being an end-aligned pair. */
   .s-result-row { flex-direction: column; align-items: stretch; }

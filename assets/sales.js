@@ -15838,6 +15838,26 @@
         <button class="s-inline-btn s-tab-shut" type="button" data-tab="">Close</button>
       </div>
 
+      ${/* ══ AND THE ONE VERB THIS TAB HAS ═══════════════════════════════
+
+            The strip above still refuses it, for the reason written there:
+            navigation says where you ARE, and a write inside it belongs to
+            whichever tab happens to be open. This belongs to one tab, so it
+            renders on that tab's own surface — present while Lists is open
+            and absent otherwise, which is precisely the thing a control in
+            the strip could not do.
+
+            It does not claim the primary. `claimPrimary` is spent by the
+            first list card's recommendation, and AiMY naming the list most
+            worth attention is a better use of the one accent on the page
+            than a door that is findable without it.
+
+            It is also the only way in when there are no lists at all: the
+            empty state below said "Nothing here" and offered nothing. */ ''}
+      ${open === 'lists' && canWrite() ? `<div class="s-mklist">
+        <button class="btn btn-ghost btn-sm" type="button" data-findco>Build a list</button>
+      </div>` : ''}
+
       ${reading}
       ${cuts.length && !reading ? `<div class="s-tabcuts" role="group" aria-label="Narrow these">
         ${cuts.map((c) => `<button class="chip${c.k === (cut && cut.k) ? ' active' : ' default'}" type="button" data-cut="${esc(c.k)}">${esc(c.label)} <span class="s-cut-n">${c.n}</span></button>`).join('')}
