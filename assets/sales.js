@@ -13822,6 +13822,53 @@
       </div>`;
   }
 
+  /* ══ THE THREE CUMULATIVE READINGS ═════════════════════════════════════
+     Measure held a funnel and a reply breakdown, and neither answered the
+     three questions somebody actually checks: how many meetings we got out
+     of it, how many calls we made and what share of them landed, and the
+     same for what we sent.
+
+     INTERESTED IS OUT OF CALLS MADE, not calls answered. Answered is the
+     kinder denominator and the wrong one: a call nobody picked up is a call
+     that cost the time and returned nothing, and hiding it makes a desk that
+     never gets through look as good as one that does. Stated on the row so
+     the choice is visible rather than assumed.
+
+     `aimy` is the only sending channel in the taxonomy, so "emails" is that
+     one — and a bounce is counted as sent, because it cost the send. It is
+     named in the sub-line rather than quietly dropped. */
+  function campReach(l) {
+    const ts = campSent(l);
+    const out = ts.filter((t) => t.dir !== 'in');
+    const calls = out.filter((t) => t.ch === 'phone');
+    const mails = out.filter((t) => t.ch === 'aimy');
+    const keen = (rows) => rows.filter((t) => t.outcome === 'positive' || t.outcome === 'meeting-booked').length;
+    /* ══ MEETINGS HELD, NOT MEETINGS BOOKED ═══════════════════════════
+       The first cut copied `metIn`'s test, which also counts a touchpoint
+       whose OUTCOME was `meeting-booked` — a call on which somebody agreed
+       to meet. That is the right test for "has this account met or agreed
+       to", and the wrong one here twice over: it counted a booking as a
+       meeting, and it put outcomes like `no answer` under a heading reading
+       Meetings, because the outcome belonged to the call.
+
+       It also disagreed with the mix line three inches up, which counts by
+       channel and said 8 where this said 15. Two numbers for meetings on
+       one screen is the thing a reader stops to check and then stops
+       trusting. Channel only, and the two now agree. */
+    const meets = ts.filter((t) => t.ch === 'meeting' || t.ch === 'physical');
+    const byOut = {};
+    meets.forEach((t) => { const k = t.outcome || 'none'; byOut[k] = (byOut[k] || 0) + 1; });
+    return {
+      calls: calls.length, callsKeen: keen(calls),
+      mails: mails.length, mailsKeen: keen(mails),
+      bounced: mails.filter((t) => t.outcome === 'bounced').length,
+      meets: meets.length,
+      outcomes: Object.keys(byOut).sort((a2, b2) => byOut[b2] - byOut[a2]).map((k) => ({ k, n: byOut[k] })),
+    };
+  }
+
+  const shareOf = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
+
   function stageMeasure(l) {
     const st = campState(l);
     const kb = l.kb ? KB_BY[l.kb] : null;
@@ -13829,7 +13876,47 @@
     const byCat = {};
     reps.forEach((e) => (byCat[e.category || 'uncategorised'] = (byCat[e.category || 'uncategorised'] || 0) + 1));
 
-    return `${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
+    const r = campReach(l);
+    const anyReach = r.calls || r.mails || r.meets;
+
+    return `${anyReach ? `<div class="s-sheet-block">
+        ${/* ══ NAMED FOR ITS SOURCE, BECAUSE THE PAGE HAS TWO ══════════════
+              Progress above reads "Touchpoints 25 · 11 calls · 8 meetings"
+              and this block counts 12 calls and 13 meetings on the same
+              campaign, because they read different things: that one counts
+              SEQUENCE EVENTS mapped through their step's channel, this one
+              counts the touchpoint record — which is where a hand-logged
+              call or a meeting somebody took lands, and a sequence never
+              hears about.
+
+              This is the source the question wants: "how many calls did we
+              make" is answered by the calls, not by the sends the plan
+              scheduled. So it stays, and it says what it counted rather
+              than letting two numbers pass for one claim.
+
+              FLAGGED, NOT FIXED: `campProgress` labels its figure
+              Touchpoints and sources it from `DB.eventsOf`. Its own note
+              argues the label is right BECAUSE "eleven of these were phone
+              calls and eight were online meetings" — but those are step
+              channels on sent events, not logged calls. Changing it moves
+              the Progress row on every campaign, which is not this pass. */ ''}
+        <h4 class="s-sub-h">What was logged</h4>
+        <div class="s-afs">
+          ${statFig(String(r.meets), 'Meetings held', r.outcomes.length
+            ? r.outcomes.map((o) => `${o.n} ${o.k === 'none' ? 'no outcome logged' : label('outcome', o.k).toLowerCase()}`).join(' · ')
+            : 'none yet')}
+          ${/* Out of calls MADE. Answered is the kinder denominator and the
+                wrong one — a call nobody picked up cost the time and
+                returned nothing, and hiding it makes a desk that never gets
+                through look like one that does. Said on the row, so the
+                choice is visible rather than assumed. */ ''}
+          ${statFig(shareOf(r.callsKeen, r.calls), 'Calls interested',
+            r.calls ? `${r.callsKeen} of ${r.calls} we made` : 'no call made yet')}
+          ${statFig(shareOf(r.mailsKeen, r.mails), 'Sent interested',
+            r.mails ? `${r.mailsKeen} of ${r.mails} AiMY sent${r.bounced ? `, ${r.bounced} never arrived` : ''}` : 'nothing sent yet')}
+        </div>
+      </div>` : ''}
+      ${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
         <h4 class="s-sub-h">Results</h4>
         ${campAnalytics(l)}
         ${/* THE NUMBERS HERE, WHAT THEY MEAN IN THE RAIL. "Seven metric cards
