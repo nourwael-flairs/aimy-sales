@@ -2517,45 +2517,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
    `gap: 0` and a hover band: rows that touch read as one list, rows with a
    gap between them read as small cards, which is what these were. */
 .s-lrows { display: flex; flex-direction: column; }
-/* ══ THE LAST TWO TRACKS ARE FIXED, AND THAT IS THE WHOLE POINT ════════════
-
-   With `auto auto` on the right, every row sized its own columns from its
-   own content — and the verb differs by group ("Fix the address",
-   "Reschedule or close", "Find a new one"), so sixteen rows produced NINE
-   different right edges. Measured. A column you cannot read straight down is
-   not a column; it is the flowing two-line block this row replaced, wearing
-   a grid.
-
-   Fixed tracks make every row identical, so `30 days late / 1 day late /
-   never answered` share an edge across group boundaries and the ranking is
-   readable in one movement. 128 fits the longest urgency phrase, 168 the
-   longest exit label the taxonomy can produce. */
-.s-lrow {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 128px 168px;
-  align-items: start; column-gap: 20px;
-  padding: 12px; margin-left: -12px; border-radius: var(--r-md);
-  transition: background-color var(--t-fast);
-}
-.s-lrow:hover { background: var(--card-bg-raised); }
-.s-lrow.is-picked { background: var(--accent-dim); }
-
-/* ── LEFT: WHO, AND WHAT HAPPENED ── */
-.s-lrow-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.s-lrow-name {
-  font-family: inherit; font-size: var(--ty-heading); font-weight: var(--fw-bold);
-  color: var(--ink-primary); cursor: pointer; text-align: left;
-  transition: color var(--t-fast);
-}
-.s-lrow-name:hover { color: var(--accent-text); }
-.s-lrow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
-/* What is actually happening to this one — `whyFlag`, which the card made
-   you open the record to read, so three leads stuck for three different
-   lengths of time were indistinguishable. */
-.s-lrow-say { font-size: var(--ty-meta); color: var(--ink-faint); min-width: 0; }
-/* The state, drawn only outside a group. Inside one the heading above says
-   it once for every row under it, and repeating it per row is what made a
-   four-row set carry four identical pills. */
+/* `.s-lrow*` is gone with `leadRow`. One row draws leads everywhere now —
+   `.s-brow` — so the family that drew the thinner one has nothing left to
+   style. `.s-lrows` and `.s-lrow-st` survive: the first is the column the
+   call queue still stacks in, the second is the state chip that queue's rows
+   wear, and both are rendered. */
 .s-lrow-st {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
@@ -2564,52 +2530,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-lrow-st.tone-err  { color: var(--err-text); }
 .s-lrow-st.tone-warn { color: var(--warn-text); }
 .s-lrow-st.tone-ok   { color: var(--ok-text); }
-/* Warn, not faint. It is true of ONE run and leaves with it, which is
-   exactly why it has to be visible while the run is on — the status beside
-   it is derived from the record and outlives every session. */
-.s-lrow-skip {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--warn-text); margin-top: 2px;
-}
-
-/* ── RIGHT: HOW BAD, AND WHOSE ──
-   Right-aligned so the figures share an edge and the column can be compared
-   at a glance, which is the entire reason for a column. */
-.s-lrow-side {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-  text-align: right; white-space: nowrap;
-}
-.s-lrow-urg {
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
-  color: var(--ink-quiet); font-variant-numeric: tabular-nums;
-}
-.s-lrow-urg.tone-err  { color: var(--err-text); }
-.s-lrow-urg.tone-warn { color: var(--warn-text); }
-.s-lrow-own { font-size: var(--ty-meta); color: var(--ink-faint); }
-
-/* The verb the flag implies. Ghost, not filled: a filled control on every
-   row is nine primaries, which is the defect the group heading argues
-   against two hundred lines up. */
-.s-lrow-go {
-  justify-self: end;
-  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
-  color: var(--ink-quiet); cursor: pointer; white-space: nowrap;
-  padding: 4px 12px; border-radius: var(--r-pill);
-  border: 1px solid var(--card-border); background: none;
-  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
-}
-.s-lrow-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
-.s-lrow-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-lrow-nopick { width: 0; }
-
-@media (max-width: 764.98px) { /* 900 layout px */
-  /* The right column drops under the left, and the verb under both — at this
-     width three columns leave none of them a usable measure. */
-  .s-lrow { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
-  .s-lrow-side { grid-column: 2; align-items: flex-start; text-align: left; }
-  .s-lrow-go { grid-column: 2; justify-self: start; }
-}
 /* ── CARD PROXIMITY, WHICH IS WHAT WAS ACTUALLY WRONG ──
 
    The library stacks a card at 12 / 8 / 6 / 12 — head, title, summary, then
@@ -6194,34 +6114,9 @@ body.is-calling .overlay-chats { display: none; }
 }
 @media (max-width: 441.98px) { /* 520 layout px */ .s-seed-con-why { display: none; } }
 
-/* ── Add contacts ── */
-/* 16, not 12: the stack's own rows sit 8 apart, so 12 below it left the tools
-   and the list they filter reading as one run of near-equal gaps. The ratio
-   rule in css-audit §6 is what caught it. */
-.s-add-tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-.s-add-src { flex-wrap: wrap; }
-.s-add-src .seg-btn { flex: 1 1 auto; }
-.s-add-search { width: 100%; display: flex; align-items: center; gap: 4px; }
-.s-add-search svg { flex-shrink: 0; color: var(--d500); }
-.s-add-q {
-  flex: 1; min-width: 0; background: none; border: 0; outline: none;
-  font-family: inherit; font-size: var(--fs-xs); color: var(--d50);
-}
-.s-add-q::placeholder { color: var(--d600); }
-.s-add-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.s-add-name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); }
-/* Three things worth knowing before you tick a row: never contacted, being
-   worked, or already here. V1 shows exactly these. */
-.s-add-badge {
-  margin-left: auto; flex-shrink: 0;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  border-radius: var(--r-pill); padding: 2px 8px;
-}
-.s-add-badge.is-new { background: var(--ok-bg); color: var(--ok); }
-.s-add-badge.is-prospect { background: var(--accent-dim); color: var(--accent); }
-.s-add-badge.is-already { background: rgba(255,255,255,0.06); color: var(--d500); }
-:root[data-theme="light"] .s-add-badge.is-already { background: rgba(16,24,40,0.06); }
+/* `.s-add-*` went with the add-contacts panel. It put `Add ones we have`
+   beside `Add an existing list` on Find, and the two were one offer. */
+
 
 /* ═══════════════════════════════════════════════
    ANSWERS — computed, and citing what they counted
@@ -6910,7 +6805,8 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 /* ═══════════════════════════════════════════════
    THE COMMIT SURFACE — form pieces for the list operations
 ═══════════════════════════════════════════════ */
-.s-commit-banner { margin-bottom: 16px; }
+/* `.s-commit-banner` and `.s-pick-scroll` went with the add-contacts
+   panel — the only surface that ever drew either. */
 .s-field { display: block; margin-bottom: 16px; }
 /* ── `hidden` HAS TO WIN, AND IT DID NOT ──
    `[hidden] { display: none }` lives in the UA stylesheet, so a class rule
@@ -7048,7 +6944,6 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 .s-ch-pick { width: 100%; }
 .s-ch-pick .seg-btn { flex: 1; }
 .s-ch-note { font-size: var(--fs-xs); color: var(--d500); margin-top: 8px; }
-.s-pick-scroll { max-height: 280px; overflow-y: auto; }
 /* Shown and disabled, never hidden: a contact you cannot FIND is worse than
    one you cannot select, because you go looking for it. */
 .s-pick-row.is-already { opacity: 0.45; cursor: not-allowed; }
@@ -7169,8 +7064,20 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    No card. The strip is grouped by proximity and a single raised surface
    under the selected cell — the page's one card was this list, and it was
    the only card on a surface that groups with space everywhere else. */
+/* ── ONE ROW, HOWEVER MANY NODES THERE ARE ──
+   It was `repeat(4, ...)`, written when there were four — so the fifth
+   wrapped onto a line of its own and the strip read as four stages and an
+   afterthought. `auto-fit` counts the cells it is given, which is the right
+   rule for a strip whose length depends on who is reading it: a BDR gets
+   four, a sales manager five, and neither should have to know that. */
 .s-pipe {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid;
+  /* No `grid-template-columns`: every cell becomes an implicit COLUMN of
+     equal width, so the strip is one row for four nodes or five without
+     being told how many there are. `repeat(auto-fit, minmax(0, 1fr))` cannot
+     do that — `auto-fit` needs a real minimum to count against, and `0`
+     gives it nothing to count. */
+  grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
   gap: 4px; margin-bottom: 24px;
 }
 .s-pipe-cell {
@@ -7247,22 +7154,18 @@ div.s-pipe-cell { cursor: default; }
   color: var(--ink-faint);
 }
 
-/* ── DRAWN ONLY WHERE SOMETHING QUEUES ──
-   `Find` reports the campaign's population and `Measure` a reply rate;
-   neither is a queue, and neither is comparable to "3 waiting" on the same
-   axis. The two that do hold work are drawn against the campaign's own size,
-   so 3 against 13 is a shape. The others keep the space and draw nothing —
-   an uneven row that says which stages hold work, which is the question. */
-.s-pipe-track {
-  width: 100%; height: 4px; margin-top: 4px;
-  border-radius: var(--r-pill); background: var(--d750); overflow: hidden;
-}
-.s-pipe-track.is-none { background: none; }
-.s-pipe-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
-.s-pipe-cell.is-here .s-pipe-fill { background: var(--accent-text); }
+/* `.s-pipe-track` and `.s-pipe-fill` are gone. They drew a bar under the two
+   nodes that queue, against the campaign's own size — and on a five-cell
+   strip that meant two cells with a rule under them and three without, which
+   reads as three cells failing to draw something rather than as two holding
+   work. The figure already says how many are waiting, which is the same fact
+   the bar was a second copy of. */
 
 @media (max-width: 764.98px) { /* 900 layout px */
-  .s-pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Five cells at 900px give each about 170px, which the longest label
+     ("Financials") and its figure will not share. Two up, and `grid-auto-flow`
+     back to rows so the wrap is what it looks like. */
+  .s-pipe { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ══ THE STAGE ═════════════════════════════════════════════════════════════

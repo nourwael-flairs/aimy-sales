@@ -10043,19 +10043,6 @@
     }, true);
   });
 
-  /* The add-contacts search redraws the candidate list as you type. Same
-     rule as the source tabs: it is the same decision seen differently, so it
-     replaces the live block rather than stacking another. */
-  document.addEventListener('input', (e) => {
-    if (!e.target.classList || !e.target.classList.contains('s-add-q')) return;
-    if (!addTo) return;
-    const at = e.target.selectionStart;
-    addTo.q = e.target.value;
-    dropWork();
-    paintAddWork();
-    const again = $('.s-add-q');
-    if (again) { again.focus(); again.setSelectionRange(at, at); }
-  });
 
   document.addEventListener('input', (e) => {
     const field = e.target.closest && e.target.closest('.dd-search');
@@ -11063,60 +11050,12 @@
      row to carry its state and every row states its own. What decides now is
      whether the record HAS a finding — one that does says what happened,
      one that does not says where it stands. */
-  function leadRow(rec, i) {
-    const acc = accOf(rec);
-    const st = statusOf(rec);
-    const ts = touchesFor(rec);
-    const ex = exitFor(rec);
-    const ask = ex && FLAG_ASK[ex.k];
-    const flag = topFlag(rec);
-
-    const urg = leadUrgency(rec);
-
-    /* What happened to THIS one, in the flag's own words. `whyFlag` already
-       writes it for the record page, and the row was making a reader open
-       the record to get it — so three leads stuck for three different
-       lengths of time read identically. Outside a group there is no heading
-       to carry the state, so the status stands in. */
-    const say = flag ? whyFlag(rec, flag.k)
-      : rec.kind === 'acc' ? '' : [rec.role, acc.name].filter(Boolean).join(' · ');
-
-    return `<article class="s-lrow st-${toneOf(st)}${SEL.has(rec.id) ? ' is-picked' : ''}" style="--i:${i || 0}" data-row="${esc(rec.id)}">
-      ${canWrite() ? `<label class="s-pick-tick">
-        <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${SEL.has(rec.id) ? ' checked' : ''}
-          aria-label="Pick ${esc(rec.name)}" />
-      </label>` : '<span class="s-lrow-nopick"></span>'}
-      <span class="s-lrow-body">
-        <button class="s-lrow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
-        ${say ? `<span class="s-lrow-say">${esc(say)}</span>` : ''}
-        ${/* The state, only where there is no finding to say something more
-              specific. A row with a finding already carries what happened;
-              adding "Awaiting us" under it is the weaker of two facts,
-              repeated down the column. */ ''}
-        ${flag ? '' : `<span class="s-lrow-st tone-${toneOf(st)}">${esc(label('status', st))}</span>`}
-        ${(() => {
-          const s = callSession();
-          return s && (s.skipped || []).includes(rec.id)
-            ? '<span class="s-lrow-skip" title="Skipped on the run you are working now">Skipped on this run</span>' : '';
-        })()}
-      </span>
-      <span class="s-lrow-side">
-        <span class="s-lrow-urg${urg.tone ? ` tone-${esc(urg.tone)}` : ''}">${esc(urg.text)}</span>
-        <span class="s-lrow-own">${esc(actor(rec.owner).name)}</span>
-      </span>
-      ${/* ── ONE VERB, ON THE ROW ──
-            `exitFor` already knows what the flag implies — reschedule it,
-            fix the address, find a new champion — and the card threw that
-            away inside a group, so acting on one meant navigating to its
-            record. Ghost, not filled: a filled control on every row is nine
-            primaries, which is the defect the group heading's own note
-            argues against. */ ''}
-      ${canWrite() && ex ? `<button class="s-lrow-go" type="button" data-exit="${esc(rec.id)}"
-        data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
-        data-aimy-topic="${esc(ex.k)}"
-        ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${esc(ex.label)}</button>` : '<span></span>'}
-    </article>`;
-  }
+  /* `leadRow` is gone. It drew a name, what was late about it, an owner and
+     a verb — the right row while `grid` had two, and the wrong one the
+     moment there was a choice: opening a campaign's four unanswered accounts
+     gave no domain, no sector, no size and no address on the screen whose
+     job is deciding what to do about those four. `buildRow` answers both
+     halves and is what every other surface already drew. */
 
   /* `card()` is gone with the two-column lead grid. It rendered a name, its
      firmographics, a status pill and a meta run at 88-109px apiece, two
@@ -11283,7 +11222,7 @@
   };
   let OPEN_GROUPS = new Set();
 
-  function grid(list, opts) {
+  function grid(list) {
     if (!list.length) return empty();
     if (onTasks()) return `<div class="s-grid s-stagger">${list.map((r, i) => taskCard(r, i)).join('')}</div>`;
     if (onCamps()) return `<div class="s-grid s-stagger">${list.map((r, i) => campCard(r, i)).join('')}</div>`;
@@ -11311,19 +11250,20 @@
        Every row still says which finding put it there — `whyFlag` writes it
        into the row itself — so flattening loses no attribution. What it
        loses is the same sentence repeated as a heading above every group. */
-    /* ══ WHERE THE FULL RECORD ROW BELONGS ═══════════════════════════════
-       Two callers earn it. A named list, because somebody chose these — the
-       set is an inventory rather than a cut through the book. And the
-       briefing's Organizations and Contacts tabs, which show the whole book
-       and are the other place the reader arrives asking "who are these"
-       rather than "who is stuck".
+    /* ══ ONE ROW, EVERYWHERE LEADS ARE DRAWN ═════════════════════════════
+       This was an opt-in: a named list and the briefing's tabs got the full
+       record row, and everything else — a status gate, a campaign, a picked
+       set — kept the worklist row, on the argument that a CUT through the
+       book wants a thinner row than an inventory.
 
-       `rich` is the caller's opt-in from the tab surface. Every other route
-       to `grid` — a status gate, a campaign, a picked set — is a cut, and
-       the worklist row is the right shape for a cut. The finding above the
-       rows still comes down to a per-row verb through Pick, so removing the
-       row's own Fix button costs nothing that has moved. */
-    const asList = !!listScope() || !!(opts && opts.rich);
+       That argument does not survive contact with the surfaces. Opening a
+       campaign's four unanswered accounts gave a name, a clause and an
+       owner, and no domain, no sector, no size, no address — on the one
+       screen whose whole job is deciding what to do about those four. The
+       cut is narrower; the question about each row is the same.
+
+       So there is one row. `leadRow` and the `rich` flag go with the
+       distinction they served. */
 
     const order = TAX.obstacle.map((o) => o.k).concat(TAX.opportunity.map((o) => o.k));
     const groups = new Map();
@@ -11366,21 +11306,7 @@
          showed three of each and no way to see it whole. */
       const open = OPEN_GROUPS.has('_all');
       const page = open ? sorted : sorted.slice(0, LIST_PAGE);
-      /* ══ A LIST IS READ AS THE LIST IT WAS BUILT AS ════════════════════
-         Same records, same order, same ranking — a different row, because a
-         list opened from the Lists tab is answering "who did I collect" as
-         well as "what needs doing", and `leadRow` only ever answered the
-         second. `buildRow` answers both and is what the build page already
-         draws, so the list looks the same the day after it was made as it
-         did the moment it appeared.
-
-         Only when a LIST is the scope. Every other way onto this surface —
-         a status gate, a campaign, a picked set — is a cut through the book
-         rather than a thing somebody described and named, and the worklist
-         row is the right shape for a cut. */
-      return `${asList
-          ? `<div class="s-brows">${page.map((r) => buildRow(r, r.kind === 'con' ? 'con' : 'acc')).join('')}</div>`
-          : `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>`}
+      return `<div class="s-brows">${page.map((r) => buildRow(r, r.kind === 'con' ? 'con' : 'acc')).join('')}</div>
         ${recs.length > page.length
           ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${recs.length - page.length}</button>`
           : open && recs.length > LIST_PAGE
@@ -11414,9 +11340,8 @@
        clause, and the verb that answers it. What differs is the weight of
        the verb, and it differs honestly — picking a set stages a selection,
        sending AiMY to a supplier goes and does something. */
-    /* Offers about the LIST only where a list is the scope. Rich tab rows
-       are not a list, so the block above the rows keeps just the leads'
-       findings — the tab surface has no list-shaped question to ask. */
+    /* Offers about the LIST only where a list is the scope — every other
+       surface reaching `grid` has no list-shaped question to ask. */
     const listSrc = listScope() ? DB.sourceBy[S.srcref] : null;
     const offers = listSrc
       ? listOffers(listSrc, listPool(listSrc), listSrc.kind === 'con' ? 'con' : 'acc',
@@ -11460,7 +11385,7 @@
        builder existed: every set this surface was reached with came from a
        gate, and a gate is a finding. A list you have just built is the first
        set that arrives with no history at all. */
-    const readBlock = !flagged && !offers.length ? '' : `<div class="s-findings${asList ? ' is-panel' : ''}">
+    const readBlock = !flagged && !offers.length ? '' : `<div class="s-findings${listScope() ? ' is-panel' : ''}">
       <p class="s-lead-mark">
         <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
         AiMY reads it
@@ -12366,7 +12291,6 @@
       const queues = st.scope === 'member' && st.k !== 'measure';
       const n = queues ? stageMembers(l, st.k).length : 0;
       const clear = queues && !n;
-      const pct = queues && total ? Math.max(2, Math.round((n / total) * 100)) : 0;
       const tag = flat ? 'div' : 'button';
       const say = `${st.label} — ${stageSay(l, st.k)}${
         n && mine ? ', waiting on you' : n && !crew.length ? ', nobody is on it' : ''}`;
@@ -12379,10 +12303,7 @@
         </span>
         <span class="s-pipe-fig${f.state ? ' is-state' : ''}">${esc(f.fig)}${
           f.unit ? `<span class="s-pipe-unit">${esc(f.unit)}</span>` : ''}</span>
-        ${/* The space is kept whether or not a track is drawn in it, so the
-              four cells stay one height and the figures stay on one line. */ ''}
-        <span class="s-pipe-track${pct ? '' : ' is-none'}" aria-hidden="true">${
-          pct ? `<span class="s-pipe-fill" style="width:${pct}%"></span>` : ''}</span>
+
       </${tag}>`;
     }).join('');
 
@@ -13166,7 +13087,11 @@
     const inLists = new Set();
     lists.forEach((s) => campFromList(l, s).forEach((a) => inLists.add(a.id)));
     const byHand = members.filter((a) => !inLists.has(a.id));
-    const q = `on=leads&campaign=${l.k}&who=&status=&obstacle=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`;
+    /* Capped and expanded in place, the way every other long set on this
+       product is — `OPEN_GROUPS` is the same latch `grid` uses, so pressing
+       Show all here behaves the way it does everywhere else. */
+    const open = OPEN_GROUPS.has('_all');
+    const page = open ? members : members.slice(0, LIST_PAGE);
 
     return `${canWrite() && !campOver(l) ? `<div class="s-stage-acts">
         ${/* Two doors and no third. One reaches the lists that already
@@ -13176,16 +13101,12 @@
               builder again, worse, and inline. */ ''}
         <button class="entry-action ${esc(claimPrimary() ? 'em-direct' : 'em-review')} s-stage-primary" type="button" data-findfor="${esc(l.k)}">Build a new list</button>
         ${DB.source.length ? `<button class="btn btn-ghost btn-sm" type="button" data-campaddlist="${esc(l.k)}">Add an existing list</button>` : ''}
-        <button class="btn btn-ghost btn-sm" type="button" data-addto="${esc(l.k)}">Add ones we have</button>
       </div>` : ''}
 
       ${!members.length
         ? `<p class="s-none">Nothing on it yet. Build a list from its goal, or add one you already have.</p>`
         : `<div class="s-sheet-block">
-        <div class="s-camp-list-head">
-          <h4 class="s-sub-h">Its lists</h4>
-          <button class="s-inline-btn" type="button" data-quick="${esc(q)}">Open all ${members.length} in the workbench</button>
-        </div>
+        <h4 class="s-sub-h">Its lists</h4>
         ${lists.length ? `<div class="s-clists">${lists.map((s) => {
           const mine = campFromList(l, s);
           const gap = listGap(s);
@@ -13201,6 +13122,22 @@
               side it can arrive from. */ ''}
         ${byHand.length ? `<p class="s-block-say"><b>${byHand.length}</b> ${
           byHand.length === 1 ? 'was added' : 'were added'} one at a time and belong${byHand.length === 1 ? 's' : ''} to no list.</p>` : ''}
+      </div>
+
+      ${/* ══ AND THE ORGANIZATIONS THEMSELVES, HERE ═══════════════════════
+            This was a link reading "Open all 24 in the workbench" — a stage
+            that named its subject and then sent you somewhere else to look
+            at it. The workbench is the right surface for a set you are
+            NARROWING; Find is not narrowing anything, it is showing what the
+            campaign holds, and the rows it would show are the rows this
+            product draws everywhere. So they are drawn here. */ ''}
+      <div class="s-sheet-block">
+        <h4 class="s-sub-h">${esc(plural(members.length, 'organization'))} on it</h4>
+        <div class="s-brows">${page.map((a) => buildRow(a, 'acc')).join('')}</div>
+        ${members.length > page.length
+          ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${members.length - page.length}</button>`
+          : open && members.length > LIST_PAGE
+            ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show fewer</button>` : ''}
       </div>`}`;
   }
   /* ══ ENRICH IS THE LISTS' GAPS, NOT EACH RECORD'S ══════════════════════
@@ -16614,7 +16551,7 @@
       ${page.length
         ? (open === 'lists'
             ? `<div class="s-lists s-stagger">${page.map((x, i) => listCard(x, i)).join('')}</div>`
-            : grid(page, { rich: true }))
+            : grid(page))
         : `<p class="s-none">Nothing here${cut ? ` is ${esc(cut.label.toLowerCase())}` : ''}.</p>`}
 
       ${/* THE WAY TO THE REST. A capped list that does not say it is capped
@@ -23826,7 +23763,6 @@
     if ((el = e.target.closest('[data-reschedule]'))) { reschedule(el.dataset.reschedule); return; }
     if ((el = e.target.closest('[data-share]'))) { shareRec(el.dataset.share); return; }
     if ((el = e.target.closest('[data-addlist]'))) { addRecToCampaign(el.dataset.addlist); return; }
-    if ((el = e.target.closest('[data-addto]'))) { addToCampaign(el.dataset.addto); return; }
     if ((el = e.target.closest('[data-assign]'))) { assignCampaign(el.dataset.assign); return; }
     if ((el = e.target.closest('[data-plan]'))) { givePlan(el.dataset.plan); return; }
     if ((el = e.target.closest('[data-addstep]'))) { addStep(el.dataset.addstep); return; }
@@ -24315,14 +24251,6 @@
     /* Add-contacts' own controls redraw the block in place: changing the
        source or the search is not a new decision, it is the same one seen
        differently, so it must not stack a second block in the thread. */
-    if ((el = e.target.closest('[data-add-src]'))) {
-      if (!addTo) return;
-      addTo.src = el.dataset.addSrc;
-      dropWork();
-      paintAddWork();
-      return;
-    }
-    if (e.target.closest('.s-add-tick')) { paintAddCount(); return; }
 
     /* `data-talk-close` was here — the chevron that undocked the rail. There
        is no rail to undock, and the canvas already has one way out.
@@ -26044,102 +25972,16 @@
      right, which is that existing members are SHOWN AND DISABLED rather
      than hidden. A contact you cannot find is worse than one you cannot
      select, because you go looking for it. */
-  let addTo = null;
+  /* `addToCampaign` and its whole panel are gone: the source tabs, the
+     search, the candidate list, `addCandidates` and `paintAddWork`. It put
+     `Add ones we have` beside `Add an existing list` on Find, and the two
+     were one offer — both add leads you already hold, and the list is the
+     shape this product keeps them in. A picker of individual accounts, on a
+     stage whose subject is lists, was the third way to do the same thing.
 
-  function addToCampaign(key) {
-    const c = DB.campBy[key];
-    if (!c) return;
-    addTo = { k: key, src: '', q: '' };
-    paintAddWork();
-  }
+     `paintAddCount`, the `.s-add-q` listener and the `data-add-src` branch
+     went with it, because they only ever served that panel. */
 
-  function addCandidates() {
-    const c = DB.campBy[addTo.k];
-    let pool = (onCons() ? DB.con : DB.acc).filter((r) => !r.arch);
-    if (addTo.src) pool = pool.filter((r) => accOf(r).src === addTo.src);
-    if (addTo.q) {
-      const q = addTo.q.toLowerCase();
-      pool = pool.filter((r) => [r.name, accOf(r).name, r.role].filter(Boolean).join(' ').toLowerCase().includes(q));
-    }
-    return { c, pool: pool.slice(0, 60) };
-  }
-
-  /* NEW · PROSPECT · EXISTING. V1 shows these and they are the only three
-     things you need to know before ticking a row: never contacted, being
-     worked, or already here. */
-  function addBadge(r, c) {
-    if (c.members.includes(accOf(r).id)) return ['is-already', 'Already in it'];
-    return statusOf(r) === 'untouched' ? ['is-new', 'New'] : ['is-prospect', 'Prospect'];
-  }
-
-  function paintAddWork() {
-    const { c, pool } = addCandidates();
-    const already = pool.filter((r) => c.members.includes(accOf(r).id));
-    const fresh = pool.filter((r) => !c.members.includes(accOf(r).id));
-
-    canvasWork({
-      title: `Add to ${c.name}`,
-      lede: `${campState(c) === 'running' ? 'It is running, so anything you add starts receiving the plan.' : 'It is a draft, so nothing will send until you start it.'}`,
-      body: `
-        <div class="s-add-tools">
-          <div class="seg s-add-src" role="group" aria-label="Where they came from">
-            <button class="seg-btn${addTo.src === '' ? ' active' : ''}" type="button" data-add-src="">All sources</button>
-            ${TAX.src.map((s) => `<button class="seg-btn${addTo.src === s.k ? ' active' : ''}" type="button" data-add-src="${esc(s.k)}">${esc(s.label)}</button>`).join('')}
-          </div>
-          <div class="search-field s-add-search">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-            <input type="text" class="s-add-q" value="${esc(addTo.q)}" placeholder="Search by name, company or title…" aria-label="Search candidates" />
-          </div>
-        </div>
-        ${already.length ? `<div class="banner warn s-commit-banner">
-          <div class="banner-body"><strong>${esc(plural(already.length, 'record'))}</strong> ${already.length === 1 ? 'is' : 'are'} already in this campaign. ${already.length === 1 ? 'It is' : 'They are'} shown and cannot be picked.</div>
-        </div>` : ''}
-        <div class="s-pick s-pick-scroll">
-          ${pool.length ? pool.map((r) => {
-            const [cls, badge] = addBadge(r, c);
-            const off = cls === 'is-already';
-            return `<label class="ds-choice s-pick-row${off ? ' is-already' : ''}">
-              <input type="checkbox" value="${esc(r.id)}" ${off ? 'disabled' : 'checked'} class="s-add-tick" />
-              <span class="s-add-main">
-                <span class="s-add-name">${esc(r.name)}</span>
-                <span class="s-pick-role">${esc(r.kind === 'con' ? r.role + ' · ' + accOf(r).name : label('industry', accOf(r).industry) + ' · ' + (fmtSize(accOf(r).emp) || 'size not known'))}</span>
-              </span>
-              <span class="s-add-badge ${cls}">${esc(badge)}</span>
-            </label>`;
-          }).join('') : '<p class="s-none">Nothing matches that.</p>'}
-        </div>`,
-      effects: [campState(c) === 'running' ? ['warn', `${c.name} is running — anything added starts receiving the plan, including AiMY's step.`] : null],
-      confirm: `Add selected (${fresh.length})`,
-      run(id) {
-        const ids = $$('.s-add-tick:checked').map((i) => i.value);
-        if (!ids.length) { toast('Nothing was ticked, so nothing was added.'); return false; }
-        const accIds = toAccountIds(ids.map(recBy).filter(Boolean)).filter((a) => !c.members.includes(a));
-        c.members = c.members.concat(accIds);
-        addTo = null;
-        reindex(); paint(); paintChrome();
-        settleWork(id, `${plural(accIds.length, 'account')} added.`);
-        toast(`${plural(accIds.length, 'account')} added to ${c.name}.`, () => {
-          c.members = c.members.filter((m) => !accIds.includes(m));
-          reindex(); paint(); paintChrome();
-        });
-      },
-    });
-  }
-
-  /* ── Assign ──
-     The sharing model already built, widened from a record to a list. */
-  /* ══ THE OFFERING, AND WHO READS THE CAMPAIGN ═════════════════════════════
-
-     Two things the process diagram says a campaign has and this product could
-     never set. `sells` was written once at creation from whatever ICPs the
-     seeded accounts happened to match — so an empty campaign could never say
-     what it sells, and no campaign could ever say something the ICPs had not
-     already said. `client` was never written at all: the fixtures carry it,
-     the client's whole surface is scoped by it, and no form has ever asked.
-
-     The diagram's own words for the first one: *"For people working on it
-     they don't know what they are selling properly."* That is not a training
-     problem. */
   function editOffering(key) {
     const l = DB.campBy[key];
     if (!l) return;
