@@ -19756,7 +19756,11 @@
     SESSIONS.build = { title: 'Building a campaign', at: iso(TODAY), state: qs() };
     cbuildPush('goal',
       'What is this campaign for? Say who you want and what you want to happen — I read that sentence to go and find them.',
-      [{ k: 'take', label: 'Use what your wins have in common' }],
+      /* The way out, from the first turn — the same offer `LB_OUT` makes on
+         the list side, and for the same reason: the earliest useful moment
+         to leave a conversation is before it has asked you anything. */
+      [{ k: 'take', label: 'Use what your wins have in common' },
+       { k: 'own', label: 'Fill it in myself', quiet: true }],
       suggested);
     openCanvas();
     paintTalk();
@@ -24295,6 +24299,9 @@
       const k = el.dataset.cbuild;
       if (!CBUILD) return;
       if (k === 'take') { cbuildGoal(CBUILD.suggested); return; }
+      /* Leaves for the page that IS the form. Nothing typed is lost because
+         nothing has been typed — this is the first turn's own escape. */
+      if (k === 'own') { CBUILD = null; closeCanvas(); newCampaignPage(); return; }
       if (k === 'who-ok') { cbuildSells(); return; }
       if (k === 'who-edit') {
         /* THE ONE ANSWER THAT LEAVES THE CONVERSATION, and it leaves for the
@@ -25620,6 +25627,67 @@
       : `<span class="s-aud-n">Nothing</span> matches both of those. It would start empty.`;
   }
 
+  /* ══ THE CAMPAIGN'S OWN KEY, MONOTONIC ═════════════════════════════════
+     `'c' + (DB.camp.length + 100)` collided after an undo — undo removes the
+     campaign, the length drops back, and the next one reuses the key of the
+     campaign you just took away. The same defect the source key had and the
+     same fix; flagged rather than left, because both writers below mint keys
+     and a collision here attaches members to the wrong campaign. */
+  let campSeq = 0;
+  const campKey = () => 'c' + (DB.camp.length + 100) + '-' + (++campSeq);
+
+  /* ══ AND THE MANUAL WAY IN ═════════════════════════════════════════════
+     The conversation asks four questions and the seeded form asks eight, and
+     both were the only ways to make a campaign — so somebody who knew
+     exactly what they wanted still had to be interviewed about it.
+
+     The page is already the form. `campPage` edits the name and the goal in
+     place, `campIdentity` carries Products, Team and Client each with their
+     own control, and the Find stage owns "who is in it" — which is the whole
+     of "add campaign details" in the drawn flow. So the manual path makes an
+     EMPTY campaign and lands on it, and the filling in happens on the thing
+     rather than in front of it. Same move the list builder ended at: the
+     page becomes the list.
+
+     It starts as a draft by construction — `campState` reads `plan`, and
+     nothing here writes one — so nothing sends, and the page opens on the
+     lifecycle control that would start it. */
+  function newCampaignPage() {
+    if (!canRunCampaign() || !canWrite()) return;
+    const owner = me().id;
+    const crew = CREW_SHAPE();
+    const ownerFn = REP[owner] && REP[owner].fn;
+    if (crew[ownerFn]) crew[ownerFn].push(owner);
+    const c = {
+      k: campKey(),
+      /* Named, because `editField` refuses to empty a name and an unnamed
+         campaign is one nobody can find in the index it lands in. Dated, the
+         same shape a list's derived name takes, so the placeholder reads as
+         a placeholder rather than as somebody's word. */
+      name: `Untitled campaign — ${fmtDate(iso(TODAY))}`,
+      description: 'No description yet.',
+      goal: null,
+      owner, assignees: [], crew,
+      client: null, sells: [], members: [],
+      crit: Object.assign({}, S),
+      made: iso(TODAY),
+      plan: null, from: null, to: null, svc: null, kb: null,
+    };
+    DB.camp.push(c);
+    reindex();
+    /* `chat` clears with it. Arriving here from the conversation means the
+       conversation handed over, and leaving its key would reopen an answered
+       thread on reload — the same clause `buildOpen` carries for the same
+       hand-off on the list side. */
+    go({ camp: c.k, lead: '', task: '', stage: '', in: '', chat: '',
+      from: hereRef('camp', 'lead', 'task', 'stage', 'in') });
+    paintChrome();
+    toast('An empty campaign. Fill it in on the page — nothing sends until you start it.', () => {
+      DB.camp = DB.camp.filter((x) => x.k !== c.k);
+      reindex(); goBack(); paintChrome();
+    });
+  }
+
   function createCampaign(seedIds, named, opts) {
     /* The last door. Four controls reach this and each is gated, but a write
        stopped only by nothing having drawn its button is stopped by a
@@ -25824,7 +25892,7 @@
         const said = (($('.s-new-desc') || {}).value || '').trim();
         const kept = $$('.s-new-sell:checked').map((i) => Number(i.value));
         const c = {
-          k: 'c' + (DB.camp.length + 100),
+          k: campKey(),
           name,
           description: said || 'No description yet.',
           goal: said || null,
