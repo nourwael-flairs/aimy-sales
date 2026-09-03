@@ -6894,6 +6894,8 @@
          matched" is one clause, and "1,222 — more matched" cuts it in half. */
       flow: true,
       say: 'more matched these criteria and were never brought in.',
+      busy: `more:${src.k}`,
+      busySay: 'Looking…',
       act: 'Bring in more',
       attr: `data-listrun="${esc(src.k)}"`,
     });
@@ -7334,6 +7336,60 @@
      an undo, because undo removes the source, the length drops back, and the
      next save reuses the key of the list you just took away. */
   let srcSeq = 0;
+
+  /* ══ INDEX ROWS BECOME RECORDS, WHOEVER ASKED ══════════════════════════
+     `buildCommit` did this inline, and then re-running a saved list needed
+     the identical thing under an existing key — the accounts, and on a
+     people list the one or two people at each of them, at the fixture's own
+     reachability rates. Two copies of a write is two copies that drift, so
+     it is one function and both callers pass their own starting index.
+
+     `at` is that index, and it is why the ids are what they are: `ab3-src-x`
+     has to stay unique when the same list is re-run twice, so the second run
+     starts numbering where the first stopped rather than from zero. */
+  function makeRows(key, rows, o) {
+    const accs = [];
+    const cons = [];
+    rows.forEach((r, n) => {
+      const i = o.at + n;
+      const accId = 'ab' + i + '-' + key;
+      accs.push({
+        id: accId, kind: 'acc', name: r.name, domain: r.domain,
+        city: r.city, country: 'Netherlands', emp: r.emp, founded: r.founded,
+        industry: r.industry, region: 'emea', rev: null, svc: 'qa', icp: null,
+        src: o.liFind ? 'linkedin' : 'scrape', srcRef: key, owner: o.by, shared: [],
+        next: null, outcome: null, outcomeWhy: null, arch: false,
+        enrich: { emp: { conf: 'high', src: o.liFind || 'AiMY scrape', at: iso(TODAY) }, founded: null, rev: null },
+      });
+      if (o.kind !== 'con') return;
+      /* One or two people per company, at the roles asked for. The seeded rng
+         is keyed off the index so the same search twice returns the same
+         people — a list that reshuffled on re-run would be a different list
+         wearing the same name. */
+      const rr = rngAt(1000 + i);
+      const pool2 = o.wantTitles.length ? ROLES.filter((x) => o.wantTitles.indexOf(x.t) >= 0) : ROLES;
+      const howMany = pool2.length === 1 ? 1 : (rr() < 0.45 ? 2 : 1);
+      for (let c = 0; c < howMany; c++) {
+        const role = pool2[Math.floor(rr() * pool2.length)] || ROLES[0];
+        const given = GIVEN[Math.floor(rr() * GIVEN.length)];
+        const sur = SURNAME[Math.floor(rr() * SURNAME.length)];
+        const slug = `${given}.${sur}`.toLowerCase().replace(/[^a-z.]/g, '');
+        cons.push({
+          id: 'pb' + i + '-' + c + '-' + key, kind: 'con', acc: accId,
+          srcRef: key, name: `${given} ${sur}`, role: role.t, svc: role.svc,
+          /* The rates a scraped arrival actually gives you, from the fixture's
+             own note: 42% email, 34% phone. Thin by construction. */
+          email: rr() < 0.42 ? `${slug}@${r.domain}` : null,
+          phone: rr() < 0.34 ? `+31 ${20 + Math.floor(rr() * 60)} ${100 + Math.floor(rr() * 800)} ${1000 + Math.floor(rr() * 9000)}` : null,
+          li: rr() < 0.8 ? `linkedin.com/in/${slug}` : null,
+          owner: o.by, shared: [], next: null, outcome: null, outcomeWhy: null,
+          arch: false, enrich: { email: null },
+        });
+      }
+    });
+    return { accs, cons };
+  }
+
   function buildCommit() {
     if (!canWrite()) return;
     if (!DRAFT) return;
@@ -7378,42 +7434,9 @@
     /* Which titles this list is about, so a people build narrows to them
        rather than returning whoever the generator happened to make. */
     const wantTitles = terms.filter((t) => t.axis === 'title').map((t) => t.val);
-    const made = [];
-    rows.forEach((r, i) => {
-      DB.acc.push({
-        id: 'ab' + i + '-' + key, kind: 'acc', name: r.name, domain: r.domain,
-        city: r.city, country: 'Netherlands', emp: r.emp, founded: r.founded,
-        industry: r.industry, region: 'emea', rev: null, svc: 'qa', icp: null,
-        src: liFind ? 'linkedin' : 'scrape', srcRef: key, owner: by, shared: [],
-        next: null, outcome: null, outcomeWhy: null, arch: false,
-        enrich: { emp: { conf: 'high', src: liFind || 'AiMY scrape', at: iso(TODAY) }, founded: null, rev: null },
-      });
-      if (kind !== 'con') return;
-      /* One or two people per company, at the roles asked for. The seeded rng
-         is keyed off the account id so the same search twice returns the same
-         people — a list that reshuffled on re-run would be a different list
-         wearing the same name. */
-      const rr = rngAt(1000 + i);
-      const pool2 = wantTitles.length ? ROLES.filter((x) => wantTitles.indexOf(x.t) >= 0) : ROLES;
-      const howMany = pool2.length === 1 ? 1 : (rr() < 0.45 ? 2 : 1);
-      for (let c = 0; c < howMany; c++) {
-        const role = pool2[Math.floor(rr() * pool2.length)] || ROLES[0];
-        const given = GIVEN[Math.floor(rr() * GIVEN.length)];
-        const sur = SURNAME[Math.floor(rr() * SURNAME.length)];
-        const slug = `${given}.${sur}`.toLowerCase().replace(/[^a-z.]/g, '');
-        made.push({
-          id: 'pb' + i + '-' + c + '-' + key, kind: 'con', acc: 'ab' + i + '-' + key,
-          srcRef: key, name: `${given} ${sur}`, role: role.t, svc: role.svc,
-          /* The rates a scraped arrival actually gives you, from the fixture's
-             own note: 42% email, 34% phone. Thin by construction. */
-          email: rr() < 0.42 ? `${slug}@${r.domain}` : null,
-          phone: rr() < 0.34 ? `+31 ${20 + Math.floor(rr() * 60)} ${100 + Math.floor(rr() * 800)} ${1000 + Math.floor(rr() * 9000)}` : null,
-          li: rr() < 0.8 ? `linkedin.com/in/${slug}` : null,
-          owner: by, shared: [], next: null, outcome: null, outcomeWhy: null,
-          arch: false, enrich: { email: null },
-        });
-      }
-    });
+    const built = makeRows(key, rows, { kind, by, liFind, wantTitles, at: 0 });
+    const made = built.cons;
+    built.accs.forEach((a) => DB.acc.push(a));
     made.forEach((p) => DB.con.push(p));
 
     /* ══ "N BROUGHT IN" COUNTS WHAT THE LIST HOLDS ═══════════════════════
@@ -16094,6 +16117,107 @@
     });
   }
 
+  /* ══ LOOKING FOR MORE HAPPENS WHERE THE LIST IS ════════════════════════
+     `Look for more like these` used to reopen the whole builder on another
+     page, with the list's criteria pre-loaded and a Generate button at the
+     bottom — a four-step round trip to answer "and the rest of them, please".
+     Worse, finishing it minted a SECOND list rather than growing the one you
+     pressed it on, so the verb and the outcome disagreed.
+
+     One surface now: the criteria it already has, editable, and one press.
+     The work happens under the list you are looking at, the busy state is on
+     the control you pressed, and the receipt is a toast — so the answer to
+     "did that do anything" is on screen where the question was asked.
+
+     Dropping a criterion here does not remove rows the list already holds. A
+     list is a set of records, not a live query — what the criteria describe
+     is what it looks for NEXT, and the effects line says so. */
+  function listRunMore(k) {
+    const s = DB.sourceBy[k];
+    if (!s || !canWrite()) return;
+    const kind = s.kind === 'con' ? 'con' : 'acc';
+    const terms = sourceTerms(s).terms.filter((t) => t.on);
+    const eg = kind === 'con' ? 'and heads of QA, 1000+ staff' : 'and logistics, 1000+ staff';
+    commit({
+      title: `Look for more like ${s.name}`,
+      body: `<p class="s-commit-lead">It looks for these. Untick anything too narrow, or add to them.</p>
+        <div class="s-pick">${terms.map((c, i) => `<label class="ds-choice s-pick-row">
+          <input type="checkbox" value="${i}" checked />
+          <span>${esc(critText(c))}</span>
+        </label>`).join('')}</div>
+        <label class="ds-field s-field">
+          <span class="s-field-label">And also, in your own words</span>
+          <input class="input" type="text" spellcheck="false" placeholder="${esc(eg)}" />
+        </label>`,
+      effects: [['ok', 'Anything new that matches joins this list. Nothing already on it moves or leaves.']],
+      reversible: 'Undoable from the toast',
+      confirm: 'Look now',
+      run() {
+        /* Structural, like the other two pickers on this surface — a class
+           that only exists to be queried is a rule waiting to be orphaned. */
+        const keep = $$('#commitHost .s-pick input:checked').map((el) => terms[Number(el.value)]).filter(Boolean);
+        const said = String(($('#commitHost .s-field .input') || {}).value || '').trim();
+        const add = said ? readSaid(said, kind) : [];
+        const has = (t) => keep.some((x) => x.axis === t.axis && x.val === t.val);
+        const merged = keep.concat(add.filter((t) => !has(t)));
+        if (!merged.length) { toast('Nothing left to look for, so nothing ran.'); return false; }
+        runMoreNow(k, merged);
+      },
+    });
+  }
+
+  /* The run itself, on the page you pressed it from. `buildBusy` holds the
+     working state for a second and skips it under reduced motion, which is
+     the same second every other trip to a supplier on this surface takes. */
+  function runMoreNow(k, terms) {
+    buildBusy('more:' + k, () => {
+      const s = DB.sourceBy[k];
+      if (!s) return;
+      const kind = s.kind === 'con' ? 'con' : 'acc';
+      /* Matched against what this list ALREADY holds, by domain — the index
+         is the same corpus every run reads, so without this the second press
+         would re-add every row the first one brought in. */
+      const mine = DB.acc.filter((a) => a.srcRef === k);
+      const have = new Set(mine.map((a) => String(a.domain || '').toLowerCase()));
+      const fresh = netMatched(terms).filter((r) => !have.has(String(r.domain || '').toLowerCase()));
+      const wasTerms = s.terms;
+      const wasCrit = s.crit;
+      const wasFound = s.found;
+      const wasImported = s.imported;
+      /* The criteria are updated whether or not anything came back: you
+         edited them, and a surface that quietly kept the old ones would be
+         lying about what it looks for next time. */
+      s.terms = terms.map((t) => ({ ...t }));
+      s.crit = critLine(terms);
+      s.found = buildReach(terms);
+      const restore = () => {
+        s.terms = wasTerms; s.crit = wasCrit; s.found = wasFound; s.imported = wasImported;
+      };
+      if (!fresh.length) {
+        reindex(); paint(); paintChrome(); paintRail();
+        toast('Nothing new matched, so the list is as it was.', () => {
+          restore(); reindex(); paint(); paintChrome(); paintRail();
+        });
+        return;
+      }
+      const liFind = (terms.filter((t) => t.axis === 'via')[0] || {}).val || null;
+      const wantTitles = terms.filter((t) => t.axis === 'title').map((t) => t.val);
+      const built = makeRows(k, fresh, { kind, by: s.by, liFind, wantTitles, at: mine.length });
+      built.accs.forEach((a) => DB.acc.push(a));
+      built.cons.forEach((c) => DB.con.push(c));
+      const n = kind === 'con' ? built.cons.length : built.accs.length;
+      s.imported = (s.imported || 0) + n;
+      reindex(); paint(); paintChrome(); paintRail();
+      toast(`${plural(n, kind === 'con' ? 'person' : 'organization')} added to ${s.name}.`, () => {
+        const gone = new Set(built.accs.map((a) => a.id));
+        const goneC = new Set(built.cons.map((c) => c.id));
+        DB.acc = DB.acc.filter((a) => !gone.has(a.id));
+        DB.con = DB.con.filter((c) => !goneC.has(c.id));
+        restore(); reindex(); paint(); paintChrome(); paintRail();
+      });
+    });
+  }
+
   /* ══ WHICH DRAFTED LIST THE READER IS LOOKING AT, IF ANY ═══════════════
      Both surfaces route to it: the drafted list opens under `?on=build&bsrc`
      from the commit, and under `?on=leads&srcref` from the Lists tab. This
@@ -16549,7 +16673,13 @@
          him — one field cannot be both the author and the owner, and the
          owner is the one anybody needs. `at` keeps the date on its own. */
       fact(esc(listOwnerSay(s))),
-      fact(`made ${esc(fmtAgo(s.at))}`),
+      /* ══ THE DATE IS A DATE ══════════════════════════════════════════
+         "made 5 weeks ago" is a duration, and a list's birthday is the one
+         fact on this line you might want to say out loud to somebody, quote
+         in a note, or line up against a quarter. `fmtAgo` is right for a
+         touchpoint — how stale is this — and wrong for a fixed point in the
+         past that never becomes more interesting by being fuzzy. */
+      fact(`made ${esc(fmtDate(s.at))}`),
       /* Only where it was actually sourced. A list dropped in as a CSV or
          synced from the CRM has a real origin already — `crit` says so — and
          attaching vendor names to it would be provenance theatre. */
@@ -16571,11 +16701,10 @@
          own last action back to them. */
       s.autoOff && s.autoOff.why
         ? fact(`stopped running itself when ${esc(s.autoOff.why)}`) : '',
-      /* AND WHEN IT IS RUNNING, SAY SO HERE TOO. The button opposite reads
-         `Stop finding and filling`, which tells you a thing can be stopped
-         and leaves you to infer that it is going. The card in the index has
-         said "runs itself" since v4; the list's own page said it nowhere. */
-      s.auto ? fact('AiMY keeps finding and filling it') : '',
+      /* The standing state moved to a chip beside the kind label — it is a
+         STATE, and this line is facts about the list. `stateChip('ongoing')`
+         draws "Runs itself", which is the same words the index card has used
+         since v4, from the same component every other state here wears. */
     ].join('');
 
     return `<header class="s-listhead${listDraft(s) ? ' is-draft' : ''}">
@@ -16586,7 +16715,8 @@
                 the facts line below carries "no campaign uses it" as one
                 item among six, which is a state reported as a statistic.
                 The chip is the same one every other drafted thing wears. */ ''}
-          <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}</div>
+          <div class="s-sheet-kind">List${listDraft(s) ? ` ${stateChip('drafted')}` : ''}${
+            s.auto ? ` ${stateChip('ongoing')}` : ''}</div>
           ${/* ══ THE TWO DECISIONS, WHERE THE DECIDING IS ════════════════
                 A draft asks one question and the answer belongs at the
                 corner where the state chip is. The ordinary action row
@@ -16636,7 +16766,9 @@
               worth making and this row was not. */ ''}
         ${s.auto
           ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop finding and filling</button>`
-          : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>`}
+          : BUSY === `more:${s.k}`
+            ? `<button class="btn btn-ghost btn-sm" type="button" disabled>Looking…</button>`
+            : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>`}
       </div>` : ''}
       ${/* THE CRITERIA ARE THE LIST. Editable in place, because what a list
             is FOR is the thing most likely to be wrong and the thing a
@@ -17288,7 +17420,7 @@
       : listShort(s)
         ? { state: 'recommended',
             text: `<b>${listGap(s).toLocaleString('en-GB')} more</b> match its criteria and were <b>never brought in</b>.`,
-            act: 'Bring in more of them', attr: `data-listrun="${esc(s.k)}"`,
+            act: 'Bring in more of them', attr: `data-listrun="${esc(s.k)}"`, busy: `more:${s.k}`,
             alt: 'Ask what is out there',
             altAsk: `${s.name} matched ${s.found.toLocaleString('en-GB')} organizations and ${pool.length} of them are in the book. What is in the rest, and which of it is worth bringing in first?` }
       /* ══ A LIST THAT RUNS ITSELF ANSWERS BEFORE THE BRANCHES BELOW ════════
@@ -17367,7 +17499,7 @@
                 branch and was only ever applied to the last one. */
           : { state: 'completed',
               text: `<b>${plural(pool.length, 'organization')}</b>, fully sized, used by <b>${plural(used.length, 'campaign')}</b>.`,
-              act: 'Find more like these', attr: `data-listrun="${esc(s.k)}"`,
+              act: 'Find more like these', attr: `data-listrun="${esc(s.k)}"`, busy: `more:${s.k}`,
               alt: 'Ask how it is doing',
               altAsk: `${s.name} is used by ${plural(used.length, 'campaign')}. How are they doing with it, and is the list still the right shape?` };
 
@@ -17552,7 +17684,16 @@
               variable holding the attributes puts the mode outside the tag,
               where the check cannot see it and correctly refuses to take the
               claim on trust. */ ''}
-        ${c.act ? `<button class="s-insight-lnk rail-act" type="button"
+        ${/* ── AND IT SAYS WHEN IT IS WORKING ──
+              The rail carries `data-listrun` for whichever list it is
+              reading, so a press here is one of the three places that press
+              can happen — and it was the only one with no working state, so
+              pressing it from the rail gave a second of nothing before the
+              toast. `BUSY` is set by `buildBusy` for the run's whole life and
+              every surface reads the same key. */ ''}
+        ${c.busy && BUSY === c.busy
+          ? `<button class="s-insight-lnk rail-act" type="button" disabled>Looking…</button>`
+          : c.act ? `<button class="s-insight-lnk rail-act" type="button"
           ${c.init ? `data-init="${esc(c.init.k)}" data-entry-mode="${esc(c.init.mode)}" data-aimy-topic="${esc(c.init.k)}" data-aimy-ask="${esc(c.init.ask)}"`
             : c.brief != null ? `data-brief="${esc(String(c.brief))}"`
             : c.quick ? `data-quick="${esc(c.quick)}"`
@@ -24373,17 +24514,10 @@
       if (s) createCampaign(listPool(s).map((a) => a.id), s.name);
       return;
     }
-    /* It passed nothing, so "Run it again" ran a fresh search and pushed a
-       SECOND list rather than re-running the one whose button was pressed.
-       The criteria the list already carries are what "again" means. */
-    if ((el = e.target.closest('[data-listrun]'))) {
-      const src = DB.sourceBy[el.dataset.listrun];
-      buildOpen(src ? {
-        terms: sourceTerms(src).terms, name: src.name, by: src.by, kind: src.kind,
-        camp: src.for || null, step: 3,
-      } : null);
-      return;
-    }
+    /* It reopened the builder on another page, pre-loaded, and finishing
+       there minted a SECOND list rather than growing the one you pressed —
+       so the verb and the outcome disagreed. It runs where the list is now. */
+    if ((el = e.target.closest('[data-listrun]'))) { listRunMore(el.dataset.listrun); return; }
     /* ── Standing work, on and off ──
        ON goes through the ladder because it grants authority that outlives
        the press. OFF does not: stopping is never the direction that needs
