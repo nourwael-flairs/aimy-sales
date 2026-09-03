@@ -2977,7 +2977,7 @@
        them. So does this. Always the spend, so the node is comparable
        between campaigns rather than flipping subject when one closes. */
     if (k === 'money') {
-      const m = campaignCost(c, periodOf(S.period));
+      const m = campaignCost(c, campPeriod(c));
       return m.total ? { fig: fmtMoney(m.total), unit: 'spent' }
         : { fig: 'Nothing', unit: 'spent yet', state: true };
     }
@@ -9445,6 +9445,36 @@
 
      Everything comes from touchpoints and membership, which already exist.
      Nothing new is stored. */
+  /* ══ A CAMPAIGN'S MONEY IS COUNTED OVER THE CAMPAIGN ═══════════════════
+     The Financials stage carried the executive page's period chips — This
+     quarter, Last quarter, This year, Rolling 12 — and every one of them is
+     the wrong window for one campaign. A campaign that ran June to September
+     read as two thirds of itself under "This quarter" and as nothing at all
+     under "Last quarter", with no indication either was a slice: the figures
+     simply changed. The period control belongs to a surface that spans many
+     campaigns and compares them over a common window, which is what the
+     executive page is and what a campaign page is not.
+
+     Its own window instead: `from` to `to`, or to today while it is still
+     running. A campaign that has not started has neither, so it counts from
+     the day it was made — everything spent on it since it existed, which is
+     the only honest answer before there is a window to speak of. */
+  const campPeriod = (c) => ({
+    k: 'camp',
+    from: c.from || c.made || iso(TODAY),
+    to: c.to && daysAgo(c.to) > 0 ? c.to : iso(TODAY),
+  });
+
+  /* What that window is, in words, for the block that has to say what it
+     counted. */
+  function campWhen(c) {
+    const p = campPeriod(c);
+    if (!c.from) return 'since it was made';
+    return c.to && daysAgo(c.to) > 0
+      ? `over its window, ${fmtDate(p.from)} to ${fmtDate(p.to)}`
+      : `since it started on ${fmtDate(p.from)}`;
+  }
+
   function campaignCost(camp, p) {
     const mem = maySee((camp.members || []).map((id) => DB.accBy[id]).filter(Boolean)).filter((a) => !a.arch);
     const by = {};
@@ -13500,9 +13530,8 @@
      "which of these to stop", which is the question a cost is read for. */
   function stageMoney(l) {
     if (!seesCampMoney()) return '';
-    const p = periodOf(S.period);
-    const m = campaignCost(l, p);
-    const when = (PERIODS.find((r) => r.k === p.k) || PERIODS[0]).label.toLowerCase();
+    const m = campaignCost(l, campPeriod(l));
+    const when = campWhen(l);
 
     if (!m.total && !m.arr) {
       return `<p class="s-none">Nothing has been spent on it ${esc(when)}, so there is nothing to count.</p>`;
@@ -13534,7 +13563,6 @@
         : stageRead(`<b>${esc(fmtMoney(m.total))}</b> spent and <b>no meeting out of it yet</b>. Everything here is cost so far.`);
 
     return `${read}
-      ${periodChips()}
       <div class="s-sheet-block">
         <h4 class="s-sub-h">What it cost</h4>
         <div class="s-afs">
@@ -13572,9 +13600,14 @@
               window, which flatters a campaign whose spend and whose win fall
               either side of it. Neither is a reason to hide the numbers; both
               are a reason to say what they are. */ ''}
-        <p class="s-money-note">This is what can be attributed to the campaign — logged hours, AiMY's own
-          touches and what its leads cost to source. It carries no share of unlogged salary, so it is a
-          floor rather than the whole. Both sides are counted ${esc(when)}.</p>
+        ${/* The window caveat is gone with the chips: both sides are counted
+              over the campaign's own life, so there is no longer a slice for
+              a deal to fall the wrong side of. What remains is the one that
+              still bites — this cost is what can be ATTRIBUTED, and carries
+              no share of the salary nobody logged. */ ''}
+        <p class="s-money-note">Counted ${esc(when)}. This is what can be attributed to the campaign —
+          logged hours, AiMY's own touches and what its leads cost to source. It carries no share of
+          unlogged salary, so it is a floor rather than the whole.</p>
       </div>`;
   }
 
@@ -13646,8 +13679,8 @@
       ? stageRead('Nothing has gone out yet, so there is nothing to measure. <b>Reach is where that starts.</b>')
       : cs != null && ms != null && Math.abs(cs - ms) > 0.1
         ? stageRead(cs > ms
-            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of what was sent.${r.bounced ? ` <b>${r.bounced}</b> of the sends never arrived at all.` : ''}`
-            : `What is sent is landing better than what is called: <b>${pc(ms)}</b> against <b>${pc(cs)}</b> on the phone.`)
+            ? `Calling is doing the work: <b>${pc(cs)}</b> of the calls landed against <b>${pc(ms)}</b> of the emails.${r.bounced ? ` <b>${r.bounced}</b> of those never arrived at all.` : ''}`
+            : `Email is landing better than the phone: <b>${pc(ms)}</b> against <b>${pc(cs)}</b>.`)
         : r.meets
           ? stageRead(`<b>${plural(r.meets, 'meeting')}</b> out of it so far, from <b>${r.calls + r.mails}</b> attempts.`)
           : stageRead(`<b>${r.calls + r.mails}</b> attempts and <b>no meeting yet</b>. Nothing has converted into a conversation.`);
@@ -13686,8 +13719,14 @@
                 choice is visible rather than assumed. */ ''}
           ${statFig(shareOf(r.callsKeen, r.calls), 'Calls interested',
             r.calls ? `${r.callsKeen} of ${r.calls} we made` : 'no call made yet')}
-          ${statFig(shareOf(r.mailsKeen, r.mails), 'Sent interested',
-            r.mails ? `${r.mailsKeen} of ${r.mails} AiMY sent${r.bounced ? `, ${r.bounced} never arrived` : ''}` : 'nothing sent yet')}
+          ${/* "Sent" named a direction, not a channel — and on a campaign
+                that is also 11 calls and 8 meetings, "sent" could have meant
+                any of them. `aimy` IS the email channel; the mix line in
+                Progress has said "AiMY emails" since v5, which names the
+                thing and keeps the sender visible, and this says it the same
+                way. */ ''}
+          ${statFig(shareOf(r.mailsKeen, r.mails), 'Emails interested',
+            r.mails ? `${r.mailsKeen} of ${r.mails} AiMY emails${r.bounced ? `, ${r.bounced} never arrived` : ''}` : 'no email sent yet')}
         </div>
       </div>` : ''}
       ${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">
