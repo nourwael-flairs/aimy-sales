@@ -4649,9 +4649,32 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-way-why { font-size: var(--ty-meta); color: var(--ink-faint); line-height: var(--lh-base); }
 .s-way-why b { color: var(--ink-secondary); font-weight: var(--fw-extrabold); font-variant-numeric: tabular-nums; }
 
-.s-describe { margin-top: 8px; }
-.s-build-said { min-height: 72px; resize: vertical; line-height: var(--lh-base); font-size: var(--ty-body); }
-.s-build-name { width: 100%; }
+/* ── WHAT IT HEARD, WHERE THE FIELD USED TO BE ──
+   The textarea has gone to the bar at the foot of the surface. What is left
+   is the sentence itself, at the step it deserves: it is the whole input to
+   everything below it, so it reads as a statement rather than as the value
+   of a field. Empty, it says where to type instead of leaving a blank. */
+.s-said {
+  font-size: var(--ty-deck); color: var(--ink-primary);
+  line-height: var(--lh-base); max-width: 72ch; margin: 0;
+}
+.s-said.is-empty { font-size: var(--ty-body); color: var(--ink-secondary); }
+
+/* ── AND THE NAME IS A FIELD, NOT A CAPTION ──
+   Sized and coloured by the `h1` it sits inside, so it reads as the heading
+   it replaces until you hover it. The rule underneath is the whole
+   affordance: no box, no label, no pencil — the heading simply turns out to
+   be typeable, which is what every product that lets you name a thing before
+   making it does. */
+.s-build-name {
+  width: 100%; font: inherit; color: inherit;
+  letter-spacing: inherit; line-height: inherit;
+  background: none; border: 0; border-radius: 0; padding: 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t-fast);
+}
+.s-build-name:hover { border-bottom-color: var(--card-border-hover); }
+.s-build-name:focus { outline: none; border-bottom-color: var(--accent); }
 .s-build-by { width: 15px; height: 15px; accent-color: var(--accent); }
 
 /* ══ WHAT AiMY NOTICED, AND THE ONE PRESS THAT APPLIES IT ══════════════════

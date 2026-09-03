@@ -6360,18 +6360,49 @@
     const hit = buildMatched().length;
     const take = DRAFT.take.size;
     const kind = buildKind();
+    const eg = kind === 'con'
+      ? 'QA managers at Dutch software companies with 200 to 1000 staff'
+      : 'Banking and logistics companies in the Netherlands with 200 to 1000 staff';
     return `<div class="s-sheet-head">
         <div class="s-sheet-head-main">
           <div class="s-sheet-kind">New list · ${kind === 'con' ? 'People' : 'Companies'}</div>
-          <h1 class="s-sheet-name">${esc(buildName())}</h1>
+          ${/* ══ AND THE NAME IS SETTLED BEFORE THE LIST IS ═════════════════
+                It was drawn as an `h1` and could not be touched: the only way
+                to disagree with "Everything — 5 Aug 2026" was to save the
+                list under it and rename it afterwards. `buildScrape` has read
+                `.s-build-name` since the page was written and nothing ever
+                rendered one — a scrape with no field, which is why the branch
+                below it (leave it alone and it keeps tracking the criteria;
+                type in it and it stops) has never once run.
+
+                Same input, so that branch works as written: while the value
+                still equals the derived name, `DRAFT.name` stays null and the
+                heading follows what you type into the criteria. The moment
+                you change it, it is yours and stops moving. */ ''}
+          <h1 class="s-sheet-name">${canWrite()
+            ? `<input class="s-build-name" type="text" spellcheck="false"
+                 value="${esc(buildName())}" data-auto="${esc(buildAutoName())}"
+                 aria-label="Name this list" />`
+            : esc(buildName())}</h1>
         </div>
       </div>
 
-      <label class="ds-field s-field s-describe">
-        <span class="s-field-label">Who are you looking for?</span>
-        <textarea class="input s-build-said" rows="3" spellcheck="false"
-          placeholder="${kind === 'con' ? 'QA managers at Dutch software companies with 200 to 1000 staff' : 'Banking and logistics companies in the Netherlands with 200 to 1000 staff'}">${esc(DRAFT.said || '')}</textarea>
-      </label>
+      ${/* ══ THE SENTENCE IS TYPED WHERE EVERY SENTENCE IS TYPED ═══════════
+            A three-row textarea sat here asking "Who are you looking for?"
+            while the bar fixed to the foot of every surface in the product
+            asked the same thing in different words — two boxes on one screen,
+            and the first question of the interaction became "which box?",
+            which is the defect `floatPlaceholder`'s own note calls out about
+            the three inputs this product used to have.
+
+            So there is one box, and it is the one that was already there. The
+            page shows what it heard rather than holding the field you typed
+            it into, and the placeholder on the bar says what pressing Enter
+            will do — which is what that bar has always promised. */ ''}
+      ${DRAFT.said
+        ? `<p class="s-said">${esc(DRAFT.said)}</p>`
+        : `<p class="s-said is-empty">Say who you are after in the bar below — something like “${esc(eg)}”.</p>`}
+
       ${terms.length ? `<div class="s-find-crit">
         ${terms.map((c) => `<button class="chip active" type="button" data-bterm="${esc(critKey(c))}">${esc(critText(c))}<span class="s-crit-x" aria-hidden="true">×</span></button>`).join('')}
       </div>` : ''}
@@ -7214,50 +7245,51 @@
      freeze an auto-name that should have kept following the chips. */
   function buildScrape() {
     if (!DRAFT) buildStart();
-    const said = $('.s-build-said');
-    if (said) DRAFT.said = said.value;
+    /* The sentence is no longer a field on this page — it arrives through the
+       one input at the foot of the surface, and `runInput` writes it. */
     const nm = $('.s-build-name');
-    if (nm) DRAFT.name = (DRAFT.name == null && nm.value === buildAutoName()) ? null : nm.value;
+    /* ══ AGAINST THE NAME THE FIELD WAS DRAWN WITH ═══════════════════════
+       "Untouched" means the box still holds what this page put in it, and
+       that has to be compared with the derived name AS IT WAS AT RENDER —
+       not as it is now. Reading a new sentence changes the derived name
+       before the repaint, so comparing against the live value made every
+       first sentence freeze the heading at "Everything — 5 Aug 2026": the
+       box held the old derivation, the function returned the new one, they
+       differed, and the scrape concluded somebody had typed it. */
+    if (nm) DRAFT.name = (DRAFT.name == null && nm.value === (nm.dataset.auto || '')) ? null : nm.value;
     const by = $('.s-build-by:checked');
     if (by) DRAFT.by = by.value;
   }
 
   function paintBuild() {
     buildScrape();
-    /* Where the caret was, if it was in the sentence. The page re-renders
-       whole — one `innerHTML` write, like every other surface here — so
-       reading as you type would otherwise drop you out of the box mid-word. */
-    const was = $('.s-build-said');
+    /* Where the caret was, if it was in the name. The page re-renders whole —
+       one `innerHTML` write, like every other surface here — so a repaint
+       triggered by anything else would otherwise drop you out of it mid-word.
+       It was the sentence field this guarded; that field has gone to the bar
+       at the foot of the surface, which no repaint of the stage touches. */
+    const was = $('.s-build-name');
     const sel = was && document.activeElement === was
       ? [was.selectionStart, was.selectionEnd] : null;
     const stage = $('#wbStage');
     if (stage) stage.innerHTML = buildPage();
     if (sel) {
-      const now = $('.s-build-said');
+      const now = $('.s-build-name');
       if (now) { now.focus(); try { now.setSelectionRange(sel[0], sel[1]); } catch (err) { /* older engines */ } }
     }
   }
 
-  /* ══ IT READS WHILE YOU TYPE ═══════════════════════════════════════════
-     Debounced, because reading on every keystroke would re-derive the whole
-     index for half a word. Terms that came out of the sentence are replaced
-     by the new reading; anything you accepted from a suggestion is not, which
-     is what makes the two kinds of criteria behave the way they look. */
-  let BUILD_READ_T = null;
-  /* Attached once, at the document, like every other delegated listener here
-     — the textarea is replaced on every repaint, so a listener bound to the
-     element would die with the first one.
+  /* ══ IT READS WHAT YOU SAID ════════════════════════════════════════════
+     Terms that came out of the sentence are replaced by the new reading;
+     anything you accepted from a suggestion is not, which is what makes the
+     two kinds of criteria behave the way they look.
 
-     400ms: long enough that a word being typed is not re-read four times,
-     short enough that the chips feel like a response rather than a delay. */
-  document.addEventListener('input', (e) => {
-    const t = e.target;
-    if (!t || !t.classList || !t.classList.contains('s-build-said')) return;
-    clearTimeout(BUILD_READ_T);
-    BUILD_READ_T = setTimeout(buildReadLive, 400);
-  });
-
-  function buildReadLive() {
+     No debounce any more, and no `input` listener. Both existed because this
+     read a textarea as you typed; the sentence now arrives whole, on Enter,
+     from the bar at the foot of the surface. `force` is for that caller: a
+     sentence reworded into the same criteria still has to repaint, because
+     the page shows the sentence back. */
+  function buildReadLive(force) {
     if (!DRAFT) return;
     buildScrape();
     const said = String(DRAFT.said || '').trim();
@@ -7267,7 +7299,7 @@
     const next = kept.concat(add.filter((t) => !have(t)).map((t) => ({ ...t, from: 'said' })));
     const same = next.length === DRAFT.terms.length
       && next.every((t, i) => DRAFT.terms[i] && DRAFT.terms[i].axis === t.axis && DRAFT.terms[i].val === t.val);
-    if (same) return;
+    if (same && !force) return;
     DRAFT.terms = next;
     paintBuild();
   }
@@ -19722,6 +19754,26 @@
       lbuildRead(t);
       return;
     }
+
+    /* ══ AND SO DOES THE BUILDER'S OWN PAGE ════════════════════════════════
+       Same rule, from the surface rather than the conversation. The page asks
+       who you are looking for and this is the only box on it, so a sentence
+       typed here is the answer — left to fall through it would reach the
+       filter parser and silently narrow the leads surface behind the builder,
+       which is exactly what the guard above exists to stop.
+
+       Not once the list is made: `bsrc` is the saved result, and a question
+       asked while looking at it is a question about it. */
+    if (DRAFT && onBuild() && !S.bsrc) {
+      if (buildStep() <= 2) {
+        toast('Say companies or people first, then tell me who you are after.');
+        return;
+      }
+      buildScrape();
+      DRAFT.said = t;
+      buildReadLive(true);
+      return;
+    }
     if (CBUILD) {
       if (CBUILD.step === 'goal') { cbuildGoal(t); return; }
       if (CBUILD.step === 'name') {
@@ -22878,8 +22930,12 @@
        has to know what this account may do. Offering "log a touchpoint" to
        somebody who cannot write is the button-that-refuses defect wearing a
        different hat. */
+    /* The builder's page has no field of its own; this bar is it, so it says
+       so while that page is open and asking. */
+    const drafting = DRAFT && onBuild() && !S.bsrc && buildStep() > 2;
     input.placeholder = aiDown() ? 'Type a filter — AiMY is unreachable…'
       : !canWrite() ? (rec ? `Ask about ${rec.name}…` : 'Ask or filter — this account does not write…')
+      : drafting ? 'Say who you are after, in your own words…'
       : rec ? `Log a touchpoint on ${rec.name}, or ask about it…`
       : SEL.size ? `What should I do with the ${plural(SEL.size, 'record')} you picked?`
       : 'Ask, filter, name a lead, or log a touchpoint…';
