@@ -6532,58 +6532,57 @@
      wires — `data-row` picks, `data-open` goes. */
   /* ══ AND IT IS THE SAME ROW ONCE THE LIST IS SAVED ═════════════════════
 
-     Opening a saved list drew `leadRow` instead: a name, whatever is late
+     Opening a saved list drew `leadRow` instead: a name, whatever was late
      about it, an owner and a verb. On a list of people that produced rows
      reading "Sofie van der Berg · site visit is 40 days past its date" — a
-     row about a person that will not say who the person is, what she does,
-     which company she is at, or how to reach her. The row shown the moment
-     the list was GENERATED said all of that, and then the surface you
-     actually work the list on threw it away. Two anatomies for one record,
-     and the thinner one on the surface where the time goes.
+     row about a person that would not say what she does, which company she
+     is at, or how to reach her. This row said all of it the moment the list
+     was generated, and the surface you actually work the list on threw it
+     away. Two anatomies for one record, and the thinner one where the time
+     goes.
 
-     One row now, carrying both halves. Sourcing keeps what it had: what they
-     do, where, how big, the addresses. Working adds what it had: the
-     finding, how long it has been, whose it is, and the move the finding
-     implies. Every one of those comes from the reader the worklist already
-     used — `topFlag`, `whyFlag`, `leadUrgency`, `exitFor` — so a record
-     cannot say one thing on the build page and another in the workbench.
+     So the list's own page draws this row too, unchanged in everything it
+     already said. A pass in between also folded the worklist's finding,
+     lateness and owner into it and that was the wrong instinct: `listHead`
+     and the reading directly above already state those over the whole set,
+     and a set an hour old repeated `UNTOUCHED · Nour Wael` down forty-five
+     rows — a column whose entire job is to be compared, holding a value that
+     separates nothing. What is true of all of them is said once, above them.
 
-     THE FINDING IS SEPARATED BY INK, NOT BY A FIFTH TYPE STEP. Four steps
-     are the whole reason this row scans, and a fifth would flatten them. The
-     finding takes body size in primary ink and the description drops to
-     secondary — the token roles already mean exactly that — while the ALARM
-     stays where the worklist puts it, in the right-hand column, on the one
-     figure built to carry a tone.
-
-     `showUrg` is a fact about the SET rather than the row, so `buildRows`
-     decides it: a list an hour old reads "never contacted" down every row,
-     which is the filter restated once per row and a column of amber that
-     separates nothing from nothing. */
-  function buildRow(rec, showUrg) {
-    const kind = rec.kind === 'con' ? 'con' : 'acc';
+     One thing is added, and only one: the move. See `go` below. */
+  function buildRow(rec, kind) {
     const picked = SEL.has(rec.id);
     const tick = canWrite() ? `<label class="s-pick-tick">
         <input class="s-tick" type="checkbox" value="${esc(rec.id)}"${picked ? ' checked' : ''}
           aria-label="Pick ${esc(rec.name)}" />
       </label>` : '<span class="s-brow-nopick"></span>';
 
-    /* ── What is wrong with it, how long it has been, and the one move ── */
-    const flag = topFlag(rec);
-    const said = flag
-      ? `<span class="s-brow-say">${esc(whyFlag(rec, flag.k))}</span>` : '';
-    const urg = leadUrgency(rec);
+    /* ══ AND THE ONE MOVE, WHERE THE LIST IS BEING WORKED ═════════════════
+       The only thing this row gained when it became the list's own row as
+       well as the builder's. Everything else it already said — what they do,
+       where, how big, the addresses — was right, and a pass that also folded
+       the worklist's finding, lateness and owner into it was answering a
+       question nobody had asked: those four lines are what `listHead` and
+       the reading above already say about the set, and repeating them per
+       row is what a rail note two thousand lines up calls the defect.
+
+       `exitFor` names one thing to do about one record, so it goes under the
+       record rather than into a column of its own — a column made it a FIELD
+       to compare down the page, and charged every row without a move 192px
+       of reserved nothing to keep the figures beside it aligned.
+
+       It wears the mark because that is what it is: AiMY reading this row and
+       naming the next step. Same anatomy as the list card's recommendation,
+       which is the same claim at the scale of a whole list. Absent on a
+       record with nothing to answer, and absent for anyone who cannot write. */
     const ex = canWrite() ? exitFor(rec) : null;
     const ask = ex && FLAG_ASK[ex.k];
-    const go = ex ? `<button class="s-brow-go" type="button" data-exit="${esc(rec.id)}"
-        data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
-        data-aimy-topic="${esc(ex.k)}"
-        ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${esc(ex.label)}</button>` : '<span></span>';
-    /* The status only where no finding says something more specific, then how
-       long and whose. The same three lines and the same suppression the
-       worklist row makes, so the two columns can be read the same way. */
-    const state = `${flag ? '' : `<span class="s-brow-tag">${esc(label('status', statusOf(rec)))}</span>`}
-      ${showUrg ? `<span class="s-brow-urg${urg.tone ? ` tone-${esc(urg.tone)}` : ''}">${esc(urg.text)}</span>` : ''}
-      <span class="s-brow-own">${esc(actor(rec.owner).name)}</span>`;
+    const go = ex ? `<span class="s-brow-ops">
+        <button class="s-insight-lnk s-ai-btn" type="button" data-exit="${esc(rec.id)}"
+          data-entry-mode="${esc(ex.mode.replace('em-', ''))}"
+          data-aimy-topic="${esc(ex.k)}"
+          ${ask ? `data-aimy-ask="${esc(ask(rec))}"` : ''}>${aiMark()}${esc(ex.label)}</button>
+      </span>` : '';
 
     if (kind === 'con') {
       const acc = accOf(rec) || {};
@@ -6591,7 +6590,6 @@
         ${tick}
         <span class="s-brow-main">
           <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
-          ${said}
           <span class="s-brow-desc">${esc(rec.role || 'Role not known')}${acc.name ? ` at ${esc(acc.name)}` : ''}</span>
           <span class="s-brow-facts">${[
             acc.city || null,
@@ -6600,6 +6598,7 @@
             rec.phone || null,
           ].filter(Boolean).map(esc).join(' · ') || '<i>no email and no phone number</i>'}</span>
           ${rec.li ? `<a class="s-brow-link" href="https://${esc(rec.li)}" target="_blank" rel="noopener">${esc(rec.li)}</a>` : ''}
+          ${go}
         </span>
         <span class="s-brow-side">
           ${/* The email and the phone are already on the line above, so repeating
@@ -6613,9 +6612,8 @@
                 row. */ ''}
           <span class="s-brow-fig">${acc.emp == null ? '—' : esc(fmtSize(acc.emp))}</span>
           <span class="s-brow-rev">${rec.svc ? `buys ${esc(label('service', rec.svc))}` : 'fit unknown'}</span>
-          ${state}
+          <span class="s-brow-tag">${esc(label('status', statusOf(rec)))}</span>
         </span>
-        ${go}
       </article>`;
     }
 
@@ -6627,17 +6625,11 @@
       ${tick}
       <span class="s-brow-main">
         <button class="s-brow-name" type="button" data-open="${esc(rec.id)}">${esc(rec.name)}</button>
-        ${said}
         ${about ? `<span class="s-brow-desc">${esc(about[1])}</span>` : ''}
-        ${/* The legal shape moved off the right edge and in here. It is an
-              identity fact — the same kind of thing as the sector and the
-              year — and the column it used to sit in now carries the working
-              state, which is a different question about a different thing. */ ''}
         <span class="s-brow-facts">${[
           label('industry', rec.industry),
           rec.city || null,
           rec.founded ? `founded ${rec.founded}` : null,
-          about ? about[0] : null,
         ].filter(Boolean).map(esc).join(' · ')}</span>
         ${/* Both addresses, and both real links. A website rendered as text on
               a row about a company you have never contacted is the one thing
@@ -6646,6 +6638,7 @@
           ${rec.domain ? `<a class="s-brow-link" href="https://${esc(rec.domain)}" target="_blank" rel="noopener">${esc(rec.domain)}</a>` : ''}
           <a class="s-brow-link" href="https://www.${esc(li)}" target="_blank" rel="noopener">${esc(li)}</a>
         </span>
+        ${go}
       </span>
       <span class="s-brow-side">
         <span class="s-brow-fig">${rec.emp == null ? '—' : esc(fmtSize(rec.emp))}</span>
@@ -6654,20 +6647,15 @@
               pressing "Get revenue" changed the header's percentage and
               nothing you could see. */ ''}
         <span class="s-brow-rev">${rec.rev == null ? 'revenue unknown' : esc(fmtMoney(rec.rev))}</span>
-        ${state}
+        ${about ? `<span class="s-brow-tag">${esc(about[0])}</span>` : ''}
       </span>
-      ${go}
     </article>`;
   }
-
-  /* A figure true of every row is not a figure. See `showUrg` above. */
-  const urgVaries = (pool) => new Set(pool.map((r) => leadUrgency(r).text)).size > 1;
 
   function buildRows(pool, kind) {
     if (!pool.length) return '';
     const shown = pool.slice(0, LIST_PAGE);
-    const showUrg = urgVaries(pool);
-    return `<div class="s-brows">${shown.map((r) => buildRow(r, showUrg)).join('')}</div>
+    return `<div class="s-brows">${shown.map((r) => buildRow(r, kind)).join('')}</div>
       ${pool.length > shown.length
         ? `<button class="s-inline-btn" type="button" data-quick="${esc(`on=leads&srcref=${S.bsrc}&who=${kind === 'con' ? 'contacts' : ''}&status=&obstacle=&opp=&campaign=&ids=&loose=&due=&q=`)}">Open all ${pool.length} in the workbench</button>`
         : ''}`;
@@ -6744,7 +6732,10 @@
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (still) { run(); return; }
     BUSY = key;
-    paintBuild();
+    /* The offers draw on the list's own page too now, and `paintBuild` only
+       ever repaints the builder — so the working state was invisible on the
+       surface where most of these get pressed. */
+    if (onBuild()) paintBuild(); else paint();
     setTimeout(() => { BUSY = null; run(); }, BUSY_MS);
   }
 
@@ -6790,26 +6781,88 @@
     });
   }
 
-  function buildFillBlock(src, pool, kind) {
-    const fields = kind === 'con' ? ['email', 'phone'] : ['emp', 'rev'];
-    const rows = fields.map((f) => {
+  /* ══ AND IT IS NOT ONLY ABOUT THE MISSING FIELDS ═══════════════════════
+
+     The block offered two rows and never a third: get the headcount, get the
+     revenue. Meanwhile the two biggest things AiMY had concluded about the
+     list were drawn as PROSE with no press attached — "1,222 more match its
+     criteria and were never brought in" sat in the rail as a sentence, and
+     "Financial services — Voice already works 10 of the same shape" sat on
+     the build page ending in the words "is one press below", which is an
+     insight pointing at a button instead of being one.
+
+     Every offer AiMY has about a list, in one place, each a sentence and the
+     press that answers it — which is what the doctrine asks of an insight
+     and what none of these three had all at once. */
+  function buildFillBlock(src, pool, kind, railSaid) {
+    const rows = [];
+
+    /* ── One offer per missing FIELD, naming who would answer it ── */
+    (kind === 'con' ? ['email', 'phone'] : ['emp', 'rev']).forEach((f) => {
       const missing = pool.filter((r) => (kind === 'con' ? !r[f] : r[f] == null));
-      if (!missing.length) return null;
+      if (!missing.length) return;
       const best = (PROVIDERS[f] || []).slice().sort((a, b) => b[1] - a[1])[0];
-      return { f, n: missing.length, best, noun: FILL_ASK[f][0], verb: FILL_ASK[f][1] };
-    }).filter(Boolean);
-    if (!rows.length) return '';
+      const noun = FILL_ASK[f][0];
+      rows.push({
+        say: `I can get <b>${esc(noun)}</b> for ${missing.length === pool.length ? 'all ' : ''}<b>${missing.length}</b> of them${
+          best ? ` — ${esc(best[0])} answers <b>${best[1]}%</b> of the time` : ''}. Until then they cannot be ${esc(FILL_ASK[f][1])}.`,
+        busy: `fill:${f}`,
+        busySay: `Asking ${(best && best[0]) || 'the suppliers'}…`,
+        act: `Get ${noun.replace(/^an? /, '')}`,
+        attr: `data-fillnow="${esc(src.k)}|${esc(f)}"`,
+      });
+    });
+
+    /* ── WHAT THE CRITERIA MATCHED AND NOBODY TOOK ──
+       `listGap` is the subtraction the index card makes and the list's own
+       page never did. It is usually the largest number on the surface. */
+    const gap = listGap(src);
+    if (gap) rows.push({
+      say: `<b>${gap.toLocaleString('en-GB')} more</b> matched these criteria and were never brought in.`,
+      act: 'Bring in more',
+      attr: `data-listrun="${esc(src.k)}"`,
+    });
+
+    /* ── AND WHO WOULD WORK IT ──
+       Only where nothing does. A list already inside a campaign has had this
+       question answered, and asking it again is the surface not reading its
+       own facts line. */
+    const fits = buildCampFit(src);
+    if (pool.length && !listUsedBy(src).length) rows.push({
+      /* The finding leads and the evidence follows it. Written the other way
+         round the sentence ran "X already works 10 of the same shape, and Y
+         already works 5 of the same shape, and no campaign draws on this
+         list" — two identical clauses and three `and`s before it reached the
+         thing that is actually wrong. The second campaign elides what the
+         first has already said. */
+      say: `<b>No campaign draws on this list.</b>${fits.length ? ` ${fits.map((f, i) => `<b>${esc(f.c.name)}</b> ${
+        i ? `works ${f.share}` : `already works ${f.share} leads of the same shape`}`).join(', and ')}.` : ''}`,
+      act: 'Start a campaign from it',
+      attr: `data-listcamp="${esc(src.k)}"`,
+    });
+
+    /* ══ AND NOT THE ONE THE RAIL IS ALREADY MAKING ══════════════════════
+       `listReading` ranks these same findings down to ONE and the rail draws
+       it, with the same press, four hundred pixels to the left. Adding the
+       gap row to this block put "1,222 more match its criteria and were
+       never brought in" on screen twice in nearly the same words — the
+       repeated derivation the rail's own note argues against, committed
+       while adding to the thing it argues for.
+
+       Matched on the attribute rather than on the text, so a change to
+       either sentence cannot quietly break the pairing. */
+    const rest = railSaid ? rows.filter((r) => r.attr !== railSaid) : rows;
+    if (!rest.length) return '';
     return `<div class="s-sugg">
       <p class="s-lead-mark">
         <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-        AiMY can fill these in
+        What AiMY can do next
       </p>
-      ${rows.map((r) => `<div class="s-sugg-row">
-        <span class="s-sugg-say">I can get <b>${esc(r.noun)}</b> for ${r.n === pool.length ? 'all ' : ''}<b>${r.n}</b> of them${
-          r.best ? ` — ${esc(r.best[0])} answers <b>${r.best[1]}%</b> of the time` : ''}. Until then they cannot be ${esc(r.verb)}.</span>
-        ${canWrite() ? (BUSY === 'fill:' + r.f
-          ? `<button class="s-sugg-go is-busy" type="button" disabled>Asking ${esc((r.best && r.best[0]) || 'the suppliers')}…</button>`
-          : `<button class="s-sugg-go" type="button" data-fillnow="${esc(src.k)}|${esc(r.f)}">Get ${esc(r.noun.replace(/^an? /, ''))}</button>`) : ''}
+      ${rest.map((r) => `<div class="s-sugg-row">
+        <span class="s-sugg-say">${r.say}</span>
+        ${canWrite() ? (r.busy && BUSY === r.busy
+          ? `<button class="s-sugg-go is-busy" type="button" disabled>${esc(r.busySay)}</button>`
+          : `<button class="s-sugg-go" type="button" ${r.attr}>${esc(r.act)}</button>`) : ''}
       </div>`).join('')}
     </div>`;
   }
@@ -6818,11 +6871,6 @@
     const pool = listPool(src);
     const terms = sourceTerms(src).terms.filter((t) => t.on);
     const kind = src.kind === 'con' ? 'con' : 'acc';
-    const thin = kind === 'con'
-      ? pool.filter((p) => !p.email || !p.phone)
-      : pool.filter((a) => a.emp == null || a.rev == null);
-    const noWay = kind === 'con' ? pool.filter((p) => !p.email && !p.phone) : [];
-    const fits = buildCampFit(src);
 
     return `<div class="s-build-done">
       ${/* THE CRITERIA STAY ABOVE WHAT THEY PRODUCED, and pressing one opens
@@ -6841,13 +6889,11 @@
             comes with the row and revenue does not, so a list is born thin by
             construction — saying so here is the difference between finding
             out now and finding out on the first call. */ ''}
+      ${/* The campaign fit used to be a second block here, ending in the
+            words "is one press below" — an insight pointing at a control
+            rather than carrying one. It is a row of the block above now,
+            with the press attached. */ ''}
       ${buildFillBlock(src, pool, kind)}
-
-      ${fits.length ? `<p class="s-build-ai">
-        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-        <span class="s-build-ai-say">${fits.map((f) => `<b>${esc(f.c.name)}</b> already works ${f.share} of the same shape`).join(', and ')}. ${
-          canWrite() ? 'Adding this list there is one press below.' : ''}</span>
-      </p>` : ''}
 
       ${buildRows(pool, kind)}
     </div>`;
@@ -10381,6 +10427,15 @@
         ${esc(back.label)}
       </button>` : ''}
       ${src ? listHead(src, list) : ''}
+      ${/* ══ AND AiMY'S OFFERS COME WITH IT ══════════════════════════════
+            They were built for the build page and drawn only there, so a
+            list opened the next morning — the surface you actually work it
+            on — had no way to fill anything except the header's one
+            all-fields button, which is the control that has just been taken
+            off it. One block, both surfaces, so the offer does not depend on
+            how recently the list was made. */ ''}
+      ${src ? buildFillBlock(src, listPool(src), src.kind === 'con' ? 'con' : 'acc',
+          (listReading(src).card || {}).attr) : ''}
       <div class="s-result-row">
         <div class="s-result-main">
           ${/* One anchor per surface. When a list is open its NAME is the
@@ -11096,7 +11151,7 @@
          rather than a thing somebody described and named, and the worklist
          row is the right shape for a cut. */
       return `${asList
-          ? `<div class="s-brows">${page.map((r) => buildRow(r, urgVaries(recs))).join('')}</div>`
+          ? `<div class="s-brows">${page.map((r) => buildRow(r, r.kind === 'con' ? 'con' : 'acc')).join('')}</div>`
           : `<div class="s-lrows s-stagger">${page.map((r, i) => leadRow(r, i)).join('')}</div>`}
         ${recs.length > page.length
           ? `<button class="s-inline-btn s-group-more" type="button" data-opengroup="_all">Show the other ${recs.length - page.length}</button>`
@@ -16024,15 +16079,23 @@
      control at all. */
   function listHead(s, list) {
     const pool = listPool(s);
-    const thin = pool.filter((a) => a.emp == null || a.rev == null);
     const used = listUsedBy(s);
     const pct = listCover(s);
     const mine = canWrite();
 
-    /* One claim, at the head of the loop that is not yet satisfied. */
+    /* ══ THE FILLING IS NOT A BUTTON UP HERE ═════════════════════════════
+       `Look up what 45 are missing` was the primary of this row, and it
+       raised a run that asked for every thin field at once. Directly beneath
+       it, AiMY's own block now offers the same work FIELD BY FIELD, naming
+       the supplier and its hit rate for each — "I can get revenue for all 45
+       — Modelled from headcount answers 88% of the time". Two controls for
+       one job, and the weaker one shouting.
+
+       So the header keeps what only a header can do — what to do with the
+       list as a whole — and the filling belongs to the block that can say
+       what it would actually go and get. */
     const next = !mine ? null
-      : thin.length ? { label: `Look up what ${thin.length === 1 ? 'one is' : `${thin.length} are`} missing`, attr: `data-enrichlist="${esc(s.k)}"` }
-      : !used.length ? { label: 'Make a campaign', attr: `data-listcamp="${esc(s.k)}"` }
+      : !used.length ? { label: 'Start a campaign from it', attr: `data-listcamp="${esc(s.k)}"` }
       : null;
 
     /* ══ FIVE FACTS THAT COULD BREAK IN HALF ═════════════════════════════
@@ -16084,6 +16147,11 @@
          own last action back to them. */
       s.autoOff && s.autoOff.why
         ? fact(`stopped running itself when ${esc(s.autoOff.why)}`) : '',
+      /* AND WHEN IT IS RUNNING, SAY SO HERE TOO. The button opposite reads
+         `Stop finding and filling`, which tells you a thing can be stopped
+         and leaves you to infer that it is going. The card in the index has
+         said "runs itself" since v4; the list's own page said it nowhere. */
+      s.auto ? fact('AiMY keeps finding and filling it') : '',
     ].join('');
 
     return `<header class="s-listhead">
@@ -16109,10 +16177,21 @@
               Stop is not paired with Run it again, because a list that runs
               itself has nothing to re-run — the same suppression this line
               has always made, now with somewhere to go instead of nowhere. */ ''}
+        ${/* ══ AND IT SAYS WHAT IT WOULD DO ════════════════════════════════
+              "Let AiMY keep it topped up" was asked what it meant, which is
+              the answer. Two things happen behind it — `autoAsk` grants a
+              cycle that FINDS up to a cap of new matches and FILLS up to a
+              cap of thin records — and "topped up" named neither, so the
+              only way to learn what you were authorising was to press a
+              button and read the confirm.
+
+              Both verbs, in the label. "keep" carries the standing part; the
+              confirm still carries the caps, which is detail a button cannot
+              hold and a grant surface must. */ ''}
         ${s.auto
-          ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop topping it up</button>`
+          ? `<button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|off">Stop finding and filling</button>`
           : `<button class="btn btn-ghost btn-sm" type="button" data-listrun="${esc(s.k)}">Look for more like these</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|on">Let AiMY keep it topped up</button>`}
+            <button class="btn btn-ghost btn-sm" type="button" data-listauto="${esc(s.k)}|on">Let AiMY keep finding and filling</button>`}
       </div>` : ''}
       ${/* THE CRITERIA ARE THE LIST. Editable in place, because what a list
             is FOR is the thing most likely to be wrong and the thing a

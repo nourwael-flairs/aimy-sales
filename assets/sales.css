@@ -4681,13 +4681,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-build-sum-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 .s-build-edit { white-space: nowrap; }
 
-.s-build-ai {
-  display: flex; align-items: flex-start; gap: 8px;
-  font-size: var(--ty-body); color: var(--ink-secondary);
-  line-height: var(--lh-base); max-width: 72ch;
-}
-.s-build-ai .s-insight-mark { flex: none; width: 14px; height: 16px; margin-top: 2px; }
-.s-build-ai-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
+/* `.s-build-ai` is gone. It drew the campaign fit as a standalone marked
+   paragraph ending "Adding this list there is one press below" — an insight
+   with no control, pointing at one somewhere else. It is a row of `.s-sugg`
+   now, where every other thing AiMY offers about a list already lives, and a
+   row there comes with its own press. */
 
 @media (max-width: 611.98px) { /* 720 layout px */
   .s-build-foot { flex-direction: column; align-items: stretch; }
@@ -4721,13 +4719,13 @@ body.is-calling { --fb-reserve: var(--call-width); }
    And the right edge carries the two figures you compare between rows — the
    headcount, and the revenue the enrichment offer above fills in. */
 .s-brows { display: flex; flex-direction: column; }
-/* Four columns, not three. The fourth is the verb the finding implies, and
-   it is a fixed width for the reason `.s-lrow` fixes its own: a button
-   column sized `auto` is a different width on every row, so the figures
-   beside it stop sharing an edge and the column stops being a column. Rows
-   with nothing to do render an empty span and keep the alignment. */
+/* Three columns. A fourth held the verb for one pass and cost every row
+   192px of reserved nothing at the right edge, whether or not it had a verb
+   to put there — the price a fixed button column charges for keeping the
+   figures beside it aligned. The verb sits under the row it belongs to now,
+   so the figures end the row and the row ends where the figures do. */
 .s-brow {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto 168px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start; column-gap: 24px;
   padding: 16px 12px; margin-left: -12px; border-radius: var(--r-md);
   border-bottom: 1px solid var(--hairline);
@@ -4749,20 +4747,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-brow-name:hover { color: var(--accent-text); }
 .s-brow-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 
-/* WHAT IS WRONG WITH THIS ONE, in the flag's own words, above what it is.
-   Body size like the description under it and separated from it by INK
-   rather than by a fifth type step — the four steps above are the reason
-   this row scans and a fifth would flatten them, while primary-over-
-   secondary is exactly the distinction those two tokens are for.
-
-   No tone on it. The alarm lives on the figure in the right-hand column,
-   which is the one place on the row built to carry one; colouring a whole
-   sentence per row would put a wall of red behind a set where every lead
-   has a finding, which is most of them. */
-.s-brow-say {
-  font-size: var(--ty-body); font-weight: var(--fw-semibold);
-  color: var(--ink-primary); line-height: var(--lh-base);
-}
+/* The one move, after the four lines that say who this is — the row's own
+   ladder runs 20 → 14 → 13 → 11 and closes, and the verb opens a new beat
+   under it. 8px rather than the block's 4px gap, because it is a different
+   kind of thing from the facts above it and not the next one of them. */
+.s-brow-ops { margin-top: 8px; }
 /* The one line here that has to be READ rather than scanned, so it keeps
    primary ink at body size. */
 .s-brow-desc { font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base); }
@@ -4795,35 +4784,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-faint); white-space: nowrap; margin-top: 4px;
 }
-/* HOW LONG IT HAS BEEN, AND WHOSE — the two the worklist row carries in its
-   own right-hand column, in the same order, at the same steps and with the
-   same two tones. Both columns answer "how bad, and who is answerable", so
-   both are read the same way whichever surface the record is on. */
-.s-brow-urg {
-  font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
-  color: var(--ink-quiet); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.s-brow-urg.tone-err  { color: var(--err-text); }
-.s-brow-urg.tone-warn { color: var(--warn-text); }
-.s-brow-own { font-size: var(--ty-meta); color: var(--ink-faint); white-space: nowrap; }
-
-/* The verb the flag implies. Ghost, not filled, for the reason `.s-lrow-go`
-   gives: a filled control on every row is nine primaries. */
-.s-brow-go {
-  justify-self: end; align-self: start;
-  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
-  color: var(--ink-quiet); cursor: pointer; white-space: nowrap;
-  padding: 4px 12px; border-radius: var(--r-pill);
-  border: 1px solid var(--card-border); background: none;
-  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
-}
-.s-brow-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
-.s-brow-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-
 @media (max-width: 611.98px) { /* 720 layout px */
   .s-brow { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
   .s-brow-side { grid-column: 2; align-items: flex-start; text-align: left; }
-  .s-brow-go { grid-column: 2; justify-self: start; }
 }
 
 /* ── The call queue, for Sales ──
