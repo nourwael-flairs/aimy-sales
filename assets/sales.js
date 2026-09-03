@@ -6305,8 +6305,8 @@
       ${sugg.map((g) => `<div class="s-sugg-row">
         <span class="s-sugg-say">${g.say}</span>
         ${canWrite() ? (BUSY === 'sugg:' + g.k
-          ? `<button class="s-sugg-go is-busy" type="button" disabled>Working…</button>`
-          : `<button class="s-sugg-go" type="button" data-bsugg="${esc(g.k)}">${esc(g.act)}</button>`) : ''}
+          ? `<button class="s-finding-go is-busy" type="button" disabled>Working…</button>`
+          : `<button class="s-finding-go" type="button" data-bsugg="${esc(g.k)}">${esc(g.act)}</button>`) : ''}
       </div>`).join('')}
     </div>`;
   }
@@ -6794,7 +6794,29 @@
      Every offer AiMY has about a list, in one place, each a sentence and the
      press that answers it — which is what the doctrine asks of an insight
      and what none of these three had all at once. */
-  function buildFillBlock(src, pool, kind, railSaid) {
+  /* ══ EVERYTHING AiMY HAS TO SAY ABOUT A LIST, IN ONE BLOCK ═════════════
+
+     There were two, stacked, four hundred pixels apart and both wearing the
+     mark: `What AiMY can do next` over the count line, `AiMY reads it` under
+     it. One was about the LIST — what is missing from it, what its criteria
+     matched and nobody took, whether anything works it. The other was about
+     the LEADS IN it — what is stuck, and how many. Two readings of one thing
+     by one reader, and the surface asked you to hold them apart yourself.
+
+     One block, and the merge is possible because both were already the same
+     shape underneath: a count, a clause, and the one verb that answers it.
+     `.s-finding` has drawn that triple since v5. So an offer is not a new
+     kind of row, it is a row with a different verb on the end — and the
+     verbs differ honestly, because picking a set and sending AiMY to a data
+     supplier are not the same act. The entry-mode ladder already says so:
+     selection is tier 3 and stays a bare uppercase link, going and getting
+     something is tier 2 and takes a border.
+
+     This returns the offer ROWS rather than markup, because the two callers
+     need them in different company: `grid` folds them in after the leads'
+     own findings, and the build page — where a list an hour old has no
+     findings at all — draws them alone. */
+  function listOffers(src, pool, kind, railSaid) {
     const rows = [];
 
     /* ── One offer per missing FIELD, naming who would answer it ── */
@@ -6804,8 +6826,9 @@
       const best = (PROVIDERS[f] || []).slice().sort((a, b) => b[1] - a[1])[0];
       const noun = FILL_ASK[f][0];
       rows.push({
-        say: `I can get <b>${esc(noun)}</b> for ${missing.length === pool.length ? 'all ' : ''}<b>${missing.length}</b> of them${
-          best ? ` — ${esc(best[0])} answers <b>${best[1]}%</b> of the time` : ''}. Until then they cannot be ${esc(FILL_ASK[f][1])}.`,
+        n: missing.length,
+        say: `no ${esc(noun.replace(/^an? /, ''))}, so they cannot be ${esc(FILL_ASK[f][1])}${
+          best ? `. ${esc(best[0])} answers <b>${best[1]}%</b> of the time` : ''}.`,
         busy: `fill:${f}`,
         busySay: `Asking ${(best && best[0]) || 'the suppliers'}…`,
         act: `Get ${noun.replace(/^an? /, '')}`,
@@ -6818,7 +6841,12 @@
        page never did. It is usually the largest number on the surface. */
     const gap = listGap(src);
     if (gap) rows.push({
-      say: `<b>${gap.toLocaleString('en-GB')} more</b> matched these criteria and were never brought in.`,
+      n: gap.toLocaleString('en-GB'),
+      /* Joined with a space, not the dash. The count is this sentence's
+         grammatical subject rather than a figure it is about — "1,222 more
+         matched" is one clause, and "1,222 — more matched" cuts it in half. */
+      flow: true,
+      say: 'more matched these criteria and were never brought in.',
       act: 'Bring in more',
       attr: `data-listrun="${esc(src.k)}"`,
     });
@@ -6826,16 +6854,19 @@
     /* ── AND WHO WOULD WORK IT ──
        Only where nothing does. A list already inside a campaign has had this
        question answered, and asking it again is the surface not reading its
-       own facts line. */
+       own facts line.
+
+       No leading count, because the subject here is the LIST rather than a
+       number of records in it — and `0 — campaigns draw on this list` says
+       nothing twice. The finding leads and the campaigns that would suit it
+       follow as the evidence; written the other way round the sentence ran
+       "X already works 10 of the same shape, and Y already works 5 of the
+       same shape, and no campaign draws on this list", which is two
+       identical clauses and three `and`s before it reaches the fault. */
     const fits = buildCampFit(src);
     if (pool.length && !listUsedBy(src).length) rows.push({
-      /* The finding leads and the evidence follows it. Written the other way
-         round the sentence ran "X already works 10 of the same shape, and Y
-         already works 5 of the same shape, and no campaign draws on this
-         list" — two identical clauses and three `and`s before it reached the
-         thing that is actually wrong. The second campaign elides what the
-         first has already said. */
-      say: `<b>No campaign draws on this list.</b>${fits.length ? ` ${fits.map((f, i) => `<b>${esc(f.c.name)}</b> ${
+      n: null,
+      say: `<b>No campaign</b> draws on this list.${fits.length ? ` ${fits.map((f, i) => `<b>${esc(f.c.name)}</b> ${
         i ? `works ${f.share}` : `already works ${f.share} leads of the same shape`}`).join(', and ')}.` : ''}`,
       act: 'Start a campaign from it',
       attr: `data-listcamp="${esc(src.k)}"`,
@@ -6843,30 +6874,68 @@
 
     /* ══ AND NOT THE ONE THE RAIL IS ALREADY MAKING ══════════════════════
        `listReading` ranks these same findings down to ONE and the rail draws
-       it, with the same press, four hundred pixels to the left. Adding the
-       gap row to this block put "1,222 more match its criteria and were
-       never brought in" on screen twice in nearly the same words — the
-       repeated derivation the rail's own note argues against, committed
-       while adding to the thing it argues for.
+       it, with the same press, four hundred pixels to the left. Without this
+       the gap row put "1,222 more match its criteria and were never brought
+       in" on screen twice in nearly the same words — the repeated derivation
+       the rail's own note argues against.
 
        Matched on the attribute rather than on the text, so a change to
        either sentence cannot quietly break the pairing. */
-    const rest = railSaid ? rows.filter((r) => r.attr !== railSaid) : rows;
-    if (!rest.length) return '';
-    return `<div class="s-sugg">
-      <p class="s-lead-mark">
-        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-        What AiMY can do next
-      </p>
-      ${rest.map((r) => `<div class="s-sugg-row">
-        <span class="s-sugg-say">${r.say}</span>
-        ${canWrite() ? (r.busy && BUSY === r.busy
-          ? `<button class="s-sugg-go is-busy" type="button" disabled>${esc(r.busySay)}</button>`
-          : `<button class="s-sugg-go" type="button" ${r.attr}>${esc(r.act)}</button>`) : ''}
-      </div>`).join('')}
+    return railSaid ? rows.filter((r) => r.attr !== railSaid) : rows;
+  }
+
+  /* One row, whichever list it lands in — and the same join the finding rows
+     make, so a block holding both reads as one list of statements rather than
+     two kinds of thing that happen to share a container. `n` is optional (the
+     campaign offer's subject is the list, not a count of records) and `flow`
+     says the clause continues the number's own sentence rather than
+     commenting on it. */
+  function offerRow(o) {
+    return `<div class="s-finding">
+      <span class="s-finding-say">${o.n == null ? '' : `<b>${esc(String(o.n))}</b>${o.flow ? ' ' : ' — '}`}${o.say}</span>
+      ${canWrite() ? (o.busy && BUSY === o.busy
+        ? `<button class="s-finding-go is-busy" type="button" disabled>${esc(o.busySay)}</button>`
+        : `<button class="s-finding-go" type="button" ${o.attr}>${esc(o.act)}</button>`) : '<span></span>'}
     </div>`;
   }
 
+  /* ── The block on the build page, where there are no lead findings yet ──
+     A list minutes old has been touched by nobody, so `grid`'s half of this
+     has nothing to say and only the offers remain. Same block, same rows,
+     same mark — the lede is the only thing that differs, and it differs
+     because what is true differs. */
+  function buildFillBlock(src, pool, kind, railSaid) {
+    const offers = listOffers(src, pool, kind, railSaid);
+    if (!offers.length) return '';
+    return `<div class="s-findings is-panel">
+      <p class="s-lead-mark">
+        <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+        AiMY reads it
+      </p>
+      <p class="s-findings-say">${listLede(0, 0, 0, offers.length)}</p>
+      <div class="s-findings-list">${offers.map(offerRow).join('')}</div>
+    </div>`;
+  }
+
+  /* ══ ONE SENTENCE OVER BOTH HALVES ═════════════════════════════════════
+     The leads' half and the list's half, joined or standing alone, so the
+     block opens with what is true of everything under it rather than with a
+     summary of one of its two kinds of row. Shared, because a lede that
+     disagreed with itself across two surfaces would be worse than two
+     blocks. */
+  function listLede(flagged, of, reasons, offers) {
+    const lead = flagged
+      ? (flagged === of
+          ? `<b>${plural(reasons, 'different reason')}</b> between them`
+          : `<b>${flagged} of the ${of}</b> ${flagged === 1 ? 'needs' : 'need'} something doing, for <b>${plural(reasons, 'different reason')}</b>`)
+      : '';
+    const rest = offers
+      ? `there ${offers === 1 ? 'is' : 'are'} <b>${plural(offers, 'thing')}</b> I can do about the list itself`
+      : '';
+    if (lead && rest) return `${lead} — and ${rest}.`;
+    if (lead) return `${lead}.`;
+    return `<b>Nothing on it needs chasing</b>, and ${rest}.`;
+  }
   function buildDone(src) {
     const pool = listPool(src);
     const terms = sourceTerms(src).terms.filter((t) => t.on);
@@ -10427,15 +10496,11 @@
         ${esc(back.label)}
       </button>` : ''}
       ${src ? listHead(src, list) : ''}
-      ${/* ══ AND AiMY'S OFFERS COME WITH IT ══════════════════════════════
-            They were built for the build page and drawn only there, so a
-            list opened the next morning — the surface you actually work it
-            on — had no way to fill anything except the header's one
-            all-fields button, which is the control that has just been taken
-            off it. One block, both surfaces, so the offer does not depend on
-            how recently the list was made. */ ''}
-      ${src ? buildFillBlock(src, listPool(src), src.kind === 'con' ? 'con' : 'acc',
-          (listReading(src).card || {}).attr) : ''}
+      ${/* AiMY's offers about the list were a second marked block here, above
+            the count line and above the reading of the leads themselves. They
+            are rows of that one block now — `grid` folds them in, because
+            that is where the other half of the same reader's sentence already
+            was. */ ''}
       <div class="s-result-row">
         <div class="s-result-main">
           ${/* One anchor per surface. When a list is open its NAME is the
@@ -11176,7 +11241,25 @@
 
        The ratio goes too when it is vacuous. `16 of the 24` is a real
        finding; `16 of the 16` is arithmetic about a filter. */
-    const one = found.length === 1;
+    /* ══ AND THE LIST'S OWN OFFERS ARE ROWS OF THIS BLOCK ════════════════
+       They were a second marked block above the count line — `What AiMY can
+       do next` over `AiMY reads it`, one about the list and one about the
+       leads in it, four hundred pixels apart and both in the first person.
+       Two readings of one thing by one reader.
+
+       They fold in because they were already the same shape: a count, a
+       clause, and the verb that answers it. What differs is the weight of
+       the verb, and it differs honestly — picking a set stages a selection,
+       sending AiMY to a supplier goes and does something. */
+    const listSrc = asList ? DB.sourceBy[S.srcref] : null;
+    const offers = listSrc
+      ? listOffers(listSrc, listPool(listSrc), listSrc.kind === 'con' ? 'con' : 'acc',
+          (listReading(listSrc).card || {}).attr)
+      : [];
+
+    /* The compact single-finding form has no list to fold the offers into,
+       so it only applies when there is nothing to fold. */
+    const one = found.length === 1 && !offers.length;
     const allFlagged = flagged === list.length;
     const share = allFlagged
       ? `<b>All ${flagged}</b>`
@@ -11211,14 +11294,12 @@
        builder existed: every set this surface was reached with came from a
        gate, and a gate is a finding. A list you have just built is the first
        set that arrives with no history at all. */
-    const readBlock = !flagged ? '' : `<div class="s-findings">
+    const readBlock = !flagged && !offers.length ? '' : `<div class="s-findings${asList ? ' is-panel' : ''}">
       <p class="s-lead-mark">
         <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
         AiMY reads it
       </p>
-      <p class="s-findings-say">${allFlagged
-        ? `<b>${plural(found.length, 'different reason')}</b> between them.`
-        : `${share} ${flagged === 1 ? 'needs' : 'need'} something doing, for <b>${plural(found.length, 'different reason')}</b>.`}</p>
+      <p class="s-findings-say">${listLede(flagged, list.length, found.length, offers.length)}</p>
       ${/* ══ AND THE TAIL IS A LINE, NOT NINE ROWS ═════════════════════════
             A full campaign turns up nine findings, four of them holding one
             lead each — and a block built to stop the page being a wall of
@@ -11234,9 +11315,17 @@
           const recs = groups.get(k);
           const row = BY.status[k];
           const allPicked = recs.every((r) => SEL.has(r.id));
+          /* ══ ONE SENTENCE, AND THE COUNT IS IN IT ══════════════════════
+             The number sat in a 32px gutter with a 12px gap after it, so a
+             row read as two things that happened to be on one line — a
+             figure, then a sentence about something. It is one statement
+             and the number is its subject, so it is inside it, in the same
+             type at the weight the sentence's own emphasis already uses.
+             Same join the single-finding form above has always made. */
+          const clause = FLAG_SUM[k] || row.label;
           return `<div class="s-finding">
-            <span class="s-finding-n">${recs.length}</span>
-            <span class="s-finding-say">${esc(FLAG_SUM[k] || row.label)}</span>
+            <span class="s-finding-say"><b>${recs.length}</b> — ${
+              esc(clause.charAt(0).toLowerCase() + clause.slice(1))}</span>
             ${canWrite() ? `<button class="s-finding-pick${allPicked ? ' is-on' : ''}" type="button" data-pickgroup="${esc(k)}">${
               allPicked ? 'Unpick' : `Pick ${recs.length === 1 ? 'it' : `these ${recs.length}`}`}</button>` : '<span></span>'}
           </div>`;
@@ -11244,12 +11333,16 @@
         ${ranked.length > FINDINGS_SHOWN ? `<p class="s-findings-tail">and <b>${ranked.length - FINDINGS_SHOWN} more</b>, ${
           ranked.slice(FINDINGS_SHOWN).every((k) => groups.get(k).length === 1) ? 'one lead each' : 'smaller'} — ${
           esc(ranked.slice(FINDINGS_SHOWN).map((k) => BY.status[k].label.toLowerCase()).join(', '))}.</p>` : ''}
+        ${/* What is stuck first, then what AiMY would go and get. Order is
+              what it costs to ignore: a bad address blocking three leads is
+              today's problem and a modelled revenue figure is not. */ ''}
+        ${offers.map(offerRow).join('')}
       </div>
-      <p class="s-findings-acts">
+      ${flagged ? `<p class="s-findings-acts">
         <button class="s-insight-lnk" type="button" data-entry-mode="prompt"
           data-aimy-topic="findings"
           data-aimy-ask="${esc(`${flagged} of the ${list.length} leads on screen have something in the way. Show me what they have in common and what to do about them.`)}">Ask about them</button>
-      </p>
+      </p>` : ''}
     </div>`;
 
     return `${readBlock}${listOf(list)}`;
@@ -16268,9 +16361,12 @@
       <div class="s-findings-list">
         ${finds.map((f) => {
           const on = S.cut === f.k;
+          /* No dash on this one. These clauses were already written to read
+             on from the count beside them — "matched 3,974 between them and
+             brought in 148" — so folding the number into the sentence is
+             the shape they were drafted for. */
           return `<div class="s-finding">
-            <span class="s-finding-n">${f.n}</span>
-            <span class="s-finding-say">${f.say}</span>
+            <span class="s-finding-say"><b>${f.n}</b> ${f.say}</span>
             <button class="s-finding-pick${on ? ' is-on' : ''}" type="button" data-cut="${esc(on ? '' : f.k)}">${
               on ? `Show all ${pool.length}` : f.n === 1 ? 'Show it' : `Show these ${f.n}`}</button>
           </div>`;

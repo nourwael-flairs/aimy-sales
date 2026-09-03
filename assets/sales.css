@@ -2381,6 +2381,28 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: var(--card-bg-raised); border-radius: var(--r-lg);
   padding: 16px; margin-bottom: 24px; max-width: 76ch;
 }
+/* ── AND WHERE IT IS THE SURFACE'S ONE AiMY PANEL, IT LOOKS LIKE ONE ──
+   On a list's own page this block absorbed the offers, so it is no longer a
+   reading beside a recommendation — it is both, and it is the only place on
+   that surface where AiMY speaks in the first person and proposes a write.
+   `.slv` is the established treatment for exactly that, so this takes its
+   ground, its border and its padding rather than inventing a third panel.
+
+   Full width, because the rows are now count-clause-verb triples with a
+   control on the right edge: at 76ch the verbs stopped sharing a column with
+   the wider offer sentences, and a column that does not align is not a
+   column.
+
+   A MODIFIER, NOT THE COMPONENT. The briefing's Lists tab draws this block
+   too, and `.slv` is already on that surface — two accent panels on one page
+   is exactly the doubling `.s-insight`'s own note argues against. There the
+   block stays a quiet raised card, because there it is a reading and nothing
+   more. */
+.s-findings.is-panel {
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  padding: 20px; max-width: none;
+}
 .s-findings-say {
   font-size: var(--ty-deck); font-weight: var(--fw-medium);
   line-height: var(--lh-base); color: var(--ink-primary);
@@ -2396,35 +2418,68 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Count, clause, and the one bulk verb — the same left-to-right reading as
    the campaign page's ranked rows, at a size that stacks five deep without
    becoming a wall. */
+/* ── TWO COLUMNS: the statement, and the verb that answers it ──
+   Three was one too many. The count had a 32px gutter of its own and the
+   sentence began 44px in, which made a row read as a figure and then a
+   separate remark about something — two things sharing a line rather than
+   one statement with a subject. The count is inside the sentence now, and
+   the only column left is the one that has to share an edge down the block:
+   the control. */
 .s-finding {
-  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto;
-  align-items: baseline; gap: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 16px;
   padding: 8px 0;
 }
-.s-finding-n {
-  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-tight); color: var(--ink-primary);
+/* At the reading step, not the caption step. These are the findings the whole
+   block exists to state, and they were set two steps below the sentence
+   introducing them — small enough that the eye took the block as a legend
+   rather than as the content. */
+.s-finding-say {
+  font-size: var(--ty-heading); color: var(--ink-secondary);
+  line-height: var(--lh-base); min-width: 0;
+}
+/* The subject of the sentence: full ink, heaviest weight, lining figures so
+   a column of them still lines up despite being inline. */
+.s-finding-say b {
+  color: var(--ink-primary); font-weight: var(--fw-extrabold);
   font-variant-numeric: tabular-nums;
 }
-.s-finding-say { font-size: var(--ty-meta); color: var(--ink-secondary); min-width: 0; }
 /* Selection, not navigation — you are already inside the set, so the useful
    verb is "work these together" rather than another door into them. */
 .s-finding-pick {
-  font-family: inherit; font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint); cursor: pointer; white-space: nowrap;
+  color: var(--ink-secondary); cursor: pointer; white-space: nowrap;
   padding: 4px 8px; border-radius: var(--r-pill);
   transition: color var(--t-fast), background-color var(--t-fast);
 }
 .s-finding-pick:hover { color: var(--ink-primary); background: var(--card-bg); }
 .s-finding-pick.is-on { color: var(--accent-text); }
 .s-finding-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* ── AND THE ROWS THAT GO AND DO SOMETHING TAKE A BORDER ──
+   Same row, heavier verb. `Pick these 3` stages a selection you are already
+   inside; `Get revenue` sends AiMY to a data supplier and writes what comes
+   back. The entry-mode ladder puts those two tiers apart and this is the one
+   place they sit in the same list, so the difference has to be visible: bare
+   uppercase for the selection, a bordered control for the write. */
+.s-finding-go {
+  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
+  color: var(--ink-secondary); cursor: pointer; white-space: nowrap;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); background: none;
+  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
+}
+.s-finding-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
+.s-finding-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* One second of working state, so a press that goes to a supplier says it is
+   going rather than changing the page a beat later with no cause on screen. */
+.s-finding-go.is-busy { opacity: 0.6; cursor: default; }
 /* The findings too small to earn a row, named rather than hidden. */
 .s-findings-tail {
-  font-size: var(--ty-meta); color: var(--ink-faint);
+  font-size: var(--ty-body); color: var(--ink-secondary);
   padding: 8px 0 0; max-width: 62ch;
 }
-.s-findings-tail b { color: var(--ink-quiet); font-weight: var(--fw-bold); }
+.s-findings-tail b { color: var(--ink-primary); font-weight: var(--fw-bold); }
 .s-findings-acts { margin-top: 12px; }
 
 /* ══ THE LEAD WORKLIST ═════════════════════════════════════════════════════
@@ -4603,6 +4658,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    Not a pre-fill. Each row is something derived from the book or the index,
    and the verb beside it is what accepting it would do — so the criteria on
    screen are always the ones you asked for. */
+/* ── AiMY's nudges WHILE the criteria are being written ──
+   This block no longer draws on a saved list: there it was a second marked
+   panel stacked over `.s-findings`, one reading the list and one reading the
+   leads in it, with the count line wedged between them. Those rows were
+   already the shape `.s-finding` draws, so they are `.s-finding`s now.
+
+   What is left is the moment it was built for — the describe step, where
+   there is no list yet and nothing to count, only a criterion worth adding.
+   No count column for that reason. The verb is `.s-finding-go`, the same one
+   the merged block uses, because both send AiMY to do something. */
 .s-sugg {
   background: var(--card-bg-raised); border-radius: var(--r-lg);
   padding: 16px; max-width: 76ch;
@@ -4614,18 +4679,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-sugg-row + .s-sugg-row { border-top: 1px solid var(--hairline); }
 .s-sugg-say { font-size: var(--ty-meta); color: var(--ink-secondary); line-height: var(--lh-base); }
 .s-sugg-say b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
-.s-sugg-go {
-  font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
-  color: var(--ink-quiet); cursor: pointer; white-space: nowrap;
-  padding: 4px 12px; border-radius: var(--r-pill);
-  border: 1px solid var(--card-border); background: none;
-  transition: color var(--t-fast), border-color var(--t-fast), background-color var(--t-fast);
-}
-.s-sugg-go:hover { color: var(--ink-primary); border-color: var(--card-border-hover); background: var(--card-bg); }
-.s-sugg-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* Waiting on a supplier. Dimmed and inert rather than replaced, so the row
-   keeps its height and the sentence above it does not jump. */
-.s-sugg-go.is-busy { opacity: 0.6; cursor: default; }
 
 /* ══ THE LIST ARRIVING ═════════════════════════════════════════════════════
    A search that returns instantly reads as a lookup. This one is going out to
@@ -4752,17 +4805,30 @@ body.is-calling { --fb-reserve: var(--call-width); }
    under it. 8px rather than the block's 4px gap, because it is a different
    kind of thing from the facts above it and not the next one of them. */
 .s-brow-ops { margin-top: 8px; }
-/* The one line here that has to be READ rather than scanned, so it keeps
-   primary ink at body size. */
-.s-brow-desc { font-size: var(--ty-body); color: var(--ink-secondary); line-height: var(--lh-base); }
-.s-brow-facts { font-size: var(--ty-meta); color: var(--ink-faint); }
-.s-brow i { font-style: normal; color: var(--ink-faint); }
+/* ══ RANK BY SIZE AND WEIGHT, NOT BY FADING ════════════════════════════════
+
+   The ladder ran 20 → 14 → 13 → 11 and each step also lost ink: primary,
+   secondary, faint, quiet. Two devices doing one job, and the cheaper one —
+   dimming — carried most of it, so the bottom of every row was a pale 11px
+   grey that had to be leaned into to read. A URL you have to lean in for is
+   a URL you will not check, which was the whole argument for putting the
+   addresses on the row.
+
+   Now the ladder is 20 → 16 → 14 → 14 and the ink stops at SECONDARY. Size
+   and weight rank it; nothing on the row is dimmed to make something else
+   look important. The smallest thing here is 14px, which is the body step,
+   not a caption step. */
+.s-brow-desc { font-size: var(--ty-heading); color: var(--ink-primary); line-height: var(--lh-base); }
+.s-brow-facts { font-size: var(--ty-body); color: var(--ink-secondary); }
+.s-brow i { font-style: normal; color: var(--ink-secondary); }
 
 .s-brow-links { display: flex; flex-wrap: wrap; gap: 4px 16px; min-width: 0; margin-top: 2px; }
-/* Addresses, at the quietest step. Not uppercased and not truncated to a
-   word: a URL you cannot read is a URL you cannot check. */
+/* Addresses at the body step, not the caption step. Not uppercased and not
+   truncated to a word: a URL you cannot read is a URL you cannot check, and
+   at 11px in quiet grey that was true of both of these. They rank below the
+   facts above them by being links rather than by being fainter. */
 .s-brow-link {
-  font-size: var(--ty-micro); color: var(--ink-quiet);
+  font-size: var(--ty-body); color: var(--ink-secondary);
   text-decoration: none; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; max-width: 100%;
   transition: color var(--t-fast);
@@ -4770,19 +4836,23 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-brow-link:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 
 .s-brow-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+/* The two figures you compare BETWEEN rows, so they take the largest step
+   on the right and full ink — and the two under them stop at secondary
+   rather than fading away. Same rule as the left: rank by size, not by
+   dimming. */
 .s-brow-fig {
-  font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
+  font-size: var(--ty-deck); font-weight: var(--fw-extrabold);
   color: var(--ink-primary); font-variant-numeric: tabular-nums;
   letter-spacing: var(--ls-tight); white-space: nowrap;
 }
 .s-brow-rev {
-  font-size: var(--ty-meta); color: var(--ink-quiet);
+  font-size: var(--ty-body); color: var(--ink-secondary);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .s-brow-tag {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
+  font-size: var(--ty-meta); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint); white-space: nowrap; margin-top: 4px;
+  color: var(--ink-secondary); white-space: nowrap; margin-top: 4px;
 }
 @media (max-width: 611.98px) { /* 720 layout px */
   .s-brow { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
