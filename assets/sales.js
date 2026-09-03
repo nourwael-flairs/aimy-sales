@@ -12156,9 +12156,9 @@
       { k: 'in', label: 'On the campaign', set: members,
         say: 'organizations it went out to' },
       { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
-        say: 'had at least one thing sent to them' },
+        say: 'we sent something' },
       { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
-        say: 'answered at least once' },
+        say: 'they answered' },
       { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
         /* Not 'the goal of this campaign' — the marker beside the name
            already says that, and the column is for what the step MEANS. */
@@ -12243,17 +12243,41 @@
                 same denominator said nothing at all. */ ''}
           <span class="s-fn-pct">${x.rate == null ? '—' : `${Math.round(x.rate * 100)}%`}</span>
           <span class="s-fn-n">${x.n} <span class="s-fn-of">of ${x.prev}</span></span>
-          ${/* No "of those that replied" suffix: `5 of 6` states the
-                denominator and the row above it is literally named. The
-                suffix said it a third time and wrapped every other row to
-                two lines doing it. */ ''}
+          ${/* ══ BOTH SHARES, WHICH IS WHAT THE GUIDANCE ACTUALLY SAYS ═══
+                Step conversion pinpoints where the problem is; cumulative
+                says how much is left by the end. Amplitude and Domo both
+                describe them as complementary and recommend showing both —
+                the mistake this block made was showing ONLY the cumulative,
+                which hid an 83% step behind a 21% total.
+
+                So the step rate keeps the column it is scanned in, and the
+                cumulative rides with the definition at the smallest step:
+                on Won, `40%` is the close rate and `8% of the 24` is what
+                the campaign actually converted, and a reader needs both to
+                know whether to fix the close or the top.
+
+                No "of those that replied" suffix — `5 of 6` states the
+                denominator and the row above it is literally named. */ ''}
+          <span class="s-fn-all">${Math.round((x.n / top) * 100)}% of ${top}</span>
           <span class="s-fn-say">${esc(x.st.say)}</span>
         </div>`).join('')}
     </div>
     ${bounced ? `<div class="s-fn-note">
       ${/* Not a funnel step — nobody passes THROUGH a bounce. A fault in the
             list, stated beside the funnel it distorts, with the fix on it. */ ''}
-      <span><b>${rate(bounced, sent + bounced)}</b> of what went out never arrived. That is the list, not the copy.</span>
+      ${/* ══ AND WHETHER THAT IS BAD ═══════════════════════════════════
+            "11% never arrived" is a number a reader has to already know the
+            industry to use. Published 2026 cold-outbound benchmarks put an
+            acceptable bounce under 3% and best-in-class under 1.5%, so at
+            11% this list is nearly four times the ceiling — which is the
+            difference between a footnote and a job.
+
+            Graded only above `BENCH.min` sends. A third of nine bouncing is
+            three addresses, and calling that a list problem is a confident
+            claim about almost nothing. */ ''}
+      <span><b>${rate(bounced, sent + bounced)}</b> of what went out never arrived. That is the list, not the copy.${
+        sent + bounced >= BENCH.min && bounced / (sent + bounced) > BENCH.bounce
+          ? ` Anything over <b>${Math.round(BENCH.bounce * 100)}%</b> is a list to clean before it is sent to again.` : ''}</span>
       <button class="s-inline-btn" type="button"
         data-quick2="${esc(`on=leads&who=contacts&campaign=${l.k}&obstacle=address-bounced&status=&opp=&srcref=&ids=&loose=&due=&q=&camp=&in=`)}">Show me the ${bounced === 1 ? 'one' : bounced}</button>
     </div>` : ''}`;
@@ -13707,6 +13731,22 @@
 
   const shareOf = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
 
+  /* ══ WHAT GOOD LOOKS LIKE, FROM OUTSIDE THIS BOOK ══════════════════════
+     A rate with nothing to compare it against is a number the reader has to
+     already know the industry to use. These are the published 2026 cold-
+     outbound benchmarks, and they are here so a figure can say whether it is
+     in trouble rather than leaving that to somebody's memory.
+
+       bounce  under 3% acceptable, under 1.5% best-in-class. Above it the
+               list is the fault, not the copy — which is the sentence this
+               surface was already making without a threshold behind it.
+       reply   ~3.4% average across a large published corpus, 5–10% solid.
+
+     `min` is the honesty guard. A rate on nine sends is not a rate, and
+     judging one against a benchmark is the sort of confident nonsense a
+     dashboard should refuse — so nothing is graded under it. */
+  const BENCH = { bounce: 0.03, reply: 0.034, min: 20 };
+
   function stageMeasure(l) {
     const st = campState(l);
     const kb = l.kb ? KB_BY[l.kb] : null;
@@ -13774,8 +13814,16 @@
                 Progress has said "AiMY emails" since v5, which names the
                 thing and keeps the sender visible, and this says it the same
                 way. */ ''}
+          ${/* Against the published average where there is enough volume to
+                judge one — a rate on six deliveries is not a rate. Only ever
+                said when it is UNDER: a figure above average on twelve sends
+                is noise, and praising it would be the surface flattering
+                itself off a sample it cannot stand on. */ ''}
           ${statFig(shareOf(r.mailsKeen, r.mails), 'Emails interested',
-            r.mails ? `${r.mailsKeen} of ${r.mails} that arrived${r.bounced ? `, ${r.bounced} more never did` : ''}` : 'no email arrived yet')}
+            !r.mails ? 'no email arrived yet'
+              : `${r.mailsKeen} of ${r.mails} that arrived${r.bounced ? `, ${r.bounced} more never did` : ''}${
+                  r.mails >= BENCH.min && (r.mailsKeen / r.mails) < BENCH.reply
+                    ? ` · under the ${Math.round(BENCH.reply * 100)}% typical` : ''}`)}
         </div>
       </div>` : ''}
       ${l.trail && l.trail.length && st !== 'draft' ? `<div class="s-sheet-block">

@@ -5072,7 +5072,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    rather than wrapped underneath it. */
 .s-fn-row {
   display: grid;
-  grid-template-columns: 168px 56px 96px minmax(0, 1fr);
+  grid-template-columns: 140px 56px 84px 92px minmax(0, 1fr);
   align-items: baseline; gap: 4px 16px;
   padding: 12px; margin-left: -12px; border-radius: var(--r-md);
 }
@@ -5122,8 +5122,18 @@ body.is-calling { --fb-reserve: var(--call-width); }
    a word this product coined and a reader is owed its definition on the same
    line. Body-adjacent ink, not faint: it is the half that makes the number
    readable. */
-.s-fn-say {
+/* THE SECOND SHARE, IN ITS OWN COLUMN. It rode with the definition for one
+   pass and wrapped two rows of four to a second line, which put a comparison
+   at two different heights — the thing a column exists to prevent. Its own
+   cell, one step below the step rate in size, because the step rate is the
+   question this block is scanned for and this is the follow-up. */
+.s-fn-all {
   grid-column: 4;
+  font-size: var(--ty-meta); color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.s-fn-say {
+  grid-column: 5;
   font-size: var(--ty-meta); color: var(--ink-secondary); min-width: 0;
 }
 /* Bounces are not a stage. Stated beside the funnel they distort, with the
