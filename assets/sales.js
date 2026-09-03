@@ -12091,6 +12091,34 @@
      is still WRITTEN, by `Start it` in the header, because `campState` reads
      it; it is simply not displayed. */
 
+  /* ══ THE FIVE STEPS A CAMPAIGN'S PEOPLE PASS THROUGH ═══════════════════
+     Lifted out of the funnel because the campaign LIST wants the same
+     numbers, and two derivations of "how many replied" is two answers to
+     one question — the defect this file has paid for on touchpoint counts
+     already. One set of sets, read by the funnel that draws all five and by
+     the row that draws two of them. */
+  function campSteps(l) {
+    const members = campMembers(l);
+    const ts = campSent(l);
+    const byAcc = {};
+    ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
+    const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
+    return [
+      { k: 'in', label: 'On the campaign', set: members,
+        say: 'organizations it went out to' },
+      { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
+        say: 'we sent something' },
+      { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
+        say: 'they answered' },
+      { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
+        /* Not 'the goal of this campaign' — the marker beside the name
+           already says that, and the column is for what the step MEANS. */
+        say: 'agreed to a call' },
+      { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
+        say: 'closed' },
+    ];
+  }
+
   function campAnalytics(l) {
     const evs = DB.eventsOf[l.k] || [];
     const n = (k) => evs.filter((e) => e.kind === k).length;
@@ -12165,26 +12193,7 @@
        `never arrived` survives outside the funnel, because it is not a stage
        anybody passes through — it is a data fault, and the one figure here
        with a cheap fix attached. */
-    const members = campMembers(l);
-    const ts = campSent(l);
-    const byAcc = {};
-    ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
-    const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
-
-    const steps = [
-      { k: 'in', label: 'On the campaign', set: members,
-        say: 'organizations it went out to' },
-      { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
-        say: 'we sent something' },
-      { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
-        say: 'they answered' },
-      { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
-        /* Not 'the goal of this campaign' — the marker beside the name
-           already says that, and the column is for what the step MEANS. */
-        say: 'agreed to a call' },
-      { k: 'won', label: 'Won', set: members.filter((a) => a.outcome === 'won'),
-        say: 'closed' },
-    ];
+    const steps = campSteps(l);
     const top = steps[0].set.length || 1;
 
     /* ── THE BIGGEST DROP IS THE FINDING ──
@@ -12228,7 +12237,7 @@
     /* The denominator moved here from a row of its own, so the sentence says
        what everything below it is a share OF. */
     const pcOf = (v) => `${Math.round(v * 100)}%`;
-    const read = !ts.length
+    const read = !campSent(l).length
       ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
       : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
           weak ? ` It loses most at <b>${esc(weak.st.label.toLowerCase())}</b> — <b>${weak.lost}</b> of the ${weak.prev} never get there.` : ''}${
@@ -15858,6 +15867,47 @@
             <span class="s-camp-row-stage">
               <span class="s-camp-row-n">${st.n}</span>${esc(st.label)}
             </span>
+            ${/* ══ HOW BIG IT IS, AND HOW FAR IT HAS ACTUALLY GOT ═════════
+                  The row said whose move it is and nothing else, so eight
+                  campaigns were eight names and a stage: "13 leads waiting
+                  on Engy" is the same sentence whether it is 13 of 14 or 13
+                  of 51, and the list gave no way to tell those apart.
+
+                  Two figures, from `campSteps` — the funnel's own sets, so
+                  the row and the campaign page cannot disagree. The size,
+                  which is the denominator every sentence on the row is
+                  implicitly against; and the FURTHEST step anything has
+                  reached, which is the one fact the stage badge does not
+                  carry: the badge says where work is waiting, this says
+                  what has come back. A campaign nothing has come back from
+                  draws the size alone rather than four zeros. */ ''}
+            ${(() => {
+              const steps = campSteps(c);
+              const fig = (n, w) => `<span class="s-camp-row-fig"><b>${n}</b> ${esc(w)}</span>`;
+              /* ══ THE SAME THREE, OR THE COLUMN COMPARES NOTHING ═══════
+                 The first cut drew the size and then whichever step the
+                 campaign had got furthest to — so one row read "2 won", the
+                 next "21 reached" and the next "5 booked a call", three
+                 different quantities stacked in one column. A column you
+                 have to read the noun of before you can use the number is
+                 not a column, and comparing eight campaigns is the whole
+                 reason these rows exist.
+
+                 Fixed: how many are in it, how many answered, how many
+                 closed. A zero is kept where it is a finding — 21 reached
+                 and none replied is the most useful thing this list can
+                 say — and dropped entirely where nothing has gone out,
+                 because "0 replied, 0 won" on an untouched campaign is two
+                 restatements of the sentence beside it. */
+              /* Anything past "in", not "reached" specifically. Gating on
+                 reached hid a campaign that had a win recorded against it
+                 and no outbound touchpoint — the fixture's shape, and
+                 exactly the row where the win is the whole story. */
+              const sent = steps.slice(1).some((x) => x.set.length);
+              return `<span class="s-camp-row-stat">${
+                fig(steps[0].set.length, 'in')}${sent ? fig(steps[2].set.length, 'replied') : ''}${
+                sent ? fig(steps[4].set.length, 'won') : ''}</span>`;
+            })()}
             ${/* WHOSE MOVE IT IS. This used to be AiMY's sentence about the
                   campaign, cut to a clause — true, and the same kind of
                   true for everybody. A row's one line is better spent on
@@ -24947,6 +24997,15 @@
         const gaps = maySee(DB.acc).filter((a) => !a.arch && (a.emp == null || a.rev == null));
         if (!gaps.length) { toast('Nothing is missing headcount or revenue.'); return; }
         go({ on: DEFAULTS.on, tab: 'orgs', cut: 'gaps', srcref: '', lead: '', camp: '', task: '' });
+        /* ══ AND THE PAGE GOES THERE ═══════════════════════════════════
+           The tab block is at the FOOT of the briefing and this opener is
+           at the top, so the press narrowed a set 1,400px below the fold
+           and left the screen identical — the exact defect the note on
+           `Ring someone` documents, arrived at from the other direction.
+           `go` repaints synchronously, so the block exists to scroll to by
+           the time this runs. */
+        const seat = $('.s-tabs-block'); const sc = $('#pageScroll');
+        if (seat && sc) sc.scrollTop = Math.max(0, seat.offsetTop - sc.offsetTop - 12);
       }
       return;
     }

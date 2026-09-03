@@ -5794,7 +5794,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-tab-shut { margin-left: auto; }
 .s-camp-rows { display: flex; flex-direction: column; gap: 2px; }
 .s-camp-row {
-  display: grid; grid-template-columns: minmax(0, 15rem) auto minmax(0, 1fr) 13px;
+  display: grid; grid-template-columns: minmax(0, 15rem) auto auto minmax(0, 1fr) 13px;
   align-items: center; gap: 16px;
   width: 100%; text-align: left; cursor: pointer; font-family: inherit;
   padding: 12px; border-radius: var(--r-md);
@@ -5832,6 +5832,23 @@ body.is-calling .overlay-chats { display: none; }
   width: 16px; height: 16px; border-radius: 50%;
   background: var(--warn-bg); border: 1px solid rgba(247,144,9,0.35);
   font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+/* ── HOW BIG, AND HOW FAR ──
+   Weight and size carry the hierarchy, not colour: the figure is the thing
+   being compared down the column, and the noun beside it only says what the
+   figure counts. Fixed width so the numbers line up across eight rows —
+   a column of figures you have to hunt for is a column of prose. */
+.s-camp-row-stat {
+  display: inline-flex; align-items: baseline; gap: 12px; flex: none;
+  min-width: 10.5rem;
+}
+.s-camp-row-fig {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  font-size: var(--fs-xs); color: var(--d200); white-space: nowrap;
+}
+.s-camp-row-fig b {
+  font-size: var(--fs-base); font-weight: var(--fw-extrabold); color: var(--d50);
+  font-variant-numeric: tabular-nums;
 }
 .s-camp-row-why { font-size: var(--fs-base); color: var(--d200); min-width: 0; }
 /* WHY IT IS THIS FAR UP, on the rows that have a reason. Amber rather than
