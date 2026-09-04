@@ -4190,9 +4190,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    figure it is competing with is the lead at 60, so it takes the display
    step and the gap between the two stays legible. */
 .s-tally { display: flex; flex-direction: column; gap: 16px; }
-.s-tally-figs { margin-bottom: 0; gap: 20px; }
-.s-tally-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
-.s-tally-figs .s-af-cap { color: var(--ink-secondary); }
+/* Shared with the funnel's figures: the campaign's two figure rows say what
+   happened and what came of it, and reading the same is the point. */
+.s-tally-figs, .s-fn-figs { margin-bottom: 0; gap: 20px; }
+.s-tally-figs .s-af-val,
+.s-fn-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
+.s-tally-figs .s-af-cap,
+.s-fn-figs .s-af-cap { color: var(--ink-secondary); }
+/* The goal keeps its marker and the biggest loss keeps its tone — the two
+   things the rows carried that a bare figure does not. */
+.s-fn-figs { margin-bottom: 24px; }
+.s-fn-figs .s-af-cap { display: flex; align-items: baseline; gap: 8px; }
+.s-fn-figs .s-af.is-goal .s-af-cap { color: var(--ink-primary); }
+.s-fn-figs .s-af.is-weak .s-af-val { color: var(--warn-text); }
 /* The channel breakdown, spanning the grid under the figure it breaks down.
    `Touchpoints 25` is honest but incomplete: eleven of those were calls and
    eight were meetings, and a campaign being worked on the phone is a
@@ -5080,67 +5090,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The goal row is marked, because a campaign is measured against what it was
    for and this one says so in its own goal statement — a scoping call. It
    was the one figure the tab never carried. */
-/* 70ch was the measure five columns needed. Three need half of it, and a
-   comparison spread across a width it does not fill is one the eye has to
-   travel to make. */
-.s-funnel { display: flex; flex-direction: column; gap: 2px; max-width: 32rem; }
-/* ── ONE LINE A STEP ──
-   Four columns and two rows became four columns and one. The bar is gone —
-   the percentage was drawing the same shape more precisely — so the meaning
-   column takes the space it had, on the same line as the name it explains
-   rather than wrapped underneath it. */
-.s-fn-row {
-  display: grid;
-  /* Three columns, not five, and all three fixed. `1fr` on the name put 190px
-     of white between "Reached" and the 50% it belongs to — the number was
-     right where the fifth column used to end, and the eye had to cross the
-     gap the removed columns left behind. Fixed, the row is 352px and the
-     three things sit together. */
-  grid-template-columns: 168px 64px 88px;
-  align-items: baseline; gap: 4px 16px;
-  padding: 12px; margin-left: -12px; border-radius: var(--r-md);
-}
-/* The step that loses most, marked on the COUNT rather than the rate — the
-   sentence above ranks by how many fell out, and the mark has to be on the
-   figure it ranked. Toning the percentage would have pointed at a different
-   row from the one the sentence names. */
-.s-fn-row.is-weak .s-fn-n { color: var(--warn-text); }
-/* The band is gone. `THE GOAL` beside the name says it in words, and a
-   second ground behind the same row is the same fact twice — the thing this
-   pass took two columns out for. */
-/* 168, and the name does not wrap. At 132 the goal row broke `Booked a call`
-   over two lines to fit its own marker beside it, which put one row of a
-   five-row comparison at a different height than the other four. */
-.s-fn-name {
-  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
-  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-secondary);
-}
-.s-fn-row.is-goal .s-fn-name { color: var(--ink-primary); }
+/* ── THE FUNNEL IS A FIGURE ROW NOW ──
+   `.s-funnel`, `.s-fn-row`, `.s-fn-name`, `.s-fn-pct`, `.s-fn-n` and
+   `.s-fn-of` are gone with the table they drew. Four rows of `name · rate ·
+   N of M` asked to be read; the results are given at a glance instead, in
+   `.s-afs` — the same anatomy the logged figures above them use. What
+   survives is the goal's marker, because a figure row has nowhere else to
+   put it. */
 .s-fn-goal {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--accent-text);
-}
-/* `.s-fn-track` and `.s-fn-fill` are gone. Each row carried a bar, a count,
-   a percentage and "N lost here" — four ways of saying one fall, and the bar
-   was the least precise. The percentages descend 50 · 25 · 21 · 8, which is
-   the shape the bars were drawing. */
-/* `12 of 24` — the conversion's own two numbers, so the percentage above can
-   be checked rather than taken. The count is full ink, the denominator one
-   step down in weight, because they are not the same claim. */
-.s-fn-n {
-  font-size: var(--ty-body); font-weight: var(--fw-extrabold);
-  color: var(--ink-primary); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.s-fn-of { font-weight: var(--fw-regular); color: var(--ink-secondary); }
-/* THE COLUMN YOU SCAN. Every percentage here used to be of the campaign's
-   whole size — 50 · 25 · 21 · 8 — which answers "how many got this far" and
-   hides the only thing a funnel is read for. Each row converts from the row
-   above it now, so 83 against two 50s says where to look, and the figure is
-   sized to be looked at. */
-.s-fn-pct {
-  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
-  color: var(--ink-primary); font-variant-numeric: tabular-nums;
-  letter-spacing: var(--ls-tight);
 }
 /* Bounces are not a stage. Stated beside the funnel they distort, with the
    fix attached, rather than as a step nobody passes through. */

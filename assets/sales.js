@@ -12239,11 +12239,19 @@
     const pcOf = (v) => `${Math.round(v * 100)}%`;
     const read = !campSent(l).length
       ? `<b>Nothing has gone out yet</b>, so there is nothing to measure.`
-      : `<b>${booked}</b> of the <b>${top}</b> on it ${booked === 1 ? 'has' : 'have'} <b>booked a call</b>, which is what this campaign is for.${
-          weak ? ` It loses most at <b>${esc(weak.st.label.toLowerCase())}</b> — <b>${weak.lost}</b> of the ${weak.prev} never get there.` : ''}${
-          strong && strong !== weak && strong.rate > 0.6
-            ? ` Its strongest conversion is <b>${esc(strong.st.label.toLowerCase())}</b>, at <b>${pcOf(strong.rate)}</b>.`
-            : ''}`;
+      /* ══ THE READING SAYS THE ONE THING THE FIGURES CANNOT ═════════════
+         It opened "5 of the 24 have booked a call, which is what this
+         campaign is for" — which is now the Booked figure with `the goal`
+         on it — and closed with "its strongest conversion is booked a call
+         at 83%", which is that figure's own sub-caption. A paragraph
+         restating the four numbers under it is a paragraph a reader has to
+         check against them.
+
+         Where it loses most is the one thing no single figure holds: it is
+         a comparison between two of them. That is what is left. */
+      : weak
+        ? `It loses most at <b>${esc(weak.st.label.toLowerCase())}</b> — <b>${weak.lost}</b> of the ${weak.prev} never get there.`
+        : `<b>Nothing falls out between the steps</b>: everything it reached has come through.`;
 
     /* ══ FOUR ENCODINGS OF ONE DROP, AND A ROW THAT WAS ALWAYS 100% ══════
        Each row carried a bar, a count, a percentage and "N lost here" — four
@@ -12261,33 +12269,26 @@
 
        What is left is the name, what it means, the count and the share —
        four rows, one line each. */
-    return `${stageRead(read)}
-    <div class="s-funnel">
-      ${conv.map((x, i) => `<div class="s-fn-row${x.st.k === 'booked' ? ' is-goal' : ''}${
-          weak && x === weak ? ' is-weak' : ''}">
-          <span class="s-fn-name">${esc(x.st.label)}${x.st.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
-          ${/* The conversion leads, because it is the column you scan: 83
-                against two 50s says where to look, and four shares of the
-                same denominator said nothing at all. */ ''}
-          <span class="s-fn-pct">${x.rate == null ? '—' : `${Math.round(x.rate * 100)}%`}</span>
-          <span class="s-fn-n">${x.n} <span class="s-fn-of">of ${x.prev}</span></span>
-          ${/* ══ TWO OF THE FOUR COLUMNS ARE GONE ═════════════════════════
-                Each row carried the step rate, the counts behind it, the
-                share of the top, AND a definition — four readings of one
-                fall, and on the first row two of them printed the same
-                digits: `50%` beside `50% of 24`, because Reached converts
-                from the top. The definition column restated the row's own
-                name in lower case; "Replied" does not need "they answered"
-                beside it.
+    /* ══ THE RESULTS, THE WAY THE LOGGED BLOCK GIVES THEM ═══════════════
+       Four rows of `name · rate · N of M` is a table you read; the block
+       above it gives its figures at a glance and this one asked for a
+       different kind of attention for the same kind of fact. Same anatomy
+       now — a caption, a figure, and the qualifier under it — so what
+       happened and what came of it are read the same way.
 
-                What is left is the rate, and the two numbers it is made of.
-                The counts chain — 12 of 24, 6 of 12, 5 of 6 — and that
-                chain IS the cumulative the third column was drawing, one
-                step at a time and checkable. The one cumulative figure
-                worth stating on its own is the goal's, and the sentence
-                above the funnel states it in words. */ ''}
+       The rate moves to the sub, where it is the qualifier it always was:
+       `5` is the result and `83% of the 6` is how good that is. The four
+       steps fill the four-column grid exactly. */
+    return `<div class="s-afs s-fn-figs">
+      ${conv.map((x) => `<div class="s-af${x.st.k === 'booked' ? ' is-goal' : ''}${
+          weak && x === weak ? ' is-weak' : ''}">
+          <span class="s-af-cap">${esc(x.st.label)}${
+            x.st.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
+          <span class="s-af-val">${x.n}</span>
+          <span class="s-af-sub">${x.rate == null ? '—' : `${pcOf(x.rate)} of the ${x.prev}`}</span>
         </div>`).join('')}
     </div>
+    ${stageRead(read)}
     ${bounced ? `<div class="s-fn-note">
       ${/* Not a funnel step — nobody passes THROUGH a bounce. A fault in the
             list, stated beside the funnel it distorts, with the fix on it. */ ''}
