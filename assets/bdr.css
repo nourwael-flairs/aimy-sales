@@ -183,3 +183,61 @@
   font-variant-numeric: tabular-nums; color: var(--d600);
 }
 .b-switch-btn.is-on .b-switch-n { color: var(--d400); }
+
+/* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
+   A row had space for a name, a line and a button — enough to be ranked by
+   and not enough to prepare with, so every call began by opening the record
+   to find out who this was. A card carries what a caller wants before the
+   phone rings, and three of them fit across the page.
+
+   `repeat(3, …)` with a floor, not `auto-fill`: the shell's own `.s-grid`
+   fills by width and would give two columns here and four on a wide monitor.
+   Three is the number the card was written for. It drops to two and then one
+   where three would stop fitting.
+*/
+.b-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+@media (max-width: 1087.98px) { .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 719.98px)  { .b-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* The card stretches to its row so a short note does not leave the number
+   and the Call button floating halfway up a column of taller neighbours. */
+.b-qcard { height: 100%; gap: 8px; }
+.b-qcard .tc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.b-qcard .tc-type { margin-left: auto; text-align: right; }
+.b-qcard .tc-summary { line-height: var(--lh-snug); }
+
+/* Why they are on this rung, in the same ink as the row it replaced. */
+.b-qcard-why { font-size: var(--fs-xs); color: var(--d200); }
+.b-qcard-why b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* What was said last time, in the words it was written in. Quoted, so it
+   reads as somebody's sentence rather than as the product's. */
+.b-qcard-note {
+  margin: 0; font-size: var(--fs-xs); color: var(--d400);
+  line-height: var(--lh-snug);
+}
+
+/* The number and the one action, pushed to the foot of the card so every card
+   in a row ends on the same line.
+
+   `.b-qcard .b-qcard-foot`, not `.b-qcard-foot`: the foot also carries
+   `.tc-gov`, and sales.css:2550 sets `.s-card .tc-gov { margin-top: 16px }` at
+   (0,2,0) — which beat a bare class and left the footers 21px out of line on
+   cards that were themselves exactly the same height. Measured at 612 · 633 ·
+   628 across one row of three. */
+.b-qcard .b-qcard-foot {
+  margin-top: auto; display: flex; align-items: center;
+  justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.b-qcard-num {
+  font-size: var(--fs-xs); font-variant-numeric: tabular-nums; color: var(--d400);
+}
+
+/* The keyboard cursor on a card. A ring rather than a tint: a card already
+   has a ground of its own, and tinting it would fight the status tag on it. */
+.b-qcard.is-cursor { border-color: var(--accent); }

@@ -620,17 +620,18 @@
     hospitality: ['Hotels', 'Hospitality', 'Resorts', 'Group', 'Collection'],
   };
 
-  const FIRST = ['Femke', 'Bas', 'Lieke', 'Sanne', 'Daan', 'Ruben', 'Anouk', 'Thijs',
-    'Marit', 'Jeroen', 'Eva', 'Sven', 'Nina', 'Lars', 'Iris', 'Koen', 'Sofie',
-    'Pieter', 'Emma', 'Joris', 'Fleur', 'Wouter', 'Noor', 'Tim', 'Julia', 'Stijn',
-    'Maud', 'Rik', 'Lotte', 'Bram', 'Elena', 'Mats', 'Hanna', 'Niels', 'Clara',
-    'Otto', 'Ida', 'Finn', 'Saskia', 'Jens', 'Katrin', 'Paul', 'Ines', 'Tomas'];
-  const LAST = ['de Boer', 'van Leeuwen', 'de Groot', 'Jansen', 'Bakker', 'Visser',
-    'Smit', 'Meijer', 'Mulder', 'de Vries', 'Bos', 'Vos', 'Peters', 'Hendriks',
-    'van Dijk', 'Kuipers', 'Willems', 'Dekker', 'Brouwer', 'van den Berg',
-    'Schmidt', 'Weber', 'Hoffmann', 'Lindqvist', 'Andersen', 'Nielsen', 'Larsen',
-    'Novak', 'Kowalski', 'Moreau', 'Dubois', 'Rossi', 'Ferrari', 'Garcia',
-    'Lopez', 'Murphy', 'Keller', 'Brandt', 'Sorensen', 'Haas'];
+  const FIRST = ['James', 'Emma', 'Oliver', 'Charlotte', 'Harry', 'Amelia', 'George',
+    'Isla', 'Noah', 'Ava', 'Jack', 'Mia', 'Leo', 'Grace', 'Henry', 'Freya',
+    'Thomas', 'Sophie', 'Alexander', 'Ella', 'William', 'Lily', 'Daniel', 'Chloe',
+    'Samuel', 'Ruby', 'Benjamin', 'Alice', 'Edward', 'Poppy', 'Joseph', 'Evie',
+    'Matthew', 'Daisy', 'Charles', 'Rose', 'Nathan', 'Hannah', 'Peter', 'Lucy',
+    'Andrew', 'Kate', 'Michael', 'Sarah'];
+  const LAST = ['Smith', 'Jones', 'Taylor', 'Brown', 'Williams', 'Wilson', 'Johnson',
+    'Davies', 'Robinson', 'Wright', 'Thompson', 'Evans', 'Walker', 'White',
+    'Roberts', 'Green', 'Hall', 'Wood', 'Jackson', 'Clarke', 'Harris', 'Lewis',
+    'Turner', 'Cooper', 'Ward', 'Morris', 'Baker', 'Cook', 'Bailey', 'Bell',
+    'Murphy', 'Kelly', 'Price', 'Hughes', 'Foster', 'Gray', 'Watson', 'Marshall',
+    'Palmer', 'Reid'];
 
   /* Who a BDR selling operations services actually rings. */
   const TITLES = [
@@ -1246,6 +1247,7 @@
      about what it does. */
   function paint() {
     dropLists();
+    GRID_AT = -1;
     byId('navBar').innerHTML = '';
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
@@ -1265,14 +1267,6 @@
      from the page's string because a windowed list cannot be one: it has to
      measure where it landed before it knows which rows to draw. */
   function mountLists() {
-    const q = byId('queueList');
-    if (q) {
-      vlist({
-        host: q, items: paged(queue(S.camp || null, S.q)).rows, rowH: 72, rowClass: 's-qrow',
-        key: (c) => c.id, row: qrow,
-        empty: 'Nobody in this part of the queue.',
-      });
-    }
     const cs = byId('campList');
     if (cs) {
       vlist({
@@ -1290,14 +1284,6 @@
     if (ll) {
       vlist({ host: ll, items: paged(DB.list.slice().reverse()).rows, rowH: 72, rowClass: 's-qrow',
         key: (l) => l.id, row: listRow, empty: 'You have not built one yet.' });
-    }
-    const lp = byId('listPeople');
-    if (lp) {
-      const l = DB.byList[S.list];
-      vlist({ host: lp,
-        items: paged((l ? l.has : []).map((id) => DB.byCon[id]).filter(Boolean)).rows,
-        rowH: 72, rowClass: 's-qrow', key: (c) => c.id, row: qrow,
-        empty: 'Nobody on it.' });
     }
     const feed = byId('campFeed');
     if (feed) {
@@ -1319,26 +1305,58 @@
     }
   }
 
-  /* One person in a queue, in the row anatomy this product already has:
-     who on the first line, why they are ranked here on the second, and the
-     way in beside both. */
-  function qrow(c, i) {
+  /* ══ ONE PERSON, AS A CARD ══════════════════════════════════════════════
+     A row had space for a name, a line and a button, which is enough to be
+     ranked by and not enough to prepare with — so every call started by
+     opening the record to find out who this was. A card holds what a caller
+     wants before the phone rings: who and where they sit, how big the
+     company is, which campaign this is, what happened last time in the
+     words it was written in, and the number itself.
+
+     The card is the design system's `type-card`, in the shell's own grid.
+     Nothing new is drawn; the only thing this build adds is the three-column
+     shape, because a card of this height at full width would be one call per
+     screen. */
+  function qcard(c, i) {
     const a = accOf(c);
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
-    return '<div class="s-qrow-id">' +
-        '<button class="s-qrow-name" type="button" data-con="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
-        '<span class="s-qrow-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</span>' +
+    const r = RUNG[c.checkpoint] || RUNG['not-called'];
+    const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
+    return '<article class="type-card s-card b-qcard" data-card="' + esc(c.id) + '">' +
+      '<div class="tc-head">' +
+        '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
+        (camp ? '<span class="tc-type">' + esc(camp.name) + '</span>' : '') +
       '</div>' +
-      '<div class="s-qrow-why">' +
-        '<span class="s-qrow-because">' + whyLine(c) + '</span>' +
-        (camp ? '<span class="s-qrow-lead">' + esc(camp.name) + '</span>' : '') +
+      '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
+        esc(c.name) + '</button>' +
+      '<p class="tc-summary">' + esc(c.title) + '<br>' + esc(a ? a.name : '') +
+        (a ? ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
+          ' · ' + commas(a.size) + ' staff' : '') + '</p>' +
+      '<div class="b-qcard-why">' + whyLine(c) + '</div>' +
+      /* What was actually said, in the words it was written in. A caller
+         opening cold on somebody they rang last week is the thing this card
+         exists to stop. */
+      (last && last.note
+        ? '<p class="tc-quote b-qcard-note">' + esc(last.note) + '</p>'
+        : '') +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<span class="b-qcard-num">' + esc(c.phone) + '</span>' +
+        /* Only the first card is filled. Fifteen identical primaries is
+           fifteen recommendations, which is none — the list is already
+           ranked, so the top card is the recommendation and says so by being
+           the only filled thing on the surface. */
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+          '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>' +
       '</div>' +
-      /* Only the first row is filled. Six identical primaries is six
-         recommendations, which is none — the list is already ranked, so the
-         top row is the recommendation and says so by being the only filled
-         thing on the surface. */
-      '<button class="s-insight-lnk s-qrow-go' + (i === 0 ? ' primary' : '') +
-        '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>';
+    '</article>';
+  }
+
+  /* The queue's own renderer. Not `vlist`: that positions rows by arithmetic
+     down one column, and a grid's geometry is the browser's job. A page is
+     fifteen cards, so there is nothing to window. */
+  function qgrid(rows) {
+    if (!rows.length) return '<p class="b-vfoot">Nobody on this rung.</p>';
+    return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
   }
 
   /* One campaign. The numbers on the second line are the ones that decide
@@ -1680,7 +1698,7 @@
           : '') +
       '</div>' +
       cuts(counts, all) +
-      '<div class="b-vlist" id="queueList"></div>' +
+      qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
   }
@@ -1859,7 +1877,7 @@
       '</section>' +
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2></div>' +
-        '<div class="b-vlist" id="listPeople"></div>' +
+        qgrid(paged(people).rows) +
         pager(paged(people), 'person') +
       '</section>' +
     '</div>';
@@ -3560,6 +3578,14 @@
            you are actually on, and Enter guessing otherwise is the product
            taking an action nobody asked for. */
         if (S.on === 'lists') return;
+        /* The card the keyboard is standing on, or the top of the cut. A
+           cursor that moves and an Enter that ignores it is two different
+           ideas of where you are. */
+        const cards = gridCards();
+        if (GRID_AT >= 0 && cards[GRID_AT]) {
+          startCall(cards[GRID_AT].getAttribute('data-card'));
+          return;
+        }
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
         if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
       } else if (c.state === 'ready') callGo();
@@ -3590,8 +3616,23 @@
       if (e.key === 's' || e.key === 'S') { e.preventDefault(); skipCall(); return; }
     }
 
-    /* Moving through whatever list the surface leads with, and opening the
-       row the cursor is on. */
+    /* Moving through the cards, and opening or ringing the one you are on.
+       The queue is a grid rather than a windowed column now, so the cursor
+       lives on the cards themselves — j and k walk them in reading order,
+       which across three columns is left to right and then down. */
+    const cards = gridCards();
+    if (cards.length) {
+      if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); moveGrid(1); return; }
+      if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); moveGrid(-1); return; }
+      if (e.key === 'o' && GRID_AT >= 0) {
+        e.preventDefault();
+        go({ con: cards[GRID_AT].getAttribute('data-card') });
+        return;
+      }
+      return;
+    }
+
+    /* The surfaces that are still a single column. */
     const list = VLISTS[0];
     if (!list || !list.items.length) return;
     if (e.key === 'j' || e.key === 'ArrowDown') {
@@ -3606,6 +3647,18 @@
       return;
     }
   });
+
+  /* Which card the keyboard is on. Reset by every repaint, because the cards
+     under it are new elements and an index into the old ones means nothing. */
+  let GRID_AT = -1;
+  const gridCards = () => byId('wbStage').querySelectorAll('.b-qcard');
+  function moveGrid(d) {
+    const cards = gridCards();
+    if (!cards.length) return;
+    GRID_AT = GRID_AT < 0 ? 0 : Math.max(0, Math.min(cards.length - 1, GRID_AT + d));
+    for (let i = 0; i < cards.length; i++) cards[i].classList.toggle('is-cursor', i === GRID_AT);
+    cards[GRID_AT].scrollIntoView({ block: 'nearest' });
+  }
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
