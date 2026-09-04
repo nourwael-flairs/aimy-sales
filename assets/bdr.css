@@ -397,3 +397,8 @@
 }
 .b-find-x:hover { color: var(--d100); }
 .b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+
+/* The ways off the ladder, under it and quieter. Not a second tally row: it
+   is a sentence, because three counts that share one fact — these people are
+   no longer callable — read as a sentence and not as a scale. */
+.b-tally-out { margin-top: 6px; font-size: var(--fs-xs); color: var(--d600); }

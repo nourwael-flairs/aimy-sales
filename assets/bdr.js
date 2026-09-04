@@ -2156,7 +2156,10 @@
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       '<div class="s-camp-list-head">' +
         (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
-        (S.camp ? '' : findBox('Find a name, a company, a campaign')) +
+        /* On a campaign too. Two hundred and twenty-eight people across
+           sixteen pages is the same problem the queue has, and the filter
+           below already narrows whatever set it is handed. */
+        findBox(S.camp ? 'Find someone on this campaign' : 'Find a name, a company, a campaign') +
         (ring.length
           ? '<button class="s-inline-btn" type="button" data-callall="' +
             esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
@@ -3025,45 +3028,67 @@
     const left = daysBetween(TODAY_ISO, k.to);
     const ring = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
 
+    /* ══ THE ORDER IS THE JOB ══════════════════════════════════════════════
+       It opened with the name in a 132px caption gutter — a slot built for
+       the word `Calls`, not for `Engineering teams — Banking & finance`,
+       which stacked over three lines and read as a label rather than as the
+       thing you had opened. Under it: two paragraphs, a button row, ten rung
+       counts in one flat run, three AiMY panels, and then the pitch. The
+       queue — the entire reason a BDR opens a campaign — was the fifth thing
+       on the page and roughly a screen and a half down.
+
+       So: what it is, what you do, THE WORK, then how it is going, then how
+       to talk to them, then what has happened. Everything above the queue is
+       what you need to start; everything below it is what you need once you
+       have. The header uses the shell's own masthead family rather than the
+       caption gutter — `.s-rec-head` is what this build had been reaching
+       for and reimplementing badly. */
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-home>Back to today</button>' +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">' + esc(k.goal) + '. ' +
-            (left > 0 ? 'Ends in ' + plural(left, 'day') + '.' : 'Past its end date.') + '</p>' +
 
-          /* WHAT YOU ARE ON IT TO DO, in numbers that are each a door. The
-             sentence names the work; the chips under it are the same cuts
-             the queue below is filtered by, so pressing one narrows the
-             thing it is describing rather than opening a second surface. */
-          '<p class="s-block-sub">You are on this campaign to call. ' +
-            '<b>' + commas(all.length) + '</b> of its ' + plural(members.length, 'person') +
-            ' can be rung' +
-            (counts.callback ? ', <b>' + counts.callback + '</b> asked to be rung back' : '') +
-            (counts['not-called'] ? ', <b>' + commas(counts['not-called']) + '</b> never rung' : '') +
-          '.</p>' +
-
-          '<div class="b-cuts">' +
-            (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
-              esc(k.id) + '">Call the next one</button>' : '') +
-            (ring.length ? '<button class="s-inline-btn" type="button" data-callall="' +
-              esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' : '') +
-            /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
-               the only door to the finder was on a surface two clicks away
-               that does not know which campaign you were working. */
-            '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
-              '">Find more for this campaign</button>' +
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">Campaign · ' + esc(actor(k.owner).name) + '</span>' +
+        '<div class="s-rec-title">' +
+          '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
+          '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
+            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'past its end date') + '</span>' +
+        '</div>' +
+        /* The dots between these come from the stylesheet, so a fact that is
+           not there does not leave a separator behind it. */
+        '<div class="s-rec-facts">' +
+          '<div><span>' + esc(k.goal) + '</span></div>' +
+          '<div>' +
+            '<span>' + esc(plural(members.length, 'person')) + ' on it</span>' +
+            '<span><b>' + commas(all.length) + '</b> yours to ring</span>' +
+            '<span>' + esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to)) + '</span>' +
           '</div>' +
-
-          tally(members) +
-          campAimy(k) +
+        '</div>' +
+        '<div class="s-rec-actions">' +
+          (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
+            esc(k.id) + '">Call the next one</button>' : '') +
+          (ring.length ? '<button class="s-inline-btn" type="button" data-callall="' +
+            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' : '') +
+          /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
+             the only door to the finder was on a surface two clicks away
+             that does not know which campaign you were working. */
+          '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
+            '">Find more for this campaign</button>' +
         '</div>' +
       '</section>' +
 
-      pitchBlock(k) +
-
+      /* THE WORK, SECOND. */
       queueBlock(all, counts) +
+
+      /* How it is going, under the doing of it. */
+      '<section class="s-block s-block-wide" aria-label="Where it stands">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where it stands</h2>' +
+          '<span class="s-block-say">' + esc(plural(members.length, 'person')) +
+          ' on this campaign</span></div>' +
+        tally(members) +
+        campAimy(k) +
+      '</section>' +
+
+      pitchBlock(k) +
 
       /* Context, not a worklist: the last few things that happened here and
          the count of what they are the last few of. A second pager on this
@@ -3205,13 +3230,30 @@
      the queue below cuts by what is OWED, not by rung — so a door here would
      open a filter that does not exist. Stated, not linked, rather than
      pretending to be pressable. */
+  /* ══ THE RUNGS, THEN THE WAYS OUT ══════════════════════════════════════
+     Ten counts in one flat run put `9 meeting set` and `2 do not call` at
+     the same rank, reading as one scale with ten steps — and it is not a
+     scale, it is a ladder with three exits beside it. A lead does not climb
+     to `declined`; it leaves. So the ladder runs in its own order on its
+     own line, and what has left the ladder sits under it and quieter.
+
+     Informational, not pressable: these are rungs and the queue below cuts
+     by what is CALLABLE, so a door here would open a filter that does not
+     exist. Stated, rather than pretending. */
   function tally(members) {
     const n = rungCounts(members);
-    const rows = LADDER.concat(EXITS).filter((x) => n[x.k]);
-    if (!rows.length) return '';
-    return '<div class="b-tally">' + rows.map((x) =>
-      '<span class="b-tally-item"><b>' + commas(n[x.k]) + '</b> ' + esc(x.label.toLowerCase()) +
-      '</span>').join('') + '</div>';
+    const run = (set, cls) => {
+      const rows = set.filter((x) => n[x.k]);
+      if (!rows.length) return '';
+      return '<div class="b-tally' + cls + '">' + rows.map((x) =>
+        '<span class="b-tally-item"><b>' + commas(n[x.k]) + '</b> ' +
+        esc(x.label.toLowerCase()) + '</span>').join('') + '</div>';
+    };
+    const out = EXITS.filter((x) => n[x.k]).reduce((t, x) => t + n[x.k], 0);
+    return run(LADDER, '') +
+      (out ? '<p class="b-tally-out">' + esc(plural(out, 'person')) + ' left the ladder — ' +
+        EXITS.filter((x) => n[x.k]).map((x) =>
+          commas(n[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
   }
 
   /* Preparation, folded away after the first visit. Native `<details>`, which
