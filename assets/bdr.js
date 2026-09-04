@@ -3425,6 +3425,28 @@
     return s.map((l) => [l[0], l[1].split('{first}').join(first)]);
   }
 
+  /* ══ THE HANDSET, AS THE SHAPES EVERYBODY ALREADY KNOWS ═════════════════
+     Mute · Hold · Hang up were words in a row of pills. Jakob's Law is the
+     whole argument: every phone anybody has held for twenty years puts a
+     struck-through microphone, two bars and a tilted handset in that order,
+     and a caller reaching for one mid-conversation is not reading. `hangup`
+     is the handset rotated 135° — the shape a receiver makes going back into
+     a cradle, which is why it means what it means. The V3 build's icons,
+     unchanged. */
+  const ICONS = {
+    dot: '<circle cx="12" cy="12" r="6"/>',
+    mic: '<path d="M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/>',
+    'mic-off': '<path d="M15 9V6a3 3 0 00-5.9-.7M9 9v3a3 3 0 004.6 2.5"/><path d="M5 11a7 7 0 0011.5 5.4M19 11a7 7 0 01-.3 2M12 18v3M9 21h6"/><path d="M3 3l18 18"/>',
+    play: '<path d="M7 4l12 8-12 8z"/>',
+    pause: '<path d="M9 5v14M15 5v14"/>',
+    phone: '<path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/>',
+    hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
+  };
+  const chIcon = (k) =>
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    (ICONS[k] || '') + '</svg>';
+
   const callOn = () => (DB.call ? DB.byCon[DB.call.con] : null);
   const fmtClock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 
@@ -3450,7 +3472,8 @@
     DB.call = {
       con: id, camp: campFor(c), state: 'ready', secs: 0,
       script: scriptFor(c), shown: 0, note: '', outcome: null, read: null,
-      when: 1, sess: sess || (DB.call && DB.call.sess) || null,
+      when: 1, recording: false, muted: false, held: false, asking: false, notice: false,
+      auto: false, sess: sess || (DB.call && DB.call.sess) || null,
     };
     document.body.classList.add('is-calling');
     paintCall();
@@ -3680,12 +3703,25 @@
     host.innerHTML = DB.call ? callPanel() : '';
   }
 
+  /* ══ THE RAIL IS ONE CALL, AND NOTHING ELSE ═════════════════════════════
+     Five rows, and they are the V3 build's: the state, who you are speaking
+     to, what is being said, somewhere to write, and the four shapes every
+     telephone has.
+
+     THE BRIEF IS NOT HERE. It is preparation, and preparation belongs in the
+     canvas beside the rest of it — copying three of its lines into this
+     column made a second, shorter, differently-worded version of a block six
+     inches to the left.
+
+     NEITHER IS THE OUTCOME ROW. Logging stopped being a form for a reason:
+     AiMY reads the call and proposes what it heard, and you agree in a word
+     or correct it in a sentence. Seven radios in a column whose every other
+     word is about one person is the form coming back. */
   function callPanel() {
     const call = DB.call;
     const c = callOn();
     if (!c) return '';
     const a = accOf(c);
-    const camp = DB.byCamp[call.camp];
     const ready = call.state === 'ready';
     const dialing = call.state === 'connecting';
     const logging = call.state === 'logging';
@@ -3695,119 +3731,91 @@
     return '<div class="call-head">' +
         '<span class="call-live' + (ready ? ' is-ready' : dialing ? ' is-dialing' : '') +
           '" aria-hidden="true"></span>' +
+        /* The word replaces the clock rather than sitting beside it: a clock
+           reading 0:00 next to "Connecting" is two things saying one thing,
+           and one of them is a number that has not started. */
         '<span class="call-timer" id="callTimer">' +
           (ready ? 'Ready to call' : dialing ? 'Connecting…' : fmtClock(call.secs)) + '</span>' +
-        (sess ? '<span class="call-of">' + at + ' of ' + sess.ids.length + '</span>' : '') +
+        (call.auto
+          ? '<span class="work-state ws-drafted" data-work-state="drafted">AiMY placed it</span>'
+          : '') +
+        (sess ? '<span class="call-of" id="callOf">' + at + ' of ' + sess.ids.length +
+          '</span>' : '') +
       '</div>' +
 
       '<div class="call-who-block">' +
         '<p class="call-name">' + esc(c.name) + '</p>' +
         '<p class="call-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</p>' +
-        '<p class="call-num">' + esc(c.phone) + '</p>' +
-        '<p class="call-sub">' + esc(rungLabel(c.checkpoint)) +
-          (camp ? ' · ' + esc(camp.name) : '') + '</p>' +
+        (c.phone ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
       '</div>' +
-
-      /* Three lines of preparation, and only while there is time to read
-         them. Once the phone is ringing the transcript takes the space —
-         a brief you cannot act on any more is a brief in the way. */
-      (ready ? briefBlock(c, camp) : '') +
 
       (ready ? '' : '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>') +
 
-      (logging ? outcomeBlock(call, c) : '') +
+      '<label class="ds-field call-note-field">' +
+        '<span class="s-field-label">Notes</span>' +
+        '<textarea class="ds-textarea" rows="2" spellcheck="false" data-note ' +
+          'placeholder="Anything worth keeping.">' + esc(call.note) + '</textarea>' +
+      '</label>' +
+
+      /* ══ THE NOTICE IS A DOOR, NOT A PANEL ═══════════════════════════════
+         Recording cannot start until they have been told, and the asking is
+         one line with two answers rather than a block explaining the law. */
+      (call.asking
+        ? '<div class="call-consent" role="group" aria-labelledby="callConsentSay">' +
+            '<p class="call-consent-say" id="callConsentSay">They have to be told before ' +
+              'this can start. Have you told them?</p>' +
+            '<div class="call-consent-acts">' +
+              '<button class="btn btn-ghost btn-sm" type="button" data-call-consent="no">' +
+                'Not yet</button>' +
+              '<button class="btn btn-brand btn-sm" type="button" data-call-consent="yes">' +
+                'I have told them</button>' +
+            '</div>' +
+          '</div>'
+        : '') +
 
       '<div class="call-tools">' +
+        /* Record, Mute and Hold are ABSENT in `ready` rather than disabled —
+           there is no line for them to act on, and a row of controls that all
+           refuse teaches you to stop pressing. */
+        (ready || logging ? '' :
+          '<button class="call-tool' + (call.recording ? ' is-rec' : '') + '" type="button" ' +
+            'data-call-rec aria-pressed="' + !!call.recording + '" aria-label="' +
+            (call.recording ? 'Stop recording' : 'Record') + '" title="' +
+            (call.recording ? 'Stop recording' : 'Record') + '">' + chIcon('dot') + '</button>' +
+          '<button class="call-tool' + (call.muted ? ' is-on' : '') + '" type="button" ' +
+            'data-call-mute aria-pressed="' + !!call.muted + '" aria-label="' +
+            (call.muted ? 'Unmute' : 'Mute') + '" title="' + (call.muted ? 'Unmute' : 'Mute') +
+            '">' + chIcon(call.muted ? 'mic-off' : 'mic') + '</button>' +
+          '<button class="call-tool' + (call.held ? ' is-on' : '') + '" type="button" ' +
+            'data-call-hold aria-pressed="' + !!call.held + '" aria-label="' +
+            (call.held ? 'Resume' : 'Hold') + '" title="' + (call.held ? 'Resume' : 'Hold') +
+            '">' + chIcon(call.held ? 'play' : 'pause') + '</button>') +
+
+        /* End keeps its word alongside the handset. It is the one
+           irreversible control here and the only one whose mispress costs you
+           the call — Fitts says make it big, and a destructive control states
+           itself. */
         (ready
-          ? '<button class="call-go" type="button" data-callgo>Start call</button>'
+          ? '<button class="call-end call-go" type="button" data-callgo ' +
+            'aria-label="Start the call to ' + esc(c.name) + '">' + chIcon('phone') +
+            'Start call</button>'
           : logging
-            ? '<button class="call-go" type="button" data-calllog>Log &amp; next</button>'
-            : '<button class="call-end" type="button" data-callend>End</button>') +
+            ? '<button class="call-end call-go" type="button" data-calllog ' +
+              'aria-label="Log this call">' + chIcon('phone') + 'Log it</button>'
+            : '<button class="call-end" type="button" data-call-end aria-label="' +
+              (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
+              (dialing ? 'Stop' : 'End') + '</button>') +
+
+        /* Deciding not to ring somebody is a decision you make reading their
+           brief, not while their phone rings — so Skip holds in `ready`. */
         (ready || logging
-          ? '<button class="call-tool" type="button" data-callskip>' +
+          ? '<button class="call-tool call-tool-word" type="button" data-callskip>' +
             (sess ? 'Skip' : 'Close') + '</button>'
           : '') +
       '</div>';
   }
 
-  /* WHO THIS IS AND WHAT TO SAY. On a first call there is no history to
-     report, so the campaign's own preparation takes its place — what we
-     sell, how to open, and what they will push back on. */
-  function briefBlock(c, camp) {
-    const n = (DB.touchesOf[c.id] || []).length;
-    const last = n ? TOUCH[DB.touchesOf[c.id][0]] : null;
-    const obj = camp && camp.objections.length ? camp.objections[0] : null;
-    const rows = [];
-    rows.push(['Open with', camp
-      ? SELL[camp.sells[0]].name + ' — ' + SELL[camp.sells[0]].blurb
-      : 'Ask what they are running this with today.']);
-    if (last) {
-      rows.push(['Last time', OUTCOME[last.outcome].label + ', ' + sayWhen(last.at) +
-        (last.note ? ' — ' + last.note : '')]);
-    } else {
-      rows.push(['First call', 'Nobody has spoken to them. The campaign is all you have.']);
-    }
-    if (obj) rows.push(['They push back on', OBJECTION[obj.k].label + '. ' + obj.say]);
-    if (c.remember) rows.push(['Remember', c.remember.text]);
-    return '<div class="s-callsum">' +
-      '<div class="s-callsum-cap">Before you speak to ' + esc(c.name.split(' ')[0]) + '</div>' +
-      '<div class="s-callsum-rows">' + rows.map((r) =>
-        '<div class="s-callsum-row"><span class="s-callsum-mem">' + esc(r[0]) + '</span>' +
-        '<span class="s-callsum-val">' + esc(r[1]) + '</span></div>').join('') + '</div>' +
-      '<button class="s-insight-lnk" type="button" data-con="' + esc(c.id) + '">The whole record</button>' +
-    '</div>';
-  }
 
-  /* WHAT HAPPENED, IN ONE PRESS. Seven outcomes, always visible, with the
-     one AiMY read already lit. Under it a line to type, which AiMY reads for
-     what was asked for and what pushed back — and which overrides the
-     transcript on whatever it speaks to. */
-  function outcomeBlock(call, c) {
-    const heard = call.read || {};
-    const noted = call.note ? readCall(call.note) : null;
-    const props = noted && noted.props.length ? noted.props : (heard.props || []);
-    const objs = noted && noted.objs.length ? noted.objs : (heard.objs || []);
-    const opps = noted && noted.opps.length ? noted.opps : (heard.opps || []);
-    const chips = props.map((k) => PROPOSAL[k] && PROPOSAL[k].label)
-      .concat(objs.map((k) => OBJECTION[k] && OBJECTION[k].label))
-      .concat(opps.map((k) => OPENING[k] && OPENING[k].label))
-      .filter(Boolean);
-    const wantsDate = call.outcome === 'callback' ||
-      props.indexOf('meeting') >= 0 || props.indexOf('demo') >= 0 || props.indexOf('callback') >= 0;
-    const mv = moveFor(c, call.outcome || 'no-answer', props);
-
-    return '<div class="b-outs">' +
-      '<div class="s-callsum-cap">' +
-        (heard.disp
-          ? 'AiMY read this as ' + esc(OUTCOME[heard.disp].label)
-          : 'AiMY could not tell from what was said — say what happened') +
-      '</div>' +
-      '<div class="b-cuts">' + OUTCOMES.map((o) =>
-        '<button class="filter-chip' + (call.outcome === o.k ? ' active' : '') +
-        '" type="button" data-out="' + o.k + '">' + esc(o.label) + '</button>').join('') + '</div>' +
-
-      (wantsDate ? '<div class="b-cuts">' + [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']]
-        .map((d) => '<button class="filter-chip' + (call.when === d[0] ? ' active' : '') +
-          '" type="button" data-when="' + d[0] + '">' + esc(d[1]) + '</button>').join('') +
-        '</div>' : '') +
-
-      '<label class="ds-field call-note-field">' +
-        '<span class="s-field-label">In a line</span>' +
-        '<textarea class="ds-textarea" rows="2" spellcheck="false" data-note ' +
-          'placeholder="What happened, what you asked for, what they pushed back on.">' +
-          esc(call.note) + '</textarea>' +
-      '</label>' +
-
-      (chips.length ? '<div class="b-cuts">' + chips.map((x) =>
-        '<span class="tag tag-neutral">' + esc(x) + '</span>').join('') + '</div>' : '') +
-
-      '<p class="s-callsum-note">' +
-        (mv.to ? 'Moves them to <b>' + esc(rungLabel(mv.to)) + '</b>' : 'Stays at <b>' +
-          esc(rungLabel(c.checkpoint)) + '</b>') +
-        (mv.next ? ', and sets <b>' + esc(mv.next.what) + '</b> for ' + esc(sayWhen(mv.next.due)) : '') +
-        '.</p>' +
-    '</div>';
-  }
 
   /* ══ 7c. WHAT A CALL CANNOT SAY ═════════════════════════════════════════
      Four rungs are things a person OBSERVED, not things a call record
@@ -3931,7 +3939,17 @@
   const TURNS = [];
 
   function openCanvas() { byId('aimyOverlay').classList.add('open'); }
-  function closeCanvas() { byId('aimyOverlay').classList.remove('open'); }
+  function closeCanvas() {
+    byId('aimyOverlay').classList.remove('open');
+    /* THE RAIL GOES WITH IT. The canvas is where a run lives — the brief,
+       the read-back, the summary — so dismissing it dismisses the run. A
+       rail left standing beside a closed conversation is a call nobody is
+       having any more, with a live clock on it. */
+    if (DB.call) { closeCall(); paint(); }
+  }
+  /* Navigating away is not dismissing: the rail survives every URL change by
+     construction, which is the whole reason it is a shell region. */
+  function hideCanvas() { byId('aimyOverlay').classList.remove('open'); }
 
   function say(who, html) {
     TURNS.push({ who: who, html: html });
@@ -4014,7 +4032,7 @@
 
     if (CALL_RE.test(t)) {
       const rest = t.replace(CALL_RE, '').replace(/^\s*(the\s+)?/i, '').trim();
-      closeCanvas();
+      hideCanvas();
       if (!rest || /^next( one)?$/i.test(rest)) {
         const first = queue(S.camp || null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
@@ -4031,9 +4049,9 @@
       /* Naming a record is navigation, and navigation closes the canvas. It
          opened over the person it had just taken you to otherwise — the
          thing you asked for, behind the surface you asked it from. */
-      if (found && found.con) { closeCanvas(); go({ con: found.con.id }); return; }
+      if (found && found.con) { hideCanvas(); go({ con: found.con.id }); return; }
       if (found && found.camp) {
-        closeCanvas();
+        hideCanvas();
         go(Object.assign(cleared(), { camp: found.camp.id }));
         return;
       }
@@ -4193,7 +4211,12 @@
     const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
     if (!top || n[top] < 3) return null;
     const agreed = camp.objections.filter((o) => o.k === top)[0];
-    return esc(OBJECTION[top].label.toLowerCase()) + ' — <b>' + n[top] + '</b> of the ' +
+    /* NO BOLD IN THE VALUE. On a brief line the bold element IS the label —
+       sales.css:5497 gives it display:block, uppercase and letter-spacing —
+       so a bold number inside the value became a second caption and broke
+       the sentence across three lines. The label is the only bold thing on
+       a brief line. */
+    return esc(OBJECTION[top].label.toLowerCase()) + ' — ' + n[top] + ' of the ' +
       total + ' who gave a reason on this campaign said so. ' +
       esc(agreed ? agreed.say : OBJECTION[top].blurb);
   }
@@ -4402,13 +4425,13 @@
     if (goEl) {
       let over = {};
       try { over = JSON.parse(goEl.getAttribute('data-go')); } catch (err) { over = {}; }
-      closeCanvas();
+      hideCanvas();
       go(over);
       return;
     }
 
     const con = t.closest('[data-con]');
-    if (con) { closeCanvas(); go({ con: con.getAttribute('data-con') }); return; }
+    if (con) { hideCanvas(); go({ con: con.getAttribute('data-con') }); return; }
 
     /* Back to where you were, not to the front page. `data-home` clears every
        key, which from row eleven of page four of the Due cut means losing the
@@ -4553,7 +4576,36 @@
     }
 
     if (t.closest('[data-callgo]')) { callGo(); return; }
-    if (t.closest('[data-callend]')) { endCall(); return; }
+    if (t.closest('[data-call-end]')) { endCall(); return; }
+    if (t.closest('[data-call-rec]')) {
+      if (!DB.call) return;
+      if (DB.call.recording) { DB.call.recording = false; paintCall(); return; }
+      /* Consent is asked once per call and cannot be skipped: a transcript
+         taken without telling them is the one thing on this surface that is
+         not ours to undo. */
+      if (DB.call.notice) { DB.call.recording = true; paintCall(); return; }
+      DB.call.asking = true;
+      paintCall();
+      return;
+    }
+    const consent = t.closest('[data-call-consent]');
+    if (consent && DB.call) {
+      DB.call.asking = false;
+      if (consent.getAttribute('data-call-consent') === 'yes') {
+        DB.call.notice = true;
+        DB.call.recording = true;
+      }
+      paintCall();
+      return;
+    }
+    if (t.closest('[data-call-mute]')) {
+      if (DB.call) { DB.call.muted = !DB.call.muted; paintCall(); }
+      return;
+    }
+    if (t.closest('[data-call-hold]')) {
+      if (DB.call) { DB.call.held = !DB.call.held; paintCall(); }
+      return;
+    }
     if (t.closest('[data-calllog]')) { logCall(); return; }
     if (t.closest('[data-callskip]')) { skipCall(); return; }
     if (t.closest('[data-sessstop]')) {
@@ -4644,7 +4696,11 @@
     if (t.closest('#railScrim')) { document.body.classList.remove('rail-open'); return; }
 
     const closeC = t.closest('[data-overlay-close]');
-    if (closeC) { byId('aimyOverlay').classList.remove('open'); return; }
+    /* Through `closeCanvas`, not straight at the class. This branch removed
+       the class itself and so escaped the rule that dismissing the canvas
+       dismisses the run — the close button left a live rail beside a closed
+       conversation, with the clock still going. */
+    if (closeC) { closeCanvas(); return; }
 
     const undoEl = t.closest('[data-undo]');
     if (undoEl) { const fn = UNDO; UNDO = null; byId('toastHost').innerHTML = ''; if (fn) fn(); return; }
@@ -4716,14 +4772,9 @@
     /* NOT `paintCall()`. Repainting the panel replaces the textarea the
        caret is sitting in, and the caret goes with it — you would lose the
        cursor on every keystroke. Only what the reading changes is redrawn. */
-    const box = byId('callPanel').querySelector('.b-outs');
-    if (box) {
-      const c = callOn();
-      box.outerHTML = outcomeBlock(DB.call, c);
-      const again = byId('callPanel').querySelector('[data-note]');
-      if (again) { again.value = DB.call.note; again.focus();
-        again.setSelectionRange(again.value.length, again.value.length); }
-    }
+    /* Nothing is repainted while you type. The note is read when the call
+       is logged, and the canvas already carries the reading — redrawing the
+       rail here would take the caret with it. */
   });
 
   /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════

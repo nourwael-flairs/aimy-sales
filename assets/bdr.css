@@ -96,13 +96,16 @@
 }
 .b-pager-go { display: flex; gap: 8px; }
 
-/* ══ 6. WHAT HAPPENED, AFTER THE CALL ══════════════════════════════════════
-   The panel's logging half: the seven outcomes, the date chips when one is
-   owed, the line you type, and the sentence saying what pressing Log will do
-   to the record. A column inside a column, so it can be redrawn on its own
-   while you are typing into it without taking the caret with it. */
-.b-outs { display: flex; flex-direction: column; gap: 8px; }
-.b-outs .b-cuts { margin-bottom: 0; }
+/* §6 styled an outcome row in the call rail. Logging is a conversation
+   again — AiMY proposes what it heard and you agree or correct it — so the
+   row and its rules are gone with it.
+
+   The one thing the rail still needs that the library does not ship: Skip
+   sits in the handset row and is a word rather than a shape, because it is
+   not one of the four everybody already knows. */
+.call-tool.call-tool-word {
+  width: auto; padding: 0 12px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+}
 
 /* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
    A row of counts, stated rather than linked. These are RUNGS, and the queue
