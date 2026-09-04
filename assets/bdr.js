@@ -642,6 +642,22 @@
     'Murphy', 'Kelly', 'Price', 'Hughes', 'Foster', 'Gray', 'Watson', 'Marshall',
     'Palmer', 'Reid'];
 
+  /* One line saying what a company in this sector actually does, so a row
+     about somebody you have never contacted says something before you open
+     it. Two per sector, drawn per row. */
+  const NET_ABOUT = {
+    software: ['Builds scheduling software for field teams.', 'Sells a billing platform to mid-market lenders.'],
+    banking: ['Regional lender, mortgages and small business.', 'Payments processor for online merchants.'],
+    logistics: ['Moves freight across the North Sea corridor.', 'Runs last-mile delivery for grocery chains.'],
+    health: ['Operates outpatient clinics across the region.', 'Supplies diagnostics to hospital groups.'],
+    retail: ['Runs a chain of homeware stores.', 'Online grocer with its own delivery fleet.'],
+    energy: ['Sells renewable power to households.', 'Maintains grid infrastructure under contract.'],
+    public: ['A university with twelve thousand students.', 'Municipal authority for a metropolitan area.'],
+    telecom: ['Fibre operator with a consumer and business arm.', 'Wholesale carrier reselling capacity.'],
+    industry: ['Precision components for the automotive trade.', 'Contract manufacturing for medical devices.'],
+    hospitality: ['Runs eleven hotels across three countries.', 'Restaurant group with a central kitchen.'],
+  };
+
   /* Who a BDR selling operations services actually rings. */
   const TITLES = [
     'Head of Customer Support', 'Support Operations Manager', 'Customer Service Director',
@@ -1003,6 +1019,16 @@
         name: pick(r, FIRST) + ' ' + pick(r, LAST),
         title: pick(r, TITLES),
         known: !!mirror,
+        /* ── WHAT A ROW NEEDS TO BE READ RATHER THAN SCANNED ──
+           The V3 row's own note: a supplier returns name, location,
+           description, industry, size, type and a link, and a row carrying
+           four of the seven is a row you skim. The three that were missing
+           are the three that decide anything — what the company DOES, what
+           shape it is, and a way to go and look at it. */
+        founded: between(r, 1968, 2022),
+        about: NET_ABOUT[ind.k][Math.floor(r() * NET_ABOUT[ind.k].length)],
+        type: pick(r, ['Private', 'Private', 'Private', 'Listed', 'Non-profit', 'Public body']),
+        rev: chance(r, 0.62) ? pick(r, [2, 5, 9, 14, 22, 38, 60, 95, 150, 240, 400]) : null,
         /* Reachability is what the suppliers actually differ on, so it is
            rolled here and re-rolled by which supplier you pick. */
         seedPhone: r(),
@@ -1284,8 +1310,9 @@
   function mountLists() {
     const nl = byId('netList');
     if (nl) {
-      vlist({ host: nl, items: peek((DRAFT && DRAFT.rows) || []).rows, rowH: 64, rowClass: 's-qrow',
-        key: (n) => n.id, row: netRow, empty: 'Nothing matches those criteria.' });
+      vlist({ host: nl, items: paged((DRAFT && DRAFT.rows) || []).rows, rowH: 132,
+        rowClass: 's-brow', key: (n) => n.id, row: netRow,
+        empty: 'Nothing matches those criteria.' });
     }
     const feed = byId('campFeed');
     if (feed) {
@@ -2203,7 +2230,7 @@
   const bstep = () => (BSTEPS.indexOf(S.build) >= 0 ? S.build : 'kind');
 
   function buildOpen(over) {
-    DRAFT = { kind: 'con', said: '', name: null, take: [], rows: [], run: null };
+    DRAFT = { kind: 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
     go(Object.assign(cleared(), { on: 'lists', build: 'kind', bt: '' }, over || {}));
   }
 
@@ -2216,7 +2243,7 @@
 
   function buildPage() {
     const step = bstep();
-    if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], rows: [], run: null };
+    if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
     if (step === 'run') return buildRunning();
     if (step === 'done') return buildDone();
     if (step === 'kind') return buildPickKind();
@@ -2525,8 +2552,8 @@
     const rows = DRAFT.rows || [];
     const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
     const f = finderOf();
+    const kept = rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length;
     const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
-    const gap = rows.length - withNum;
     return '<div class="s-home">' +
       '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
         '<div class="s-sheet-kind">Found · not saved yet</div>' +
@@ -2536,24 +2563,22 @@
       '</div></div>' +
 
       '<p class="s-build-total s-block-wide"><b>' + commas(rows.length + mine2.length) + '</b> came back' +
+        (kept < rows.length ? ', <b>' + commas(rows.length - kept) + '</b> unticked' : '') +
         (mine2.length ? ', <b>' + commas(mine2.length) + '</b> of them already yours' : '') +
         '. ' + esc(f.name) + ' found a number for <b>' + commas(withNum) + '</b>.</p>' +
 
-      (gap
-        ? aimyBlock({ text: '<b>' + commas(gap) + '</b> came back without a number, so they ' +
-            'cannot be rung. A different supplier fills a different share.',
-          from: esc(f.name) + ' answered this one' })
-        : '') +
+      fillBlock(rows) +
 
-      '<div class="b-cuts">' + FINDERS.map((x) =>
+      '<div class="b-cuts s-block-wide">' + FINDERS.map((x) =>
         '<button class="filter-chip' + (f.k === x.k ? ' active' : '') +
         '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
-        '<span class="b-cut-n">' + Math.round(x.phone * 100) + '%</span></button>').join('') +
+        '<span class="b-cut-n">' + Math.round(x.phone * 100) + '% with a number</span>' +
+        '</button>').join('') +
       '</div>' +
 
       '<div class="s-build-foot s-block-wide">' +
         '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
-          commas(rows.length + mine2.length) + '</button>' +
+          commas(kept + mine2.length) + '</button>' +
         '<button class="s-inline-btn" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe' }))) +
           '">Change the criteria</button>' +
@@ -2562,26 +2587,115 @@
       '</div>' +
 
       '<section class="s-block s-block-wide" aria-label="What came back">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2></div>' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2>' +
+          '<span class="s-block-say">untick anybody you do not want</span></div>' +
         '<div class="b-vlist" id="netList"></div>' +
-        peekFoot(peek(rows), 'row', 'rows', 'first') +
+        pager(paged(rows), 'row') +
       '</section>' +
     '</div>';
   }
 
+  /* ══ THE ROW A SUPPLIER ACTUALLY RETURNS ════════════════════════════════
+     Name, what they do, where and how big, and a way to go and look. The V3
+     build's argument, and it is a good one: a row carrying four of the seven
+     fields a supplier hands back is a row you scan rather than read, and the
+     three it was missing are the three that decide whether this is worth a
+     call at all.
+
+     NOT A TABLE, and no header, because every value says what it is. The
+     figures sit in a side column so the eye can run down them, and the
+     unticked row is how you drop somebody before any of it is saved. */
   function netRow(n) {
     const f = finderOf();
     const hasPhone = n.seedPhone < f.phone;
-    return '<div class="s-qrow-id">' +
-        '<span class="s-qrow-name">' + esc(n.name) + '</span>' +
-        '<span class="s-qrow-sub">' + esc(n.title) + ' · ' + esc(n.co) + '</span>' +
-      '</div>' +
-      '<div class="s-qrow-why">' +
-        '<span class="s-qrow-because">' + esc(INDUSTRY[n.industry].label) + ' · ' +
-          esc(n.city) + ' · ' + commas(n.size) + ' staff</span>' +
-        '<span class="s-qrow-lead' + (hasPhone ? '' : ' s-qrow-none') + '">' +
-          (hasPhone ? 'number' : 'no number') + (n.known ? ' · already yours' : '') + '</span>' +
-      '</div>';
+    const hasMail = n.seedEmail < f.email;
+    const dropped = DRAFT && DRAFT.drop.indexOf(n.id) >= 0;
+    const slug = String(n.co).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const li = 'linkedin.com/company/' + slug;
+    const person = buildKind() === 'con';
+    return '<label class="s-pick-tick">' +
+        '<input class="s-tick" type="checkbox" data-bdrop="' + esc(n.id) + '"' +
+        (dropped ? '' : ' checked') + ' aria-label="Keep ' + esc(person ? n.name : n.co) + '" />' +
+      '</label>' +
+      '<span class="s-brow-main">' +
+        '<span class="s-brow-name">' + esc(person ? n.name : n.co) + '</span>' +
+        '<span class="s-brow-desc">' +
+          (person ? esc(n.title) + ' at ' + esc(n.co) : esc(n.about)) + '</span>' +
+        '<span class="s-brow-facts">' + [
+          INDUSTRY[n.industry].label,
+          n.city,
+          person ? null : 'founded ' + n.founded,
+          person ? (hasPhone ? 'has a number' : 'no number') : null,
+          person ? (hasMail ? 'has an address' : 'no address') : null,
+          n.known ? 'already in your book' : null,
+        ].filter(Boolean).map(esc).join(' · ') + '</span>' +
+        '<span class="s-brow-links">' +
+          '<a class="s-brow-link" href="https://' + esc(n.domain) + '" target="_blank" ' +
+            'rel="noopener">' + esc(n.domain) + '</a>' +
+          '<a class="s-brow-link" href="https://www.' + esc(li) + '" target="_blank" ' +
+            'rel="noopener">' + esc(li) + '</a>' +
+        '</span>' +
+      '</span>' +
+      '<span class="s-brow-side">' +
+        '<span class="s-brow-fig">' + commas(n.size) + ' staff</span>' +
+        '<span class="s-brow-rev">' +
+          (n.rev == null ? 'revenue unknown' : '€' + commas(n.rev) + 'm') + '</span>' +
+        '<span class="s-brow-tag">' + esc(n.type) + '</span>' +
+      '</span>';
+  }
+
+  /* ── WHAT IS MISSING FROM WHAT CAME BACK, AND WHO WOULD FILL IT ──
+     Named suppliers with the share each actually fills, so the offer is a
+     measurement rather than a promise. Pressing one re-asks that supplier
+     and the numbers on the page move. */
+  function fillOffers(rows) {
+    const f = finderOf();
+    const noPhone = rows.filter((n) => n.seedPhone >= f.phone);
+    const noMail = rows.filter((n) => n.seedEmail >= f.email);
+    const known = rows.filter((n) => n.known);
+    const out = [];
+    if (noPhone.length) {
+      const better = FINDERS.filter((x) => x.phone > f.phone)
+        .sort((a, b) => b.phone - a.phone)[0];
+      out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
+        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
+        say: 'came back without a number, so they cannot be rung. ' +
+          (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
+            '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
+            : esc(f.name) + ' is the best of the three for numbers.') });
+    }
+    if (noMail.length) {
+      const better = FINDERS.filter((x) => x.email > f.email)
+        .sort((a, b) => b.email - a.email)[0];
+      out.push({ n: noMail.length, act: better ? 'Ask ' + better.name : 'No better source',
+        attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
+        say: 'have no email address. ' + (better
+          ? esc(better.name) + ' fills ' + Math.round(better.email * 100) + '% of them.'
+          : esc(f.name) + ' is the best of the three for addresses.') });
+    }
+    if (known.length) {
+      out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
+        say: 'are already in your book, so saving these would give you a second copy ' +
+          'of somebody you may already have rung.' });
+    }
+    return out;
+  }
+
+  function fillBlock(rows) {
+    const offers = fillOffers(rows);
+    if (!offers.length) return '';
+    return '<div class="s-findings is-panel s-block-wide">' +
+      '<p class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>AiMY reads it</p>' +
+      '<p class="s-findings-say">Three things about what came back, before you keep it.</p>' +
+      '<div class="s-findings-list">' + offers.map((o) =>
+        '<div class="s-finding">' +
+          '<span class="s-finding-say"><b>' + commas(o.n) + '</b> ' + o.say + '</span>' +
+          '<button class="s-finding-go" type="button" ' + o.attr + '>' +
+            esc(o.act) + '</button>' +
+        '</div>').join('') + '</div>' +
+    '</div>';
   }
 
   /* Saving mints the people, so from here they are ordinary records: the
@@ -2592,7 +2706,8 @@
        usually the same set and they are not always: pressing "Bring them in"
        adds people from your own book that no index search would return, and
        recomputing here would have silently dropped every one of them. */
-    const found = (DRAFT && DRAFT.rows) || buildMatched(t).slice(0, 500);
+    const found = ((DRAFT && DRAFT.rows) || buildMatched(t).slice(0, 500))
+      .filter((n) => !DRAFT || DRAFT.drop.indexOf(n.id) < 0);
     const bring = (DRAFT && DRAFT.take) || [];
     if (!found.length && !bring.length) return;
     const f = finderOf();
@@ -4058,6 +4173,19 @@
     }
 
     if (t.closest('[data-bgo]')) { buildRun(); return; }
+
+    /* Unticking drops somebody before anything is written. Save counts what
+       is still ticked, so the number you press is the number you get — the
+       rule this product had to fix its own figures for once already. */
+    const bdrop = t.closest('[data-bdrop]');
+    if (bdrop && DRAFT) {
+      const id = bdrop.getAttribute('data-bdrop');
+      const at = DRAFT.drop.indexOf(id);
+      if (at >= 0) DRAFT.drop.splice(at, 1);
+      else DRAFT.drop.push(id);
+      paint();
+      return;
+    }
 
     const term = t.closest('[data-term]');
     if (term) {

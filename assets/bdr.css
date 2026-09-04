@@ -313,3 +313,14 @@
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
 }
+
+/* ══ 13. THE BUILDER'S HEADING TAKES ITS OWN WIDTH ═════════════════════════
+   `.s-sheet-head` is a flex row and `.s-sheet-head-main` is only `min-width:
+   0` — it has no grow, so it is sized by its content. Its content is a text
+   input at `width: 100%`, which resolves against a parent sized by that same
+   input: circular, so the browser falls back to an input's default width and
+   the list name reads "Software · 200 to 1,000 · Nethe".
+
+   In the V3 build the head sits in a sheet that constrains it; here it sits
+   in the page grid, which does not. One `flex: 1 1 auto`. */
+.s-home > .s-sheet-head > .s-sheet-head-main { flex: 1 1 auto; }
