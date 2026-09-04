@@ -1164,24 +1164,23 @@
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
-  const overdue = (c) => !!(c.next && c.next.due < TODAY_ISO);
+  /* A follow-up that has come due. `overdue` and `dueToday` were separate and
+     the difference decided a bucket; there is no such bucket now, so there is
+     one predicate and it means "the date has arrived". */
   const dueToday = (c) => !!(c.next && c.next.due <= TODAY_ISO);
   const untouched = (c) => c.checkpoint === 'not-called';
-  const daysSinceCall = (c) =>
-    c.lastCallAt ? Math.floor((Date.now() - new Date(c.lastCallAt)) / DAY_MS) : null;
-  const stale = (c) => {
-    const d = daysSinceCall(c);
-    return d != null && d >= 14 && rank(c.checkpoint) >= 1 && rank(c.checkpoint) <= 4;
-  };
-  /* A meeting whose date has gone by and nobody has said what happened. */
-  const awaitingDecision = (c) => c.checkpoint === 'meeting-set' && !!c.next && c.next.due < TODAY_ISO;
-  /* Who a BDR may ring: a number, not opted out, still on the calling part of
-     the ladder, and not parked on a future date. */
+  /* `stale`, `daysSinceCall` and `awaitingDecision` were here and are gone
+     with the buckets that were their only readers. A derivation nothing calls
+     is a claim nothing checks. */
+
+  /* Who a BDR may ring: a number, not opted out, and still on the part of
+     the ladder that is rung. ONCE A MEETING IS BOOKED THEY LEAVE THE QUEUE —
+     the BDR's part is done until it happens, and a caller working a list
+     does not want the people they have already closed in it. A callback with
+     a date in the future is parked until that date. */
   const callable = (c) =>
-    !!c.phone && !c.dnc && !isExit(c.checkpoint) && rank(c.checkpoint) <= 4 &&
+    !!c.phone && !c.dnc && !isExit(c.checkpoint) && rank(c.checkpoint) <= 3 &&
     !(c.next && c.next.due > TODAY_ISO);
-  const retry = (c) =>
-    c.checkpoint === 'no-answer' && c.attempts < 5 && (daysSinceCall(c) == null || daysSinceCall(c) >= 2);
 
   /* ══ 6. THE URL IS THE STATE ════════════════════════════════════════════
      One object mirrors the query string, one function writes it, one function
@@ -1247,7 +1246,7 @@
      about what it does. */
   function paint() {
     dropLists();
-    paintNav();
+    byId('navBar').innerHTML = '';
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
@@ -1339,9 +1338,7 @@
          top row is the recommendation and says so by being the only filled
          thing on the surface. */
       '<button class="s-insight-lnk s-qrow-go' + (i === 0 ? ' primary' : '') +
-        '" type="button" ' + (bucketOf(c) === 'after'
-          ? 'data-con="' + esc(c.id) + '"'
-          : 'data-call="' + esc(c.id) + '"') + '>' + rowVerb(c) + '</button>';
+        '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>';
   }
 
   /* One campaign. The numbers on the second line are the ones that decide
@@ -1349,14 +1346,14 @@
      page reads — so a row and the page it opens cannot disagree. */
   function camprow(k) {
     const q = queue(k.id);
-    const due = q.filter((c) => bucketOf(c) === 'due').length;
-    const after = q.filter((c) => bucketOf(c) === 'after').length;
+    const back = q.filter((c) => c.checkpoint === 'callback').length;
+    const fresh = q.filter((c) => c.checkpoint === 'not-called').length;
     const left = daysBetween(TODAY_ISO, k.to);
     return '<button class="b-camp-name" type="button" data-camp="' + esc(k.id) + '">' + esc(k.name) + '</button>' +
       '<div class="b-camp-why">' +
         '<span><b>' + commas(q.length) + '</b> to call</span>' +
-        (due ? '<span><b>' + due + '</b> due</span>' : '') +
-        (after ? '<span><b>' + after + '</b> after a meeting</span>' : '') +
+        (back ? '<span><b>' + back + '</b> ' + verbFor(back, 'callback') + '</span>' : '') +
+        (fresh ? '<span><b>' + commas(fresh) + '</b> never rung</span>' : '') +
         '<span>' + (left > 0 ? 'ends in ' + plural(left, 'day') : 'past its end date') + '</span>' +
       '</div>' +
       '<button class="s-insight-lnk b-camp-go" type="button" data-camp="' + esc(k.id) + '">Work it</button>';
@@ -1433,73 +1430,60 @@
     const k = S.camp && DB.byCamp[S.camp];
     if (k && mine(k)) {
       const cq = queue(k.id);
-      const cdue = cq.filter((x) => bucketOf(x) === 'due').length;
-      const cafter = cq.filter((x) => bucketOf(x) === 'after').length;
+      const cback = cq.filter((x) => x.checkpoint === 'callback').length;
       return {
         eyebrow: 'This campaign', subject: k.name,
         card: {
-          state: cdue || cafter ? 'staged' : 'detected',
-          text: cdue
-            ? '<b>' + plural(cdue, 'person') + '</b> on this campaign ' + verbFor(cdue, 'is') +
-              ' owed something today.'
-            : cafter
-              ? '<b>' + plural(cafter, 'meeting') + '</b> here ' + verbFor(cafter, 'has') +
-                ' been and gone with nothing recorded.'
-              : '<b>' + commas(cq.length) + '</b> people here can be rung and nothing is overdue.',
+          state: cback ? 'staged' : 'detected',
+          text: cback
+            ? '<b>' + plural(cback, 'person') + '</b> on this campaign asked to be rung back.'
+            : '<b>' + commas(cq.length) + '</b> people here are waiting to be rung.',
           evidence: [{ val: commas(cq.length), cap: 'to call' },
             { val: commas(membersOf(k.id).length), cap: 'on it' }],
-          act: cdue ? 'Show the ' + cdue : cafter ? 'Show the ' + cafter : null,
-          q: cdue ? 'due' : cafter ? 'after' : null,
+          act: cback ? 'Show the ' + cback : null,
+          q: cback ? 'callback' : null,
         },
       };
     }
     const q = queue();
-    const due = q.filter((x) => bucketOf(x) === 'due').length;
-    const after = q.filter((x) => bucketOf(x) === 'after').length;
+    const back = q.filter((x) => x.checkpoint === 'callback').length;
     const camps = myCampaigns();
     return {
       eyebrow: 'Your book', subject: null,
       card: {
-        state: due || after ? 'staged' : 'detected',
-        text: due
-          ? '<b>' + plural(due, 'person') + '</b> ' + verbFor(due, 'is') +
-            ' owed something today across your ' + plural(camps.length, 'campaign') + '.'
-          : after
-            ? '<b>' + plural(after, 'meeting') + '</b> ' + verbFor(after, 'has') +
-              ' been and gone with nothing recorded.'
-            : '<b>' + commas(q.length) + '</b> people are callable across your ' +
-              plural(camps.length, 'campaign') + ', and nothing is overdue.',
+        state: back ? 'staged' : 'detected',
+        text: back
+          ? '<b>' + plural(back, 'person') + '</b> asked to be rung back, across your ' +
+            plural(camps.length, 'campaign') + '.'
+          : '<b>' + commas(q.length) + '</b> people are waiting to be rung across your ' +
+            plural(camps.length, 'campaign') + '.',
         evidence: [{ val: commas(q.length), cap: 'to call' }, { val: camps.length, cap: 'campaigns' }],
-        act: due ? 'Show the ' + due : after ? 'Show the ' + after : null,
-        q: due ? 'due' : after ? 'after' : null,
+        act: back ? 'Show the ' + back : null,
+        q: back ? 'callback' : null,
       },
     };
   }
 
-  /* ══ WHICH OF THE THREE YOU ARE ON ══════════════════════════════════════
-     In the page, at the top of it, in the design system's segmented control
-     — not down the left-hand side. `#navBar` is the shell's own host for
-     this and its comment says so: "WHAT you are looking at, and the one
-     action on the whole surface", above everything because it is the parent
-     of everything below it.
+  /* ══ THE HEADING IS THE SWITCHER ════════════════════════════════════════
+     Not a control above the heading and not a column beside it: the title of
+     the block IS the choice. A page whose heading reads "Calls" already
+     names the other two things it could be showing, and a separate navigation
+     component to say the same thing is a second row of chrome for a product
+     with three surfaces.
 
-     A record marks the surface it belongs to rather than lighting nothing:
-     a person opened from the queue is still Calls, and the segment says so
-     while the back link is what actually returns you. */
-  function paintNav() {
-    const here = S.camp || S.on === 'camps' ? 'camps'
-      : S.list || S.on === 'lists' ? 'lists'
-      : 'calls';
-    const seg = (k, label, n, over) =>
-      '<button class="seg-btn' + (here === k ? ' active' : '') + '" type="button" ' +
-      'data-go="' + esc(JSON.stringify(over)) + '">' + esc(label) +
-      '<span class="b-seg-n">' + commas(n) + '</span></button>';
-    byId('navBar').innerHTML =
-      '<div class="b-nav"><div class="seg" role="group" aria-label="What you are working on">' +
-        seg('calls', 'Calls', queue().length, cleared()) +
-        seg('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
-        seg('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
-      '</div></div>';
+     The one you are on is the heading, at heading weight. The other two sit
+     beside it, quiet, and press to become the heading. */
+  function switcher(here) {
+    const one = (k, label, n, over) =>
+      '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
+      'data-go="' + esc(JSON.stringify(over)) + '"' +
+      (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
+      '<span class="b-switch-n">' + commas(n) + '</span></button>';
+    return '<h2 class="b-switch">' +
+      one('calls', 'Calls', queue().length, cleared()) +
+      one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
+      one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+    '</h2>';
   }
 
   function paintRail() {
@@ -1572,14 +1556,10 @@
     const camps = myCampaigns();
     const pg = paged(camps);
     return '<div class="s-home">' +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">Your campaigns</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
-            'ranked by how soon they close. Each one says how much of it is yours to ring.</p>' +
-        '</div>' +
-      '</section>' +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
+        '<div class="s-camp-list-head">' + switcher('camps') + '</div>' +
+        '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
+          'soonest to close first. Each says how many of its people are yours to ring.</p>' +
         '<div class="b-vlist" id="campList"></div>' +
         pager(pg, 'campaign') +
       '</section>' +
@@ -1591,12 +1571,13 @@
      is a sentence that has to be read to learn nothing. */
   function openerText(counts, all, camps) {
     const bits = [];
-    if (counts.due) bits.push('<b>' + plural(counts.due, 'person') + '</b> ' +
-      verbFor(counts.due, 'is') + ' owed something today');
-    if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
-      verbFor(counts.after, 'has') + ' been and gone with nothing recorded');
-    if (counts.retry) bits.push('<b>' + commas(counts.retry) + '</b> are ready for another try');
-    if (!bits.length) bits.push('nothing is owed and nothing is overdue');
+    if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
+      '</b> asked to be rung back');
+    if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
+      '</b> have never been rung');
+    if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
+      '</b> did not pick up last time');
+    if (!bits.length) bits.push('there is nobody left to ring');
     return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
       '</b> people on them can be rung. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.';
@@ -1608,10 +1589,12 @@
     const opens = [
       { k: 'callnext', label: 'Call the next one',
         why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
-      { k: 'due', label: 'Work what is due',
-        why: counts.due ? plural(counts.due, 'person') + ' owed something today' : 'nothing is owed today' },
-      { k: 'untouched', label: 'Ring somebody new',
-        why: counts.untouched ? commas(counts.untouched) + ' have never been rung' : 'everyone has been tried' },
+      { k: 'callback', label: 'Work the callbacks',
+        why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
+          : 'nobody asked for one' },
+      { k: 'not-called', label: 'Ring somebody new',
+        why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
+          : 'everyone has been tried' },
       { k: 'camps', label: 'Pick a campaign',
         why: plural(camps.length, 'campaign') + ' are yours to work' },
     ];
@@ -1690,7 +1673,7 @@
     const ring = pg.rows.filter((c) => rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">To call</h2>' +
+        (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
         (ring.length
           ? '<button class="s-inline-btn" type="button" data-callall="' +
             esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
@@ -1823,24 +1806,19 @@
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     return '<div class="s-home">' +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">Lists</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">A list is how new people get into a campaign, and ' +
-            'therefore into your queue. Describe who to look for; what comes back is the list.</p>' +
-          '<div class="b-cuts"><button class="s-insight-lnk primary" type="button" ' +
-            'data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: '1' }))) +
-            '">Build a list</button></div>' +
+      '<section class="s-block s-block-wide" aria-label="Lists">' +
+        '<div class="s-camp-list-head">' + switcher('lists') +
+          '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: '1' }))) +
+          '">Find leads</button>' +
         '</div>' +
+        '<p class="s-block-sub">A list is how new people reach your queue. Describe who to ' +
+          'look for; what comes back is the list, and putting it on a campaign puts them ' +
+          'in front of you.</p>' +
+        (DB.list.length
+          ? '<div class="b-vlist" id="listList"></div>' + pager(paged(DB.list), 'list')
+          : '<p class="b-vfoot">You have not built one yet.</p>') +
       '</section>' +
-      (DB.list.length
-        ? '<section class="s-block s-block-wide" aria-label="Your lists">' +
-            '<div class="s-camp-list-head"><h2 class="s-block-h">Your lists</h2>' +
-            '<span class="s-block-say">' + plural(DB.list.length, 'list') + '</span></div>' +
-            '<div class="b-vlist" id="listList"></div>' +
-            pager(paged(DB.list), 'list') +
-          '</section>'
-        : '') +
     '</div>';
   }
 
@@ -2132,8 +2110,8 @@
           '<p class="s-block-sub">You are on this campaign to call. ' +
             '<b>' + commas(all.length) + '</b> of its ' + plural(members.length, 'person') +
             ' can be rung' +
-            (counts.due ? ', <b>' + counts.due + '</b> owed something today' : '') +
-            (counts.after ? ', <b>' + counts.after + '</b> waiting on a verdict' : '') +
+            (counts.callback ? ', <b>' + counts.callback + '</b> asked to be rung back' : '') +
+            (counts['not-called'] ? ', <b>' + commas(counts['not-called']) + '</b> never rung' : '') +
           '.</p>' +
 
           '<div class="b-cuts">' +
@@ -2312,40 +2290,49 @@
 
      The order is the queue's order, and there is only one of them: `qRank`
      reads the same function, so the chips and the ranking cannot drift. */
+  /* ══ THE CUTS ARE THE LADDER, AND NOTHING ELSE ═════════════════════════
+     They were After a meeting · Due · Try again · Open · Never rung — five
+     invented words for a cold caller to learn on top of the eight rungs the
+     product already has. "Due" and "Open" are a CRM's vocabulary; the person
+     dialling has one question, which is where this lead stands with me.
+
+     So a cut IS a rung. Four of them, because four rungs are callable: you
+     have not rung them, you rang and nobody answered, they asked to be rung
+     back, or you got them and there is no meeting yet. Past that a meeting
+     is booked and they leave the queue — the BDR's part is done until it
+     happens. Nothing here has a name that is not already on the ladder. */
   const BUCKETS = [
-    { k: 'after',     label: 'After a meeting' },
-    { k: 'due',       label: 'Due' },
-    { k: 'retry',     label: 'Try again' },
-    { k: 'open',      label: 'Open' },
-    { k: 'untouched', label: 'Never rung' },
+    { k: 'callback',   label: 'Callbacks' },
+    { k: 'not-called', label: 'New' },
+    { k: 'no-answer',  label: 'No answer' },
+    { k: 'answered',   label: 'Answered' },
   ];
-  function bucketOf(c) {
-    if (awaitingDecision(c)) return 'after';
-    if (dueToday(c)) return 'due';
-    if (retry(c)) return 'retry';
-    if (untouched(c)) return 'untouched';
-    return 'open';
-  }
+  const bucketOf = (c) => c.checkpoint;
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
 
   /* Why this person is on the list today, with the fact in it. A queue that
      cannot say why it ranked somebody is a queue you have to trust. */
   function whyLine(c) {
-    const b = bucketOf(c);
-    if (b === 'after') return 'Met <b>' + esc(sayWhen(c.next.due)) + '</b> — nothing recorded since';
-    if (b === 'due') {
-      const late = c.next.due < TODAY_ISO;
-      return esc(c.next.what) + (late ? ' — <b>' + esc(sayWhen(c.next.due)) + '</b>' : ' <b>today</b>');
+    switch (c.checkpoint) {
+      case 'callback':
+        return 'Asked to be rung back <b>' +
+          esc(c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)) + '</b>';
+      case 'not-called':
+        return 'Never rung';
+      case 'no-answer':
+        return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
+      default:
+        return 'Spoke to them <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, no meeting yet';
     }
-    if (b === 'retry') return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
-    if (b === 'untouched') return 'Never rung';
-    return 'Spoke <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, nothing owed';
   }
-  /* What the row's press does. The action names the real next step: after a
-     meeting nobody has ruled on, the move is to say what happened, not to
-     ring them again. */
-  const rowVerb = (c) => (bucketOf(c) === 'after' ? 'Say what happened' : 'Call');
+
+  /* Every row does the same thing, because on this surface there is only one
+     thing to do. It briefly said "Say what happened" on people whose meeting
+     had passed — a second verb, for a second job, in the middle of a list you
+     are dialling down. The call itself logs the touchpoint; a separate step
+     to report the same call is the step this build exists to remove. */
+  const rowVerb = () => 'Call';
 
   /* The ranked queue. Stated once and read everywhere, so home, the campaign
      page and the composer cannot disagree about who is next. */
@@ -3117,15 +3104,11 @@
 
   function ntfRows() {
     const rows = [];
-    queue(null, 'after').slice(0, 6).forEach((c) => rows.push({
-      id: 'after-' + c.id, con: c.id,
-      what: c.name + ' — the meeting was ' + sayWhen(c.next.due) + ' and nothing is recorded',
-      cta: 'Say what happened',
-    }));
-    queue(null, 'due').slice(0, 8).forEach((c) => rows.push({
-      id: 'due-' + c.id, con: c.id,
-      what: c.name + ' — ' + c.next.what.toLowerCase() + ' ' + sayWhen(c.next.due),
-      cta: 'Open them',
+    queue(null, 'callback').slice(0, 12).forEach((c) => rows.push({
+      id: 'back-' + c.id, con: c.id,
+      what: c.name + ' asked to be rung back ' +
+        (c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)),
+      cta: 'Call them',
     }));
     return rows.slice(0, 12);
   }
@@ -3266,11 +3249,11 @@
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
       '">' + esc(label) + '</button>';
 
-    if (/due|owe|today/.test(q)) {
-      return '<b>' + plural(counts.due || 0, 'person') + '</b> ' + verbFor(counts.due || 0, 'is') +
-        ' owed something today' + (S.camp ? ' on this campaign' : ' across your ' +
+    if (/callback|call back|rung back|owe|due/.test(q)) {
+      return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be rung back' +
+        (S.camp ? ' on this campaign' : ' across your ' +
         plural(myCampaigns().length, 'campaign')) + '. ' +
-        door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'due' }));
+        door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' }));
     }
     if (/how many|left|remaining|to call/.test(q)) {
       return '<b>' + commas(all.length) + '</b> people can be rung' +
@@ -3441,8 +3424,8 @@
     const quick = t.closest('[data-quick]');
     if (quick) {
       const v = quick.getAttribute('data-quick');
-      const map = { 'due=overdue': 'due', 'status=going-cold': 'retry',
-        'status=untouched': 'untouched', 'owner=mine': 'all' };
+      const map = { 'due=overdue': 'callback', 'status=going-cold': 'no-answer',
+        'status=untouched': 'not-called', 'owner=mine': 'all' };
       go(Object.assign(cleared(), { q: map[v] || 'all' }));
       return;
     }

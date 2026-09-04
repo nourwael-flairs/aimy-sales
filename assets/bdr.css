@@ -154,13 +154,32 @@
    "the strongest text on this surface" and it flips with the theme. */
 .evidence-pill .val { color: var(--text-strong); }
 
-/* ══ 10. WHICH OF THE THREE YOU ARE ON ═════════════════════════════════════
-   The design system ships the segmented control (`.seg` / `.seg-btn`); this
-   only gives it a home at the top of the page and lets each segment carry
-   its count. Not a left-hand column: navigation down the side of a product
-   with three surfaces spends a permanent column on three words. */
-.b-nav { display: flex; margin-bottom: 24px; }
-.b-seg-n {
-  margin-left: 8px; font-variant-numeric: tabular-nums;
-  font-weight: var(--fw-bold); opacity: 0.6;
+/* ══ 10. THE HEADING IS THE SWITCHER ═══════════════════════════════════════
+   Not a control above the heading and not a column beside it: the title of
+   the block IS the choice. The one you are on reads as the heading it would
+   have been anyway; the other two sit beside it, quiet, and press to become
+   it. A product with three surfaces does not need a row of chrome to say so.
+
+   An h2 with buttons inside, so the page keeps a real heading in its outline
+   whichever surface is showing. The type is `.s-block-h`'s, because the one
+   you are on IS that heading and must not be a different size from the one
+   it replaces. */
+.b-switch {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
+  margin: 0;
 }
+.b-switch-btn {
+  appearance: none; border: 0; background: transparent; padding: 0;
+  cursor: pointer; font-family: var(--font-display);
+  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); color: var(--d500);
+  transition: color var(--t-fast);
+}
+.b-switch-btn:hover { color: var(--d200); }
+.b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+.b-switch-btn.is-on { color: var(--d50); }
+.b-switch-n {
+  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; color: var(--d600);
+}
+.b-switch-btn.is-on .b-switch-n { color: var(--d400); }
