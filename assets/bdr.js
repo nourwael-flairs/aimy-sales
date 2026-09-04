@@ -981,7 +981,13 @@
        yours — which is the whole reason "not already in the book" is a
        criterion rather than a promise. */
     const net = [];
-    for (let i = 0; i < 3000; i++) {
+    /* TWELVE THOUSAND, BECAUSE A REAL DESCRIPTION NARROWS HARD. One sector of
+       ten, one country of nine, one size band of four and one job family of
+       five is about a thousandth of the index — and three thousand rows
+       answered "QA managers at software companies in the Netherlands with 200
+       to 1,000 staff" with exactly one. A builder whose Generate button says
+       1 has not been demonstrated, it has been apologised for. */
+    for (let i = 0; i < 12000; i++) {
       const ind = pick(r, INDUSTRIES);
       const city = pick(r, CITIES);
       const known = chance(r, 0.12);
@@ -1278,7 +1284,7 @@
   function mountLists() {
     const nl = byId('netList');
     if (nl) {
-      vlist({ host: nl, items: peek(buildMatched()).rows, rowH: 64, rowClass: 's-qrow',
+      vlist({ host: nl, items: peek((DRAFT && DRAFT.rows) || []).rows, rowH: 64, rowClass: 's-qrow',
         key: (n) => n.id, row: netRow, empty: 'Nothing matches those criteria.' });
     }
     const feed = byId('campFeed');
@@ -2086,7 +2092,7 @@
     t[axis] = has ? (t[axis] || []).filter((x) => x !== val) : (t[axis] || []).concat([val]);
     const flat = [];
     Object.keys(t).forEach((a) => t[a].forEach((v) => flat.push(a + ':' + v)));
-    go({ bt: flat.join(','), on: 'lists', build: '1' });
+    go({ bt: flat.join(','), on: 'lists', build: 'describe' });
   }
 
   /* What the search returns. An axis with nothing ticked does not narrow —
@@ -2124,9 +2130,7 @@
       topBrief('lists') +
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
-          '<button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: '1' }))) +
-          '">Find leads</button>' +
+          '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
         '</div>' +
         '<p class="s-block-sub">A list is how new people reach your queue. Describe who to ' +
           'look for; what comes back is the list, and putting it on a campaign puts them ' +
@@ -2170,67 +2174,397 @@
     '</div>';
   }
 
-  function buildPage() {
-    const t = terms();
-    const found = buildMatched(t);
-    const f = finderOf();
-    const only = (t.only || []).indexOf('new') >= 0;
-    const chip = (axis, val, label, n) =>
-      '<button class="filter-chip' + ((t[axis] || []).indexOf(val) >= 0 ? ' active' : '') +
-      '" type="button" data-term="' + esc(axis + ':' + val) + '">' + esc(label) +
-      '<span class="b-cut-n">' + commas(n) + '</span></button>';
+  /* ══ THE BUILDER, PORTED FROM THE V3 BUILD ══════════════════════════════
+     Four steps, and the V3 build's arguments for each of them hold here:
 
+       KIND FIRST, because which axes exist follows from it — a job title is
+       a criterion for people and meaningless for companies.
+
+       THE SENTENCE IS TYPED IN THE BAR THAT IS ALREADY THERE. A textarea on
+       this page asking "who are you looking for" beside a fixed composer
+       asking the same thing in different words makes the first question of
+       the interaction "which box?". The page shows what it HEARD; the bar is
+       where you say it.
+
+       AiMY OFFERS CRITERIA AND APPLIES NONE. Every suggestion states the
+       count behind it and waits to be pressed. A builder that pre-applies
+       what it guessed is a builder you have to audit before you trust.
+
+       THE LOOKING IS VISIBLE. Rows arrive one at a time under the names of
+       the suppliers that were asked, because a spinner over a search says
+       nothing about whether it is working or stuck.
+
+     `DRAFT` is the working document: the sentence, the name, which of your
+     own you are bringing, and the run. The CRITERIA live in the URL, so a
+     half-described search is a link somebody can send. */
+
+  let DRAFT = null;
+  const BSTEPS = ['kind', 'describe', 'run', 'done'];
+  const bstep = () => (BSTEPS.indexOf(S.build) >= 0 ? S.build : 'kind');
+
+  function buildOpen(over) {
+    DRAFT = { kind: 'con', said: '', name: null, take: [], rows: [], run: null };
+    go(Object.assign(cleared(), { on: 'lists', build: 'kind', bt: '' }, over || {}));
+  }
+
+  const buildKind = () => (DRAFT && DRAFT.kind) || S.bk || 'con';
+
+  /* The name tracks the criteria until you disagree with it. Type in the
+     field and it is yours and stops moving; leave it and it keeps up. */
+  const buildAutoName = () => autoName(terms());
+  const buildName = () => (DRAFT && DRAFT.name != null ? DRAFT.name : buildAutoName());
+
+  function buildPage() {
+    const step = bstep();
+    if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], rows: [], run: null };
+    if (step === 'run') return buildRunning();
+    if (step === 'done') return buildDone();
+    if (step === 'kind') return buildPickKind();
+    return buildDescribe();
+  }
+
+  function buildPickKind() {
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">Who are we looking for?</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">Every count is what you would have left if you pressed it. ' +
-            'Nothing is ticked to begin with, so the first number you see is everything ' +
-            'the sources hold.</p>' +
+      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
+        '<div class="s-sheet-kind">New list</div>' +
+        '<h1 class="s-sheet-name">What are you collecting?</h1>' +
+      '</div></div>' +
+      '<div class="s-ways s-block-wide">' +
+        '<button class="s-way" type="button" data-bkind="acc">' +
+          '<span class="s-way-name">Companies</span>' +
+          '<span class="s-way-why">One row per organization. <b>' +
+            commas(DB.net.length) + '</b> in reach, and the ones you already ' +
+            'hold can come along.</span>' +
+        '</button>' +
+        '<button class="s-way" type="button" data-bkind="con">' +
+          '<span class="s-way-name">People</span>' +
+          '<span class="s-way-why">The people at those companies, narrowed by job ' +
+            'title. <b>' + commas(DB.con.length) + '</b> of them are already yours.</span>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  }
 
-          BUILD_AXES.map((ax) =>
-            '<div class="b-axis"><span class="s-callsum-mem">' + esc(ax.label) + '</span>' +
-            '<div class="b-cuts">' + ax.opts().map((o) =>
-              chip(ax.k, o[0], o[1], countWith(ax.k, o[0]))).join('') + '</div></div>').join('') +
+  function buildDescribe() {
+    const t = terms();
+    const found = buildMatched(t);
+    const kind = buildKind();
+    const mine2 = bookFit(t);
+    const take = DRAFT.take.length;
+    const eg = kind === 'con'
+      ? 'QA managers at software companies in the Netherlands with 200 to 1,000 staff'
+      : 'Banking and logistics companies in the Netherlands with 200 to 1,000 staff';
+    const chips = [];
+    BUILD_AXES.forEach((ax) => {
+      if (kind === 'acc' && ax.k === 'title') return;
+      const opts = Object.create(null);
+      ax.opts().forEach((o) => (opts[o[0]] = o[1]));
+      (t[ax.k] || []).forEach((v) => chips.push({ axis: ax.k, val: v, label: opts[v] || v }));
+    });
+    if ((t.only || []).indexOf('new') >= 0) {
+      chips.push({ axis: 'only', val: 'new', label: 'Not already in the book' });
+    }
 
-          '<div class="b-axis"><span class="s-callsum-mem">Already yours</span>' +
-            '<div class="b-cuts">' +
-              chip('only', 'new', 'Not already in the book', countWith('only', 'new')) +
-            '</div></div>' +
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'kind' }))) +
+        '">Companies or people</button>' +
+      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
+        '<div class="s-sheet-kind">New list · ' + (kind === 'con' ? 'People' : 'Companies') + '</div>' +
+        '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
+          'value="' + esc(buildName()) + '" data-auto="' + esc(buildAutoName()) + '" ' +
+          'data-bname aria-label="Name this list" /></h1>' +
+      '</div></div>' +
 
-          '<div class="b-axis"><span class="s-callsum-mem">Where to look</span>' +
-            '<div class="b-cuts">' + FINDERS.map((x) =>
-              '<button class="filter-chip' + (f.k === x.k ? ' active' : '') +
-              '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
-              '<span class="b-cut-n">' + Math.round(x.phone * 100) + '% with a number</span>' +
-              '</button>').join('') + '</div></div>' +
+      (DRAFT.said
+        ? '<p class="s-block-wide s-said">' + esc(DRAFT.said) + '</p>'
+        : '<p class="s-block-wide s-said is-empty">Say who you are after in the bar below — something ' +
+          'like “' + esc(eg) + '”.</p>') +
 
-          '<p class="s-block-sub"><b>' + commas(found.length) + '</b> of ' +
-            commas(DB.net.length) + ' match' + (only ? ', and none of them is already yours' : '') +
-            '. ' + esc(f.name) + ' would give you a number for about ' +
-            commas(Math.round(found.length * f.phone)) + ' of them.</p>' +
+      (chips.length
+        ? '<div class="s-find-crit s-block-wide">' + chips.map((c) =>
+            '<button class="chip active" type="button" data-bterm="' +
+            esc(c.axis + ':' + c.val) + '">' + esc(c.label) +
+            '<span class="s-crit-x" aria-hidden="true">×</span></button>').join('') + '</div>'
+        : '') +
 
-          '<div class="b-cuts">' +
-            (found.length
-              ? '<button class="s-insight-lnk primary" type="button" data-save>Save these ' +
-                commas(Math.min(found.length, 500)) + '</button>'
-              : '<span class="s-block-sub">Nothing matches. Untick something.</span>') +
-          '</div>' +
-          (found.length > 500
-            ? '<p class="s-block-sub">Capped at 500 — a list is a morning of calling, ' +
-              'not a database. Narrow it and you choose which 500.</p>'
-            : '') +
+      buildSuggestBlock(t, found, mine2) +
+
+      '<div class="s-build-foot s-block-wide">' +
+        '<p class="s-build-total s-block-wide"><b>' + commas(found.length) + '</b> of the ' +
+          commas(DB.net.length) + ' I can reach match' +
+          (take ? ', and <b>' + commas(take) + '</b> of yours' : '') + '. ' +
+          esc(finderOf().name) + ' would give a number for about <b>' +
+          commas(Math.round(found.length * finderOf().phone)) + '</b> of them.</p>' +
+        '<div class="b-cuts">' + FINDERS.map((x) =>
+          '<button class="filter-chip' + (finderOf().k === x.k ? ' active' : '') +
+          '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
+          '<span class="b-cut-n">' + Math.round(x.phone * 100) + '%</span></button>').join('') +
         '</div>' +
-      '</section>' +
-      /* A preview, not a worklist. You are here to decide whether the
-         criteria are right, and eight rows answers that — a scroll through
-         nine hundred strangers does not, and Save takes them all either way. */
+        '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
+          (found.length + take ? '' : ' disabled aria-disabled="true"') + '>Generate ' +
+          commas(Math.min(found.length + take, 500)) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ── ONE READER FOR A TYPED SENTENCE ──
+     "Software companies in Amsterdam with 200 to 1,000 staff" becomes three
+     criteria, and it accumulates across axes rather than taking one match
+     each — the difference between reading three things out of that sentence
+     and reading one. */
+  const GOAL_IND = [
+    [/bank|insur|financ|fintech/i, 'banking'],
+    [/software|saas|tech company|platform/i, 'software'],
+    [/logistic|freight|shipping|transport|supply/i, 'logistics'],
+    [/health|hospital|clinic|medical|care home/i, 'health'],
+    [/retail|shop|store|ecommerce|e-commerce/i, 'retail'],
+    [/energy|utility|utilities|power|grid/i, 'energy'],
+    [/public|universit|school|council|government|education/i, 'public'],
+    [/telecom|carrier|mobile operator/i, 'telecom'],
+    [/manufactur|industrial|factory|plant/i, 'industry'],
+    [/hotel|hospitality|resort|restaurant/i, 'hospitality'],
+  ];
+
+  function readSaid(text, kind) {
+    const s = String(text || '').toLowerCase();
+    const add = [];
+    GOAL_IND.forEach((p) => { if (p[0].test(s)) add.push(['industry', p[1]]); });
+    COUNTRY_OPTS.forEach((c) => {
+      if (s.indexOf(c[1].toLowerCase()) >= 0) add.push(['where', c[0]]);
+    });
+    /* A city names its country, because somebody typing "Amsterdam" means the
+       Netherlands and the index is filtered by country. */
+    CITIES.forEach((c) => {
+      if (s.indexOf(c[0].toLowerCase()) >= 0) add.push(['where', c[1]]);
+    });
+    if (kind === 'con') {
+      TITLE_BANDS.forEach((b) => { if (b.re.test(s)) add.push(['title', b.k]); });
+    }
+    /* Headcount, written the way people write it. */
+    const nums = (s.match(/([\d][\d,.]*)\s*(?:k\b)?/g) || [])
+      .map((x) => Number(x.replace(/[^\d]/g, ''))).filter((n) => n >= 10);
+    if (nums.length) {
+      const lo = Math.min.apply(null, nums);
+      const hi = nums.length > 1 ? Math.max.apply(null, nums) : lo;
+      SIZE_BANDS.forEach((b) => { if (hi >= b.lo && lo <= b.hi) add.push(['size', b.k]); });
+    }
+    if (/not already|new only|exclude (mine|ours)|leave out/.test(s)) add.push(['only', 'new']);
+    /* De-duplicated, because "Amsterdam, Netherlands" names one country twice. */
+    const seen = Object.create(null);
+    return add.filter((p) => {
+      const k = p[0] + ':' + p[1];
+      if (seen[k]) return false;
+      seen[k] = 1;
+      return true;
+    });
+  }
+
+  /* Which of your own book matches the criteria. The index is what is out
+     there; this is what you already hold, and it can come along. */
+  function bookFit(t) {
+    const want = t || terms();
+    const any = BUILD_AXES.some((ax) => (want[ax.k] || []).length);
+    if (!any) return [];
+    return DB.con.filter((c) => {
+      const a = accOf(c);
+      if (!a) return false;
+      if ((want.industry || []).length && want.industry.indexOf(a.industry) < 0) return false;
+      if ((want.size || []).length && want.size.indexOf(sizeBand(a.size)) < 0) return false;
+      if ((want.where || []).length && want.where.indexOf(a.country) < 0) return false;
+      if ((want.title || []).length && want.title.indexOf(titleBand(c.title)) < 0) return false;
+      return true;
+    }).slice(0, 400);
+  }
+
+  /* ── WHAT AiMY OFFERS, AND APPLIES NONE OF ──
+     Each one states the count behind it and waits to be pressed. */
+  function buildSuggests(t, found, mine2) {
+    const out = [];
+    const has = (axis) => (t[axis] || []).length > 0;
+    const camps = myCampaigns();
+
+    /* Somebody already wrote down who this is for. */
+    const camp = camps[0];
+    if (camp && !has('industry')) {
+      const read = readSaid(camp.goal + ' ' + camp.pitch, buildKind())
+        .filter((p) => p[0] === 'industry');
+      if (read.length) {
+        out.push({ k: 'goal', terms: read,
+          say: 'The goal on <b>' + esc(camp.name) + '</b> describes ' +
+            read.map((p) => esc(INDUSTRY[p[1]].label)).join(', ') + '.',
+          act: 'Use that' });
+      }
+    }
+    /* Where the ones you have actually got somewhere came from. */
+    if (!has('industry')) {
+      const won = DB.con.filter((c) => c.checkpoint === 'handed-over');
+      const inds = [];
+      won.forEach((c) => {
+        const a = accOf(c);
+        if (a && inds.indexOf(a.industry) < 0) inds.push(a.industry);
+      });
+      if (inds.length) {
+        out.push({ k: 'won', terms: inds.map((i) => ['industry', i]),
+          say: 'Your ' + plural(won.length, 'handover') + ' came from ' +
+            inds.map((i) => esc(INDUSTRY[i].label)).join(', ') + '.',
+          act: 'Add those sectors' });
+      }
+    }
+    /* What you already hold that matches, and how much of it is live. */
+    if (mine2.length && DRAFT.take.length < mine2.length) {
+      const live = mine2.filter(callable);
+      out.push({ k: 'have', take: mine2.map((c) => c.id),
+        say: '<b>' + commas(mine2.length) + '</b> you already hold match this' +
+          (live.length ? ', and <b>' + commas(live.length) + '</b> can be rung' : '') + '.',
+        act: 'Bring ' + (mine2.length === 1 ? 'it' : 'them') + ' in' });
+    }
+    /* A concentration worth narrowing to. A third or better, or it is a fact
+       rather than a finding. */
+    if (found.length > 3 && !has('where')) {
+      const n = Object.create(null);
+      found.forEach((r) => (n[r.country] = (n[r.country] || 0) + 1));
+      const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+      if (top && n[top] / found.length >= 0.3) {
+        const label = (COUNTRY_OPTS.filter((c) => c[0] === top)[0] || [top, top])[1];
+        out.push({ k: 'where', terms: [['where', top]],
+          say: '<b>' + commas(n[top]) + ' of the ' + commas(found.length) + '</b> are in ' +
+            esc(label) + '.',
+          act: 'Only ' + esc(label) });
+      }
+    }
+    /* The overlap between the index and your own book. */
+    if ((t.only || []).indexOf('new') < 0) {
+      const dupes = found.filter((r) => r.known).length;
+      if (dupes) {
+        out.push({ k: 'dedupe', terms: [['only', 'new']],
+          say: '<b>' + commas(dupes) + ' of the ' + commas(found.length) +
+            '</b> are already in your book.',
+          act: 'Leave them out' });
+      }
+    }
+    return out.slice(0, 3);
+  }
+
+  function buildSuggestBlock(t, found, mine2) {
+    const sug = buildSuggests(t, found, mine2);
+    if (!sug.length) return '';
+    /* THE MARK GOES ON THE BLOCK, NOT ON EVERY ROW. `.s-sugg-row` is a
+       two-column grid — the sentence and the button — so a third child took
+       the button's column and pushed it onto a row of its own. One mark
+       heads the block, which is also what the V3 build does and reads once
+       rather than three times. */
+    return '<div class="s-sugg s-block-wide">' +
+      '<p class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>AiMY suggests</p>' +
+      sug.map((s) =>
+        '<div class="s-sugg-row">' +
+          '<span class="s-sugg-say">' + s.say + '</span>' +
+          '<button class="s-finding-go" type="button" data-bsug="' + esc(s.k) + '">' +
+            esc(s.act) + '</button>' +
+        '</div>').join('') + '</div>';
+  }
+
+  /* ── THE LOOKING IS VISIBLE ──
+     Rows arrive one at a time under the names of the suppliers that were
+     asked. A spinner says nothing about whether a search is working or stuck. */
+  let BUILD_TICK = null;
+  function buildRun() {
+    const t = terms();
+    const found = buildMatched(t);
+    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
+    const rows = found.slice(0, Math.max(0, 500 - mine2.length));
+    DRAFT.rows = rows;
+    DRAFT.run = { total: rows.length + mine2.length, at: 0 };
+    go({ build: 'run' });
+    if (BUILD_TICK) clearInterval(BUILD_TICK);
+    BUILD_TICK = setInterval(buildTick, 90);
+  }
+  function buildTick() {
+    if (!DRAFT || !DRAFT.run || S.build !== 'run') {
+      clearInterval(BUILD_TICK); BUILD_TICK = null; return;
+    }
+    const r = DRAFT.run;
+    r.at = Math.min(r.total, r.at + Math.max(1, Math.round(r.total / 40)));
+    const host = $('.s-stream');
+    const n = $('.s-stream-n');
+    if (n) n.textContent = commas(r.at);
+    if (host) {
+      host.innerHTML = DRAFT.rows.slice(Math.max(0, r.at - 8), r.at)
+        .map((x) => '<div class="s-stream-row">' +
+          '<span class="s-stream-name">' + esc(buildKind() === 'acc' ? x.co : x.name) + '</span>' +
+          '<span class="s-stream-facts">' + esc(x.co) + ' · ' +
+          esc(INDUSTRY[x.industry].label) + ' · ' + esc(x.city) + '</span></div>').join('');
+    }
+    if (r.at >= r.total) {
+      clearInterval(BUILD_TICK); BUILD_TICK = null;
+      go({ build: 'done' }, true);
+    }
+  }
+
+  function buildRunning() {
+    const r = DRAFT.run || { total: 0, at: 0 };
+    return '<div class="s-home">' +
+      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
+        '<div class="s-sheet-kind">Looking</div>' +
+        '<h1 class="s-sheet-name">' + esc(buildName()) + '</h1>' +
+      '</div></div>' +
+      '<p class="s-stream-cap s-block-wide"><span class="s-stream-n">0</span> of ' + commas(r.total) +
+        ' · asked ' + FINDERS.map((f) => esc(f.name)).join(' · ') + '</p>' +
+      '<div class="s-stream s-block-wide"></div>' +
+    '</div>';
+  }
+
+  /* ── WHAT CAME BACK, BEFORE IT IS YOURS ──
+     The set, what is missing from it, and the two ways out. Nothing is in the
+     book until Save. */
+  function buildDone() {
+    const rows = DRAFT.rows || [];
+    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
+    const f = finderOf();
+    const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
+    const gap = rows.length - withNum;
+    return '<div class="s-home">' +
+      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
+        '<div class="s-sheet-kind">Found · not saved yet</div>' +
+        '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
+          'value="' + esc(buildName()) + '" data-auto="' + esc(buildAutoName()) + '" ' +
+          'data-bname aria-label="Name this list" /></h1>' +
+      '</div></div>' +
+
+      '<p class="s-build-total s-block-wide"><b>' + commas(rows.length + mine2.length) + '</b> came back' +
+        (mine2.length ? ', <b>' + commas(mine2.length) + '</b> of them already yours' : '') +
+        '. ' + esc(f.name) + ' found a number for <b>' + commas(withNum) + '</b>.</p>' +
+
+      (gap
+        ? aimyBlock({ text: '<b>' + commas(gap) + '</b> came back without a number, so they ' +
+            'cannot be rung. A different supplier fills a different share.',
+          from: esc(f.name) + ' answered this one' })
+        : '') +
+
+      '<div class="b-cuts">' + FINDERS.map((x) =>
+        '<button class="filter-chip' + (f.k === x.k ? ' active' : '') +
+        '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
+        '<span class="b-cut-n">' + Math.round(x.phone * 100) + '%</span></button>').join('') +
+      '</div>' +
+
+      '<div class="s-build-foot s-block-wide">' +
+        '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
+          commas(rows.length + mine2.length) + '</button>' +
+        '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe' }))) +
+          '">Change the criteria</button>' +
+        '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Discard</button>' +
+      '</div>' +
+
       '<section class="s-block s-block-wide" aria-label="What came back">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2></div>' +
         '<div class="b-vlist" id="netList"></div>' +
-        peekFoot(peek(found), 'match', 'matches', 'first') +
+        peekFoot(peek(rows), 'row', 'rows', 'first') +
       '</section>' +
     '</div>';
   }
@@ -2254,8 +2588,13 @@
      queue, the ladder and the call panel cannot tell where they came from. */
   function saveList() {
     const t = terms();
-    const found = buildMatched(t).slice(0, 500);
-    if (!found.length) return;
+    /* WHAT THE RUN ACTUALLY RETURNED, not the criteria run again. They are
+       usually the same set and they are not always: pressing "Bring them in"
+       adds people from your own book that no index search would return, and
+       recomputing here would have silently dropped every one of them. */
+    const found = (DRAFT && DRAFT.rows) || buildMatched(t).slice(0, 500);
+    const bring = (DRAFT && DRAFT.take) || [];
+    if (!found.length && !bring.length) return;
     const f = finderOf();
     const now = new Date().toISOString();
     const id = 'l' + Date.now().toString(36);
@@ -2282,10 +2621,14 @@
       madeCon.push(c);
     });
     const crit = describeTerms(t);
+    /* The people you brought in from your own book join the list without
+       being minted again — they are already records, and a second copy of
+       somebody you have already rung is the worst thing a list can add. */
+    const has = madeCon.map((c) => c.id).concat(bring.filter((id2) => DB.byCon[id2]));
     const l = {
-      id: id, name: autoName(t), kind: 'con', terms: S.bt || '', crit: crit,
-      has: madeCon.map((c) => c.id), by: me().id, at: now, for: null, via: f.name,
-      found: buildMatched(t).length,
+      id: id, name: buildName(), kind: 'con', terms: S.bt || '', crit: crit,
+      has: has, by: me().id, at: now, for: null, via: f.name,
+      found: found.length + bring.length,
     };
     DB.acc = DB.acc.concat(madeAcc);
     DB.con = DB.con.concat(madeCon);
@@ -2295,9 +2638,9 @@
     reindex();
     save();
     go(Object.assign(cleared(), { list: id }));
-    toast('Saved ' + plural(madeCon.length, 'person') + ' as "' + l.name + '"', () => {
+    toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"', () => {
       dropList(id);
-      go(Object.assign(cleared(), { on: 'lists', build: '1', bt: S.bt }));
+      go(Object.assign(cleared(), { on: 'lists', build: 'describe', bt: S.bt }));
     });
   }
 
@@ -2362,7 +2705,7 @@
   }
   function autoName(t) {
     const d = describeTerms(t);
-    return d.length > 46 ? d.slice(0, 44) + '…' : d.replace(/^./, (c) => c.toUpperCase());
+    return d.length > 70 ? d.slice(0, 68) + '…' : d.replace(/^./, (c) => c.toUpperCase());
   }
 
   /* ══ ONE CAMPAIGN, AS THE PERSON WORKING IT SEES IT ═════════════════════
@@ -3513,6 +3856,30 @@
       return;
     }
 
+    /* ══ THE BUILDER OWNS THE BAR WHILE IT IS OPEN ═════════════════════════
+       A textarea on the describe step asking "who are you looking for" beside
+       a fixed composer asking the same thing in different words makes the
+       first question of the interaction "which box?". There is one box, and
+       it is the one that was already there — the page shows what it HEARD. */
+    if (S.build === 'describe' && DRAFT) {
+      DRAFT.said = t;
+      const read = readSaid(t, buildKind());
+      if (!read.length) {
+        paint();
+        toast('I could not pick a sector, a country or a size out of that.');
+        return;
+      }
+      const cur = terms();
+      const flat = [];
+      Object.keys(cur).forEach((a) => cur[a].forEach((v) => flat.push(a + ':' + v)));
+      read.forEach((pair) => {
+        const key = pair[0] + ':' + pair[1];
+        if (flat.indexOf(key) < 0) flat.push(key);
+      });
+      go({ bt: flat.join(',') });
+      return;
+    }
+
     if (CALL_RE.test(t)) {
       const rest = t.replace(CALL_RE, '').replace(/^\s*(the\s+)?/i, '').trim();
       closeCanvas();
@@ -3643,6 +4010,55 @@
     const camp = t.closest('[data-camp]');
     if (camp) { go(Object.assign(cleared(), { camp: camp.getAttribute('data-camp') })); return; }
 
+    if (t.closest('[data-bopen]')) { buildOpen(); return; }
+
+    /* Which of the two you are collecting. It decides which axes exist — a
+       job title is a criterion for people and meaningless for a company — so
+       it is asked first and nothing else is on that screen. */
+    const bkind = t.closest('[data-bkind]');
+    if (bkind) {
+      if (!DRAFT) buildOpen();
+      DRAFT.kind = bkind.getAttribute('data-bkind');
+      go({ on: 'lists', build: 'describe', bk: DRAFT.kind, bt: '' });
+      return;
+    }
+
+    /* A criterion chip on the describe step removes itself. */
+    const bterm = t.closest('[data-bterm]');
+    if (bterm) {
+      const v = bterm.getAttribute('data-bterm');
+      const at = v.indexOf(':');
+      toggleTerm(v.slice(0, at), v.slice(at + 1));
+      return;
+    }
+
+    /* AiMY's offers apply nothing until pressed, and each one carries what it
+       would apply rather than recomputing it from the label. */
+    const bsug = t.closest('[data-bsug]');
+    if (bsug) {
+      const k = bsug.getAttribute('data-bsug');
+      const t2 = terms();
+      const found = buildMatched(t2);
+      const s2 = buildSuggests(t2, found, bookFit(t2)).filter((x) => x.k === k)[0];
+      if (!s2) return;
+      if (s2.take) {
+        s2.take.forEach((id) => { if (DRAFT.take.indexOf(id) < 0) DRAFT.take.push(id); });
+        paint();
+        toast(plural(s2.take.length, 'person') + ' of yours will come along.');
+        return;
+      }
+      const flat = [];
+      Object.keys(t2).forEach((a2) => t2[a2].forEach((v) => flat.push(a2 + ':' + v)));
+      s2.terms.forEach((pair) => {
+        const key = pair[0] + ':' + pair[1];
+        if (flat.indexOf(key) < 0) flat.push(key);
+      });
+      go({ bt: flat.join(',') });
+      return;
+    }
+
+    if (t.closest('[data-bgo]')) { buildRun(); return; }
+
     const term = t.closest('[data-term]');
     if (term) {
       const v = term.getAttribute('data-term');
@@ -3688,10 +4104,7 @@
         go(Object.assign(cleared(), { list: k.slice(5) }));
         return;
       }
-      if (k === 'find') {
-        go(Object.assign(cleared(), { on: 'lists', build: '1' }));
-        return;
-      }
+      if (k === 'find') { buildOpen(); return; }
       if (k === 'callnext') {
         const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
@@ -3844,7 +4257,18 @@
     saveUI();
   }, true);
 
+  /* THE NAME TRACKS THE CRITERIA UNTIL YOU DISAGREE WITH IT. While the field
+     still holds the derived name, `DRAFT.name` stays null and the heading
+     keeps up with what you narrow to. The moment you type something else it
+     is yours and stops moving — which is the only way to disagree with a
+     generated name without saving the list and renaming it afterwards. */
   document.addEventListener('input', (e) => {
+    const nm = e.target.closest('[data-bname]');
+    if (nm && DRAFT) {
+      DRAFT.name = nm.value === nm.getAttribute('data-auto') ? null : nm.value;
+      return;
+    }
+
     const n = e.target.closest('[data-note]');
     if (!n || !DB.call) return;
     DB.call.note = n.value;

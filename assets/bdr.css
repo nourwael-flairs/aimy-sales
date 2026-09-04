@@ -112,11 +112,9 @@
 .b-tally-item { font-size: var(--fs-xs); color: var(--d400); }
 .b-tally-item b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 
-/* ══ 8. DESCRIBING WHO TO LOOK FOR ═════════════════════════════════════════
-   One labelled row of chips per axis. The label sits above rather than beside
-   so the chips get the full width — at four axes and ten options a side label
-   costs a column the options need. */
-.b-axis { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+/* §8 held a labelled chip row per axis. The builder asks in the composer
+   now, the way the V3 build does — you say who you are after and the page
+   shows what it heard, with AiMY offering the rest. So the rows are gone. */
 
 /* The keyboard cursor. j and k move it, o opens the row it is on. Tinted
    rather than outlined: an outline on an absolutely positioned row of fixed
