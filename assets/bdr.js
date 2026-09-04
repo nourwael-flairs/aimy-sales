@@ -3966,7 +3966,14 @@
     }
     host.innerHTML = TURNS.map((t) =>
       '<div class="chat-msg ' + (t.who === 'you' ? 'user' : 'aimy') + '">' +
-        '<div class="msg-bubble">' + t.html + '</div>' +
+        '<div class="msg-bubble">' + t.html +
+          (t.opts && t.opts.length && !t.spent
+            ? '<span class="b-lb-opts">' + t.opts.map((o) =>
+                '<button class="overlay-sugg-chip" type="button" data-lb="' +
+                esc(o.k) + '">' + esc(o.label) + '</button>').join('') + '</span>'
+            : '') +
+          (t.hint && !t.spent ? '<span class="b-lb-hint">' + esc(t.hint) + '</span>' : '') +
+        '</div>' +
       '</div>').join('');
     host.scrollTop = host.scrollHeight;
   }
@@ -4003,6 +4010,15 @@
       DB.call.note = t;
       paintCall();
       toast('I could not read a disposition out of that. Pick one, or say it another way.');
+      return;
+    }
+
+    if (LBUILD) {
+      /* Whatever you type belongs to the list being built. A name where a
+         name was asked for, and criteria to read anywhere else. */
+      if (LBUILD.step === 'name') { lbuildConfirm(t); return; }
+      if (/^(go|that is enough|enough|look now|show me)$/i.test(t)) { lbuildName(); return; }
+      lbuildRead(t);
       return;
     }
 
@@ -4411,6 +4427,182 @@
       plural(made.length, 'call') + ' written to the record'));
   }
 
+  /* ══ BUILDING A LIST IN THE CONVERSATION ════════════════════════════════
+     The other door, and the V3 build makes it the front one. Its argument:
+     the page used to open on a gate — do it yourself, or ask AiMY — a screen
+     whose whole content was a question about how you would like to answer the
+     next question. Two presses before anything was asked, and neither about
+     the list.
+
+     So the conversation opens by asking what you are collecting, which is the
+     first real question either way, and it carries "Open the builder instead"
+     on that same turn. The gate still exists; it is inside the first thing
+     you were going to be asked anyway.
+
+     EVERY TURN READS BACK WHAT IT UNDERSTOOD AND SAYS THE COUNT. A reader who
+     cannot see what was heard has no way to correct it, and a narrowing whose
+     effect is invisible is a narrowing you have to take on faith.
+
+     NAMING IT IS THE COMMIT GESTURE. The last question is what to call it;
+     answering carries everything said into the page's own draft and runs the
+     build there — streaming, then the set with its offers and its reading.
+     The conversation does not grow a second preview of its own. */
+
+  let LBUILD = null;
+
+  const LB_OUT = { k: 'open', label: 'Open the builder instead' };
+  const LB_GO = { k: 'go', label: 'That is enough — look now' };
+
+  /* Options belong to the turn that offered them, and only the newest turn's
+     are live. Old chips left pressable are a conversation you can answer
+     twice in different places. */
+  function lbuildSpend() {
+    TURNS.forEach((t) => { if (t.opts) t.spent = true; });
+  }
+  function lbuildPush(text, opts, hint) {
+    lbuildSpend();
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '' });
+    paintThread();
+  }
+
+  const lbuildTerms = () => (LBUILD ? LBUILD.terms : []);
+  const lbuildMatched = () => {
+    const t = Object.create(null);
+    lbuildTerms().forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
+    return buildMatched(t);
+  };
+  const lbuildSay = () => {
+    const hit = lbuildMatched().length;
+    return '<b>' + commas(hit) + '</b> of the ' + commas(DB.net.length) +
+      ' I can reach match.';
+  };
+  function lbuildAutoName() {
+    const t = Object.create(null);
+    lbuildTerms().forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
+    return autoName(t);
+  }
+
+  /* AN AXIS NOBODY HAS NAMED IS NOT A BLOCKER, it is the next useful thing to
+     say. One at a time, so the turn stays a sentence rather than a checklist,
+     and it is the axis that would narrow hardest. */
+  function lbuildNudge() {
+    const named = Object.create(null);
+    lbuildTerms().forEach((p) => (named[p[0]] = 1));
+    const order = ['industry', 'where', 'size', 'title'];
+    const say = {
+      industry: ' You have not said a sector — name one and I will narrow it.',
+      where: ' You have not said where — name a country and I will narrow it.',
+      size: ' You have not said how big — say a size and I will narrow it.',
+      title: ' You have not said what they do — name a job title and I will narrow it.',
+    };
+    const open = order.filter((k) => !named[k] &&
+      (k !== 'title' || LBUILD.kind === 'con'));
+    return open.length ? say[open[0]] : '';
+  }
+
+  function lbuildStart() {
+    LBUILD = { kind: null, terms: [], step: 'kind', name: null };
+    TURNS.length = 0;
+    openCanvas();
+    lbuildPush('What are you collecting — companies, or the people at them?',
+      [{ k: 'kind-acc', label: 'Companies' }, { k: 'kind-con', label: 'People' }, LB_OUT],
+      'Or just say who you are after and I will work it out.');
+  }
+
+  function lbuildKind(kind) {
+    LBUILD.kind = kind;
+    LBUILD.step = 'said';
+    lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>. ' +
+      'Who are you after? Say it however you like — a sector, a country, a size, ' +
+      'a job title.',
+      [LB_OUT], 'Something like “QA managers at software companies in the Netherlands”.');
+  }
+
+  /* Read a sentence into criteria, then say what was understood and what it
+     leaves. Nothing is applied silently and nothing is applied twice. */
+  function lbuildRead(text) {
+    if (!LBUILD.kind) LBUILD.kind = /\bcompan|organisation|organization|firm/i.test(text) ? 'acc' : 'con';
+    const read = readSaid(text, LBUILD.kind);
+    TURNS.push({ who: 'you', html: esc(text) });
+    if (!read.length) {
+      lbuildPush('I could not pick a sector, a country, a size or a job title out of that.',
+        [LB_GO, LB_OUT], 'Try naming one of those.');
+      return;
+    }
+    const added = [];
+    read.forEach((p) => {
+      if (!LBUILD.terms.some((q) => q[0] === p[0] && q[1] === p[1])) {
+        LBUILD.terms.push(p);
+        added.push(p);
+      }
+    });
+    LBUILD.step = 'said';
+    const label = (p) => (p[0] === 'industry' ? INDUSTRY[p[1]].label
+      : p[0] === 'size' ? (SIZE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
+      : p[0] === 'title' ? (TITLE_BANDS.filter((b) => b.k === p[1])[0] || {}).label
+      : p[0] === 'where' ? (COUNTRY_OPTS.filter((c) => c[0] === p[1])[0] || [p[1], p[1]])[1]
+      : 'not already in the book');
+    const hit = lbuildMatched().length;
+    const head = added.length
+      ? 'Read that as <b>' + added.map((p) => esc(label(p))).join(', ') + '</b>.'
+      : 'Nothing new in that.';
+    if (!hit) {
+      lbuildPush(head + ' Nothing in the index matches all of that. Take something ' +
+        'back off it and I will look again.',
+        [{ k: 'reset', label: 'Start the criteria again' }, LB_OUT],
+        'Or say it differently.');
+      return;
+    }
+    lbuildPush(head + ' ' + lbuildSay() + lbuildNudge(), [LB_GO, LB_OUT],
+      'Say anything else that narrows it, or say go.');
+  }
+
+  function lbuildName() {
+    LBUILD.step = 'name';
+    lbuildPush(lbuildSay() + ' What should the list be called?',
+      [{ k: 'name-auto', label: 'Call it “' + lbuildAutoName() + '”' }, LB_OUT],
+      lbuildAutoName());
+  }
+
+  /* The last turn. Everything said is carried into the page's draft, the
+     canvas closes, and the build runs on the page — where the set gets its
+     offers, its reading and its actions. A second preview inside the canvas
+     would be two renderers of one thing, which is the duplication this whole
+     rebuild exists to remove. */
+  function lbuildConfirm(name) {
+    TURNS.push({ who: 'you', html: esc(name) });
+    lbuildSpend();
+    const flat = LBUILD.terms.map((p) => p[0] + ':' + p[1]);
+    const kind = LBUILD.kind || 'con';
+    LBUILD = null;
+    hideCanvas();
+    DRAFT = { kind: kind, said: '', name: name, take: [], drop: [], rows: [], run: null };
+    go(Object.assign(cleared(), { on: 'lists', build: 'describe', bk: kind, bt: flat.join(',') }));
+    buildRun();
+  }
+
+  function lbuildOpt(k) {
+    if (!LBUILD) return;
+    if (k === 'open') {
+      const flat = LBUILD.terms.map((p) => p[0] + ':' + p[1]);
+      const kind = LBUILD.kind || 'con';
+      LBUILD = null;
+      hideCanvas();
+      DRAFT = { kind: kind, said: '', name: null, take: [], drop: [], rows: [], run: null };
+      go(Object.assign(cleared(), { on: 'lists', build: kind ? 'describe' : 'kind',
+        bk: kind, bt: flat.join(',') }));
+      return;
+    }
+    if (k === 'kind-acc') { lbuildKind('acc'); return; }
+    if (k === 'kind-con') { lbuildKind('con'); return; }
+    if (k === 'go') { lbuildName(); return; }
+    if (k === 'name-auto') { lbuildConfirm(lbuildAutoName()); return; }
+    if (k === 'reset') {
+      LBUILD.terms = [];
+      lbuildPush('Cleared. Who are you after?', [LB_OUT], 'Name a sector, a country or a size.');
+    }
+  }
+
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
      One delegated listener. Every control is a `data-` verb matched by
      `closest`, so a row can be re-rendered without losing its behaviour and
@@ -4443,7 +4635,13 @@
     const camp = t.closest('[data-camp]');
     if (camp) { go(Object.assign(cleared(), { camp: camp.getAttribute('data-camp') })); return; }
 
-    if (t.closest('[data-bopen]')) { buildOpen(); return; }
+    /* Find leads opens the conversation, which carries the way onto the
+       page on its first turn. The gate is inside the first real question
+       rather than being a screen of its own. */
+    if (t.closest('[data-bopen]')) { lbuildStart(); return; }
+
+    const lb = t.closest('[data-lb]');
+    if (lb) { lbuildOpt(lb.getAttribute('data-lb')); return; }
 
     /* Which of the two you are collecting. It decides which axes exist — a
        job title is a criterion for people and meaningless for a company — so
@@ -4550,7 +4748,7 @@
         go(Object.assign(cleared(), { list: k.slice(5) }));
         return;
       }
-      if (k === 'find') { buildOpen(); return; }
+      if (k === 'find') { lbuildStart(); return; }
       if (k === 'callnext') {
         const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);

@@ -327,3 +327,14 @@
    In the V3 build the head sits in a sheet that constrains it; here it sits
    in the page grid, which does not. One `flex: 1 1 auto`. */
 .s-home > .s-sheet-head > .s-sheet-head-main { flex: 1 1 auto; }
+
+/* ══ 14. THE CONVERSATION'S OWN OPTIONS ════════════════════════════════════
+   A turn that offers choices carries them inside its own bubble, so an old
+   answer stays visible above and its chips stop being pressable. The chip is
+   the overlay's existing suggestion chip; this only lays them out and hangs
+   the hint under them. */
+.b-lb-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.b-lb-hint {
+  display: block; margin-top: 8px;
+  font-size: var(--fs-xs); color: var(--d400);
+}
