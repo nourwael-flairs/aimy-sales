@@ -19,9 +19,14 @@ inside `index.html`, so a cached document asks for the old assets for ever;
 
 ## What a BDR does here
 
-**Three surfaces, and the rail is the index into them.** Calls, Campaigns and
-Lists, each with the count behind it. They were one page once; the result was a
-single scroll holding three unrelated jobs, and Lists had no door at all.
+**Three surfaces, chosen at the top of the page.** Calls, Campaigns and Lists,
+each with its count, in the design system's segmented control. They were one
+page once; the result was a single scroll holding three unrelated jobs, and
+Lists had no door at all.
+
+It is in the page rather than down the left-hand side: navigation in a column
+spends a permanent column on three words. `#navBar` is the shell's own host for
+it. The rail carries the AiMY reading and nothing else.
 
 | surface | url | what it is |
 |---|---|---|
