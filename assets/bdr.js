@@ -1247,7 +1247,7 @@
      about what it does. */
   function paint() {
     dropLists();
-    byId('navBar').innerHTML = '';
+    paintNav();
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
@@ -1476,32 +1476,36 @@
     };
   }
 
-  /* ══ THE RAIL IS THE INDEX, AND THEN THE READING ════════════════════════
-     Three doors and the counts behind them, then what AiMY makes of wherever
-     you are. The index came first in the V3 shell for a reason its own
-     comment gives: campaigns could only be reached by asking for them, which
-     is a fine way to reach a thing you know the name of and a poor way to
-     learn there are fourteen. Lists had it worse here — it had no door at
-     all, and was reachable only by typing a URL. */
-  function railNav() {
-    const here = S.con ? '' : S.camp ? 'camps' : (S.on || 'calls');
-    const door = (k, label, n, over) =>
-      '<button class="rail-nav-link" type="button" data-go="' + esc(JSON.stringify(over)) + '"' +
-      (here === k ? ' aria-current="page"' : '') + '>' +
-      '<span class="rail-nav-label">' + esc(label) + '</span>' +
-      '<span class="rail-nav-n">' + commas(n) + '</span></button>';
-    return '<nav class="rail-nav" aria-label="What is here">' +
-      door('calls', 'Calls', queue().length, cleared()) +
-      door('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
-      door('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
-    '</nav>';
+  /* ══ WHICH OF THE THREE YOU ARE ON ══════════════════════════════════════
+     In the page, at the top of it, in the design system's segmented control
+     — not down the left-hand side. `#navBar` is the shell's own host for
+     this and its comment says so: "WHAT you are looking at, and the one
+     action on the whole surface", above everything because it is the parent
+     of everything below it.
+
+     A record marks the surface it belongs to rather than lighting nothing:
+     a person opened from the queue is still Calls, and the segment says so
+     while the back link is what actually returns you. */
+  function paintNav() {
+    const here = S.camp || S.on === 'camps' ? 'camps'
+      : S.list || S.on === 'lists' ? 'lists'
+      : 'calls';
+    const seg = (k, label, n, over) =>
+      '<button class="seg-btn' + (here === k ? ' active' : '') + '" type="button" ' +
+      'data-go="' + esc(JSON.stringify(over)) + '">' + esc(label) +
+      '<span class="b-seg-n">' + commas(n) + '</span></button>';
+    byId('navBar').innerHTML =
+      '<div class="b-nav"><div class="seg" role="group" aria-label="What you are working on">' +
+        seg('calls', 'Calls', queue().length, cleared()) +
+        seg('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
+        seg('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+      '</div></div>';
   }
 
   function paintRail() {
     const r = railReading();
     const c = r.card;
     byId('appRail').innerHTML =
-      railNav() +
       '<div class="rail-read">' +
         '<div class="rail-scope">' +
           '<span class="rail-scope-cap">' + esc(r.eyebrow) + '</span>' +
