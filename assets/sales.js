@@ -12582,20 +12582,24 @@
       ${l.goal || (l.members || []).length ? campInsight(l, { onPage: true, said }) : ''}
       ${canWrite() ? '' : raiseRow(l.k, l.name)}
 
-      ${/* ══ THE WORK FIRST, THE PAPERWORK LAST ═══════════════════════════
-            The order was: recommendation, 917px of identity rows, two
-            findings, the flow. So the thing a campaign page exists for —
-            which step is holding the work, and what is in that step — began
-            1,500px down, and everything AiMY had concluded was cut in half
-            by the campaign's own description.
+      ${/* ══ TRIED WORK-FIRST, AND PUT IT BACK ═════════════════════════════
+            The flow led for one pass: recommendation, Where the work is,
+            what was found, the description last. It read well on a campaign
+            with a short open stage and badly on the one that matters — Find
+            draws the roster, which is 1,657px on a campaign of 24 and grows
+            with the campaign, so leading with the flow buried every section
+            under it behind a scroll whose length nobody could predict.
 
-            Three kinds of thing live on this page: what to do now, what was
-            found, and what the campaign is. They are in that order now, and
-            each announces itself, which is the whole of the sectioning —
-            no rules, no borders, no boxes. The identity rows are reference:
-            true at every step, needed on none of them, and read when you go
-            looking rather than on the way past. */ ''}
-      ${campFlow(l)}
+            A page's first section has to be the one whose height is BOUNDED.
+            Identity is seven rows whatever the campaign holds, the two
+            findings are a handful of reasons, and the flow is the only part
+            that scales with the members — so it reads last, where being long
+            costs nothing.
+
+            The sectioning was never the order. Each region announces itself
+            and the ladder separates them; that stays, and the order goes
+            back to what it was. */ ''}
+      ${campIdentity(l)}
       ${/* BOTH ABOVE THE FLOW, and in this order. What is stopping it is a
             fact about the campaign in the same way its goal is — true at
             every stage, belonging to none of them — so burying it inside
@@ -12623,7 +12627,8 @@
       ${(l.members || []).length ? campOffer(l) : ''}
 
 
-      ${campIdentity(l)}
+
+      ${campFlow(l)}
       </div>
     </div>`;
   }
