@@ -49,8 +49,13 @@ Once a meeting is booked they leave the queue — the BDR's part is done until i
 happens, and a caller working a list does not want the people they have already
 closed in it.
 
-Every row does the same thing, because on this surface there is only one thing
-to do, and it says **Call**. It briefly said "Say what happened" on people whose
+**The queue is cards, three across.** A row held a name, a line and a button —
+enough to be ranked by and not enough to prepare with, so every call began by
+opening the record to find out who this was. A card carries the rung and the
+campaign, who they are and where they sit, how big the company is, why they are
+on this rung, what was said last time in the words it was written in, and the
+number. Every card does the same thing, because on this surface there is only
+one thing to do, and it says **Call**. It briefly said "Say what happened" on people whose
 meeting had passed: a second verb, for a second job, in the middle of a list you
 are dialling down. The call logs the touchpoint; a separate step to report the
 same call is the step this build exists to remove.
