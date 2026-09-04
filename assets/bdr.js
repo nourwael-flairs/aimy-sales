@@ -1284,8 +1284,13 @@
     const o = OUTCOME[t.outcome];
     const said = t.proposals.map((p) => PROPOSAL[p] && PROPOSAL[p].label).filter(Boolean)
       .concat(t.objections.map((p) => OBJECTION[p] && OBJECTION[p].label).filter(Boolean));
+    /* A rung somebody moved by hand is not a call, and the history says so
+       rather than filing it under an outcome it never had. */
+    const head = o ? o.label
+      : t.moved ? rungLabel(t.moved[0]) + ' → ' + rungLabel(t.moved[1])
+      : t.outcome;
     return '<div class="s-qrow-id">' +
-        '<span class="s-qrow-name">' + esc(o ? o.label : t.outcome) + '</span>' +
+        '<span class="s-qrow-name">' + esc(head) + '</span>' +
         '<span class="s-qrow-sub">' + esc(actor(t.by).name) + ' · ' + esc(sayWhen(t.at)) + '</span>' +
       '</div>' +
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span>' +
@@ -1557,8 +1562,16 @@
             (camps.length ? ' · On ' + camps.map((k) => esc(k.name)).join(', ') : ' · On no campaign') +
           '</p>' +
           ladder(c) +
+          movesBlock(c) +
           (c.next ? '<p class="s-block-sub">Next: <b>' + esc(c.next.what) + '</b> ' +
-            esc(sayWhen(c.next.due)) + '.</p>' : '') +
+            esc(sayWhen(c.next.due)) + '.</p>' +
+            '<div class="b-cuts">' +
+              [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']].map((d) =>
+                '<button class="filter-chip" type="button" data-movenext="' + d[0] + '">' +
+                esc(d[1]) + '</button>').join('') +
+              '<button class="filter-chip" type="button" data-movenext="clear">Drop it</button>' +
+            '</div>'
+            : '') +
           (c.remember ? '<p class="s-block-sub">Remember — ' + esc(c.remember.text) +
             ' <i>' + esc(actor(c.remember.by).name) + '</i></p>' : '') +
         '</div>' +
@@ -1570,6 +1583,27 @@
         '</div>' +
         '<div class="b-vlist" id="histList"></div>' +
       '</section>' +
+    '</div>';
+  }
+
+  /* The rungs only a person can settle. Rendered only where they apply — a
+     lead nobody has met is offered nothing here, because the answer to "did
+     they show up" is not "no", it is "there was no meeting". */
+  function movesBlock(c) {
+    const ms = movesFor(c);
+    if (!ms.length) {
+      /* An exit says why nothing is on offer rather than showing an empty
+         row. A surface with no action has to say why there is none. */
+      return isExit(c.checkpoint)
+        ? '<p class="s-block-sub">' + esc(RUNG[c.checkpoint].say) +
+          ', so there is nothing to move. Undo on the toast is the way back.</p>'
+        : c.checkpoint === 'handed-over'
+          ? '<p class="s-block-sub">The director has it now. Past the handover it stops being a BDR lead.</p>'
+          : '';
+    }
+    return '<div class="b-cuts">' + ms.map((m, i) =>
+      '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+      '" type="button" data-move="' + esc(m.k) + '">' + esc(m.label) + '</button>').join('') +
     '</div>';
   }
 
@@ -2323,6 +2357,84 @@
     '</div>';
   }
 
+  /* ══ 7c. WHAT A CALL CANNOT SAY ═════════════════════════════════════════
+     Four rungs are things a person OBSERVED, not things a call record
+     implies: whether they turned up, whether they are actually interested,
+     whether the director has it now. No transcript can settle any of them,
+     which is the whole reason this build stores a checkpoint instead of
+     deriving one.
+
+     So they are one press each, on the record, always visible, and every one
+     of them is undoable. No modal, no picker, no confirm: the confirmation
+     ladder's bottom rung is "act, then toast with Undo", and every one of
+     these is reversible and touches one lead. */
+
+  const MOVES = [
+    { k: 'showed-up',   label: 'They showed up',  from: ['meeting-set'] },
+    { k: 'no-show',     label: 'They did not show', from: ['meeting-set'] },
+    { k: 'interested',  label: 'They are interested', from: ['meeting-set', 'showed-up'] },
+    { k: 'handed-over', label: 'Hand to the director', from: ['showed-up', 'interested'] },
+    { k: 'declined',    label: 'They said no',    from: ['answered', 'meeting-set', 'showed-up', 'interested', 'callback'] },
+  ];
+
+  function movesFor(c) {
+    return MOVES.filter((m) => m.from.indexOf(c.checkpoint) >= 0);
+  }
+
+  /* The next step each rung owes, if any. A rung that owes nothing clears
+     the field rather than leaving a stale one: a handed-over lead with a
+     callback still on it is a queue entry for work nobody should do. */
+  function nextForRung(to) {
+    if (to === 'showed-up') return { what: 'Say whether they are interested', due: dayAdd(1) };
+    if (to === 'interested') return { what: 'Hand to the director', due: dayAdd(2) };
+    if (to === 'answered') return { what: 'Call them back', due: dayAdd(2) };
+    return null;
+  }
+
+  function setCheckpoint(id, mv) {
+    const c = DB.byCon[id];
+    if (!c) return;
+    const to = mv === 'no-show' ? 'answered' : mv;
+    const before = {
+      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, dnc: c.dnc,
+    };
+    const now = new Date().toISOString();
+    const t = {
+      id: 'k' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
+      outcome: 'checkpoint',
+      proposals: [], objections: [], openings: [],
+      note: mv === 'no-show' ? 'They did not turn up.'
+        : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
+      lines: [], next: null, moved: [c.checkpoint, to],
+    };
+    patchCon(c, { checkpoint: to, checkpointAt: now, next: nextForRung(to) });
+    addTouch(t);
+    const camp = DB.byCamp[t.camp];
+    toast(c.name.split(' ')[0] + ' → ' + rungLabel(to) +
+      (camp ? ' · ' + camp.name : ''), () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+    paint();
+  }
+
+  /* Moving a date without a picker. Three chips and a way to drop it — the
+     three answers that cover almost every follow-up a caller sets, and the
+     fourth case is a sentence to AiMY. */
+  function moveNext(id, days) {
+    const c = DB.byCon[id];
+    if (!c || !c.next) return;
+    const before = { next: c.next };
+    patchCon(c, { next: days == null ? null : { what: c.next.what, due: dayAdd(days) } });
+    toast(days == null ? 'Dropped the follow-up on ' + c.name.split(' ')[0]
+      : c.next.what + ' moved to ' + sayWhen(c.next.due), () => {
+      patchCon(c, before); paint();
+    });
+    paint();
+  }
+
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
      One delegated listener. Every control is a `data-` verb matched by
      `closest`, so a row can be re-rendered without losing its behaviour and
@@ -2395,6 +2507,16 @@
       paintCall();
       return;
     }
+    const mv = t.closest('[data-move]');
+    if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
+
+    const mn = t.closest('[data-movenext]');
+    if (mn) {
+      const v = mn.getAttribute('data-movenext');
+      moveNext(S.con, v === 'clear' ? null : Number(v));
+      return;
+    }
+
     const when = t.closest('[data-when]');
     if (when && DB.call) {
       DB.call.when = Number(when.getAttribute('data-when')) || 1;
