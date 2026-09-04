@@ -2024,7 +2024,9 @@
         (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
         (ring.length
           ? '<button class="s-inline-btn" type="button" data-callall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
+            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
+            '<button class="s-inline-btn s-ai-btn" type="button" data-autocall="' +
+            esc(ring.map((c) => c.id).join(',')) + '">Let AiMY call ' + ring.length + '</button>'
           : '') +
       '</div>' +
       cuts(counts, all) +
@@ -3452,6 +3454,10 @@
     };
     document.body.classList.add('is-calling');
     paintCall();
+    /* The brief goes up as the phone is about to ring, not after. It is a
+       stored turn, so every toast and repaint for the rest of the run leaves
+       it standing. */
+    callPrep(c);
   }
 
   function callGo() {
@@ -3515,6 +3521,7 @@
     c.guessed = !heard.disp;
     if (heard.when) c.when = heard.when;
     paintCall();
+    callLogPropose();
   }
 
   /* ══ WHAT A CALL DOES TO A LEAD ═════════════════════════════════════════
@@ -3522,7 +3529,19 @@
      goes BACKWARDS on a call — ringing somebody you have already met does
      not un-meet them — and an exit is never climbed out of by a call, only
      by Undo. */
-  function moveFor(c, outcome, props) {
+  /* ══ THE FOLLOW-UP DELAY IS AN ARGUMENT ═══════════════════════════════
+     This read the date chips on the live call panel, which is fine while a
+     person is holding the phone and null the moment AiMY is. Every outcome
+     that owes a follow-up threw, the tick died inside its own setInterval,
+     and the run limped on losing exactly the calls that went WELL — a
+     connected call asking for a meeting, and a callback. The summary then
+     reported, truthfully, that nobody got through, about a run that had
+     silently dropped its successes.
+
+     Seven days is the default because that is what the sentence reader
+     answers for a follow-up naming no day. */
+  function moveFor(c, outcome, props, when) {
+    const days = when == null ? (DB.call ? DB.call.when : 7) : when;
     const at = rank(c.checkpoint);
     const has = (k) => props.indexOf(k) >= 0;
     const up = (k) => (isExit(c.checkpoint) ? null : rank(k) > at ? k : null);
@@ -3531,16 +3550,16 @@
     if (outcome === 'not-interested') return { to: 'declined', next: null };
     if (outcome === 'no-answer' || outcome === 'gatekeeper') return { to: up('no-answer') };
     if (outcome === 'callback') {
-      return { to: up('callback'), next: { what: 'Call them back', due: dayAdd(DB.call.when) } };
+      return { to: up('callback'), next: { what: 'Call them back', due: dayAdd(days) } };
     }
     /* Connected. What was asked for decides how far it moves. */
     if (has('meeting') || has('demo')) {
       return {
         to: up('meeting-set'),
-        next: { what: has('demo') ? 'Demo for them' : 'Meeting with them', due: dayAdd(DB.call.when) },
+        next: { what: has('demo') ? 'Demo for them' : 'Meeting with them', due: dayAdd(days) },
       };
     }
-    if (has('callback')) return { to: up('answered'), next: { what: 'Call them back', due: dayAdd(DB.call.when) } };
+    if (has('callback')) return { to: up('answered'), next: { what: 'Call them back', due: dayAdd(days) } };
     if (has('info')) return { to: up('answered'), next: { what: 'Send what was promised', due: dayAdd(1) } };
     if (has('proposal')) return { to: up('answered'), next: { what: 'Proposal to them', due: dayAdd(3) } };
     return { to: up('answered') };
@@ -3620,10 +3639,10 @@
     const nextId = sess.ids.filter((id) =>
       sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0];
     if (!nextId) {
-      const n = sess.done.length;
+      sess.finished = new Date().toISOString();
       closeCall();
       paint();
-      toast('Session finished — ' + plural(n, 'call') + ' logged.');
+      sessionSummary(sess);
       return;
     }
     startCall(nextId, sess);
@@ -3962,12 +3981,10 @@
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
     if (DB.call && DB.call.state === 'logging') {
+      if (callLogCorrect(t)) return;
       DB.call.note = t;
-      const read = readCall(t);
-      if (read.disp) DB.call.outcome = read.disp;
-      if (read.when) DB.call.when = read.when;
       paintCall();
-      toast('Read as ' + (OUTCOME[DB.call.outcome] || {}).label + '. Press Log to write it.');
+      toast('I could not read a disposition out of that. Pick one, or say it another way.');
       return;
     }
 
@@ -4091,6 +4108,284 @@
     }
     return 'I can tell you what is due, how many are left to call, what you logged ' +
       'recently, and when people actually answer. Everything else is on the page.';
+  }
+
+  /* ══ THE CALL IN THE CANVAS, PORTED FROM THE V3 BUILD ═══════════════════
+     The panel holds the call. The CANVAS holds the record of the run: the
+     brief before each one, the read-back after it, and the summary at the
+     end. Both doors commit through `logCall`, so there is one write.
+
+     WHY THE BRIEF IS A STORED TURN AND NOT A PANEL BLOCK. Anything written
+     to the DOM alone is erased by the next repaint — and every toast in this
+     product repaints. Harmless while the brief was scenery; fatal once it
+     carried the run's controls, because pressing "Pause after this call"
+     toasted, the toast wiped the block, and Pause and Stop vanished with it.
+     A control that removes itself by working. Stored turns survive every
+     repaint, which is what makes the canvas the record of a run rather than
+     a view of its last frame. */
+
+  function answerBlock(title, body, cite) {
+    return '<div class="s-ans">' +
+      '<div class="s-ans-title">' + esc(title) + '</div>' +
+      '<div class="s-ans-body">' + body + '</div>' +
+      (cite ? '<div class="s-ans-cite"><span>' + esc(cite) + '</span></div>' : '') +
+    '</div>';
+  }
+
+  /* Everything worth knowing before the phone rings, in the order you would
+     ask it. Nine lines at most, and every one of them off the record. */
+  function callPrep(c) {
+    const a = accOf(c);
+    const camp = DB.byCamp[campFor(c)];
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const last = hist[0];
+    const sess = DB.call && DB.call.sess;
+    const line = (k, v) => '<p class="s-callp"><b>' + esc(k) + '</b> ' + v + '</p>';
+
+    let body = '<div class="s-brief-call">';
+    body += line('Who', esc(c.name) + ', ' + esc(c.title) +
+      (a ? ' at ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
+        commas(a.size) + ' staff' : ''));
+    body += line('What has passed', hist.length
+      ? esc(plural(hist.length, 'call') + ', last ' + OUTCOME[last.outcome].label.toLowerCase() +
+        ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
+      : 'Nothing. This is the first contact.');
+    if (c.remember) {
+      body += line('Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+        esc(actor(c.remember.by).name) + '</span>');
+    }
+    if (camp) {
+      body += line('Selling', esc(camp.sells.map((k) => SELL[k].name).join(' and ')));
+      body += line('The goal', esc(camp.goal));
+    }
+    body += line('Open with', hist.length
+      ? esc('Pick up where it stopped — ' + (last.note || 'you have spoken before.'))
+      : esc(camp ? camp.pitch : 'Ask what they are running this with today.'));
+    const obj = objectionLikely(c, camp);
+    if (obj) body += line('They will push back on', obj);
+    body += '</div>';
+
+    /* THE RUN'S CONTROLS LIVE ON THE BRIEF, under a sentence naming what they
+       act on. In the panel they read as pausing or stopping THIS call, which
+       is a control whose object has to be guessed at. */
+    if (sess) {
+      const at = sess.done.length + sess.skipped.length + 1;
+      body += '<p class="s-callsum-note">Call <b>' + at + '</b> of <b>' + sess.ids.length +
+        '</b> on this run.</p>' +
+        '<div class="b-cuts">' +
+          '<button class="s-inline-btn" type="button" data-callskip>Skip this one</button>' +
+          '<button class="s-inline-btn" type="button" data-sessstop>Stop the run</button>' +
+        '</div>';
+    }
+    openCanvas();
+    say('aimy', answerBlock('Before you speak to ' + c.name, body,
+      hist.length ? plural(hist.length, 'call') + ' on the record' : 'nothing on the record yet'));
+  }
+
+  /* What this audience says no about, counted, and only where the count is
+     worth quoting. A likely objection with two calls behind it is a guess
+     wearing a number. */
+  function objectionLikely(c, camp) {
+    const pool = camp ? DB.touch.filter((t) => t.camp === camp.id) : [];
+    const n = Object.create(null);
+    let total = 0;
+    pool.forEach((t) => t.objections.forEach((o) => { n[o] = (n[o] || 0) + 1; total++; }));
+    const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+    if (!top || n[top] < 3) return null;
+    const agreed = camp.objections.filter((o) => o.k === top)[0];
+    return esc(OBJECTION[top].label.toLowerCase()) + ' — <b>' + n[top] + '</b> of the ' +
+      total + ' who gave a reason on this campaign said so. ' +
+      esc(agreed ? agreed.say : OBJECTION[top].blurb);
+  }
+
+  /* ── THE READ-BACK ──
+     AiMY says what it heard in the taxonomy's own words, with the card the
+     record will carry. You agree in a word or correct it in a sentence. */
+  function callLogPropose() {
+    const call = DB.call;
+    if (!call) return;
+    const c = callOn();
+    const heard = call.read || {};
+    const props = heard.props || [];
+    const objs = heard.objs || [];
+    const mv = moveFor(c, call.outcome || 'no-answer', props);
+    const row = (k, v) => '<div class="s-callsum-row"><span class="s-callsum-mem">' +
+      esc(k) + '</span><span class="s-callsum-val">' + v + '</span></div>';
+    const body = '<div class="s-callsum-rows">' +
+      row('What happened', esc((OUTCOME[call.outcome] || {}).label || call.outcome)) +
+      row('You asked for', props.length
+        ? esc(props.map((p) => PROPOSAL[p].label).join(' · ')) : 'nothing') +
+      row('They pushed back on', objs.length
+        ? esc(objs.map((o) => OBJECTION[o].label).join(' · ')) : 'nothing') +
+      row('It moves them to', mv.to ? '<b>' + esc(rungLabel(mv.to)) + '</b>'
+        : 'nowhere — they stay at ' + esc(rungLabel(c.checkpoint))) +
+      '</div>' +
+      '<div class="b-cuts">' +
+        '<button class="s-insight-lnk primary" type="button" data-calllog>Log it' +
+          (call.sess ? ' and call the next one' : '') + '</button>' +
+      '</div>' +
+      '<p class="s-callsum-note">Or tell me what I got wrong, in the bar below.</p>';
+    say('aimy', answerBlock(
+      heard.disp ? 'I read that as ' + OUTCOME[heard.disp].label
+        : 'I could not tell from what was said',
+      body, 'the transcript and your note'));
+  }
+
+  /* A CORRECTION IS READ ALONE, and every axis it speaks to replaces the
+     proposal's. Read together with the transcript, a gatekeeper heard on the
+     call would beat "actually I spoke to her" for ever, because the lexicon
+     ranks by specificity and not by recency — the more you insisted, the less
+     it would listen. */
+  function callLogCorrect(text) {
+    const call = DB.call;
+    if (!call) return false;
+    const read = readCall(text);
+    if (!read.disp && !read.props.length && !read.objs.length && !read.opps.length) return false;
+    call.note = text;
+    const heard = call.read || {};
+    call.read = {
+      disp: read.disp || heard.disp,
+      props: read.props.length ? read.props : (heard.props || []),
+      objs: read.objs.length ? read.objs : (heard.objs || []),
+      opps: read.opps.length ? read.opps : (heard.opps || []),
+      remember: read.remember || heard.remember,
+      when: read.when || heard.when,
+    };
+    if (read.disp) call.outcome = read.disp;
+    if (read.when) call.when = read.when;
+    paintCall();
+    say('you', esc(text));
+    callLogPropose();
+    return true;
+  }
+
+  /* ══ AiMY MAKES THE CALLS ═══════════════════════════════════════════════
+     The same task as yours, with one difference stated plainly: your run is
+     advanced by a disposition and AiMY's is advanced by a clock. Same
+     touchpoints, same ladder moves, same undo — so it is not a second call
+     model and not a page of its own.
+
+     `by` is who pressed the button; `auto` is who is holding the phone. The
+     V3 build got this wrong for a while and attributed every AiMY call to
+     whoever started the run. */
+  /* Two in ten get through, which is what cold calling actually returns —
+     but front-loaded, because a five-call demo off a rotation that starts
+     with three misses shows a run where nothing happened. */
+  const AUTO_DEAL = ['reached', 'no-answer', 'gatekeeper', 'no-answer', 'callback',
+    'no-answer', 'reached', 'no-answer', 'not-interested', 'no-answer'];
+  let AUTO_TICK = null;
+
+  function autoCall(ids) {
+    const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
+    if (!live.length) { toast('Nobody in this set has a number to ring.'); return; }
+    if (AUTO_TICK) { toast('AiMY is already working through a set.'); return; }
+    const sess = {
+      id: 'a' + Date.now().toString(36), ids: live, done: [], skipped: [],
+      at: new Date().toISOString(), auto: true, dealt: 0,
+    };
+    DB.session.push(sess);
+    openCanvas();
+    say('aimy', answerBlock('Calling ' + plural(live.length, 'person'),
+      '<p class="s-callsum-note">I will work through them and write up each one as I go. ' +
+      'Everything I log is attributed to me, and every line of it can be undone.</p>' +
+      '<div class="b-cuts"><button class="s-inline-btn" type="button" data-autostop>' +
+      'Stop it</button></div>', 'you started this run'));
+    AUTO_TICK = setInterval(() => autoTick(sess), 1400);
+    autoTick(sess);
+  }
+
+  function autoTick(sess) {
+    const nextId = sess.ids.filter((id) =>
+      sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0];
+    if (!nextId) { autoStop(sess); return; }
+    const c = DB.byCon[nextId];
+    if (!c) { sess.skipped.push(nextId); return; }
+    const outcome = AUTO_DEAL[sess.dealt++ % AUTO_DEAL.length];
+    const props = outcome === 'reached' ? [sess.dealt % 2 ? 'meeting' : 'info'] : [];
+    const before = {
+      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, attempts: c.attempts,
+      lastCallAt: c.lastCallAt, next: c.next, dnc: c.dnc,
+    };
+    const mv = moveFor(c, outcome, props, 7);
+    const now = new Date().toISOString();
+    const t = {
+      id: 'u' + Date.now().toString(36) + sess.dealt,
+      con: c.id, camp: campFor(c), by: me().id, auto: true, at: now,
+      secs: outcome === 'reached' ? between(rng(sess.dealt * 7), 90, 420) : 20,
+      outcome: outcome, proposals: props, objections: [], openings: [],
+      note: 'AiMY called them.', lines: [], next: mv.next || null,
+      moved: mv.to ? [c.checkpoint, mv.to] : null,
+    };
+    const fields = { attempts: c.attempts + 1, lastCallAt: now };
+    if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
+    if (mv.next) fields.next = mv.next;
+    if (mv.dnc) fields.dnc = true;
+    if (mv.to && isExit(mv.to)) fields.next = null;
+    patchCon(c, fields);
+    addTouch(t);
+    sess.done.push(c.id);
+    say('aimy', '<b>' + esc(c.name) + '</b> — ' +
+      esc((OUTCOME[outcome] || {}).label || outcome) +
+      (mv.to ? ', now ' + esc(rungLabel(mv.to)) : '') +
+      ' <span class="s-callp-who">' + sess.done.length + ' of ' + sess.ids.length + '</span>');
+    paint();
+  }
+
+  function autoStop(sess) {
+    if (AUTO_TICK) { clearInterval(AUTO_TICK); AUTO_TICK = null; }
+    sess.finished = new Date().toISOString();
+    sessionSummary(sess);
+    paint();
+  }
+
+  /* ── WHAT AN HOUR ON THE PHONE WAS WORTH ──
+     Three questions, not one: what happened, what it produced, and what got
+     in the way. A run that reports only its counts reports the least useful
+     third of itself. */
+  function sessionSummary(sess) {
+    const ids = sess.done;
+    const made = DB.touch.filter((t) => ids.indexOf(t.con) >= 0 &&
+      t.at >= sess.at).slice(-ids.length);
+    const by = Object.create(null);
+    made.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
+    const got = made.filter((t) => t.outcome === 'reached').length;
+    /* ONLY THE CALLS THAT CONNECTED. Summing every call's seconds counts the
+       ringing, so a run where nobody picked up reported two minutes on the
+       phone and nought got through in the same sentence. */
+    const talk = made.filter((t) => t.outcome === 'reached')
+      .reduce((n, t) => n + (t.secs || 0), 0);
+    const mins = Math.round(talk / 60);
+    const meetings = made.filter((t) => t.proposals.indexOf('meeting') >= 0 ||
+      t.proposals.indexOf('demo') >= 0).length;
+    const objs = Object.create(null);
+    made.forEach((t) => t.objections.forEach((o) => (objs[o] = (objs[o] || 0) + 1)));
+    const topObj = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
+
+    const body =
+      '<p class="s-callsum-note">' + plural(made.length, 'call') + ' · <b>' + got +
+        '</b> got through' + (mins ? ', ' + plural(mins, 'minute') + ' of talking' : '') +
+        '.</p>' +
+      '<div class="b-cuts">' + Object.keys(by).map((k) =>
+        '<span class="tag tag-' + esc((OUTCOME[k] || { tone: 'neutral' }).tone) + '">' +
+        by[k] + ' ' + esc((OUTCOME[k] || { label: k }).label) + '</span>').join('') + '</div>' +
+      '<div class="s-callsum-rows">' +
+        '<div class="s-callsum-row"><span class="s-callsum-mem">What it was worth</span>' +
+          '<span class="s-callsum-val">' + (got
+            ? 'You got somebody on the phone ' + (got === 1 ? 'once' : plural(got, 'time')) +
+              (meetings
+                ? ', and ' + (meetings === 1 ? '<b>a meeting</b>' :
+                  '<b>' + plural(meetings, 'meeting') + '</b>') + ' came out of it'
+                : ', and nothing was asked for')
+            : 'Nobody picked up.') + '</span></div>' +
+        (topObj
+          ? '<div class="s-callsum-row"><span class="s-callsum-mem">What got in the way</span>' +
+            '<span class="s-callsum-val"><b>' + esc(OBJECTION[topObj].label) + '</b> came up ' +
+            plural(objs[topObj], 'time') + '. ' + esc(OBJECTION[topObj].blurb) +
+            '</span></div>'
+          : '') +
+      '</div>';
+    say('aimy', answerBlock('That run is finished', body,
+      plural(made.length, 'call') + ' written to the record'));
   }
 
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
@@ -4261,6 +4556,24 @@
     if (t.closest('[data-callend]')) { endCall(); return; }
     if (t.closest('[data-calllog]')) { logCall(); return; }
     if (t.closest('[data-callskip]')) { skipCall(); return; }
+    if (t.closest('[data-sessstop]')) {
+      const sess = DB.call && DB.call.sess;
+      closeCall();
+      if (sess) { sess.finished = new Date().toISOString(); sessionSummary(sess); }
+      paint();
+      return;
+    }
+    if (t.closest('[data-autostop]')) {
+      const live = DB.session.filter((x) => x.auto && !x.finished)[0];
+      if (live) autoStop(live);
+      return;
+    }
+    const auto = t.closest('[data-autocall]');
+    if (auto) {
+      const ids = auto.getAttribute('data-autocall');
+      autoCall(ids ? ids.split(',') : []);
+      return;
+    }
 
     const out = t.closest('[data-out]');
     if (out && DB.call) {
