@@ -227,6 +227,7 @@
   ];
   const OPENING = Object.create(null);
   OPENINGS.forEach((o) => (OPENING[o.k] = o));
+  const openLabel = (k) => (OPENING[k] ? OPENING[k].label : k);
 
   /* What we sell. Eight offerings; a campaign carries one or two. */
   const SELLS = [
@@ -376,13 +377,13 @@
   ];
 
   const READ_OPP = [
-    [/\b(raised|funding|funded|series a|series b|series c|series d|investment round|new investor|closed a round)\b/, 'funding'],
+    [/\b(raised|funding|funded|series a|series b|series c|series d|investment round|new investor|closed a round)\b/, 'funded'],
     [/\b(moved to|new role|left for|joining|changed jobs|has moved|starts at)\b/, 'job-change'],
     [/\b(promoted|promotion|stepped up|now heads|took over as)\b/, 'promotion'],
     [/\b(new cto|new cio|new coo|new head of|new director|new vp|new manager|just hired|joined last month)\b/, 'new-hire'],
-    [/\b(hiring|recruiting|vacancy|vacancies|job ad|growing the team|headcount|taking on)\b/, 'job-posting'],
-    [/\b(on our site|visited our|our website|downloaded|looked at our|read our)\b/, 'web-visit'],
-    [/\b(renewal|renew|contract ends|contract is up|notice period|up for renewal)\b/, 'renewal'],
+    [/\b(hiring|recruiting|vacancy|vacancies|job ad|growing the team|headcount|taking on)\b/, 'hiring'],
+    [/\b(on our site|visited our|our website|downloaded|looked at our|read our)\b/, 'visited-site'],
+    [/\b(renewal|renew|contract ends|contract is up|notice period|up for renewal)\b/, 'renewal-near'],
   ];
 
 
@@ -894,7 +895,7 @@
     /* Which fixture transcript a person gets. Fixed per contact, so the call,
        the transcript and AiMY's reading of it always agree — and so a demo
        walked twice tells the same story twice. */
-    const FATES = ['reached', 'gatekeeper', 'no-answer', 'callback', 'not-interested'];
+    const FATES = SCENARIOS.map((x) => x.k);
 
     let tId = 0;
     const NOTE = {
@@ -1425,7 +1426,7 @@
     }
     /* An opening a monitor picked up. */
     if (last && last.openings.length) {
-      return { text: esc(OPENING[last.openings[0]].label) + ' — worth opening on.',
+      return { text: esc(openLabel(last.openings[0])) + ' — worth opening on.',
         from: 'a signal on the account' };
     }
     /* Screened. The hour is measured, not guessed. */
@@ -2731,7 +2732,7 @@
           : null,
         camps: [], owner: me().id, checkpoint: 'not-called', checkpointAt: null,
         attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
-        fate: ['reached', 'gatekeeper', 'no-answer', 'callback', 'not-interested'][i % 5],
+        fate: SCENARIOS[i % SCENARIOS.length].k,
         enrichedAt: null,
       };
       madeAcc.push(a);
@@ -3386,41 +3387,197 @@
      came from. `assets/audit.js` asserts exactly that — a fixture that drifts
      from the lexicon would make the panel's suggestion wrong in a way only a
      careful reader would ever notice. */
+  /* ══ TWENTY CALLS, AND EACH ONE ENDS DIFFERENTLY ═══════════════════════
+     Five scripts meant five calls in a row told you three stories, and a
+     caller walking the queue saw the same gatekeeper four times before the
+     first meeting. Worse for the thing they are here to judge: four of the
+     seven outcomes, two of the six proposals and none of the eight openings
+     ever appeared, so most of what a logged call can say was unreachable by
+     walking the product.
+
+     So there is one scenario per shape the record can take. Every outcome
+     appears, every objection, every opening the reader has a word for, and
+     the proposals that a transcript can actually carry. `disp`, `props`,
+     `objs` and `opps` on each are not decoration: `assets/audit.js` runs the
+     reader over every script and fails the build if what it reads back is
+     not what the scenario declares. A fixture that drifts from the lexicon
+     makes AiMY's suggestion wrong in a way only a careful reader would ever
+     catch, and nobody reads carefully on call ninety.
+
+     WHY THE DECLARED VALUES ARE SOMETIMES A SET. "Send me a demo" is a demo
+     asked for AND something to send, and the reader says both because the
+     sentence says both. Declaring one would be asking the audit to bless a
+     narrower reading than the words support. */
+  const SCENARIOS = [
+    { k: 'demo-pricing',      disp: 'reached',        props: ['demo'],     objs: ['pricing'], opps: [] },
+    { k: 'meeting-timing',    disp: 'reached',        props: ['meeting'],  objs: ['timing'],  opps: [] },
+    { k: 'proposal-feature',  disp: 'reached',        props: ['proposal'], objs: ['feature'], opps: [] },
+    { k: 'info-service',      disp: 'reached',        props: ['info'],     objs: ['service'], opps: [] },
+    { k: 'reached-unsure',    disp: 'reached',        props: ['info'],     objs: ['other'],   opps: [] },
+    { k: 'reached-plain',     disp: 'reached',        props: [],           objs: [],          opps: [] },
+    { k: 'reached-funded',    disp: 'reached',        props: ['demo'],     objs: [],          opps: ['funded'] },
+    { k: 'reached-hiring',    disp: 'reached',        props: ['info'],     objs: [],          opps: ['hiring'] },
+    { k: 'reached-renewal',   disp: 'reached',        props: ['meeting'],  objs: [],          opps: ['renewal-near'] },
+    { k: 'reached-newhire',   disp: 'reached',        props: ['meeting'],  objs: [],          opps: ['new-hire'] },
+    { k: 'reached-promoted',  disp: 'reached',        props: ['meeting'],  objs: [],          opps: ['promotion'] },
+    { k: 'reached-moved',     disp: 'reached',        props: ['demo'],     objs: [],          opps: ['job-change'] },
+    { k: 'reached-site',      disp: 'reached',        props: ['info'],     objs: [],          opps: ['visited-site'] },
+    { k: 'callback-thursday', disp: 'callback',       props: ['callback'], objs: [],          opps: [] },
+    { k: 'callback-nextweek', disp: 'callback',       props: ['callback'], objs: ['timing'],  opps: [] },
+    { k: 'gatekeeper-msg',    disp: 'gatekeeper',     props: [],           objs: [],          opps: [] },
+    { k: 'gatekeeper-mobile', disp: 'gatekeeper',     props: [],           objs: [],          opps: [] },
+    { k: 'no-answer-vm',      disp: 'no-answer',      props: [],           objs: [],          opps: [] },
+    { k: 'no-answer-rang',    disp: 'no-answer',      props: [],           objs: [],          opps: [] },
+    { k: 'declined-signed',   disp: 'not-interested', props: [],           objs: [],          opps: [] },
+    { k: 'declined-nofit',    disp: 'not-interested', props: [],           objs: [],          opps: [] },
+    { k: 'wrong-number',      disp: 'wrong-number',   props: [],           objs: [],          opps: [] },
+    { k: 'do-not-call',       disp: 'do-not-call',    props: [],           objs: [],          opps: [] },
+  ];
+
+  /* `{first}` is the only token, because a fixture that interpolates a
+     company and a sector reads like a mail merge rather than like somebody
+     talking. */
   const CALL_SCRIPTS = {
-    reached: [
+    'demo-pricing': [
       ['you', 'Morning — is that {first}?'],
       ['them', 'Speaking.'],
       ['you', 'I will keep it short. We take the support desk work off teams your size.'],
       ['them', 'Go on, I am open to hearing it.'],
       ['you', 'Rather than talk at you, could I show you the thing working?'],
-      ['them', 'Yes, I am interested. Send me a demo next week — though the price came up last time we looked at this.'],
+      ['them', 'Book me a demo next week. The price will decide it, mind.'],
     ],
-    gatekeeper: [
-      ['you', 'Morning, could I speak to {first}?'],
-      ['them', 'Can I take a message? She is in workshops all week.'],
-      ['you', 'When is the best time to try her?'],
-      ['them', 'I could not say. I will pass it on.'],
+    'meeting-timing': [
+      ['you', 'Morning {first}, have you got two minutes?'],
+      ['them', 'Go on.'],
+      ['you', 'We take the support desk work off teams your size. Worth half an hour?'],
+      ['them', 'That was a good chat. Put a meeting in the diary, but nothing before Q1.'],
     ],
-    'no-answer': [
-      ['you', 'Dialling…'],
-      ['them', 'The line rings out.'],
-      ['you', 'Left a voicemail.'],
+    'proposal-feature': [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'Speaking.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Promising. Send a proposal — though it does not do the routing we need.'],
     ],
-    callback: [
+    'info-service': [
+      ['you', 'Morning {first} — two minutes?'],
+      ['them', 'Receptive enough, go on.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Send me the one pager. Weekend cover is out of scope for you though.'],
+    ],
+    'reached-unsure': [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'It is.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Good conversation, but I am not convinced yet. Send me the case study.'],
+    ],
+    'reached-plain': [
+      ['you', 'Morning {first} — two minutes?'],
+      ['them', 'Go ahead.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Good chat. Leave it with me and I will come back to you.'],
+    ],
+    'reached-funded': [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'Speaking, and I am open to it.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'We closed a round last month, so give me the walkthrough.'],
+    ],
+    'reached-hiring': [
+      ['you', 'Morning {first} — two minutes?'],
+      ['them', 'Interested, go on.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'We are growing the team this year. Send me the deck.'],
+    ],
+    'reached-renewal': [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'Speaking. Keen to hear it, actually.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Our contract ends in March. Put a meeting in the diary before then.'],
+    ],
+    'reached-newhire': [
+      ['you', 'Morning {first} — have you got two minutes?'],
+      ['them', 'Positive, yes, go on.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Our new head of support starts Monday. Worth half an hour with her.'],
+    ],
+    'reached-promoted': [
+      ['you', 'Morning {first} — and congratulations on the promotion.'],
+      ['them', 'Thank you. I am open to a look.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Put half an hour in the diary and I will bring the team lead.'],
+    ],
+    'reached-moved': [
+      ['you', 'Morning {first} — I heard Sofie has moved on. Are you covering it?'],
+      ['them', 'I am, and I am open to hearing it.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Set up a demo and I will see it working myself.'],
+    ],
+    'reached-site': [
+      ['you', 'Morning {first} — I saw you downloaded the guide last week.'],
+      ['them', 'I did. Go on then.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Receptive, yes. Send me the case study and I will read it tonight.'],
+    ],
+    'callback-thursday': [
       ['you', 'Morning — is that {first}?'],
       ['them', 'It is, but you have caught me walking into something.'],
       ['you', 'No problem at all. When suits?'],
       ['them', 'Call me back Thursday.'],
     ],
-    'not-interested': [
+    'callback-nextweek': [
+      ['you', 'Morning {first} — two minutes?'],
+      ['them', 'Not now, we are mid quarter close.'],
+      ['you', 'Understood. When is better?'],
+      ['them', 'Ring back next week and I will have the numbers.'],
+    ],
+    'gatekeeper-msg': [
+      ['you', 'Morning, could I speak to {first}?'],
+      ['them', 'Can I take a message? She is in workshops all week.'],
+      ['you', 'When is the best time to try her?'],
+      ['them', 'I could not say. I will pass it on.'],
+    ],
+    'gatekeeper-mobile': [
+      ['you', 'Morning, is {first} about?'],
+      ['them', 'This is the front desk. Who is calling?'],
+      ['you', 'It is Engy. Is there a better way to reach her?'],
+      ['them', 'For next time, she takes calls on the mobile, not through me.'],
+    ],
+    'no-answer-vm': [
+      ['you', 'Dialling…'],
+      ['them', 'You have reached the voicemail of {first}.'],
+      ['you', 'Left a voicemail asking for ten minutes.'],
+    ],
+    'no-answer-rang': [
+      ['you', 'Dialling…'],
+      ['them', 'The line rings out.'],
+      ['you', 'Nobody picked up on the second ring either.'],
+    ],
+    'declined-signed': [
       ['you', 'Morning — is that {first}?'],
       ['them', 'It is.'],
-      ['you', 'We take support desk work off teams your size.'],
-      ['them', 'Not interested, we have just signed with someone.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Not interested. We signed with someone in the spring.'],
+    ],
+    'declined-nofit': [
+      ['you', 'Morning {first} — two minutes?'],
+      ['them', 'Go on.'],
+      ['you', 'We take the support desk work off teams your size.'],
+      ['them', 'Not a fit for us, we do it all in house. No thanks.'],
+    ],
+    'wrong-number': [
+      ['you', 'Morning, could I speak to {first}?'],
+      ['them', 'You have the wrong number. There is nobody here by that name.'],
+      ['you', 'Apologies for the trouble.'],
+    ],
+    'do-not-call': [
+      ['you', 'Morning, is that {first}?'],
+      ['them', 'Take me off your list. Do not contact me on this number.'],
+      ['you', 'Understood. You will not hear from us.'],
     ],
   };
+
   function scriptFor(c) {
-    const s = CALL_SCRIPTS[c.fate] || CALL_SCRIPTS.reached;
+    const s = CALL_SCRIPTS[c.fate] || CALL_SCRIPTS['reached-plain'];
     const first = c.name.split(' ')[0];
     return s.map((l) => [l[0], l[1].split('{first}').join(first)]);
   }
@@ -3505,47 +3662,76 @@
     }, DIAL_MS);
   }
 
+  /* THE TRANSCRIPT ONLY GROWS WHILE RECORDING, which is what makes "Not
+     recording. Nothing is being written down." a true sentence rather than a
+     caption over a transcript that is being written down anyway. */
   function growTranscript() {
     const c = DB.call;
-    if (!c || c.state !== 'live') return;
+    if (!c || c.state !== 'live' || !c.recording) return;
     if (c.shown >= c.script.length) { clearInterval(CALL_LINE); CALL_LINE = null; return; }
     c.shown++;
     const host = byId('callLines');
     if (host) { host.innerHTML = transcriptHtml(c); host.scrollTop = host.scrollHeight; }
   }
+  /* WHO SAID IT, ON EVERY LINE. A transcript without speakers is a wall of
+     sentences, and the one thing a caller scans it for afterwards is what
+     THEY said. `Them` rather than their name, because the person who picks
+     up a switchboard is not the person you rang. */
   function transcriptHtml(c) {
-    if (!c.shown) return '<p class="call-none">Nothing said yet.</p>';
-    return c.script.slice(0, c.shown).map((l) =>
-      '<p class="call-line' + (l[0] === 'you' ? ' is-you' : '') + '">' + esc(l[1]) + '</p>').join('');
+    if (!c.recording) {
+      return '<p class="call-none">Not recording. Nothing is being written down.</p>';
+    }
+    if (!c.shown) return '<p class="call-none">Recording. Nothing said yet.</p>';
+    return c.script.slice(0, c.shown).map((l) => {
+      const them = l[0] !== 'you';
+      return '<p class="call-line ' + (them ? 'is-them' : 'is-you') + '">' +
+        '<span class="call-who">' + esc(them ? 'Them' : me().name.split(' ')[0]) + '</span>' +
+        esc(l[1]) + '</p>';
+    }).join('');
   }
   const transcriptText = (c) => c.script.slice(0, c.shown).map((l) => l[1]).join(' ');
 
   /* Hanging up is where AiMY reads what it heard. The reading is a
      SUGGESTION — it lights an outcome and shows what it took from the call,
      and nothing is written until you press Log. */
+  /* ══ HANGING UP CLOSES THE RAIL ═════════════════════════════════════════
+     The rail is one call. When the call is over there is no call, so it goes
+     — and the whole of the logging happens in the canvas, where AiMY has
+     already been keeping the record of the run. Keeping the rail up in a
+     fourth "logging" state gave the surface two places to answer the same
+     question and put a form back in the column that had just lost one.
+
+     What the call leaves behind is `PENDING`: everything the write needs,
+     held outside `DB.call` because `DB.call` means a call is happening. */
   function endCall() {
     const c = DB.call;
-    if (!c || c.state === 'ready' || c.state === 'logging') return;
+    if (!c || c.state === 'ready') return;
     clearCallTimers();
-    c.state = 'logging';
     const heard = readCall(transcriptText(c));
-    c.read = heard;
-    /* ══ WHEN IT CANNOT TELL, IT UNDER-CLAIMS ══════════════════════════
-       This fell back to `reached` whenever any line had been said, and the
-       first line of every script is the CALLER'S own opening. Hang up two
-       seconds in and AiMY lit Connected on the evidence of "could I speak
-       to Sofie?" — a claim that you reached somebody, made out of you
-       asking to. Measured on a gatekeeper fixture ended early.
-
-       `no-answer` is the honest default: it is the one outcome that does
-       not assert contact (`writes: false`), so guessing it wrong costs a
-       correction rather than a false record of a conversation. */
-    c.outcome = heard.disp || 'no-answer';
-    c.guessed = !heard.disp;
-    if (heard.when) c.when = heard.when;
+    PENDING = {
+      con: c.con, camp: c.camp, secs: c.secs, sess: c.sess, auto: c.auto,
+      lines: c.script.slice(0, c.shown).map((l) => ({ who: l[0], text: l[1] })),
+      note: c.note, read: heard, outcome: heard.disp || 'no-answer',
+      guessed: !heard.disp, when: heard.when || 1,
+    };
+    DB.call = null;
+    document.body.classList.remove('is-calling');
     paintCall();
     callLogPropose();
   }
+
+  let PENDING = null;
+
+  /* ══ WHEN IT CANNOT TELL, IT UNDER-CLAIMS ══════════════════════════════
+     `PENDING.outcome` falls back to `no-answer` rather than to `reached`.
+     An earlier cut claimed contact whenever any line had been said, and the
+     first line of every script is the CALLER'S own opening — hang up two
+     seconds in and AiMY lit Connected on the evidence of "could I speak to
+     Sofie?", a claim that you reached somebody made out of you asking to.
+
+     `no-answer` is the honest default: the one outcome that does not assert
+     contact at all, so guessing it wrong costs a correction rather than a
+     false record of a conversation. */
 
   /* ══ WHAT A CALL DOES TO A LEAD ═════════════════════════════════════════
      Pure, and the only thing that moves a rung on a call. A checkpoint never
@@ -3595,33 +3781,30 @@
      from those two, so the person's record and the campaign they are on
      cannot disagree about what just happened. */
   function logCall() {
-    const call = DB.call;
-    if (!call || call.state !== 'logging') return;
+    const call = PENDING;
+    if (!call) return;
     const c = DB.byCon[call.con];
-    const heard = call.read || {};
-    const noted = call.note ? readCall(call.note) : null;
-    /* A CORRECTION IS READ ALONE AND WINS PER AXIS. Read together with the
-       transcript, a gatekeeper heard on the call would outrank "actually I
-       spoke to her" for ever, because the lexicon ranks by specificity and
-       not by recency — the more you insisted, the less it would listen. */
-    const props = noted && noted.props.length ? noted.props : (heard.props || []);
-    const objs = noted && noted.objs.length ? noted.objs : (heard.objs || []);
-    const opps = noted && noted.opps.length ? noted.opps : (heard.opps || []);
+    /* The same resolution the card showed, so agreeing to a card and writing
+       a record cannot produce two different calls. */
+    const heard = logHeard(call);
+    const props = heard.props;
+    const objs = heard.objs;
+    const opps = heard.opps;
     const outcome = call.outcome || 'no-answer';
 
     const before = {
       checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, attempts: c.attempts,
       lastCallAt: c.lastCallAt, next: c.next, remember: c.remember, dnc: c.dnc,
     };
-    const mv = moveFor(c, outcome, props);
+    const mv = moveFor(c, outcome, props, call.when);
     const now = new Date().toISOString();
     const t = {
       id: 't' + (Date.now().toString(36)) + Math.floor(Math.random() * 1000),
       con: c.id, camp: call.camp, by: me().id, at: now,
-      secs: call.secs, outcome: outcome,
+      secs: call.secs, outcome: outcome, auto: !!call.auto,
       proposals: props, objections: objs, openings: opps,
       note: call.note || (heard.disp ? 'Logged from the call.' : 'No answer.'),
-      lines: call.script.slice(0, call.shown).map((l) => ({ who: l[0], text: l[1] })),
+      lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
     };
@@ -3632,7 +3815,7 @@
     /* A terminal owes nothing. Leaving a callback on a lead that has just
        opted out is a queue entry for a call nobody may make. */
     if (mv.to && isExit(mv.to)) fields.next = null;
-    const remember = (noted && noted.remember) || heard.remember;
+    const remember = heard.remember;
     if (remember) fields.remember = { text: remember, by: me().id, at: now };
 
     patchCon(c, fields);
@@ -3650,15 +3833,28 @@
       paintCall();
     });
 
-    advance();
+    /* THE QUESTION HAS BEEN ANSWERED, so its shortcut stops being live. The
+       turn keeps its button on screen — the thread is a record — but a
+       second press would write the same call twice. */
+    lbuildSpend();
+    paintThread();
+
+    const sess = call.sess;
+    const conId = call.con;
+    PENDING = null;
+    /* THE CANVAS GETS OUT OF THE WAY. On a single call it is the last
+       thing between you and the queue, and leaving it up made a write
+       that had moved a person, moved a campaign and written a touchpoint
+       look like a toast and nothing else. Inside a run it stays: there it
+       is the record of the run, and the next call is already dialling. */
+    if (!sess) hideCanvas();
+    advance(sess, conId);
   }
 
   /* On to the next one in the session, or done. */
-  function advance() {
-    const call = DB.call;
-    const sess = call && call.sess;
+  function advance(sess, conId) {
     if (!sess) { closeCall(); paint(); return; }
-    sess.done.push(call.con);
+    if (conId && sess.done.indexOf(conId) < 0) sess.done.push(conId);
     const nextId = sess.ids.filter((id) =>
       sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0];
     if (!nextId) {
@@ -3675,7 +3871,12 @@
   function skipCall() {
     const call = DB.call;
     if (!call) return;
-    if (call.sess) { call.sess.skipped.push(call.con); advance(); return; }
+    if (call.sess) {
+      call.sess.skipped.push(call.con);
+      const sess = call.sess;
+      advance(sess);
+      return;
+    }
     closeCall();
   }
 
@@ -3724,7 +3925,6 @@
     const a = accOf(c);
     const ready = call.state === 'ready';
     const dialing = call.state === 'connecting';
-    const logging = call.state === 'logging';
     const sess = call.sess;
     const at = sess ? sess.done.length + sess.skipped.length + 1 : 0;
 
@@ -3749,7 +3949,11 @@
         (c.phone ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
       '</div>' +
 
-      (ready ? '' : '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>') +
+      /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —
+         it is what pushes Notes and the handset to the foot of the column —
+         so leaving it out in `ready` collapsed the whole rail upward and the
+         controls floated under the phone number. */
+      '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>' +
 
       '<label class="ds-field call-note-field">' +
         '<span class="s-field-label">Notes</span>' +
@@ -3777,7 +3981,7 @@
         /* Record, Mute and Hold are ABSENT in `ready` rather than disabled —
            there is no line for them to act on, and a row of controls that all
            refuse teaches you to stop pressing. */
-        (ready || logging ? '' :
+        (ready ? '' :
           '<button class="call-tool' + (call.recording ? ' is-rec' : '') + '" type="button" ' +
             'data-call-rec aria-pressed="' + !!call.recording + '" aria-label="' +
             (call.recording ? 'Stop recording' : 'Record') + '" title="' +
@@ -3799,18 +4003,17 @@
           ? '<button class="call-end call-go" type="button" data-callgo ' +
             'aria-label="Start the call to ' + esc(c.name) + '">' + chIcon('phone') +
             'Start call</button>'
-          : logging
-            ? '<button class="call-end call-go" type="button" data-calllog ' +
-              'aria-label="Log this call">' + chIcon('phone') + 'Log it</button>'
-            : '<button class="call-end" type="button" data-call-end aria-label="' +
-              (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
-              (dialing ? 'Stop' : 'End') + '</button>') +
+          : '<button class="call-end" type="button" data-call-end aria-label="' +
+            (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
+            (dialing ? 'Stop' : 'End') + '</button>') +
 
         /* Deciding not to ring somebody is a decision you make reading their
            brief, not while their phone rings — so Skip holds in `ready`. */
-        (ready || logging
-          ? '<button class="call-tool call-tool-word" type="button" data-callskip>' +
-            (sess ? 'Skip' : 'Close') + '</button>'
+        /* Skip belongs to a RUN. Outside one there is nothing to skip to,
+           and V3 draws exactly one control here: Start call. A second button
+           beside it broke the full-width primary the whole column ends on. */
+        (ready && sess
+          ? '<button class="call-tool call-tool-word" type="button" data-callskip>Skip</button>'
           : '') +
       '</div>';
   }
@@ -3951,6 +4154,51 @@
      construction, which is the whole reason it is a shell region. */
   function hideCanvas() { byId('aimyOverlay').classList.remove('open'); }
 
+  /* The mark, at the size the V3 build draws it in a bubble. */
+  const aiMark = () =>
+    '<svg viewBox="0 0 18 20" width="13" height="14" aria-hidden="true">' +
+      '<use href="#aimy-logo-small"/></svg>';
+
+  /* EVERY TURN HAS A FACE. Your initials on yours, the mark on AiMY's —
+     which is the thing that makes a bubble AiMY speaking rather than the
+     product printing. Mine had none at all. */
+  const msgAvatar = (who) => (who === 'you'
+    ? '<div class="msg-avatar user-av">' + esc(me().initials) + '</div>'
+    : '<div class="msg-avatar aimy-av">' + aiMark() + '</div>');
+
+  /* A turn is a face and a bubble. A turn that ASKS something carries its
+     hint and its shortcuts inside that bubble — and an answered turn keeps
+     its buttons on screen and loses their live-ness rather than losing the
+     buttons: the thread is a record, and deleting what you chose between
+     would hide the choice. */
+  function turnHtml(t) {
+    if (t.who === 'you') {
+      return '<div class="chat-msg user">' + msgAvatar('you') +
+        '<div class="msg-bubble">' + t.html + '</div></div>';
+    }
+    return '<div class="chat-msg aimy">' + msgAvatar('aimy') +
+      '<div class="msg-bubble">' + t.html +
+        (t.hint ? '<p class="s-cb-hint">' + esc(t.hint) + '</p>' : '') +
+        /* A QUESTION MAY SHOW ITS WORKING. The read-back asks whether a set
+           of values is right, and the values have to be on screen for the
+           question to mean anything — so a turn may carry markup between its
+           sentence and its shortcuts. It is the card the record will carry,
+           drawn by the renderer the record uses. */
+        (t.card || '') +
+        (t.opts && t.opts.length
+          ? '<div class="s-cb-opts">' + t.opts.map((o) =>
+              '<button class="s-cb-opt' + (t.spent ? ' is-spent' : '') + '" type="button" ' +
+              /* Written out per step rather than composed at runtime: an
+                 attribute whose name only exists while the page is running
+                 is one the audit cannot pair with its handler. */
+              (t.spent ? 'disabled'
+                : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
+                : 'data-lb="' + esc(o.k) + '"') + '>' +
+              esc(o.label) + '</button>').join('') + '</div>'
+          : '') +
+      '</div></div>';
+  }
+
   function say(who, html) {
     TURNS.push({ who: who, html: html });
     paintThread();
@@ -3964,17 +4212,7 @@
         esc(q) + '</button>').join('');
       return;
     }
-    host.innerHTML = TURNS.map((t) =>
-      '<div class="chat-msg ' + (t.who === 'you' ? 'user' : 'aimy') + '">' +
-        '<div class="msg-bubble">' + t.html +
-          (t.opts && t.opts.length && !t.spent
-            ? '<span class="b-lb-opts">' + t.opts.map((o) =>
-                '<button class="overlay-sugg-chip" type="button" data-lb="' +
-                esc(o.k) + '">' + esc(o.label) + '</button>').join('') + '</span>'
-            : '') +
-          (t.hint && !t.spent ? '<span class="b-lb-hint">' + esc(t.hint) + '</span>' : '') +
-        '</div>' +
-      '</div>').join('');
+    host.innerHTML = TURNS.map(turnHtml).join('');
     host.scrollTop = host.scrollHeight;
   }
 
@@ -4005,11 +4243,10 @@
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
-    if (DB.call && DB.call.state === 'logging') {
+    if (PENDING) {
       if (callLogCorrect(t)) return;
-      DB.call.note = t;
-      paintCall();
-      toast('I could not read a disposition out of that. Pick one, or say it another way.');
+      PENDING.note = t;
+      toast('I could not read a disposition out of that. Say it another way.');
       return;
     }
 
@@ -4168,6 +4405,63 @@
 
   /* Everything worth knowing before the phone rings, in the order you would
      ask it. Nine lines at most, and every one of them off the record. */
+  /* ══ THE BRIEF IS DIFFERENT AT EVERY RUNG ══════════════════════════════
+     It said the same thing to a stranger and to somebody who booked a
+     meeting last Tuesday: who they are, what we sell, open on the pitch.
+     That is the wrong sentence for six of the eight rungs. What you say
+     to a lead who asked to be rung back is that you are ringing when they
+     said; to one with a meeting in the diary it is a confirmation, not a
+     pitch; to one who has never picked up it is a reason to keep trying.
+
+     So the opener is a function of the checkpoint, and the follow-up the
+     record owes is quoted inside it — the whole point of a stored ladder
+     is that the next call can read it. */
+  function stageOpen(c, camp, last) {
+    const owed = c.next ? c.next.what.toLowerCase() + ' ' +
+      (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
+      sayWhen(c.next.due) : null;
+    /* A quoted note keeps its own full stop, and the sentence around it then
+       carries two. Trimmed here rather than in the seed: everywhere else the
+       note is printed it is a sentence in its own right. */
+    const said = last && last.note ? last.note.replace(/[.\s]+$/, '') : null;
+    switch (c.checkpoint) {
+      case 'not-called':
+        return camp ? camp.pitch : 'Ask what they are running this with today.';
+      case 'no-answer':
+        return 'They have never picked up — ' + plural(c.attempts, 'attempt') +
+          ' so far. Say why you keep ringing rather than that you have been.';
+      case 'callback':
+        return 'They asked to be rung back' + (c.next
+          ? ', and it ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
+            sayWhen(c.next.due)
+          : '') + '. Open on that: you are ringing when they said, not out of the blue.';
+      case 'answered':
+        return 'You have already spoken. Pick up where it stopped' +
+          (said ? ' — ' + said : '') + ', and do not reintroduce yourself.';
+      case 'meeting-set':
+        return 'There is time in a diary' + (owed ? ' — ' + owed : '') +
+          '. This call confirms it. Selling it again is how a booked meeting gets unbooked.';
+      case 'showed-up':
+        return 'They came to the meeting. Ask what they made of it and what would ' +
+          'have to be true to go further.';
+      case 'interested':
+        return 'They want to go further. This call agrees who picks it up and when.';
+      case 'handed-over':
+        return 'This one is not yours any more — ' +
+          esc(actor((camp && camp.owner) || me().id).name) +
+          ' has it. Check before you ring.';
+      case 'declined':
+        return 'They said no' + (said ? ' — ' + said : '') +
+          '. Ring only if something has changed, and open on the thing that changed.';
+      case 'wrong-number':
+        return 'The number on this record is not theirs. Find another before you dial.';
+      case 'do-not-call':
+        return 'They opted out. Do not ring this one.';
+      default:
+        return camp ? camp.pitch : 'Ask what they are running this with today.';
+    }
+  }
+
   function callPrep(c) {
     const a = accOf(c);
     const camp = DB.byCamp[campFor(c)];
@@ -4180,6 +4474,17 @@
     body += line('Who', esc(c.name) + ', ' + esc(c.title) +
       (a ? ' at ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
         commas(a.size) + ' staff' : ''));
+    /* WHERE THEY ARE, SAID BEFORE WHAT HAS PASSED. The rung is the one
+       fact that decides what this call is for, and it was the one fact the
+       brief did not carry. `since` and the owed follow-up come with it,
+       because a checkpoint with no date is a claim with no age. */
+    const rg = RUNG[c.checkpoint];
+    body += line('Where they are', '<span class="tone-' + esc(rg.tone) + '">' +
+      esc(rg.label) + '</span> — ' + esc(rg.say) +
+      (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') +
+      (c.next ? esc('. ' + c.next.what + ' ' +
+        (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
+        sayWhen(c.next.due)) : ''));
     body += line('What has passed', hist.length
       ? esc(plural(hist.length, 'call') + ', last ' + OUTCOME[last.outcome].label.toLowerCase() +
         ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
@@ -4192,9 +4497,14 @@
       body += line('Selling', esc(camp.sells.map((k) => SELL[k].name).join(' and ')));
       body += line('The goal', esc(camp.goal));
     }
-    body += line('Open with', hist.length
-      ? esc('Pick up where it stopped — ' + (last.note || 'you have spoken before.'))
-      : esc(camp ? camp.pitch : 'Ask what they are running this with today.'));
+    body += line('Open with', esc(stageOpen(c, camp, last)));
+    /* ON A FIRST CALL THERE IS NOTHING TO PICK UP FROM, so the campaign's
+       own material stands in for the history — which is the only thing a
+       caller can actually offer somebody they have never spoken to. */
+    if (camp && c.checkpoint === 'not-called' && camp.resources.length) {
+      body += line('What you can send', camp.resources.map((r) =>
+        '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join(' '));
+    }
     const obj = objectionLikely(c, camp);
     if (obj) body += line('They will push back on', obj);
     body += '</div>';
@@ -4240,34 +4550,138 @@
   /* ── THE READ-BACK ──
      AiMY says what it heard in the taxonomy's own words, with the card the
      record will carry. You agree in a word or correct it in a sentence. */
-  function callLogPropose() {
-    const call = DB.call;
-    if (!call) return;
-    const c = callOn();
+  /* ══ THE VALUES THE WRITE WOULD USE, RESOLVED ONCE ═════════════════════
+     A CORRECTION IS READ ALONE AND WINS PER AXIS. Read together with the
+     transcript, a gatekeeper heard on the call would outrank "actually I
+     spoke to her" for ever, because the lexicon ranks by specificity and not
+     by recency — the more you insisted, the less it would listen.
+
+     One function, because the card you agree to and the record that gets
+     written have to be the same values. Two resolutions of the same rule is
+     a card that can disagree with what it becomes. */
+  function logHeard(call) {
     const heard = call.read || {};
-    const props = heard.props || [];
-    const objs = heard.objs || [];
-    const mv = moveFor(c, call.outcome || 'no-answer', props);
-    const row = (k, v) => '<div class="s-callsum-row"><span class="s-callsum-mem">' +
-      esc(k) + '</span><span class="s-callsum-val">' + v + '</span></div>';
-    const body = '<div class="s-callsum-rows">' +
-      row('What happened', esc((OUTCOME[call.outcome] || {}).label || call.outcome)) +
-      row('You asked for', props.length
-        ? esc(props.map((p) => PROPOSAL[p].label).join(' · ')) : 'nothing') +
-      row('They pushed back on', objs.length
-        ? esc(objs.map((o) => OBJECTION[o].label).join(' · ')) : 'nothing') +
-      row('It moves them to', mv.to ? '<b>' + esc(rungLabel(mv.to)) + '</b>'
-        : 'nowhere — they stay at ' + esc(rungLabel(c.checkpoint))) +
+    const noted = call.note ? readCall(call.note) : null;
+    const win = (k) => (noted && noted[k].length ? noted[k] : (heard[k] || []));
+    return {
+      disp: (noted && noted.disp) || heard.disp || null,
+      remember: (noted && noted.remember) || heard.remember || null,
+      props: win('props'), objs: win('objs'), opps: win('opps'),
+    };
+  }
+
+  /* ══ THE PARAPHRASE ═══════════════════════════════════════════════════
+     The taxonomy said out loud, in the order a person would say it. It is
+     what makes the card underneath checkable rather than something to take
+     on trust: the sentence and the rows are the same values twice, and a
+     reader who disagrees with either has found the same mistake. */
+  const listSay = (a) => (a.length < 2 ? (a[0] || '')
+    : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+
+  function logSay(call) {
+    const h = logHeard(call);
+    const d = OUTCOME[call.outcome];
+    const bits = [d ? 'I read that as ' + d.label.toLowerCase() + '.'
+      : 'I could not tell how that one ended.'];
+    if (h.objs.length) {
+      bits.push(listSay(h.objs.map((k) => OBJECTION[k].label)) +
+        (h.objs.length === 1 ? ' is' : ' are') + ' the obstacle.');
+    }
+    if (h.props.length) {
+      bits.push('You asked for ' +
+        listSay(h.props.map((k) => PROPOSAL[k].label)).toLowerCase() + '.');
+    }
+    if (h.opps.length) {
+      bits.push(listSay(h.opps.map((k) => openLabel(k))) + ' came up.');
+    }
+    return bits.join(' ');
+  }
+
+  /* The rows the card prints, which are the rows the record carries. The
+     move is passed IN rather than read off the contact: a proposal states
+     the checkpoint it WOULD set, and one that fell back to the record's own
+     next step would print a follow-up already on the record as though this
+     call had produced it. */
+  function callFacts(call, c, mv) {
+    const h = logHeard(call);
+    const o = OUTCOME[call.outcome];
+    const rows = [];
+    if (o) rows.push(['Outcome', o.label, o.tone]);
+    /* Stated even when empty. A groundwork call is a thing that happened,
+       and a missing row is indistinguishable from one nobody filled in. */
+    rows.push(['Asked for', h.props.length
+      ? h.props.map((k) => PROPOSAL[k].label).join(' · ') : 'nothing',
+      h.props.length ? 'ok' : 'neutral']);
+    if (h.objs.length) {
+      rows.push(['Obstacle', h.objs.map((k) => OBJECTION[k].label).join(' · '), 'warn']);
+    }
+    if (h.opps.length) {
+      rows.push(['Opening', h.opps.map((k) => openLabel(k)).join(' · '), 'ok']);
+    }
+    rows.push(['Checkpoint', mv.to
+      ? rungLabel(c.checkpoint) + ' → ' + rungLabel(mv.to)
+      : 'stays at ' + rungLabel(c.checkpoint), mv.to ? 'ok' : 'neutral']);
+    if (mv.next) rows.push(['Next', mv.next.what + ', ' + sayWhen(mv.next.due), 'neutral']);
+    return rows;
+  }
+
+  /* The card itself, in the V3 build's own anatomy: a column of captioned
+     facts, then what was said, then what is worth remembering, then the
+     transcript folded away. The caption is the quiet half and the value the
+     loud one, so facts of different kinds read down a single edge. */
+  function callSummaryHtml(call, c, mv) {
+    const lines = call.lines || [];
+    return '<div class="s-callsum">' +
+      '<div class="s-callsum-rows">' +
+        callFacts(call, c, mv).map((r) => '<div class="s-callsum-row">' +
+          '<span class="s-callsum-cap">' + esc(r[0]) + '</span>' +
+          '<span class="s-callsum-val tone-' + esc(r[2]) + '">' + esc(r[1]) + '</span>' +
+        '</div>').join('') +
       '</div>' +
-      '<div class="b-cuts">' +
-        '<button class="s-insight-lnk primary" type="button" data-calllog>Log it' +
-          (call.sess ? ' and call the next one' : '') + '</button>' +
-      '</div>' +
-      '<p class="s-callsum-note">Or tell me what I got wrong, in the bar below.</p>';
-    say('aimy', answerBlock(
-      heard.disp ? 'I read that as ' + OUTCOME[heard.disp].label
-        : 'I could not tell from what was said',
-      body, 'the transcript and your note'));
+      (call.note ? '<p class="s-callsum-note">' + esc(call.note) + '</p>' : '') +
+      (c.remember ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
+        esc(c.remember.text) + '</p>' : '') +
+      (lines.length ? '<details class="s-trace">' +
+        '<summary class="s-trace-sum">Transcript' +
+          '<span class="s-trace-n">' + lines.length + '</span></summary>' +
+        '<div class="s-said-lines">' + lines.map((l) =>
+          '<p class="call-line is-' + (l.who === 'you' ? 'you' : 'them') + '">' +
+            '<span class="call-who">' +
+              esc(l.who === 'you' ? me().name.split(' ')[0] : 'Them') + '</span>' +
+            esc(l.text) + '</p>').join('') +
+        '</div></details>' : '') +
+    '</div>';
+  }
+
+  function callLogPropose() {
+    const call = PENDING;
+    if (!call) return;
+    const c = DB.byCon[call.con];
+    if (!c) return;
+    const mv = moveFor(c, call.outcome || 'no-answer', logHeard(call).props, call.when);
+    const sess = call.sess;
+    const nextCon = sess ? DB.byCon[sess.ids.filter((id) => id !== call.con &&
+      sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0]] : null;
+    /* Only the newest question is live. Eleven logs in a row would otherwise
+       leave eleven pressable confirms behind, each of them able to write a
+       call that has already been written. */
+    lbuildSpend();
+    TURNS.push({
+      who: 'aimy',
+      html: esc(logSay(call)) + ' Is that right?',
+      hint: 'Or tell me what I got wrong.',
+      /* THE NOTE COMES OFF THE PROPOSAL and stays on the record's card. Here
+         it is either the sentence you typed one line above or the paraphrase
+         AiMY said one line above, and a card that repeats the two things
+         bracketing it is asking to be skipped. */
+      card: '<div class="s-callsum-in-turn">' +
+        callSummaryHtml(Object.assign({}, call, { note: '' }), c, mv) + '</div>',
+      step: 'calllog',
+      opts: [{ k: 'go', label: sess
+        ? (nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish')
+        : 'Log it' }],
+    });
+    paintThread();
   }
 
   /* A CORRECTION IS READ ALONE, and every axis it speaks to replaces the
@@ -4276,7 +4690,7 @@
      ranks by specificity and not by recency — the more you insisted, the less
      it would listen. */
   function callLogCorrect(text) {
-    const call = DB.call;
+    const call = PENDING;
     if (!call) return false;
     const read = readCall(text);
     if (!read.disp && !read.props.length && !read.objs.length && !read.opps.length) return false;
@@ -4292,7 +4706,6 @@
     };
     if (read.disp) call.outcome = read.disp;
     if (read.when) call.when = read.when;
-    paintCall();
     say('you', esc(text));
     callLogPropose();
     return true;
@@ -4996,6 +5409,7 @@
     if (e.key === 'Enter' && !typing) {
       e.preventDefault();
       const c = DB.call;
+      if (!c && PENDING) { logCall(); return; }
       if (!c) {
         /* Only where there is a queue in front of you. On the list builder
            the obvious next thing is not "dial somebody" — it is the surface
@@ -5013,23 +5427,21 @@
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
         if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
       } else if (c.state === 'ready') callGo();
-      else if (c.state === 'live' || c.state === 'connecting') endCall();
-      else if (c.state === 'logging') logCall();
+      else endCall();
       return;
     }
 
     if (typing) return;
 
-    if (DB.call) {
-      /* The seven outcomes on the number row, in the order they are drawn.
-         Pressing one mid-call ends the call first — you know how it went
-         before the transcript does. */
+    if (DB.call || PENDING) {
+      /* The seven outcomes, in the order the taxonomy declares them. Pressing
+         one mid-call ends the call first — you know how it went before the
+         transcript does — and then it is the pending call that carries it. */
       const n = OUTCOMES.filter((o) => o.key === e.key)[0];
       if (n) {
         e.preventDefault();
-        if (DB.call.state === 'live' || DB.call.state === 'connecting') endCall();
-        DB.call.outcome = n.k;
-        paintCall();
+        if (DB.call) endCall();
+        if (PENDING) { PENDING.outcome = n.k; callLogPropose(); }
         return;
       }
       if (e.key === 'n' || e.key === 'N') {
@@ -5037,7 +5449,7 @@
         if (note) { e.preventDefault(); note.focus(); }
         return;
       }
-      if (e.key === 's' || e.key === 'S') { e.preventDefault(); skipCall(); return; }
+      if (e.key === 's' || e.key === 'S' && DB.call) { e.preventDefault(); skipCall(); return; }
     }
 
     /* Moving through the cards, and opening or ringing the one you are on.

@@ -217,32 +217,66 @@ const BANNED = [
       if (w.length < 2) return null;
       return (w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '')).replace(/^./, (c) => c.toUpperCase());
     };
-    let READ_DISP;
-    const scope = {};
+    let LEX = null;
     try {
       // eslint-disable-next-line no-new-func
-      const load = new Function('saidPhrase', parts.join('\n') + '\n return { READ_DISP };');
-      READ_DISP = load(saidPhrase).READ_DISP;
+      const load = new Function('saidPhrase',
+        parts.join('\n') + '\n return { READ_DISP, READ_PROP, READ_OBJ, READ_OPP };');
+      LEX = load(saidPhrase);
     } catch (e) {
       fail('8 fixtures', 'the lifted lexicons did not parse: ' + e.message);
     }
-    if (READ_DISP) {
+    /* ══ EVERY SCENARIO SAYS WHAT IT MEANS, AND IS HELD TO IT ═══════════
+       `SCENARIOS` declares a disposition, what was asked for, what pushed
+       back and what opened. This runs the real lexicons over the real
+       script and fails the build on any disagreement — the one defect in
+       this product that is invisible from the outside, because a fixture
+       that drifts still plays, still logs, and quietly proposes the wrong
+       outcome on a call nobody will re-listen to. */
+    const scenSrc = grab('SCENARIOS', 'const');
+    if (LEX && !scenSrc) fail('8 fixtures', 'could not lift SCENARIOS out of bdr.js');
+    if (LEX && scenSrc) {
+      let SCEN = null;
+      try {
+        // eslint-disable-next-line no-new-func
+        SCEN = new Function(scenSrc + '\n return SCENARIOS;')();
+      } catch (e) { fail('8 fixtures', 'SCENARIOS did not parse: ' + e.message); }
       const scripts = raw.slice(raw.indexOf('const CALL_SCRIPTS'), raw.indexOf('function scriptFor'));
-      const fates = ['reached', 'gatekeeper', 'no-answer', 'callback', 'not-interested'];
-      fates.forEach((f) => {
-        const key = new RegExp("(?:^|\\n)\\s*'?" + f + "'?:\\s*\\[", 'm');
+      const all = (lex, text) => {
+        const out = [];
+        lex.forEach((r) => { if (r[0].test(text) && out.indexOf(r[1]) < 0) out.push(r[1]); });
+        return out;
+      };
+      const same = (a, b) => a.length === b.length && a.every((x) => b.indexOf(x) >= 0);
+      (SCEN || []).forEach((sc) => {
+        const key = new RegExp("(?:^|\\n)\\s*'" + sc.k + "':\\s*\\[", 'm');
         const at = scripts.search(key);
-        if (at < 0) { fail('8 fixtures', 'no call script for the fate ' + f); return; }
+        if (at < 0) { fail('8 fixtures', 'no call script for the scenario ' + sc.k); return; }
         const block = scripts.slice(at, scripts.indexOf('\n    ],', at));
         const text = (block.match(/'([^']*)'/g) || []).join(' ').toLowerCase();
-        const hit = READ_DISP.filter((r) => r[0].test(text))[0];
+        const hit = LEX.READ_DISP.filter((r) => r[0].test(text))[0];
         const got = hit ? hit[1] : null;
-        if (got !== f) {
-          fail('8 fixtures', 'the ' + f + ' call script reads as ' +
-            (got || 'nothing') + ', so the panel would propose the wrong outcome');
+        if (got !== sc.disp) {
+          fail('8 fixtures', sc.k + ' reads as ' + (got || 'nothing') + ' and not ' +
+            sc.disp + ', so the panel would propose the wrong outcome');
         }
+        [['props', 'READ_PROP', 'asks for'], ['objs', 'READ_OBJ', 'pushes back on'],
+         ['opps', 'READ_OPP', 'opens']].forEach((ax) => {
+          const read = all(LEX[ax[1]], text);
+          if (!same(read, sc[ax[0]] || [])) {
+            fail('8 fixtures', sc.k + ' ' + ax[2] + ' [' + read.join(' ') +
+              '] and declares [' + (sc[ax[0]] || []).join(' ') + ']');
+          }
+        });
       });
-      notes.push('call fixtures checked: ' + fates.length);
+      /* Every outcome the taxonomy names has to be reachable by walking
+         the product, or a whole branch of the write is untestable by hand. */
+      const covered = (SCEN || []).map((x) => x.disp);
+      ['reached', 'callback', 'no-answer', 'gatekeeper', 'not-interested',
+        'wrong-number', 'do-not-call'].forEach((o) => {
+        if (covered.indexOf(o) < 0) fail('8 fixtures', 'no scenario ever ends in ' + o);
+      });
+      notes.push('call fixtures checked: ' + (SCEN || []).length);
     }
   }
 }
