@@ -3757,6 +3757,16 @@
     if (outcome === 'do-not-call') return { to: 'do-not-call', next: null, dnc: true };
     if (outcome === 'wrong-number') return { to: 'wrong-number', next: null };
     if (outcome === 'not-interested') return { to: 'declined', next: null };
+    /* ══ A LEAD THAT HAS LEFT OWES NOTHING ═══════════════════════════════
+       `up` has always refused to climb out of an exit. The follow-up beside
+       it did not, so a connected call on a declined lead proposed "stays at
+       Declined" and "Demo for them, tomorrow" in the same card — a queue
+       entry for a call nobody may make, on a person who has said no.
+
+       Below the three outcomes above, on purpose: one exit can still become
+       another, and somebody who declined and then asks to be taken off the
+       list has to be able to be. */
+    if (isExit(c.checkpoint)) return { to: null, next: null };
     if (outcome === 'no-answer' || outcome === 'gatekeeper') return { to: up('no-answer') };
     if (outcome === 'callback') {
       return { to: up('callback'), next: { what: 'Call them back', due: dayAdd(days) } };
