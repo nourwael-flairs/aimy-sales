@@ -12463,11 +12463,7 @@
        is an obligation nobody has, so it only speaks where there is work. */
     const who = !hereN ? '' : hereMine ? 'waiting on you' : hereCrew.length ? '' : 'nobody on it';
 
-    return `${campSectHead('Where the work is', deck,
-      /* The summary went with it: the deck now says exactly this, and a
-         line under a sentence restating the sentence is the redundancy the
-         deck was split off to avoid. */
-      null)}
+    return `${campSectHead('Where the work is', deck)}
     ${/* ══ THE TOTALS BEFORE THE BREAKDOWN, NOT BETWEEN IT AND THE STAGE ══
           Below the nodes it sat directly on top of the open stage, so it
           read as part of that stage — and then did not change when you moved
@@ -13044,27 +13040,15 @@
        What a description section can say about itself is how much of it has
        been filled in, and every row here carries the control that fills
        its own gap. */
-    /* Each gap is a CLAUSE, not a noun to be listed after "missing". The
-       first cut joined bare noun phrases — "It is missing who it is aimed at
-       and a client" — which is grammatical and reads like a form rejecting
-       you. Somebody describing the same campaign says the two things
-       separately, so each field carries the way it would be said. */
-    const desc = [
-      ['there is no goal written down', !!l.goal],
-      ['nobody has said who it is aimed at', (l.personas || []).length > 0],
-      ['nothing says what it sells', (l.sells || []).length > 0],
-      ['it is not attached to a client', !!l.client],
-      ['it has no start or end date', !!l.from],
-    ];
-    const blank = desc.filter((d) => !d[1]).map((d) => d[0]);
-    /* `, and`, not ` and` — these are independent clauses, not items, and
-       "aimed at and it is not attached" runs two sentences together. */
-    const say = blank.length === 1 ? blank[0]
-      : `${blank.slice(0, -1).join(', ')}, and ${blank[blank.length - 1]}`;
-    return `${campSectHead('What it is',
-      blank.length
-        ? `${say.charAt(0).toUpperCase()}${say.slice(1)}.`
-        : 'Everything that describes it is filled in.', null)}
+    /* ══ THE KICKER IS THE WHOLE HEAD ═════════════════════════════════
+       It carried a deck listing what the description was missing — a
+       finding, and a true one, but the rows below already say it: Persona
+       reads "Nobody has said who it is aimed at" with an `Add` beside it,
+       Client the same. Naming the gaps again above them is the section
+       reading its own contents aloud before you get to them.
+
+       The name is what this section needed and did not have. */
+    return `${campSectHead('What it is')}
     <div class="s-camp-id s-crew">
       ${/* THE GOAL IS THE THESIS, AND IT WAS SET AS A FIELD VALUE.
 
@@ -18435,28 +18419,13 @@
        next one's, so the two headings no longer share an edge. Alignment is
        what makes a run of sections read as a run, and a repeated figure four
        hundred pixels apart costs less than a ragged left margin. */
-    /* ══ THE QUALIFIER CARRIES THE WORKING ═════════════════════════════════
-
-       One line under the headline, where NN/g's order puts a qualifier —
-       after the finding, before the evidence. It used to run BEFORE the
-       section said anything at all, which is a note about arithmetic read by
-       somebody not yet told there was any.
-
-       It also states the UNIT once. Every row counted organizations and
-       every row wore a caption saying so, five times over — and the one
-       reading `ADDRESSES` was wrong as well as repetitive: `inWayOf` walks
-       accounts, so that row is three organizations with a bad address, not
-       three addresses. One noun, stated here, and every row is free to be a
-       single line. */
-    const sum = inWay.length
-      ? `Each row counts the organizations held up by that reason.${
-          inWay.reduce((t, o) => t + o.n, 0) > stuck
-            ? ` Some are held up by more than one thing, so the rows add to more than ${stuck}.` : ''}${
-          top ? ` Clearing the biggest would free <b>${top.n}</b>.` : ''}`
-      : null;
-
+    /* THE QUALIFIER LINE IS GONE. "Each row counts the organizations held
+       up by that reason. Some are held up by more than one thing, so the
+       rows add to more than 12." was a note about the arithmetic of the
+       rows, set above the rows, in a paragraph nobody reads before they
+       have seen what it is qualifying. The rows carry their own nouns. */
     return `<section class="s-sheet-block" aria-label="In the way">
-      ${campSectHead('In the way', deck, sum)}
+      ${campSectHead('In the way', deck)}
       ${/* A SECTION THAT VANISHES WHEN IT IS CLEAN is one you cannot trust
             to have looked. Every other empty state on this page says what it
             found; so does this. */ ''}
@@ -18538,7 +18507,7 @@
          definition. */
       const noWhy = campSent(l).filter((t) => t.outcome === 'negative' && !t.objection).length;
       return `<section class="s-sheet-block" aria-label="What to offer better">
-        ${campSectHead('What to offer better', null, null)}
+        ${campSectHead('What to offer better')}
         <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
           <p class="s-lead-mark">
             <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
@@ -18672,8 +18641,7 @@
             small number and the block should say so before it is believed,
             not after. */ ''}
       ${campSectHead('What to offer better',
-        `${top.n} of the ${said} who told us why said it was ${top.label.toLowerCase()}.`,
-        `Each row counts the people who gave that reason for saying no. A lost deal with no reason recorded tells us nothing, so it is left out.`)}
+        `${top.n} of the ${said} who told us why said it was ${top.label.toLowerCase()}.`)}
 
       <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
         <p class="s-lead-mark">
@@ -19341,17 +19309,12 @@
 
      The sentence keeps it, because the sentence is the thing that can also
      say what the number MEANS. */
-  function campSectHead(kicker, deck, sum) {
+  function campSectHead(kicker, deck) {
     return `<header class="s-sect-head">
       <h2 class="s-kicker">${esc(kicker)}</h2>
       <div class="s-sect-main">
         ${deck ? `<p class="s-sect-deck">${esc(deck)}</p>` : ''}
       </div>
-      ${/* Outside the baseline row, not a wrapping item inside it — a
-            `flex-basis: 100%` that has to beat a two-line deck for the wrap
-            is a layout held together by arithmetic. A sibling is on its own
-            line because it is on its own line. */ ''}
-      ${sum ? `<p class="s-sect-sum">${sum}</p>` : ''}
     </header>`;
   }
 

@@ -5276,12 +5276,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
    Body prose in the secondary ink: a clear step under the headline, and
    plainly legible rather than plainly ignorable. The figures inside it take
    primary ink, because those are the parts a reader is deciding on. */
-.s-sect-sum {
-  font-size: var(--ty-body); line-height: var(--lh-base);
-  color: var(--ink-secondary); max-width: 62ch; margin-top: 12px;
-  text-wrap: pretty;
-}
-.s-sect-sum b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
 .s-straight-say {
   font-size: var(--fs-base); color: var(--d100);
   line-height: var(--lh-base); font-variant-numeric: tabular-nums;
