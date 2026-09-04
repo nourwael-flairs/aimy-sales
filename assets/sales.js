@@ -12500,7 +12500,12 @@
     <section class="s-stage" aria-label="${esc(hereSt.label)}">
       <header class="s-stage-head">
         <h3 class="s-stage-name">${esc(hereSt.label)}</h3>
-        <span class="s-stage-fn">${esc(FUNCTIONS[hereSt.fn].label)}</span>
+        ${/* The function label is gone. "Financials SALES MANAGER" told the
+              reader whose job the stage is, beside a stage they are already
+              standing in — and every stage they can open is one they are
+              entitled to, so the label never varied with anything they could
+              act on. `Financials` is not drawn at all for a tier that may not
+              see it, which is the same fact enforced rather than announced. */ ''}
         ${who ? `<span class="s-stage-who">${esc(who)}</span>` : ''}
         <p class="s-stage-does">${esc(hereSt.does)}</p>
       </header>

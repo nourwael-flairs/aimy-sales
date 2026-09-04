@@ -7121,7 +7121,24 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   font-family: inherit; text-align: left; cursor: pointer;
   transition: background-color var(--t-fast);
 }
-button.s-pipe-cell:hover { background: var(--card-bg-raised); }
+/* ── AT REST, A PRESSABLE THING HAS TO LOOK PRESSABLE ──
+   Four of the five cells were flat until the pointer was already on them, so
+   the strip read as one card and four labels and nothing offered the other
+   four. Three steps now — a ground at rest, a lighter one under the pointer,
+   the accent fill when it is open — and no line anywhere.
+
+   ONLY ON `button`. `div.s-pipe-cell` is the read-only strip a tier that
+   cannot open stages gets, and leaving it flat makes the same signal work
+   the other way: the ground is what says this one can be pressed. */
+/* MEASURED, not chosen by eye. `--card-bg` is rgb(20,27,36) and the ground
+   the strip is painted on is rgb(23,26,28) — both at luminance 26, so a
+   resting ground drawn in it was invisible and the affordance did not exist.
+   `--card-bg-raised` is luminance 37, which reads. */
+button.s-pipe-cell { background: var(--card-bg-raised); }
+/* `:not(.is-here)`, or the hover ground beats the open cell's accent on
+   specificity — `button.s-pipe-cell:hover` outweighs `.s-pipe-cell.is-here`,
+   so pointing at the stage you are standing in turned it grey. */
+button.s-pipe-cell:not(.is-here):hover { background: var(--accent-dim); }
 .s-pipe-cell:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 div.s-pipe-cell { cursor: default; }
 
@@ -7219,11 +7236,6 @@ div.s-pipe-cell { cursor: default; }
 .s-stage-name {
   font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-tight); color: var(--ink-primary);
-}
-.s-stage-fn {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-secondary);
 }
 /* Only ever "waiting on you" or "nobody on it" — the two things the Team row
    above cannot say, and both of them are findings, so they are toned. */
