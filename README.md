@@ -19,6 +19,19 @@ inside `index.html`, so a cached document asks for the old assets for ever;
 
 ## What a BDR does here
 
+**Three surfaces, and the rail is the index into them.** Calls, Campaigns and
+Lists, each with the count behind it. They were one page once; the result was a
+single scroll holding three unrelated jobs, and Lists had no door at all.
+
+| surface | url | what it is |
+|---|---|---|
+| Calls | `/` | the ranked queue, cut six ways, paged |
+| Campaigns | `?on=camps` | the ones you are on, paged |
+| Lists | `?on=lists` | the ones you built, and the way to build another |
+
+Under those sit the three records: one campaign (`?camp=`), one person
+(`?con=`), one list (`?list=`).
+
 **Today** ranks everybody callable and says why each one is on the list. Six
 cuts, and their counts sum to the whole — one bucket per person, and the bucket
 function *is* the ranking, so the chips and the order cannot drift apart.
@@ -31,11 +44,28 @@ function *is* the ranking, so the chips and the order cannot drift apart.
 | Open | you have spoken, nothing is owed |
 | Never rung | nobody has tried |
 
-**The queue is worked a page at a time.** Fifteen is a screenful: ring through
-it, press once for the next fifteen. A thousand people behind a scrollbar is not
-scale, it is an endless list — you cannot tell where you are in it, cannot come
-back to the same place, and never finish anything. The total is stated on every
-page, so bounding what is drawn never hides how much there is.
+**One worklist per surface, paged. Everything else is context, capped.** Fifteen
+is a screenful: ring through it, press once for the next fifteen. A thousand
+people behind a scrollbar is not scale, it is an endless list — you cannot tell
+where you are in it, cannot come back to the same place, and never finish
+anything.
+
+The worklist/context split is not cosmetic. Two pagers on one page either share
+a page number or need two, and both are worse than deciding which of the two
+lists is the reason you came. So a campaign pages its queue and shows the last
+eight things that happened; a person shows their last eight calls; the builder
+shows the first eight matches. Every one says what it is showing of what:
+
+```
+1–15 of 1,015 people · page 1 of 68
+14 campaigns, all of them here
+The last 8 of 436 calls
+The first 8 of 3,000 matches
+```
+
+"The last 8" and "the first 8" are different claims — a feed is newest-first, a
+search result is not ordered at all — so the footer is told which end it shows
+rather than guessing.
 
 **A call** is a shell region beside the page, not a modal, so you can open the
 person or read the campaign's pitch while it runs. Four states: `ready` shows
@@ -168,3 +198,9 @@ library, and it belongs in the library's gap register.
 - **A hidden browser pane reports a zero viewport**, which collapses the height
   chain and leaves the scroller unbounded — a windowed list then measures as
   broken when the measurement is what is broken.
+- **`.s-home` is a two-column grid** above the anchor width. A block without
+  `.s-block-wide` lands in one column and leaves a hole where the other should
+  be, which reads as a layout bug rather than a missing class.
+- **The audit checks whether an attribute is drawn, not whether a value is.** A
+  `data-start="lists"` branch sat in the router with nothing rendering that
+  value, and the whole Lists surface was unreachable, with the audit green.
