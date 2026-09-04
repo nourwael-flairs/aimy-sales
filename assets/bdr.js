@@ -1330,7 +1330,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -1819,6 +1819,53 @@
 
      The one you are on is the heading, at heading weight. The other two sit
      beside it, quiet, and press to become the heading. */
+  /* ══ FINDING ONE THING IN NINE HUNDRED ═════════════════════════════════
+     The cuts narrow by rung and the pager walks fifteen at a time, and
+     neither answers "where is Sofie". Nine hundred and seventy-six people
+     across sixty-six pages is a list you have already failed to search.
+
+     ONE BOX, THREE SURFACES, and what it matches is whatever the cards on
+     that surface actually show: a person by their name, their title, their
+     company or their campaign; a campaign by its name, its goal or what it
+     sells; a list by its name, its criteria or who found it. Matching on
+     something the card does not display is how a search returns a row
+     whose presence the reader cannot account for.
+
+     IT IS NOT THE COMPOSER. The bar at the foot of the page takes
+     sentences and does things; this narrows a list in place. Two boxes
+     only confuse each other when they do the same job, and these do not. */
+  const findWords = () => S.find.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = (hay) => {
+    const w = findWords();
+    if (!w.length) return true;
+    const h = hay.toLowerCase();
+    return w.every((x) => h.indexOf(x) >= 0);
+  };
+  const conHay = (c) => {
+    const a = accOf(c);
+    return [c.name, c.title, a ? a.name : '', a ? a.city : '',
+      campsOf(c).map((k) => k.name).join(' ')].join(' ');
+  };
+  const campHay = (k) => [k.name, k.goal,
+    k.sells.map((x) => (SELL[x] || {}).name || x).join(' ')].join(' ');
+  const listHay = (l) => [l.name, l.crit, l.via].join(' ');
+
+  /* The count is the point of the foot line, and it is the caller's own
+     words handed back so a search that found nothing says what it looked
+     for rather than only that it failed. */
+  function findBox(placeholder) {
+    return '<label class="b-find">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+        '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+      '<input type="text" data-find value="' + esc(S.find) + '" ' +
+        'placeholder="' + esc(placeholder) + '" spellcheck="false" ' +
+        'aria-label="' + esc(placeholder) + '">' +
+      (S.find ? '<button class="b-find-x" type="button" data-findclear ' +
+        'aria-label="Clear the search">×</button>' : '') +
+    '</label>';
+  }
+
   function switcher(here) {
     const one = (k, label, n, over) =>
       '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
@@ -1887,14 +1934,17 @@
      Its own surface, not a block under a thousand people. Paged like every
      other worklist, because fourteen today is forty next quarter. */
   function campsPage() {
-    const camps = myCampaigns();
+    const camps = myCampaigns().filter((k) => matches(campHay(k)));
     const pg = paged(camps);
     return '<div class="s-home">' +
       topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
-        '<div class="s-camp-list-head">' + switcher('camps') + '</div>' +
-        '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
-          'soonest to close first. Each says how many of its people are yours to ring.</p>' +
+        '<div class="s-camp-list-head">' + switcher('camps') +
+          findBox('Find a campaign, a goal, a product') + '</div>' +
+        '<p class="s-block-sub">' + (S.find
+          ? plural(camps.length, 'campaign') + ' matching “' + esc(S.find) + '”.'
+          : plural(camps.length, 'campaign') + ' you are on, soonest to close first. ' +
+            'Each says how many of its people are yours to ring.') + '</p>' +
         cgrid(pg.rows) +
         pager(pg, 'campaign') +
       '</section>' +
@@ -2099,11 +2149,14 @@
   }
 
   function queueBlock(all, counts) {
-    const pg = paged(queue(S.camp || null, S.q));
+    /* Narrowed BEFORE paging, so the foot line counts what matched rather
+       than what page fifteen of the unsearched list happens to hold. */
+    const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
     const ring = pg.rows.filter((c) => rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       '<div class="s-camp-list-head">' +
         (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
+        (S.camp ? '' : findBox('Find a name, a company, a campaign')) +
         (ring.length
           ? '<button class="s-inline-btn" type="button" data-callall="' +
             esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
@@ -2237,18 +2290,22 @@
     if (S.build) return buildPage();
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
+    const found = DB.list.slice().reverse().filter((l) => matches(listHay(l)));
     return '<div class="s-home">' +
       topBrief('lists') +
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
+          findBox('Find a list, a criterion, a source') +
           '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
         '</div>' +
         '<p class="s-block-sub">A list is how new people reach your queue. Describe who to ' +
           'look for; what comes back is the list, and putting it on a campaign puts them ' +
           'in front of you.</p>' +
-        (DB.list.length
-          ? lgrid(paged(DB.list.slice().reverse()).rows) + pager(paged(DB.list), 'list')
-          : '<p class="b-vfoot">You have not built one yet.</p>') +
+        (found.length
+          ? lgrid(paged(found).rows) + pager(paged(found), 'list')
+          : '<p class="b-vfoot">' + (S.find
+            ? 'No list matches “' + esc(S.find) + '”.'
+            : 'You have not built one yet.') + '</p>') +
       '</section>' +
     '</div>';
   }
@@ -5686,6 +5743,8 @@
       return;
     }
 
+    if (t.closest('[data-findclear]')) { go({ find: '', p: '' }, true); return; }
+
     const cut = t.closest('[data-q]');
     if (cut) {
       /* A CUT NARROWS WHAT YOU ARE LOOKING AT, and on a campaign page what you
@@ -5917,6 +5976,31 @@
          which surface it is under or the router lands on the queue. */
       if (bits[0] === 'list') over.on = 'lists';
       go(over);
+    }
+  });
+
+  /* ══ TYPING NARROWS IN PLACE ═══════════════════════════════════════════
+     `replaceState`, not a push: thirty keystrokes are one search, and a
+     history entry per letter turns Back into a spelling replay. The page
+     number goes with every change, because page four of the old list is
+     nowhere in the new one.
+
+     AND THE CARET SURVIVES THE REPAINT. `paint` replaces the surface's
+     markup, which destroys the input you are typing into — so the box is
+     found again and the caret put back where it was. Without it the field
+     lost focus on the first letter and the search was unusable. */
+  document.addEventListener('input', (e) => {
+    const box = e.target.closest && e.target.closest('[data-find]');
+    if (!box) return;
+    const at = box.selectionStart;
+    go({ find: box.value, p: '' }, true);
+    const again = document.querySelector('[data-find]');
+    if (again) {
+      /* `preventScroll`, because focusing an element the browser thinks is
+         out of view scrolls it there — and the one thing a person typing
+         into a search box has not asked for is the page moving under them. */
+      try { again.focus({ preventScroll: true }); } catch (x) { again.focus(); }
+      try { again.setSelectionRange(at, at); } catch (x) {}
     }
   });
 

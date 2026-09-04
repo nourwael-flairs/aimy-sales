@@ -358,3 +358,42 @@
    emphasis on top of them would make a grid of fifteen cards flash. Controls
    inside keep their own cursors, and the router matches them first. */
 .b-qcard[data-open] { cursor: pointer; }
+
+/* ══ 17. THE SEARCH BOX ════════════════════════════════════════════════════
+   The shell has one search field, `.dd-search`, and it is built to sit at the
+   top of an open dropdown: sticky, negative margins, a hairline under it and
+   the panel's own ground behind. Dropped into a page header it drew a full-
+   width bar with a rule under it across the whole block.
+
+   So this is that field's anatomy — an icon, a bare input, no chrome on the
+   input itself — in a shape that sits in a flex header row beside the
+   switcher. It borrows the card's border and ground rather than inventing
+   its own, because it is a control on a page and not a panel of its own.
+
+   `align-self: center` because `.s-camp-list-head` aligns on the baseline,
+   which puts a bordered box's text baseline level with a heading's and hangs
+   the box's top edge above the line. */
+.b-find {
+  display: flex; align-items: center; gap: 6px; align-self: center;
+  padding: 6px 10px; border-radius: var(--r-lg);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  min-width: 220px; max-width: 320px; flex: 0 1 280px;
+  transition: border-color var(--t-fast);
+}
+.b-find:focus-within { border-color: var(--accent); }
+.b-find svg { color: var(--d500); flex-shrink: 0; }
+.b-find input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
+}
+.b-find input::placeholder { color: var(--d600); }
+/* A way out that does not need the keyboard. Only drawn when there is
+   something to clear, so it is never a control that does nothing. */
+.b-find-x {
+  border: 0; background: none; cursor: pointer; padding: 0 2px;
+  font-size: var(--fs-sm); line-height: 1; color: var(--d500);
+  transition: color var(--t-fast);
+}
+.b-find-x:hover { color: var(--d100); }
+.b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
