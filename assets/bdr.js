@@ -1065,7 +1065,57 @@
       if (!n.domain) n.domain = n.co.toLowerCase().replace(/[^a-z]+/g, '') + pick(r, ['.com', '.nl', '.eu', '.io', '.de']);
     }
 
-    return { camp: camp, acc: acc, con: con, touch: touch, net: net };
+    /* ══ THE LISTS ALREADY BUILT ═══════════════════════════════════════
+       The lists surface rendered a heading, a sentence and nothing else on
+       a fresh load, because the seed made no lists — so the third of the
+       three switcher surfaces was empty, and the page a list opens could
+       not be reached at all without first building one. A caller three
+       months into a book has lists; a corpus that gives them 6,000 people,
+       21,000 calls and no lists is telling one story about how long they
+       have been here and another about how the people arrived.
+
+       Built out of contacts that already exist rather than minting new
+       ones: a list is a saved SELECTION, and the people on these came in
+       through the same door everybody else did. Two are on a campaign and
+       two are not, because both states of the card have to be reachable. */
+    const list = [];
+    {
+      const byInd = Object.create(null);
+      con.forEach((c) => {
+        const a = acc[Number(c.acc.slice(1))];
+        if (!a) return;
+        (byInd[a.industry] || (byInd[a.industry] = [])).push(c);
+      });
+      const mineCamps = camp.filter((k) => k.crew.indexOf(DEFAULT_ME) >= 0);
+      const SPEC = [
+        { ind: 'software',   band: '200 to 1,000',  who: 'QA managers',        via: 'Apollo',        ago: 46, on: 0 },
+        { ind: 'industry', band: '1,000+',     who: 'Heads of support',   via: 'ZoomInfo',      ago: 31, on: 1 },
+        { ind: 'banking',    band: '200 to 1,000',  who: 'Operations leads',   via: 'Apollo',        ago: 17, on: -1 },
+        { ind: 'logistics',  band: '1,000+',        who: 'Support directors',  via: 'Exa / Serper',  ago: 6,  on: -1 },
+      ];
+      SPEC.forEach((x, i) => {
+        const pool = byInd[x.ind] || [];
+        if (!pool.length) return;
+        /* A slice rather than a filter over every axis: the criteria line
+           says what was asked for, and the roster is what a supplier
+           actually returned — which never matches the ask exactly. */
+        const take = pool.slice(i * 40, i * 40 + between(rng(SEED + 900 + i), 24, 60));
+        if (take.length < 5) return;
+        const k = x.on >= 0 ? mineCamps[x.on % mineCamps.length] : null;
+        if (k) take.forEach((c) => { if (c.camps.indexOf(k.id) < 0) c.camps.push(k.id); });
+        list.push({
+          id: 'ls' + i,
+          name: x.who + ' · ' + (INDUSTRY[x.ind] ? INDUSTRY[x.ind].label : x.ind),
+          kind: 'con', terms: '',
+          crit: x.who + ' at ' + (INDUSTRY[x.ind] ? INDUSTRY[x.ind].label.toLowerCase() : x.ind) +
+            ' companies, ' + x.band + ' staff',
+          has: take.map((c) => c.id), by: DEFAULT_ME, at: dayAdd(-x.ago),
+          for: k ? k.id : null, via: x.via, found: take.length,
+        });
+      });
+    }
+
+    return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
   /* A stable small hash, used to pick a contact's fate without spending the
@@ -1177,7 +1227,10 @@
   function load() {
     const s = seed();
     DB.camp = s.camp; DB.acc = s.acc; DB.con = s.con; DB.touch = s.touch; DB.net = s.net;
-    DB.list = []; DB.session = [];
+    /* Seeded first, then yours. `DELTA.list` is only what this browser has
+       built, so overwriting rather than concatenating would have hidden
+       the seeded four the moment you saved your first. */
+    DB.list = s.list.slice(); DB.session = [];
     let raw = null;
     try { raw = localStorage.getItem(KEY_DB); } catch (e) {}
     if (raw) {
@@ -1199,7 +1252,7 @@
             if (byId[id]) Object.assign(byId[id], DELTA.con[id]);
           });
           DELTA.touch.forEach((t) => DB.touch.push(t));
-          DB.list = DELTA.list.slice();
+          DB.list = s.list.concat(DELTA.list);
           DB.session = DELTA.session.slice();
         }
       } catch (e) { /* a delta we cannot read is a delta we do not apply. */ }
