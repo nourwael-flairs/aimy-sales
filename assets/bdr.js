@@ -852,11 +852,43 @@
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
 
   function paint() {
+    dropLists();
     paintRail();
     paintWho();
-    const host = byId('page');
-    host.innerHTML = pageHtml();
+    byId('page').innerHTML = pageHtml();
+    mountLists();
     paintProto();
+  }
+
+  /* The lists a surface declares, mounted after its markup exists. Kept apart
+     from `pageHtml` because a windowed list cannot be a string: it has to
+     measure where it landed before it knows what to draw. */
+  function mountLists() {
+    const roster = byId('roster');
+    if (roster) {
+      const people = DB.con;
+      vlist({
+        host: roster,
+        items: people,
+        rowH: 56,
+        key: (c) => c.id,
+        row: personRow,
+        empty: 'Nobody here.',
+      });
+    }
+  }
+
+  /* One person, one row. The same anatomy everywhere a person is listed. */
+  function personRow(c) {
+    const a = accOf(c);
+    const r = RUNG[c.checkpoint] || RUNG['not-called'];
+    return '<div class="b-vmain">' +
+        '<div class="b-vname">' + esc(c.name) + '</div>' +
+        '<div class="b-vsub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') +
+          (a ? ' · ' + esc(a.city) : '') + '</div>' +
+      '</div>' +
+      '<span class="tag tag-' + r.tone + '">' + esc(r.label) + '</span>' +
+      '<span class="b-dim">' + (c.phone ? esc(c.phone) : 'no number') + '</span>';
   }
 
   /* The rail is an index: what exists, and how much of it. Not findings —
@@ -909,6 +941,12 @@
         '<div class="b-panel">' +
           LADDER.concat(EXITS).map((x) => row(x.label, counts[x.k] || 0, x.say)).join('') +
         '</div>' +
+      '</section>' +
+      '<section class="b-block">' +
+        '<div class="b-block-head"><h2 class="b-block-title">Everybody</h2>' +
+        '<span class="b-block-note">' + commas(DB.con.length) +
+        ' people, windowed — about thirty rows exist at a time.</span></div>' +
+        '<div class="b-panel"><div id="roster"></div></div>' +
       '</section>';
   }
   function row(label, n, note) {
@@ -963,6 +1001,149 @@
       if (k && k.to < best) best = k.to;
     }
     return best;
+  }
+
+  /* ══ THE WINDOWED LIST ═════════════════════════════════════════════════
+     One component, used by every list in the product: the call queue, a
+     campaign's people, a person's history, a list preview. It renders only
+     the rows on screen.
+
+     WHY IT MEASURES IN LAYOUT PIXELS. The shell carries `zoom` on <body>, so
+     getBoundingClientRect returns VISUAL pixels — layout pixels times the UI
+     scale. A row height written in CSS is in layout pixels. Mixing the two
+     puts the window in the wrong place on every screen that is not exactly
+     the anchor width, and it is wrong by a factor rather than by an offset,
+     so it looks like the list is simply broken. `offsetTop`, `scrollTop` and
+     `clientHeight` are all layout pixels; the walk up to .page-scroll is why
+     that element is positioned.
+
+     ONE LISTENER FOR ALL OF THEM. The scroller is shared, so a per-list
+     listener would be N listeners doing one job. Mounted lists live in a
+     registry and the single rAF-throttled handler renders whichever moved.
+
+     API — vlist({ host, items, rowH, row, key, empty, onCursor })
+       .update(items)  new data, same scroll position, cursor kept by key
+       .focus(i)       move the cursor and scroll it into view
+       .destroy()      unmount
+     `row(item, i, isCursor)` returns an HTML string. Rows carry no listeners:
+     clicks reach the delegated router like everything else. */
+
+  const VLISTS = [];
+  let vframe = 0;
+
+  function vlist(o) {
+    const host = o.host;
+    const scroller = byId('pageScroll');
+    const rowH = o.rowH;
+    const overscan = o.overscan == null ? 8 : o.overscan;
+    const self = {
+      host: host, items: o.items || [], cursor: -1,
+      first: -1, last: -1,
+    };
+
+    host.classList.add('b-vlist');
+
+    /* The host's top in the scroller's own content coordinates. Walked rather
+       than cached: a block above this one can change height on any repaint,
+       and a cached offset would put the window off by that much until
+       something happened to invalidate it. */
+    function topOf() {
+      let t = 0, el = host;
+      while (el && el !== scroller) { t += el.offsetTop; el = el.offsetParent; }
+      return t;
+    }
+
+    function render(force) {
+      const n = self.items.length;
+      host.style.height = (n * rowH) + 'px';
+      if (!n) {
+        host.innerHTML = o.empty ? '<div class="b-vfoot">' + esc(o.empty) + '</div>' : '';
+        host.style.height = 'auto';
+        self.first = self.last = -1;
+        return;
+      }
+      const top = topOf();
+      const st = scroller.scrollTop;
+      const vh = scroller.clientHeight;
+      let first = Math.floor((st - top) / rowH) - overscan;
+      let last = Math.ceil((st - top + vh) / rowH) + overscan;
+      if (first < 0) first = 0;
+      if (last > n) last = n;
+      if (last < first) last = first;
+      if (!force && first === self.first && last === self.last) return;
+      self.first = first;
+      self.last = last;
+      let html = '';
+      for (let i = first; i < last; i++) {
+        html += '<div class="b-vrow' + (i === self.cursor ? ' is-cursor' : '') +
+          '" data-i="' + i + '" style="height:' + rowH + 'px;transform:translateY(' +
+          (i * rowH) + 'px)">' + o.row(self.items[i], i, i === self.cursor) + '</div>';
+      }
+      host.innerHTML = html;
+    }
+
+    self.update = function (items) {
+      const keyFn = o.key;
+      const wasKey = keyFn && self.cursor >= 0 && self.items[self.cursor]
+        ? keyFn(self.items[self.cursor]) : null;
+      self.items = items || [];
+      if (wasKey != null) {
+        let at = -1;
+        for (let i = 0; i < self.items.length; i++) {
+          if (keyFn(self.items[i]) === wasKey) { at = i; break; }
+        }
+        self.cursor = at;
+      }
+      render(true);
+    };
+    self.focus = function (i) {
+      const n = self.items.length;
+      if (!n) return;
+      if (i < 0) i = 0;
+      if (i >= n) i = n - 1;
+      self.cursor = i;
+      const top = topOf();
+      const want = top + i * rowH;
+      const st = scroller.scrollTop;
+      const vh = scroller.clientHeight;
+      /* Only scroll when the row is not already whole on screen. A list that
+         re-centres on every keypress makes the eye chase the cursor. */
+      if (want < st) scroller.scrollTop = want - rowH;
+      else if (want + rowH > st + vh - 96) scroller.scrollTop = want + rowH + 96 - vh;
+      render(true);
+      if (o.onCursor) o.onCursor(self.items[i], i);
+    };
+    self.render = render;
+    self.destroy = function () {
+      const i = VLISTS.indexOf(self);
+      if (i >= 0) VLISTS.splice(i, 1);
+      host.classList.remove('b-vlist');
+    };
+
+    VLISTS.push(self);
+    render(true);
+    return self;
+  }
+
+  /* One scroll listener for every list on the page, rAF-throttled. Each list
+     decides for itself whether its window actually moved. */
+  function vscroll() {
+    if (vframe) return;
+    vframe = requestAnimationFrame(() => {
+      vframe = 0;
+      for (let i = 0; i < VLISTS.length; i++) VLISTS[i].render(false);
+    });
+  }
+  byId('pageScroll').addEventListener('scroll', vscroll, { passive: true });
+  window.addEventListener('resize', () => {
+    for (let i = 0; i < VLISTS.length; i++) VLISTS[i].render(true);
+  }, { passive: true });
+
+  /* Every repaint drops the lists that were on the previous surface. A list
+     left in the registry keeps rendering into a host that is no longer in the
+     document, which costs nothing visible and grows for ever. */
+  function dropLists() {
+    VLISTS.length = 0;
   }
 
   /* ── Toast. Every write lands here and every write can be taken back from
@@ -1095,6 +1276,11 @@
     reset: reset,
     go: go,
     queue: queue,
+    /* The mounted windowed lists. Exposed because the scroll handler is
+       rAF-throttled and a hidden tab never runs a frame — so a check that
+       scrolls and then reads the DOM has to be able to force the render
+       itself rather than wait for a frame that is not coming. */
+    vlists: VLISTS,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,

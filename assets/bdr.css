@@ -280,6 +280,13 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Positioned so it is the offsetParent chain's terminus. `vlist` measures a
+     list's top by walking offsetTop up to this element, in LAYOUT pixels —
+     the same units as a row's height. Measuring with getBoundingClientRect
+     instead would return VISUAL pixels, which under the `zoom` this shell
+     carries are the layout ones times the UI scale, and the windowing would
+     be wrong by that factor on every screen that is not exactly 1536 wide. */
+  position: relative;
   /* 96px is the float bar's band. aimy-responsive.css adds the keyboard inset
      to this same number for scroll-padding; the two must agree. */
   padding-bottom: 96px;
@@ -457,6 +464,58 @@ body.is-calling .aimy-overlay { right: var(--call-width); }
   white-space: nowrap;
 }
 .b-toast-undo:hover { text-decoration: underline; }
+
+/* ══ 10. THE WINDOWED LIST ════════════════════════════════════════════════
+   Every list in this product is one of these. A campaign holds thousands of
+   people and a book holds tens of thousands of calls, so no list may render
+   what is not on screen. The host is as tall as the whole list; the rows
+   inside it are absolutely positioned and there are about thirty of them at
+   any moment.
+
+   ROWS ARE A FIXED HEIGHT, and that is the trade. Variable heights would need
+   measurement per row and a running offset table; a fixed height makes the
+   position of row N arithmetic. Anything that does not fit is the row design
+   being wrong, not the list. */
+.b-vlist { position: relative; width: 100%; }
+.b-vrow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  border-bottom: 1px solid var(--hairline);
+  box-sizing: border-box;
+}
+.b-vrow:hover { background: var(--glass-bg); }
+.b-vrow.is-cursor { background: var(--accent-dim); }
+.b-vfoot {
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--d500);
+}
+
+/* One row anatomy, so a person reads the same in the queue, in a campaign
+   and in a list preview. Name and the line under it take the space; the
+   status and the action sit at the end where the eye finishes. */
+.b-vmain { flex: 1 1 auto; min-width: 0; }
+.b-vname {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--d50);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.b-vsub {
+  font-size: var(--fs-sm);
+  color: var(--d400);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* A state screen belongs here — "you are not on this campaign", the empty
    queue, the failed load. Its rules arrive with the surface that renders
