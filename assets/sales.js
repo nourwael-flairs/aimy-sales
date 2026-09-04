@@ -12103,14 +12103,21 @@
     const byAcc = {};
     ts.forEach((t) => { (byAcc[t.acc] = byAcc[t.acc] || []).push(t); });
     const at = (fn) => members.filter((a) => (byAcc[a.id] || []).some(fn));
+    /* `of` is how the step reads when it is the DENOMINATOR of the one after
+       it. Without it a figure said "50% of the 24" and nothing on the block
+       said what twenty-four counted or where it came from — the top of the
+       funnel is not drawn, so its number had no home. Named in every sub
+       instead, which also retires the other three orphans: the 12, the 6 and
+       the 5 are each the figure immediately to the left, and now say so. */
     return [
       { k: 'in', label: 'On the campaign', set: members,
-        say: 'organizations it went out to' },
+        say: 'organizations it went out to', of: 'on the campaign' },
       { k: 'reached', label: 'Reached', set: at((t) => t.dir === 'out'),
-        say: 'we sent something' },
+        say: 'we sent something', of: 'we reached' },
       { k: 'replied', label: 'Replied', set: at((t) => t.dir === 'in'),
-        say: 'they answered' },
+        say: 'they answered', of: 'who replied' },
       { k: 'booked', label: 'Booked a call', set: at((t) => t.outcome === 'meeting-booked'),
+        of: 'who booked a call',
         /* Not 'the goal of this campaign' — the marker beside the name
            already says that, and the column is for what the step MEANS. */
         say: 'agreed to a call' },
@@ -12285,7 +12292,8 @@
           <span class="s-af-cap">${esc(x.st.label)}${
             x.st.k === 'booked' ? '<span class="s-fn-goal">the goal</span>' : ''}</span>
           <span class="s-af-val">${x.n}</span>
-          <span class="s-af-sub">${x.rate == null ? '—' : `${pcOf(x.rate)} of the ${x.prev}`}</span>
+          <span class="s-af-sub">${x.rate == null ? '—'
+            : `${pcOf(x.rate)} of the ${x.prev} ${esc(x.from.of)}`}</span>
         </div>`).join('')}
     </div>
     ${stageRead(read)}
