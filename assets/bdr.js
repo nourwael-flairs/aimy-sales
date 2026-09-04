@@ -1201,6 +1201,7 @@
     byId('wbStage').innerHTML = S.con ? contactPage() : S.camp ? campPage() : homePage();
     mountLists();
     paintRail();
+    paintBell();
     paintProto();
   }
 
@@ -2606,6 +2607,211 @@
     paint();
   }
 
+  /* ══ 7d. THE BELL ═══════════════════════════════════════════════════════
+     What is still waiting on a person, enumerated. The same derivations the
+     briefing summarises, so the two cannot go stale relative to each other —
+     there is only one queue and one set of buckets. */
+
+  const readNtf = new Set();
+
+  function ntfRows() {
+    const rows = [];
+    queue(null, 'after').slice(0, 6).forEach((c) => rows.push({
+      id: 'after-' + c.id, con: c.id,
+      what: c.name + ' — the meeting was ' + sayWhen(c.next.due) + ' and nothing is recorded',
+      cta: 'Say what happened',
+    }));
+    queue(null, 'due').slice(0, 8).forEach((c) => rows.push({
+      id: 'due-' + c.id, con: c.id,
+      what: c.name + ' — ' + c.next.what.toLowerCase() + ' ' + sayWhen(c.next.due),
+      cta: 'Open them',
+    }));
+    return rows.slice(0, 12);
+  }
+
+  function paintBell() {
+    const rows = ntfRows();
+    const unread = rows.filter((r) => !readNtf.has(r.id)).length;
+    byId('ntfDot').hidden = !unread;
+    const cnt = byId('ntfCount');
+    cnt.hidden = !unread;
+    cnt.textContent = unread;
+    byId('ntfList').innerHTML = rows.length
+      ? rows.map((r) => '<li><button class="ntf-row' +
+          (readNtf.has(r.id) ? ' is-read' : '') + '" type="button" data-con="' +
+          esc(r.con) + '"><span class="ntf-row-main">' +
+          '<span class="ntf-row-body">' + esc(r.what) + '</span>' +
+          '<span class="ntf-row-cta">' + esc(r.cta) + '</span>' +
+          '</span></button></li>').join('')
+      : '<li class="ntf-empty">Nothing is waiting on you.</li>';
+  }
+
+  /* ══ 7e. THE COMPOSER, AND THE CANVAS BEHIND IT ═════════════════════════
+     The bar drives the page. Four routes, in the order a caller means them:
+     a call being logged takes the sentence first, then a name, then a verb,
+     then a question. Only the last one opens the canvas — a surface that
+     opens for everything is a detail page wearing a chat's clothes. */
+
+  const TURNS = [];
+
+  function openCanvas() { byId('aimyOverlay').classList.add('open'); }
+  function closeCanvas() { byId('aimyOverlay').classList.remove('open'); }
+
+  function say(who, html) {
+    TURNS.push({ who: who, html: html });
+    paintThread();
+  }
+  function paintThread() {
+    const host = byId('overlayThread');
+    if (!TURNS.length) {
+      host.innerHTML = ['How many are left to call?', 'Who is due today?',
+        'What happened yesterday?', 'When do people actually answer?'].map((q) =>
+        '<button class="overlay-sugg-chip" type="button" data-ask="' + esc(q) + '">' +
+        esc(q) + '</button>').join('');
+      return;
+    }
+    host.innerHTML = TURNS.map((t) =>
+      '<div class="chat-msg ' + (t.who === 'you' ? 'user' : 'aimy') + '">' +
+        '<div class="msg-bubble">' + t.html + '</div>' +
+      '</div>').join('');
+    host.scrollTop = host.scrollHeight;
+  }
+
+  /* Find a person or a campaign by what somebody typed. Exact-ish: a name
+     has to be most of the words, or it is not a name, it is a question. */
+  function findByName(text) {
+    const q = text.toLowerCase().trim();
+    if (q.length < 3) return null;
+    const camp = DB.camp.filter((k) => k.name.toLowerCase() === q ||
+      (q.length > 5 && k.name.toLowerCase().indexOf(q) >= 0))[0];
+    if (camp) return { camp: camp };
+    let hit = null;
+    for (let i = 0; i < DB.con.length; i++) {
+      const c = DB.con[i];
+      const n = c.name.toLowerCase();
+      if (n === q) return { con: c };
+      if (!hit && q.length > 4 && n.indexOf(q) >= 0) hit = c;
+    }
+    return hit ? { con: hit } : null;
+  }
+
+  const CALL_RE = /^(call|ring|dial)\b/i;
+  const ASK_RE = /\?$|^(how|who|what|when|where|why|show|which)\b/i;
+
+  function runInput(text) {
+    const t = String(text || '').trim();
+    if (!t) return;
+
+    /* A call being logged owns the sentence. It is the one moment where what
+       you type is unambiguously about the thing in front of you. */
+    if (DB.call && DB.call.state === 'logging') {
+      DB.call.note = t;
+      const read = readCall(t);
+      if (read.disp) DB.call.outcome = read.disp;
+      if (read.when) DB.call.when = read.when;
+      paintCall();
+      toast('Read as ' + (OUTCOME[DB.call.outcome] || {}).label + '. Press Log to write it.');
+      return;
+    }
+
+    if (CALL_RE.test(t)) {
+      const rest = t.replace(CALL_RE, '').replace(/^\s*(the\s+)?/i, '').trim();
+      closeCanvas();
+      if (!rest || /^next( one)?$/i.test(rest)) {
+        const first = queue(S.camp || null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+        return;
+      }
+      const found = findByName(rest);
+      if (found && found.con) { startCall(found.con.id); return; }
+      toast('No one here called "' + rest + '".');
+      return;
+    }
+
+    if (!ASK_RE.test(t)) {
+      const found = findByName(t);
+      /* Naming a record is navigation, and navigation closes the canvas. It
+         opened over the person it had just taken you to otherwise — the
+         thing you asked for, behind the surface you asked it from. */
+      if (found && found.con) { closeCanvas(); go({ con: found.con.id }); return; }
+      if (found && found.camp) {
+        closeCanvas();
+        go(Object.assign(cleared(), { camp: found.camp.id }));
+        return;
+      }
+      /* A sentence that reads as a call, against whoever is open. */
+      const read = readCall(t);
+      if (read.disp && S.con) {
+        toast('Open the call panel to log that against ' + DB.byCon[S.con].name.split(' ')[0] + '.');
+        return;
+      }
+    }
+
+    openCanvas();
+    say('you', esc(t));
+    const a = answer(t);
+    say('aimy', a);
+  }
+
+  /* What AiMY can answer, and it is deliberately short: every question a BDR
+     asks has a surface that already answers it, so the canvas states the
+     figure and hands over the door rather than becoming a second product. */
+  function answer(text) {
+    const q = text.toLowerCase();
+    const all = queue(S.camp || null, 'all');
+    const counts = Object.create(null);
+    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    const door = (label, over) =>
+      '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
+      '">' + esc(label) + '</button>';
+
+    if (/due|owe|today/.test(q)) {
+      return '<b>' + plural(counts.due || 0, 'person') + '</b> ' + verbFor(counts.due || 0, 'is') +
+        ' owed something today' + (S.camp ? ' on this campaign' : ' across your ' +
+        plural(myCampaigns().length, 'campaign')) + '. ' +
+        door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'due' }));
+    }
+    if (/how many|left|remaining|to call/.test(q)) {
+      return '<b>' + commas(all.length) + '</b> people can be rung' +
+        (S.camp ? ' on this campaign' : '') + ' — ' +
+        BUCKETS.filter((b) => counts[b.k]).map((b) =>
+          commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '. ' +
+        door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' }));
+    }
+    if (/happened|yesterday|today.*call|did i/.test(q)) {
+      const since = new Date(Date.now() - 2 * DAY_MS).toISOString();
+      const mineT = DB.touch.filter((t) => t.by === me().id && t.at >= since);
+      if (!mineT.length) return 'Nothing on the record from you in the last two days.';
+      const by = Object.create(null);
+      mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
+      return '<b>' + plural(mineT.length, 'call') + '</b> in the last two days — ' +
+        Object.keys(by).map((k) => by[k] + ' ' +
+          ((OUTCOME[k] || { label: k }).label.toLowerCase())).join(', ') + '.';
+    }
+    if (/answer|best time|when do/.test(q)) {
+      /* The hour with the best connect rate, computed over the calls that
+         exist. Stated with its denominator, because a rate over nine calls
+         is not a finding. */
+      const hours = Object.create(null);
+      DB.touch.forEach((t) => {
+        const h = new Date(t.at).getHours();
+        if (h < 7 || h > 19) return;
+        const b = hours[h] || (hours[h] = { n: 0, got: 0 });
+        b.n++;
+        if (t.outcome === 'reached') b.got++;
+      });
+      const best = Object.keys(hours).filter((h) => hours[h].n >= 40)
+        .sort((a, b) => hours[b].got / hours[b].n - hours[a].got / hours[a].n)[0];
+      if (!best) return 'Not enough calls on the record to say yet.';
+      const b = hours[best];
+      return 'People answer most around <b>' + best + ':00</b> — ' +
+        Math.round((b.got / b.n) * 100) + '% of ' + plural(b.n, 'call') + ' made in that hour ' +
+        'got through.';
+    }
+    return 'I can tell you what is due, how many are left to call, what you logged ' +
+      'recently, and when people actually answer. Everything else is on the page.';
+  }
+
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
      One delegated listener. Every control is a `data-` verb matched by
      `closest`, so a row can be re-rendered without losing its behaviour and
@@ -2616,8 +2822,17 @@
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
 
+    const goEl = t.closest('[data-go]');
+    if (goEl) {
+      let over = {};
+      try { over = JSON.parse(goEl.getAttribute('data-go')); } catch (err) { over = {}; }
+      closeCanvas();
+      go(over);
+      return;
+    }
+
     const con = t.closest('[data-con]');
-    if (con) { go({ con: con.getAttribute('data-con') }); return; }
+    if (con) { closeCanvas(); go({ con: con.getAttribute('data-con') }); return; }
 
     /* Back to where you were, not to the front page. `data-home` clears every
        key, which from row eleven of page four of the Due cut means losing the
@@ -2714,6 +2929,29 @@
       return;
     }
 
+    const bell = t.closest('#ntfBell');
+    if (bell) {
+      const panel = byId('ntfPanel');
+      panel.hidden = !panel.hidden;
+      bell.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden) paintBell();
+      return;
+    }
+    if (t.closest('#ntfClear')) {
+      ntfRows().forEach((r) => readNtf.add(r.id));
+      paintBell();
+      return;
+    }
+    if (t.closest('#ntfAskAll')) {
+      byId('ntfPanel').hidden = true;
+      runInput('What is due today?');
+      return;
+    }
+
+    if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
+    const ask = t.closest('[data-ask]');
+    if (ask) { runInput(ask.getAttribute('data-ask')); return; }
+
     const railToggle = t.closest('#railToggle');
     if (railToggle) {
       document.body.classList.toggle('rail-open');
@@ -2750,6 +2988,27 @@
   /* The pitch opens the first time and stays however you left it after that.
      `toggle` does not bubble, so it is caught in the capture phase rather
      than by hanging a listener on an element every repaint replaces. */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const el = e.target;
+    if (el && el.id === 'floatInput') {
+      e.preventDefault();
+      const v = el.value; el.value = '';
+      runInput(v);
+    } else if (el && el.id === 'overlayInput') {
+      e.preventDefault();
+      const v = el.value; el.value = '';
+      runInput(v);
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#floatSend')) {
+      const el = byId('floatInput'); const v = el.value; el.value = ''; runInput(v);
+    } else if (e.target.closest('#overlaySend')) {
+      const el = byId('overlayInput'); const v = el.value; el.value = ''; runInput(v);
+    }
+  });
+
   document.addEventListener('toggle', (e) => {
     if (!e.target || e.target.id !== 'pitchBox') return;
     UI.pitchSeen = !e.target.open;
@@ -2771,6 +3030,14 @@
       if (again) { again.value = DB.call.note; again.focus();
         again.setSelectionRange(again.value.length, again.value.length); }
     }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const panel = byId('ntfPanel');
+    if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
+    if (!panel.hidden) { panel.hidden = true; return; }
+    if (DB.call) { skipCall(); }
   });
 
   window.addEventListener('popstate', () => { parse(); paint(); });
