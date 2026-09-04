@@ -5240,20 +5240,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
    so they sit a block apart and not a section apart. */
 .s-camp-page .s-sheet-block + .s-sheet-block > .s-sect-head { margin-top: 24px; }
 .s-sect-main { display: flex; align-items: baseline; gap: 12px; }
-.s-sect-fig {
-  display: flex; align-items: baseline; gap: 8px; flex: none;
-  font-variant-numeric: tabular-nums;
-}
-.s-sect-fig-n {
-  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-tight); line-height: var(--lh-none);
-  color: var(--ink-primary);
-}
-.s-sect-fig-of {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
-}
 /* ── THE KICKER ──
 
    Eleven pixels, weight 700, `--d500` — the faintest and smallest thing in

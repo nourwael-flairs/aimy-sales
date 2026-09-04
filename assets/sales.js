@@ -12402,9 +12402,23 @@
     /* The figure beside it already states the count, so the deck does not
        repeat it — "13 of 24 · 13 organizations are waiting at Reach" said
        thirteen twice and ran to two lines doing it. */
+    /* ══ A SENTENCE, NOT A CLAUSE HUNG OFF THE FIGURE ══════════════════
+       Every deck on this page was written to be read starting at the number
+       beside it — "blocked, for 5 different reasons", "gave features as the
+       reason", "waiting at Reach". That is a caption pretending to be prose:
+       it parses only while the figure is in the corner of your eye, and it
+       reads as broken copy anywhere else — in a screen reader, in a search
+       result, or to anyone who simply started at the left of the line.
+
+       Each one says its own subject now. The figure stays where it is and
+       repeats the number, which costs a word and buys a sentence. */
     const deck = held.length
-      ? `waiting at ${held[0].st.label}${held.length > 1 ? ', more than any other step' : ''}.`
-      : total ? 'Nothing is waiting at any step.' : null;
+      ? `${plural(held[0].n, 'organization')} ${held[0].n === 1 ? 'is' : 'are'} waiting at ${
+          held[0].st.label}${held.length > 1 ? ', more than at any other step' : ''}.`
+      : total ? 'Nothing is waiting at any step.'
+        /* The one head that said nothing at all. Every other section states
+           what it found even when what it found is nothing. */
+        : 'Nobody is on it yet, so no step is holding anything.';
 
     const hereSt = STAGE_BY[here] || CAMP_STAGE[0];
     const hereCrew = stageCrew(l, hereSt.k);
@@ -12450,14 +12464,21 @@
     const who = !hereN ? '' : hereMine ? 'waiting on you' : hereCrew.length ? '' : 'nobody on it';
 
     return `${campSectHead('Where the work is', deck,
-      held.length ? { n: held[0].n, of: total } : null,
-      held.length ? 'Organizations, at the step that is holding the most.' : null)}
-    <nav class="s-pipe" aria-label="Campaign stages">${strip}</nav>
-    ${/* HOW MUCH OF IT HAS HAPPENED, under the five steps it happened at.
-          The nodes each carry one figure and none of them carries the
-          total, the mix or the drag — which is what this is, and it spent
-          the whole of this page's life filed under "what it is". */ ''}
+      /* The summary went with it: the deck now says exactly this, and a
+         line under a sentence restating the sentence is the redundancy the
+         deck was split off to avoid. */
+      null)}
+    ${/* ══ THE TOTALS BEFORE THE BREAKDOWN, NOT BETWEEN IT AND THE STAGE ══
+          Below the nodes it sat directly on top of the open stage, so it
+          read as part of that stage — and then did not change when you moved
+          between them, which is the only way a reader can find out it was
+          never stage-scoped. It is the campaign's arithmetic: one total that
+          the five steps then break down and the open step details.
+
+          So it reads in that order. Same block, one place earlier, and
+          nothing about it now claims to belong to a step. */ ''}
     ${campTally(l) || ''}
+    <nav class="s-pipe" aria-label="Campaign stages">${strip}</nav>
     ${/* The stage gets a heading of its own now that it is not a list item.
           `h3` under the section's `h2`, which puts the blocks inside it back
           at `h4` where they belong — Copy and Queue are parts of Reach, not
@@ -12854,14 +12875,6 @@
     const seg = (k, v, label) => (v ? `<span class="s-tally-seg is-${k}" style="flex-grow:${v}" title="${esc(`${v} ${label}`)}"></span>` : '');
     const key = (k, v, label) => (v ? `<span class="s-tally-key is-${k}">${esc(`${v} ${label}`)}</span>` : '');
 
-    /* The drag, in the words the block below uses. Borrowed rather than
-       reworded, so the sentence and the rows cannot describe one obstacle
-       two ways — the reason the paragraph builder borrows it too. */
-    const w = p.inWay[0];
-    const drag = w
-      ? `${IN_WAY_SAY[w.k] ? IN_WAY_SAY[w.k](w.n) : `${plural(w.n, 'organization')} — ${w.label.toLowerCase()}.`} That is the biggest drag on it.`
-      : 'Nothing is standing in the way of any of them.';
-
     return `<div class="s-tally">
       <div class="s-afs s-tally-figs">
         ${fig(outCap, outVal)}
@@ -12906,13 +12919,13 @@
             block as the numbers it was drawn from. Same treatment as the
             offering block's reading, because it is the same kind of thing:
             AiMY's mark, then what it makes of the figures. */ ''}
-      <div class="s-insight is-quote" data-aimy-item="drag-${esc(l.k)}">
-        <p class="s-lead-mark">
-          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-          AiMY reads it
-        </p>
-        <span class="s-insight-txt">${esc(drag)}</span>
-      </div>
+      ${/* AND THE DRAG READING WENT WITH IT. "Four organizations have had
+            three messages and answered none of them, and that is the biggest
+            drag" is what `In the way` is — a whole section that ranks the
+            same obstacles, states the same finding in its own headline, and
+            puts the rows and the actions under it. Said here it was the
+            third time the page said it, in the least useful place: an AiMY
+            conclusion with nothing to press. */ ''}
     </div>`;
   }
 
@@ -13031,20 +13044,27 @@
        What a description section can say about itself is how much of it has
        been filled in, and every row here carries the control that fills
        its own gap. */
+    /* Each gap is a CLAUSE, not a noun to be listed after "missing". The
+       first cut joined bare noun phrases — "It is missing who it is aimed at
+       and a client" — which is grammatical and reads like a form rejecting
+       you. Somebody describing the same campaign says the two things
+       separately, so each field carries the way it would be said. */
     const desc = [
-      ['a goal', !!l.goal],
-      ['who it is aimed at', (l.personas || []).length > 0],
-      ['what it sells', (l.sells || []).length > 0],
-      ['a client', !!l.client],
-      ['a window', !!l.from],
+      ['there is no goal written down', !!l.goal],
+      ['nobody has said who it is aimed at', (l.personas || []).length > 0],
+      ['nothing says what it sells', (l.sells || []).length > 0],
+      ['it is not attached to a client', !!l.client],
+      ['it has no start or end date', !!l.from],
     ];
     const blank = desc.filter((d) => !d[1]).map((d) => d[0]);
+    /* `, and`, not ` and` — these are independent clauses, not items, and
+       "aimed at and it is not attached" runs two sentences together. */
+    const say = blank.length === 1 ? blank[0]
+      : `${blank.slice(0, -1).join(', ')}, and ${blank[blank.length - 1]}`;
     return `${campSectHead('What it is',
       blank.length
-        ? `It is missing ${blank.length === 1 ? blank[0]
-          : `${blank.slice(0, -1).join(', ')} and ${blank[blank.length - 1]}`}.`
-        : 'Everything that describes it is filled in.',
-      blank.length ? { n: blank.length, of: desc.length } : null, null)}
+        ? `${say.charAt(0).toUpperCase()}${say.slice(1)}.`
+        : 'Everything that describes it is filled in.', null)}
     <div class="s-camp-id s-crew">
       ${/* THE GOAL IS THE THESIS, AND IT WAS SET AS A FIELD VALUE.
 
@@ -18395,7 +18415,7 @@
        qualifier under it. */
     const deck = top
       ? (inWay.length === 1
-        ? `blocked, all of it ${top.label.toLowerCase()}.`
+        ? `All ${stuck} of them are blocked by the same thing — ${top.label.toLowerCase()}.`
         /* NOT "X is the biggest reason". The tally above already names the
            biggest drag, in more words, at the same size — and a section
            headline that repeats the page's previous headline has spent its
@@ -18404,7 +18424,8 @@
            What this block owns is the SPREAD: whether twelve blocked
            organizations are one problem or five, and therefore whether any
            single fix is worth doing. */
-        : `blocked, for ${plural(inWay.length, 'different reason')}.`)
+        : `${stuck} of the ${members.length} are blocked, for ${
+          plural(inWay.length, 'different reason')} between them.`)
       : null;
     /* ── THE FIGURE STAYS EVEN WHEN THE LEAD REPEATS IT ──
        The first cut dropped it whenever `campSay` had already said "12 of
@@ -18428,14 +18449,14 @@
        three addresses. One noun, stated here, and every row is free to be a
        single line. */
     const sum = inWay.length
-      ? `Organizations, counted by reason.${
+      ? `Each row counts the organizations held up by that reason.${
           inWay.reduce((t, o) => t + o.n, 0) > stuck
-            ? ` Some are blocked by more than one thing, so these add to more than ${stuck}.` : ''}${
+            ? ` Some are held up by more than one thing, so the rows add to more than ${stuck}.` : ''}${
           top ? ` Clearing the biggest would free <b>${top.n}</b>.` : ''}`
       : null;
 
     return `<section class="s-sheet-block" aria-label="In the way">
-      ${campSectHead('In the way', deck, stuck ? { n: stuck, of: members.length } : null, sum)}
+      ${campSectHead('In the way', deck, sum)}
       ${/* A SECTION THAT VANISHES WHEN IT IS CLEAN is one you cannot trust
             to have looked. Every other empty state on this page says what it
             found; so does this. */ ''}
@@ -18517,7 +18538,7 @@
          definition. */
       const noWhy = campSent(l).filter((t) => t.outcome === 'negative' && !t.objection).length;
       return `<section class="s-sheet-block" aria-label="What to offer better">
-        ${campSectHead('What to offer better', null, null, null)}
+        ${campSectHead('What to offer better', null, null)}
         <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
           <p class="s-lead-mark">
             <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
@@ -18651,9 +18672,8 @@
             small number and the block should say so before it is believed,
             not after. */ ''}
       ${campSectHead('What to offer better',
-        `gave ${top.label.toLowerCase()} as the reason.`,
-        { n: top.n, of: said },
-        `People who told us why they said no, counted by reason. A lost deal with no reason recorded tells us nothing, so it is left out.`)}
+        `${top.n} of the ${said} who told us why said it was ${top.label.toLowerCase()}.`,
+        `Each row counts the people who gave that reason for saying no. A lost deal with no reason recorded tells us nothing, so it is left out.`)}
 
       <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
         <p class="s-lead-mark">
@@ -19311,17 +19331,20 @@
      text in the block, so the layer a reader scans is the finding rather
      than the filing.
 
-     The figure sits left of both, on the scan path, at the step a section's
-     own number deserves — it was 11px muted at the far right edge, which is
-     the one place on a text-heavy page the eye is documented not to go. */
-  function campSectHead(kicker, deck, fig, sum) {
+     ══ AND THE FIGURE COLUMN IS GONE ═══════════════════════════════════
+     It was here because the deck was a CLAUSE — "blocked, for 5 different
+     reasons" — and the number to its left was the sentence's subject. Now
+     that every deck is a whole sentence, the sentence carries the number,
+     and the column beside it printed the same digits again: `12 OF 24` next
+     to "12 of the 24 are blocked". Two of one number is not emphasis, it is
+     a reader checking whether they are the same number.
+
+     The sentence keeps it, because the sentence is the thing that can also
+     say what the number MEANS. */
+  function campSectHead(kicker, deck, sum) {
     return `<header class="s-sect-head">
       <h2 class="s-kicker">${esc(kicker)}</h2>
       <div class="s-sect-main">
-        ${fig ? `<p class="s-sect-fig">
-          <span class="s-sect-fig-n">${esc(String(fig.n))}</span>
-          ${fig.of != null ? `<span class="s-sect-fig-of">of ${esc(String(fig.of))}</span>` : ''}
-        </p>` : ''}
         ${deck ? `<p class="s-sect-deck">${esc(deck)}</p>` : ''}
       </div>
       ${/* Outside the baseline row, not a wrapping item inside it — a
