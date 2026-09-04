@@ -41,6 +41,15 @@
     ));
 
   const $ = (sel, root) => (root || document).querySelector(sel);
+
+  /* The stamp this script was actually loaded under, read off its own tag.
+     A build that reports a number it is not is worse than one that reports
+     nothing. */
+  const BUILD = (function () {
+    const t = document.currentScript || document.querySelector("script[src*=bdr.js]");
+    const m = t && /[?&]v=([^&]+)/.exec(t.getAttribute("src") || "");
+    return m ? "v" + m[1] : "unstamped";
+  })();
   const byId = (id) => document.getElementById(id);
 
   /* Deterministic PRNG (mulberry32), carried over from the V3 build.
@@ -1267,23 +1276,10 @@
      from the page's string because a windowed list cannot be one: it has to
      measure where it landed before it knows which rows to draw. */
   function mountLists() {
-    const cs = byId('campList');
-    if (cs) {
-      vlist({
-        host: cs, items: paged(myCampaigns()).rows, rowH: 72, rowClass: 'b-camp-row',
-        key: (c) => c.id, row: camprow,
-        empty: 'You are on no campaign.',
-      });
-    }
     const nl = byId('netList');
     if (nl) {
       vlist({ host: nl, items: peek(buildMatched()).rows, rowH: 64, rowClass: 's-qrow',
         key: (n) => n.id, row: netRow, empty: 'Nothing matches those criteria.' });
-    }
-    const ll = byId('listList');
-    if (ll) {
-      vlist({ host: ll, items: paged(DB.list.slice().reverse()).rows, rowH: 72, rowClass: 's-qrow',
-        key: (l) => l.id, row: listRow, empty: 'You have not built one yet.' });
     }
     const feed = byId('campFeed');
     if (feed) {
@@ -1329,9 +1325,14 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
         esc(c.name) + '</button>' +
-      '<p class="tc-summary">' + esc(c.title) + '<br>' + esc(a ? a.name : '') +
-        (a ? ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
-          ' · ' + commas(a.size) + ' staff' : '') + '</p>' +
+      /* Two elements, not one with a break in it. Who they are and where they
+         work are different ranks — the role is the thing you open on, the
+         company is context you read once — and one paragraph holding both
+         forced them to the same size, weight and ink. */
+      '<p class="tc-summary b-qcard-role">' + esc(c.title) + '</p>' +
+      (a ? '<p class="b-qcard-where">' + esc(a.name) + ' · ' +
+        esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
+        ' · ' + commas(a.size) + ' staff</p>' : '') +
       '<div class="b-qcard-why">' + whyLine(c) + '</div>' +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
@@ -1339,6 +1340,7 @@
       (last && last.note
         ? '<p class="tc-quote b-qcard-note">' + esc(last.note) + '</p>'
         : '') +
+      aimyBlock(aimySays(c)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num">' + esc(c.phone) + '</span>' +
         /* Only the first card is filled. Fifteen identical primaries is
@@ -1359,23 +1361,234 @@
     return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
   }
 
-  /* One campaign. The numbers on the second line are the ones that decide
-     whether to open it, and they are the same derivations the campaign's own
-     page reads — so a row and the page it opens cannot disagree. */
-  function camprow(k) {
+  /* ══ WHAT AiMY KNOWS ABOUT THIS ONE ═════════════════════════════════════
+     One line per card, and every one of them is read off the corpus rather
+     than composed. That is the whole discipline here: a line under the AiMY
+     mark is a claim the product is making, and a caller who finds one of
+     them wrong stops reading all of them.
+
+     So each branch names the record it came from. Ranked by how much it
+     changes the next sixty seconds — something a person wrote down beats
+     something the pattern noticed. */
+  function aimySays(c) {
+    const camp = DB.byCamp[campFor(c)];
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const last = hist[0];
+    const a = accOf(c);
+
+    /* Somebody wrote this down about them, on purpose. */
+    if (c.remember) {
+      return { text: esc(c.remember.text), from: actor(c.remember.by).name + ' noted it' };
+    }
+    /* They pushed back, and the campaign has an agreed answer to it. */
+    if (last && last.objections.length && camp) {
+      const k = last.objections[0];
+      const agreed = camp.objections.filter((o) => o.k === k)[0];
+      return {
+        text: esc(OBJECTION[k].label) + ' came up last time. ' +
+          esc(agreed ? agreed.say : OBJECTION[k].blurb),
+        from: agreed ? 'the campaign’s answer to it' : 'the call before this one',
+      };
+    }
+    /* An opening a monitor picked up. */
+    if (last && last.openings.length) {
+      return { text: esc(OPENING[last.openings[0]].label) + ' — worth opening on.',
+        from: 'a signal on the account' };
+    }
+    /* Screened. The hour is measured, not guessed. */
+    if (last && last.outcome === 'gatekeeper') {
+      const h = bestHour();
+      return {
+        text: 'Reception took it last time' + (h ? '. This book gets through most around ' +
+          h.hour + ':00 — ' + h.pct + '% of ' + commas(h.n) + ' calls' : '.'),
+        from: h ? 'every call on the record' : 'the call before this one',
+      };
+    }
+    /* Rung and rung and nothing. That is a fact about the number. */
+    if (c.attempts >= 3 && c.checkpoint === 'no-answer') {
+      return { text: plural(c.attempts, 'attempt') + ' and nobody has picked up. ' +
+        'The number may not be the one they answer.', from: 'this record’s own history' };
+    }
+    /* Nothing has happened yet, so the useful thing is who they are. */
+    if (!hist.length && a && camp) {
+      return {
+        text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) + ' staff, and this ' +
+          'campaign sells ' + esc(SELL[camp.sells[0]].name) + ' on ' +
+          esc(SELL[camp.sells[0]].blurb) + '.',
+        from: 'the account and the campaign',
+      };
+    }
+    if (last) {
+      return { text: 'Last call was ' + esc(OUTCOME[last.outcome].label.toLowerCase()) + ', ' +
+        esc(sayWhen(last.at)) + '.', from: 'the call before this one' };
+    }
+    return null;
+  }
+
+  /* The hour this book actually gets through, with the count behind it. Null
+     until there are enough calls in an hour for the rate to mean anything. */
+  let HOUR_CACHE = null;
+  function bestHour() {
+    if (HOUR_CACHE !== null) return HOUR_CACHE;
+    const hours = Object.create(null);
+    DB.touch.forEach((t) => {
+      const h = new Date(t.at).getHours();
+      if (h < 7 || h > 19) return;
+      const b = hours[h] || (hours[h] = { n: 0, got: 0 });
+      b.n++;
+      if (t.outcome === 'reached') b.got++;
+    });
+    const best = Object.keys(hours).filter((h) => hours[h].n >= 40)
+      .sort((x, y) => hours[y].got / hours[y].n - hours[x].got / hours[x].n)[0];
+    HOUR_CACHE = best
+      ? { hour: Number(best), n: hours[best].n, pct: Math.round((hours[best].got / hours[best].n) * 100) }
+      : false;
+    return HOUR_CACHE;
+  }
+
+  /* The AiMY block on a card. The mark, the line, and where the line came
+     from — because an insight that cannot say its basis is an assertion. */
+  function aimyBlock(said) {
+    if (!said) return '';
+    /* THE SIZE IS AN ATTRIBUTE, NOT ONLY A RULE. An `<svg>` with no width or
+       height attribute and no CSS reaching it falls back to the replaced
+       element default and fills its container — measured here as a mark six
+       hundred pixels tall, one per card, with the card's own content pushed
+       off the screen. It happened because the stylesheet was a version behind
+       in the browser, which is a thing that will happen again; the markup
+       carrying its own size means a stale sheet is a plain card rather than
+       an unusable one. */
+    return '<div class="b-aimy">' +
+      '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
+        '<use href="#aimy-logo-small"/></svg>' +
+      '<span class="b-aimy-say">' + said.text +
+        '<span class="b-aimy-from">' + esc(said.from) + '</span>' +
+      '</span>' +
+    '</div>';
+  }
+
+  /* ══ A CAMPAIGN, AS THE SAME CARD ═══════════════════════════════════════
+     Same anatomy as a person: what it is across the top, the name, the
+     context under it, the numbers that decide whether to open it, what AiMY
+     makes of it, and one way in at the foot. Two card designs for two lists
+     on the same product is two things to learn for one job. */
+  function ccard(k, i) {
     const q = queue(k.id);
     const back = q.filter((c) => c.checkpoint === 'callback').length;
     const fresh = q.filter((c) => c.checkpoint === 'not-called').length;
     const left = daysBetween(TODAY_ISO, k.to);
-    return '<button class="b-camp-name" type="button" data-camp="' + esc(k.id) + '">' + esc(k.name) + '</button>' +
-      '<div class="b-camp-why">' +
-        '<span><b>' + commas(q.length) + '</b> to call</span>' +
-        (back ? '<span><b>' + back + '</b> ' + verbFor(back, 'callback') + '</span>' : '') +
-        (fresh ? '<span><b>' + commas(fresh) + '</b> never rung</span>' : '') +
-        '<span>' + (left > 0 ? 'ends in ' + plural(left, 'day') : 'past its end date') + '</span>' +
+    const members = membersOf(k.id);
+    return '<article class="type-card s-card b-qcard">' +
+      '<div class="tc-head">' +
+        '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
+          (left > 0 ? esc(plural(left, 'day')) + ' left' : 'past its end') + '</span>' +
+        '<span class="tc-type">' + esc(SELL[k.sells[0]].name) + '</span>' +
       '</div>' +
-      '<button class="s-insight-lnk b-camp-go" type="button" data-camp="' + esc(k.id) + '">Work it</button>';
+      '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
+        esc(k.name) + '</button>' +
+      '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
+      '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
+        plural(members.length, 'person') + ' to ring' +
+        (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
+        (fresh ? ', <b>' + commas(fresh) + '</b> never rung' : '') + '</div>' +
+      aimyBlock(campSays(k, q, back, fresh, left)) +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<span class="b-qcard-num">' + esc(actor(k.owner).name) + '</span>' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+          '" type="button" data-camp="' + esc(k.id) + '">Work it</button>' +
+      '</div>' +
+    '</article>';
   }
+  function cgrid(rows) {
+    if (!rows.length) return '<p class="b-vfoot">You are on no campaign.</p>';
+    return '<div class="b-grid">' + rows.map(ccard).join('') + '</div>';
+  }
+
+  /* What AiMY makes of a campaign, off its own calls. Ranked by what would
+     change what you do with it this morning. */
+  function campSays(k, q, back, fresh, left) {
+    const mine2 = DB.touch.filter((t) => t.camp === k.id);
+    /* ══ IT MUST NOT REPEAT THE LINE ABOVE IT ═══════════════════════════
+       This led with the callback count, and the callback count is already
+       on the numbers line six pixels up — so every card said the same thing
+       twice, and across a page of fourteen campaigns AiMY said the identical
+       sentence fourteen times. A block that restates the figure beside it is
+       not an insight, it is a second copy, and a reader who sees it be
+       redundant once stops reading it everywhere.
+
+       So it says what the numbers cannot: what this audience pushes back on,
+       whether the window is about to close on people nobody has rung, and
+       how often the calls here actually connect. */
+
+    /* What this audience actually pushes back on, counted. */
+    const objs = Object.create(null);
+    mine2.forEach((t) => t.objections.forEach((o) => (objs[o] = (objs[o] || 0) + 1)));
+    const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
+    if (top && objs[top] >= 3) {
+      const agreed = k.objections.filter((o) => o.k === top)[0];
+      return {
+        text: esc(OBJECTION[top].label) + ' came up on <b>' + objs[top] + '</b> calls here. ' +
+          esc(agreed ? agreed.say : OBJECTION[top].blurb),
+        from: commas(mine2.length) + ' calls on this campaign',
+      };
+    }
+    if (left > 0 && left < 21 && fresh) {
+      return { text: '<b>' + commas(fresh) + '</b> have never been rung and it closes in ' +
+        plural(left, 'day') + '.', from: 'the window and the roster' };
+    }
+    const got = mine2.filter((t) => t.outcome === 'reached').length;
+    if (mine2.length >= 20) {
+      return { text: '<b>' + Math.round((got / mine2.length) * 100) + '%</b> of the ' +
+        commas(mine2.length) + ' calls here got through.', from: 'every call on this campaign' };
+    }
+    return null;
+  }
+
+  /* ══ A LIST, AS THE SAME CARD ═══════════════════════════════════════════ */
+  function lcard(l, i) {
+    const camp = l.for && DB.byCamp[l.for];
+    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
+    const ring = people.filter(callable).length;
+    return '<article class="type-card s-card b-qcard">' +
+      '<div class="tc-head">' +
+        '<span class="tag tag-' + (camp ? 'ok' : 'neutral') + '">' +
+          (camp ? 'On a campaign' : 'Not on one yet') + '</span>' +
+        '<span class="tc-type">' + esc(l.via) + '</span>' +
+      '</div>' +
+      '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
+        esc(l.name) + '</button>' +
+      '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
+      '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
+        commas(ring) + '</b> of them ringable' +
+        (camp ? ' · on ' + esc(camp.name) : '') + '</div>' +
+      aimyBlock(listSays(l, people, ring, camp)) +
+      '<div class="tc-gov b-qcard-foot">' +
+        '<span class="b-qcard-num">built ' + esc(sayWhen(l.at)) + '</span>' +
+        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+          '" type="button" data-list="' + esc(l.id) + '">Open</button>' +
+      '</div>' +
+    '</article>';
+  }
+  function lgrid(rows) {
+    if (!rows.length) return '<p class="b-vfoot">You have not built one yet.</p>';
+    return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
+  }
+
+  function listSays(l, people, ring, camp) {
+    if (!camp) {
+      return { text: 'Nobody on this list is in your queue until it is on a campaign.',
+        from: 'the list having no campaign' };
+    }
+    const gap = people.length - ring;
+    if (gap) {
+      return { text: '<b>' + commas(gap) + '</b> of them came back without a number, so they ' +
+        'cannot be rung.', from: l.via + ' filled the rest' };
+    }
+    const done = people.filter((c) => c.checkpoint !== 'not-called').length;
+    return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been rung.',
+      from: 'their own records' };
+  }
+
 
   /* The same call, seen from the campaign rather than from the person — so
      the name leads, because on this surface WHO is the thing you do not
@@ -1578,7 +1791,7 @@
         '<div class="s-camp-list-head">' + switcher('camps') + '</div>' +
         '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
           'soonest to close first. Each says how many of its people are yours to ring.</p>' +
-        '<div class="b-vlist" id="campList"></div>' +
+        cgrid(pg.rows) +
         pager(pg, 'campaign') +
       '</section>' +
     '</div>';
@@ -1834,23 +2047,12 @@
           'look for; what comes back is the list, and putting it on a campaign puts them ' +
           'in front of you.</p>' +
         (DB.list.length
-          ? '<div class="b-vlist" id="listList"></div>' + pager(paged(DB.list), 'list')
+          ? lgrid(paged(DB.list.slice().reverse()).rows) + pager(paged(DB.list), 'list')
           : '<p class="b-vfoot">You have not built one yet.</p>') +
       '</section>' +
     '</div>';
   }
 
-  function listRow(l) {
-    const camp = l.for && DB.byCamp[l.for];
-    return '<button class="s-qrow-name" type="button" data-list="' + esc(l.id) + '">' +
-        esc(l.name) + '</button>' +
-      '<div class="s-qrow-why">' +
-        '<span class="s-qrow-because"><b>' + commas(l.has.length) + '</b> people · ' +
-          esc(l.crit) + '</span>' +
-        '<span class="s-qrow-lead">' + (camp ? esc(camp.name) : 'on no campaign') + '</span>' +
-      '</div>' +
-      '<button class="s-insight-lnk s-qrow-go" type="button" data-list="' + esc(l.id) + '">Open</button>';
-  }
 
   function listPage(l) {
     const camp = l.for && DB.byCamp[l.for];
@@ -2579,6 +2781,16 @@
     let bytes = 0;
     try { bytes = (localStorage.getItem(KEY_DB) || '').length; } catch (e) {}
     p.innerHTML =
+      '<div class="proto-sec">' +
+        '<div class="proto-h">Build</div>' +
+        /* WHICH VERSION OF THE FILES YOU ARE ACTUALLY LOOKING AT. The `?v=`
+           stamp makes every asset immutable, so a browser that loaded the
+           page before a bump keeps serving the old stylesheet — and a defect
+           fixed an hour ago is still on the screen with nothing saying why.
+           Read off the script's own src, so it cannot claim a version it is
+           not. If this number is behind, hard-reload. */
+        '<div class="proto-build">' + esc(BUILD) + '</div>' +
+      '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">What the corpus holds</div>' +
         '<div class="proto-build">' + commas(DB.con.length) + ' people · ' +

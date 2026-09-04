@@ -84,23 +84,8 @@
 .b-cuts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
 
-/* ══ 4. A CAMPAIGN, AS A ROW IN A WINDOWED LIST ════════════════════════════
-   Same two-line anatomy as `.s-qrow`: what it is on the first line, the
-   numbers that decide whether to open it on the second, the way in at the
-   end. */
-.b-camp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; }
-.b-camp-name {
-  grid-column: 1; font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
-  text-align: left; cursor: pointer; min-height: 24px;
-}
-.b-camp-name:hover { color: var(--ai-text); }
-.b-camp-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-camp-why {
-  grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
-  font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-relaxed);
-}
-.b-camp-why b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
-.b-camp-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+/* §4 held a campaign row. Campaigns are cards in the same grid as people
+   now, so the row and its five rules are gone with it. */
 
 /* ══ 5. THE PAGER ══════════════════════════════════════════════════════════
    Where you are in the queue, and the two ways to move. Never "load more":
@@ -204,22 +189,71 @@
 @media (max-width: 1087.98px) { .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 719.98px)  { .b-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* The card stretches to its row so a short note does not leave the number
-   and the Call button floating halfway up a column of taller neighbours. */
-.b-qcard { height: 100%; gap: 8px; }
+/* ── NO FIXED HEIGHT, OR A TALL CARD LOSES ITS BOTTOM ─────────────────────
+   This was `height: 100%`, which pins the card to the height the grid row
+   already has — and `.type-card` carries `overflow: hidden` for its rounded
+   corners, so any card whose content ran past that had the rest cut off.
+   Measured on a three-line AiMY note: the block's tint, the basis line and
+   part of the number were simply gone.
+
+   The grid's `align-items: stretch` was already doing the job the height was
+   added for. Without the height the row sizes to its tallest card and every
+   card stretches to match it, which is the same result and cannot clip. */
+.b-qcard { gap: 0; height: auto; }
 .b-qcard .tc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .b-qcard .tc-type { margin-left: auto; text-align: right; }
-.b-qcard .tc-summary { line-height: var(--lh-snug); }
 
-/* Why they are on this rung, in the same ink as the row it replaced. */
-.b-qcard-why { font-size: var(--fs-xs); color: var(--d200); }
-.b-qcard-why b { color: var(--d50); font-weight: var(--fw-bold); }
+/* ── THE CARD'S OWN PADDING IS ON ITS CHILDREN ────────────────────────────
+   `.type-card` is `padding: 0` and every `.tc-*` part carries `… 14px` of its
+   own. Two of the parts here are this build's and had none, so the reason
+   line and the note ran flush to the card's left edge while the name and the
+   company above them were indented — a ragged margin down the middle of every
+   card. The 14px is the library's number, not a new one. */
+.b-qcard-why { padding: 8px 14px 0; }
+.b-qcard .b-qcard-note { padding: 6px 14px 0 23px; }
 
-/* What was said last time, in the words it was written in. Quoted, so it
-   reads as somebody's sentence rather than as the product's. */
-.b-qcard-note {
-  margin: 0; font-size: var(--fs-xs); color: var(--d400);
-  line-height: var(--lh-snug);
+/* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
+   The first cut ranked by ink alone and everything was a different grey, with
+   the number a caller was about to dial the faintest thing on the card. The
+   second overcorrected: nearly everything at full white, so the name at 16/800
+   and the reason at 14/600 were both shouting and neither led.
+
+   Size, weight and ink now descend together, which is what makes a hierarchy
+   read at a glance rather than on inspection. Nothing drops below `--d400`,
+   so nothing is dim — the lower steps are barely muted, not faded out.
+
+     16 / 800 / d50    the name          what you are choosing between
+     13 / 700 / d50    why they are here smaller than the name, so it reads second
+     13 / 600 / d100   the role          identity
+     12 / 500 / d300   the company       context you read once
+     12 / 400 / d300   what was said     somebody else's sentence, italic
+     12 / 600 / d200   the number        the thing you are about to dial
+     10 / 700 / d400   the campaign      a label, not a sentence
+
+   Scoped to `.b-qcard`, so no other card in the product moves. */
+.b-qcard .tc-type {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d400);
+}
+.b-qcard .tc-title {
+  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight); color: var(--d50);
+}
+.b-qcard .b-qcard-role {
+  padding: 6px 14px 0; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--d100);
+}
+.b-qcard-where {
+  margin: 0; padding: 2px 14px 0;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--d300);
+}
+.b-qcard-why {
+  font-size: var(--fs-base); font-weight: var(--fw-bold);
+  line-height: var(--lh-snug); color: var(--d50);
+}
+.b-qcard .b-qcard-note {
+  margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-regular);
+  line-height: var(--lh-snug); color: var(--d300);
 }
 
 /* The number and the one action, pushed to the foot of the card so every card
@@ -235,9 +269,36 @@
   justify-content: space-between; gap: 8px; flex-wrap: wrap;
 }
 .b-qcard-num {
-  font-size: var(--fs-xs); font-variant-numeric: tabular-nums; color: var(--d400);
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; color: var(--d200);
 }
 
 /* The keyboard cursor on a card. A ring rather than a tint: a card already
    has a ground of its own, and tinting it would fight the status tag on it. */
 .b-qcard.is-cursor { border-color: var(--accent); }
+
+/* ══ 12. WHAT AiMY KNOWS ABOUT THIS ONE ════════════════════════════════════
+   One line per card, under the mark, with the record it came from named
+   underneath it. The mark is what makes it AiMY's rather than the product's,
+   and the basis line is what makes it a reading rather than an assertion —
+   an insight that cannot say where it came from is one a caller has to take
+   on trust, and the first wrong one costs the rest.
+
+   Tinted rather than bordered: it belongs to the card, not beside it. */
+.b-aimy {
+  display: flex; gap: 8px; align-items: flex-start;
+  margin: 10px 14px 0; padding: 10px 12px;
+  background: var(--accent-dim);
+  border-radius: var(--r-md);
+}
+.b-aimy-mark { width: 13px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+.b-aimy-say {
+  min-width: 0; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--d100);
+}
+.b-aimy-say b { font-weight: var(--fw-bold); }
+.b-aimy-from {
+  display: block; margin-top: 4px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+}
