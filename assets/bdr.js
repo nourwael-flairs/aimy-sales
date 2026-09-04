@@ -3491,6 +3491,11 @@
       e.preventDefault();
       const c = DB.call;
       if (!c) {
+        /* Only where there is a queue in front of you. On the list builder
+           the obvious next thing is not "dial somebody" — it is the surface
+           you are actually on, and Enter guessing otherwise is the product
+           taking an action nobody asked for. */
+        if (S.lists) return;
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
         if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
       } else if (c.state === 'ready') callGo();
