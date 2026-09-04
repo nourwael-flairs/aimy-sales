@@ -1375,7 +1375,8 @@
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
     const r = RUNG[c.checkpoint] || RUNG['not-called'];
     const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
-    return '<article class="type-card s-card b-qcard" data-card="' + esc(c.id) + '">' +
+    return '<article class="type-card s-card b-qcard" data-card="' + esc(c.id) + '" ' +
+      'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
         (camp ? '<span class="tc-type">' + esc(camp.name) + '</span>' : '') +
@@ -1535,7 +1536,7 @@
     const fresh = q.filter((c) => c.checkpoint === 'not-called').length;
     const left = daysBetween(TODAY_ISO, k.to);
     const members = membersOf(k.id);
-    return '<article class="type-card s-card b-qcard">' +
+    return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (left > 0 ? esc(plural(left, 'day')) + ' left' : 'past its end') + '</span>' +
@@ -1606,7 +1607,7 @@
     const camp = l.for && DB.byCamp[l.for];
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
     const ring = people.filter(callable).length;
-    return '<article class="type-card s-card b-qcard">' +
+    return '<article class="type-card s-card b-qcard" data-open="list:' + esc(l.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + (camp ? 'ok' : 'neutral') + '">' +
           (camp ? 'On a campaign' : 'Not on one yet') + '</span>' +
@@ -5561,6 +5562,32 @@
       pt.setAttribute('aria-expanded', String(!panel.hidden));
       paintProto();
       return;
+    }
+
+    /* ══ THE WHOLE CARD IS THE DOOR ════════════════════════════════════════
+       A card is a hundred and eighty pixels of one thing, and only the title
+       inside it opened that thing — so the way in was a twelve-pixel line of
+       text, and the other ninety-odd per cent of the card did nothing when
+       pressed, which is the one behaviour a card shape promises.
+
+       LAST, ON PURPOSE. The router matches by `closest` and returns on the
+       first hit, so every control inside a card — Call, the campaign chip,
+       the title itself — is matched above and wins. Only a press on the
+       card's own surface reaches here. Written as a trailing fallback rather
+       than as a list of things to ignore, because such a list goes stale the
+       next time a control is added to a card. */
+    const card = t.closest('[data-open]');
+    if (card) {
+      /* A press that was a text selection is not a press. */
+      const sel = window.getSelection();
+      if (sel && String(sel).length > 2) return;
+      const bits = card.getAttribute('data-open').split(':');
+      const over = cleared();
+      over[bits[0]] = bits.slice(1).join(':');
+      /* A list lives under the lists surface, so opening one has to say
+         which surface it is under or the router lands on the queue. */
+      if (bits[0] === 'list') over.on = 'lists';
+      go(over);
     }
   });
 

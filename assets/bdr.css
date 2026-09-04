@@ -346,3 +346,15 @@
    the industry, loud enough that the domain is still readable, because a
    fact nobody can read is a fact that may as well not be drawn. */
 .b-faint { color: var(--d600); }
+
+/* ══ 16. A CARD THAT OPENS SOMETHING LOOKS LIKE IT ═════════════════════════
+   The library already gives `.type-card` a hover state — the border lifts and
+   a shadow arrives — which is a promise that pressing it does something. It
+   did not: only the title inside was a door, so the hover was a lie the card
+   told about ninety per cent of its own surface.
+
+   The pointer is the other half of that promise, and it is all that is added:
+   the border and the shadow already say the card is live, and a second
+   emphasis on top of them would make a grid of fifteen cards flash. Controls
+   inside keep their own cursors, and the router matches them first. */
+.b-qcard[data-open] { cursor: pointer; }
