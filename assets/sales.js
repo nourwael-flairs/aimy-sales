@@ -12654,6 +12654,17 @@
             opinion. The one thing on either side that IS a reading keeps
             the mark it already has, inside the column it belongs to. */ ''}
       ${(l.members || []).length ? `<div class="s-wrong">
+        ${/* ══ ONE MARK, FOR THE WHOLE PANEL ═════════════════════════════
+              The right column carried its own `AiMY reads it` card inside
+              this one, which is an AiMY block nested in an AiMY block. The
+              mark belongs to the panel: everything under it — which
+              obstacles rank where, which objection ranks where, what the
+              organizations that raised it have in common — is AiMY reading
+              the campaign, and the counts are the working it shows. */ ''}
+        <p class="s-lead-mark s-wrong-mark">
+          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+          AiMY reads it
+        </p>
         ${campInWay(l)}
         ${campOffer(l)}
       </div>` : ''}
@@ -18523,11 +18534,10 @@
       const noWhy = campSent(l).filter((t) => t.outcome === 'negative' && !t.objection).length;
       return `<section class="s-sheet-block" aria-label="What to offer better">
         ${campSectHead('What to offer better')}
-        <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
-          <p class="s-lead-mark">
-            <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-            AiMY reads it
-          </p>
+        ${/* No card and no mark of its own: the panel this column sits in
+              carries one, and a second inside it read as an AiMY block
+              nested in an AiMY block. */ ''}
+        <div class="s-offer-read" data-aimy-item="offer-${esc(l.k)}">
           <span class="s-insight-txt">${noWhy
             ? `<b>${noWhy}</b> ${noWhy === 1 ? 'call on this campaign ended in a no and does' : 'calls on this campaign ended in a no and none of them says'} why. <b>I have nothing to tell you about the offering</b> until somebody writes the reason down.`
             : `Nobody on this campaign has said no yet, so there is <b>nothing to read about the offering</b>. This fills in as reasons get logged — it is not a sign the offering is right.`}</span>
@@ -18658,11 +18668,37 @@
       ${campSectHead('What to offer better',
         `${top.n} of the ${said} who told us why said it was ${top.label.toLowerCase()}.`)}
 
-      <div class="s-insight is-quote" data-aimy-item="offer-${esc(l.k)}">
-        <p class="s-lead-mark">
-          <svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
-          AiMY reads it
-        </p>
+      ${/* Same row, same reasons — the figure is what ranks these and the
+            row is what opens them. The container carries `is-quiet`, which
+            steps the figures down: this block reads a fifth of the evidence
+            the one above it does, and repetition WITH variation is what says
+            "same kind of thing, less of it" instead of "here it is again".
+
+            The count is people who gave a reason; the door opens the
+            organizations they were at, and those differ when two people at
+            one company said the same thing. The label says which it is
+            rather than promising a number the destination will not match. */ ''}
+      <div class="s-reasons is-quiet">
+        ${/* People, not organizations — `offeringGaps` counts touchpoints
+              carrying an objection, so two people at one company who both
+              said pricing are two. The header is where that distinction
+              becomes visible instead of being buried in a caveat. */ ''}
+        <p class="s-reasons-head">People</p>
+        ${gaps.map((g) => {
+          const on = accFor(g.k);
+          return reasonRow(
+            g.n,
+            `${g.label} — ${g.blurb}`,
+            `data-quick="${esc(campQuick(l.k, { ids: on.join(',') }))}"`,
+            `Show the ${plural(on.length, 'organization')} where somebody said ${g.label.toLowerCase()}`);
+        }).join('')}
+      </div>
+      ${/* ══ THE READING AFTER THE ROWS IT READS ═══════════════════════════
+            It sat above them, so the conclusion arrived before its own
+            evidence — invisible while it was a card of its own and obvious
+            once the card dissolved. Sentence, breakdown, what AiMY makes of
+            it, what to do: the same order the column beside it reads in. */ ''}
+      <div class="s-offer-read" data-aimy-item="offer-${esc(l.k)}">
         ${/* "1 of the 1 who gave a reason" is what the general form produces
               on a campaign where one person has said why, and it reads as a
               statistic about nothing. Where the top reason IS every reason,
@@ -18697,32 +18733,6 @@
                   data-entry-mode="prompt" data-aimy-topic="offer-${esc(l.k)}-ask"
                   data-aimy-ask="${esc(ask)}">Ask about it</button>
         </span>
-      </div>
-
-      ${/* Same row, same reasons — the figure is what ranks these and the
-            row is what opens them. The container carries `is-quiet`, which
-            steps the figures down: this block reads a fifth of the evidence
-            the one above it does, and repetition WITH variation is what says
-            "same kind of thing, less of it" instead of "here it is again".
-
-            The count is people who gave a reason; the door opens the
-            organizations they were at, and those differ when two people at
-            one company said the same thing. The label says which it is
-            rather than promising a number the destination will not match. */ ''}
-      <div class="s-reasons is-quiet">
-        ${/* People, not organizations — `offeringGaps` counts touchpoints
-              carrying an objection, so two people at one company who both
-              said pricing are two. The header is where that distinction
-              becomes visible instead of being buried in a caveat. */ ''}
-        <p class="s-reasons-head">People</p>
-        ${gaps.map((g) => {
-          const on = accFor(g.k);
-          return reasonRow(
-            g.n,
-            `${g.label} — ${g.blurb}`,
-            `data-quick="${esc(campQuick(l.k, { ids: on.join(',') }))}"`,
-            `Show the ${plural(on.length, 'organization')} where somebody said ${g.label.toLowerCase()}`);
-        }).join('')}
       </div>
     </section>`;
   }

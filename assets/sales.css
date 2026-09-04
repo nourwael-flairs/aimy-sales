@@ -7393,8 +7393,35 @@ div.s-pipe-cell { cursor: default; }
   background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
   padding: 20px;
   border-radius: var(--r-lg);
-  margin-bottom: 24px;
+  /* THE SECTION BREAK BELONGS TO THE PANEL. It used to come from the first
+     column head's own 64px top margin; the panel resets those to zero so the
+     two columns start level, which left the whole block sitting 20px under
+     the Client row above it. */
+  margin: 64px 0 24px;
 }
+/* The mark spans both columns and reads once, above them. */
+.s-wrong-mark { grid-column: 1 / -1; margin: 0; }
+/* ── THE READING, WITH NO CARD AROUND IT ──
+   It was a bordered panel inside the panel. What made it legible as AiMY's
+   was the card; what makes it legible now is that the whole block is, so it
+   is set as prose with the spacing doing the separating. */
+.s-offer-read { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+/* `.s-insight-txt` ships `flex: 1 1 200px`, which inside a ROW is a sensible
+   minimum measure and inside this COLUMN is a 200px HEIGHT basis — the
+   two-line sentence measured 170px tall with 130px of it empty, which is the
+   hole under the reading. Here it is prose in a stack, so it sizes to its
+   own text. The type comes with it: it used to be set by the card. */
+.s-offer-read .s-insight-txt {
+  flex: none; display: block;
+  font-size: var(--ty-body); color: var(--ink-secondary);
+}
+.s-offer-read .s-insight-txt b { color: var(--ink-primary); }
+.s-offer-read .s-insight-acts { flex: none; }
+/* And the proposal loses its raised ground with the card that held it. It was
+   a surface inside a surface to say "this part is different"; inside a panel
+   that is already AiMY's, a third ground reads as a third block. The label
+   above it and the space around it were always what set it apart. */
+.s-offer-read .s-offer-fix { background: none; padding: 0; margin-top: 0; }
 /* The section break belongs to the panel, not to the heads inside it — they
    are columns now, and a 64px top margin on a column head is a column that
    starts two-thirds of the way down its own box. */
