@@ -12453,6 +12453,11 @@
       held.length ? { n: held[0].n, of: total } : null,
       held.length ? 'Organizations, at the step that is holding the most.' : null)}
     <nav class="s-pipe" aria-label="Campaign stages">${strip}</nav>
+    ${/* HOW MUCH OF IT HAS HAPPENED, under the five steps it happened at.
+          The nodes each carry one figure and none of them carries the
+          total, the mix or the drag — which is what this is, and it spent
+          the whole of this page's life filed under "what it is". */ ''}
+    ${campTally(l) || ''}
     ${/* The stage gets a heading of its own now that it is not a list item.
           `h3` under the section's `h2`, which puts the blocks inside it back
           at `h4` where they belong — Copy and Queue are parts of Reach, not
@@ -12577,11 +12582,20 @@
       ${l.goal || (l.members || []).length ? campInsight(l, { onPage: true, said }) : ''}
       ${canWrite() ? '' : raiseRow(l.k, l.name)}
 
-      ${/* Identity under the recommendation and above the flow: it is true
-            at every step, and a campaign you cannot describe is one you
-            cannot work. */ ''}
-      ${campIdentity(l)}
+      ${/* ══ THE WORK FIRST, THE PAPERWORK LAST ═══════════════════════════
+            The order was: recommendation, 917px of identity rows, two
+            findings, the flow. So the thing a campaign page exists for —
+            which step is holding the work, and what is in that step — began
+            1,500px down, and everything AiMY had concluded was cut in half
+            by the campaign's own description.
 
+            Three kinds of thing live on this page: what to do now, what was
+            found, and what the campaign is. They are in that order now, and
+            each announces itself, which is the whole of the sectioning —
+            no rules, no borders, no boxes. The identity rows are reference:
+            true at every step, needed on none of them, and read when you go
+            looking rather than on the way past. */ ''}
+      ${campFlow(l)}
       ${/* BOTH ABOVE THE FLOW, and in this order. What is stopping it is a
             fact about the campaign in the same way its goal is — true at
             every stage, belonging to none of them — so burying it inside
@@ -12608,7 +12622,8 @@
       ${(l.members || []).length ? campInWay(l) : ''}
       ${(l.members || []).length ? campOffer(l) : ''}
 
-      ${campFlow(l)}
+
+      ${campIdentity(l)}
       </div>
     </div>`;
   }
@@ -13006,7 +13021,32 @@
       <span class="s-id-people">${body}</span>
     </div>`;
 
-    return `<div class="s-camp-id s-crew">
+    /* ══ THE ONE REGION WITH NO NAME ═══════════════════════════════════
+       Three sections on this page announce themselves — In the way, What to
+       offer better, Where the work is — and the largest did not, so seven
+       captioned rows ran straight out of an insight panel and straight into
+       a finding with nothing saying where one ended. No rule and no border:
+       a named region ends where the next name begins.
+
+       And the deck is a reading rather than a label, like the other three.
+       What a description section can say about itself is how much of it has
+       been filled in, and every row here carries the control that fills
+       its own gap. */
+    const desc = [
+      ['a goal', !!l.goal],
+      ['who it is aimed at', (l.personas || []).length > 0],
+      ['what it sells', (l.sells || []).length > 0],
+      ['a client', !!l.client],
+      ['a window', !!l.from],
+    ];
+    const blank = desc.filter((d) => !d[1]).map((d) => d[0]);
+    return `${campSectHead('What it is',
+      blank.length
+        ? `It is missing ${blank.length === 1 ? blank[0]
+          : `${blank.slice(0, -1).join(', ')} and ${blank[blank.length - 1]}`}.`
+        : 'Everything that describes it is filled in.',
+      blank.length ? { n: blank.length, of: desc.length } : null, null)}
+    <div class="s-camp-id s-crew">
       ${/* THE GOAL IS THE THESIS, AND IT WAS SET AS A FIELD VALUE.
 
             Five rows, one suit: a three-line statement of what this campaign
@@ -13030,7 +13070,12 @@
             An empty or unstarted campaign has nothing to tally and a row of
             four zeroes would be a worse answer than the sentence that says
             nobody is on it yet. */ ''}
-      ${row('Progress', campTally(l) || `<span class="s-goal-text">${esc(campProgressSay(l))}</span>`)}
+      ${/* ══ PROGRESS WENT WHERE PROGRESS IS ══════════════════════════════
+            292px of figures, a bar and a drag sentence, in a list whose
+            other six rows are one line each — so the block did not read as
+            a list even before you asked what it was a list OF. It is not
+            what the campaign IS, it is what has happened to it, and it now
+            sits under the five nodes that say the same thing per step. */ ''}
 
       ${/* ══ WHO IT IS AIMED AT, AND WHETHER IT IS KEEPING UP ═════════════
             Two questions the page could answer and did not. The persona was

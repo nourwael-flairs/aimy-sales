@@ -3940,7 +3940,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the row below is another. It was 12 against 8 and the block read as nine
    evenly-spaced lines rather than five groups. */
 .s-camp-id {
-  gap: 24px; margin-bottom: 0;
+  gap: 16px; margin-bottom: 0;
   max-width: 88ch;
 }
 /* ══ THE GAP INSIDE A NAME IS NOT THE GAP BETWEEN GROUPS ═════════════════
@@ -5214,7 +5214,31 @@ body.is-calling { --fb-reserve: var(--call-width); }
    `flex-wrap` is deliberately off. If a deck ever does run long, it wraps
    under itself inside its own column rather than dropping below the figure
    — which is what turned this into an L the first time. */
-.s-sect-head { margin: 48px 0 24px; }
+/* ══ THE LADDER, WHICH IS THE WHOLE OF THE SECTIONING ═══════════════════
+   No rules, no borders, no boxes: the only thing separating one region of
+   the campaign page from the next is how far apart they are, so the gaps
+   have to be far enough apart from each other to be READ as different.
+
+   They were not. 24 between the rows inside a section, 24 between blocks,
+   48 between sections — 2:1, which reads as "a bit more" — and ZERO around
+   the identity block, the largest thing on the page. The biggest structural
+   boundary had the smallest gap, which is exactly what "everything is
+   leaking into everything" describes.
+
+   64 / 24 / 16. A 4:1 ratio between the outer step and the inner one is not
+   a judgement call for the reader to make. */
+.s-sect-head { margin: 64px 0 24px; }
+/* Two exceptions, both narrowed to a DIRECT child so a head nested inside a
+   block cannot claim them — the first cut used `:first-of-type` unscoped,
+   which every block's own head matched, and the 64 landed nowhere.
+
+   The first head on the page follows the title and the recommendation, so it
+   takes the header's gap rather than a section break's. */
+.s-camp-page .s-rec-main > .s-sect-head:first-of-type { margin-top: 32px; }
+/* And the second finding pairs with the first rather than starting again:
+   what is in the way and what to offer better are one region read in order,
+   so they sit a block apart and not a section apart. */
+.s-camp-page .s-sheet-block + .s-sheet-block > .s-sect-head { margin-top: 24px; }
 .s-sect-main { display: flex; align-items: baseline; gap: 12px; }
 .s-sect-fig {
   display: flex; align-items: baseline; gap: 8px; flex: none;
@@ -7372,6 +7396,8 @@ div.s-pipe-cell { cursor: default; }
 /* Prose. The quote panel was sized for a paragraph, and a four-character
    description turned it into a mostly empty box. */
 .s-camp-page .s-sheet-block { margin-bottom: 24px; }
+/* The tally closes the flow section; the next head owns the gap after it. */
+.s-camp-page .s-tally { margin-bottom: 24px; }
 /* The campaign's own title override is gone — `.s-sheet-name` carries the
    title step for both surfaces now. */
 
