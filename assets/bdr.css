@@ -402,3 +402,18 @@
    is a sentence, because three counts that share one fact — these people are
    no longer callable — read as a sentence and not as a scale. */
 .b-tally-out { margin-top: 6px; font-size: var(--fs-xs); color: var(--d600); }
+
+/* ══ 18. THE ACTIONS BELOW THE TITLE ROW ═══════════════════════════════════
+   `Call these 15` and `Let AiMY call 15` are drawn from what the search
+   matched, so they come and go while you type. Sharing a flex row with the
+   search box meant the box moved every time they did — sliding sideways under
+   the cursor mid-word, which is the one thing a search field must never do.
+
+   So they live here, under a title row that holds only what cannot change:
+   the switcher, whose counts are of the whole book, and the box. Pulled up
+   into the head's own bottom margin so the two rows still read as one header
+   rather than as a header and a stray row of links. */
+.b-acts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: -8px 0 16px;
+}

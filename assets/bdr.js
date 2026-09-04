@@ -1483,8 +1483,17 @@
   /* The queue's own renderer. Not `vlist`: that positions rows by arithmetic
      down one column, and a grid's geometry is the browser's job. A page is
      fifteen cards, so there is nothing to window. */
+  /* AN EMPTY GRID HAS TO SAY WHICH EMPTINESS IT IS. "Nobody on this rung"
+     is true of a cut with nobody in it and false of a search that found
+     nothing — and the second is the one you reach by typing, where the
+     answer you need is your own words back and a way out of them. */
   function qgrid(rows) {
-    if (!rows.length) return '<p class="b-vfoot">Nobody on this rung.</p>';
+    if (!rows.length) {
+      return S.find
+        ? '<p class="b-vfoot">Nobody here matches “' + esc(S.find) + '”. ' +
+          '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
+        : '<p class="b-vfoot">Nobody on this rung.</p>';
+    }
     return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
   }
 
@@ -2154,19 +2163,32 @@
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
     const ring = pg.rows.filter((c) => rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
+      /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
+         The box sat in the same flex row as `Call these 15` and `Let AiMY
+         call 15`, and those two are drawn from what the search matched —
+         so typing emptied them, the row reflowed, and the box slid sideways
+         under the cursor mid-word. A control that moves while you are using
+         it is the one thing a search field must never do.
+
+         So the title row holds only what cannot change while you type: the
+         switcher, whose counts are of the whole book, and the box. The run
+         actions go underneath, where appearing and disappearing costs
+         nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
         findBox(S.camp ? 'Find someone on this campaign' : 'Find a name, a company, a campaign') +
-        (ring.length
-          ? '<button class="s-inline-btn" type="button" data-callall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
-            '<button class="s-inline-btn s-ai-btn" type="button" data-autocall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Let AiMY call ' + ring.length + '</button>'
-          : '') +
       '</div>' +
+      (ring.length
+        ? '<div class="b-acts">' +
+          '<button class="s-inline-btn" type="button" data-callall="' +
+            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
+          '<button class="s-inline-btn s-ai-btn" type="button" data-autocall="' +
+            esc(ring.map((c) => c.id).join(',')) + '">Let AiMY call ' + ring.length + '</button>' +
+        '</div>'
+        : '') +
       cuts(counts, all) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
@@ -2298,7 +2320,8 @@
       topBrief('lists') +
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
-          findBox('Find a list, a criterion, a source') +
+          findBox('Find a list, a criterion, a source') + '</div>' +
+        '<div class="b-acts">' +
           '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
         '</div>' +
         '<p class="s-block-sub">A list is how new people reach your queue. Describe who to ' +
@@ -6035,14 +6058,25 @@
     const box = e.target.closest && e.target.closest('[data-find]');
     if (!box) return;
     const at = box.selectionStart;
+    const sc = byId('pageScroll');
+    const keep = sc ? sc.scrollTop : 0;
     go({ find: box.value, p: '' }, true);
     const again = document.querySelector('[data-find]');
     if (again) {
-      /* `preventScroll`, because focusing an element the browser thinks is
-         out of view scrolls it there — and the one thing a person typing
-         into a search box has not asked for is the page moving under them. */
+      /* ══ NEITHER OF THESE MAY MOVE THE PAGE ═════════════════════════════
+         `focus` scrolls an element the browser thinks is out of view, so it
+         is told not to. `setSelectionRange` scrolls the CARET into view and
+         takes no such option, so the scroller's position is taken before the
+         repaint and put back after — which covers both without either of
+         them having to be trusted.
+
+         Measured after: five keystrokes from the top of the page and five
+         from 600px down, and the scroller does not move by a pixel in
+         either. Typing narrows a list, and narrowing a list is not a reason
+         to go anywhere. */
       try { again.focus({ preventScroll: true }); } catch (x) { again.focus(); }
       try { again.setSelectionRange(at, at); } catch (x) {}
+      if (sc) sc.scrollTop = keep;
     }
   });
 
