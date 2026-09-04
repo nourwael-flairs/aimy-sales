@@ -281,6 +281,41 @@ const BANNED = [
   }
 }
 
+/* ── 8 · A TOUCHPOINT IS NOT ALWAYS A CALL ────────────────────────────────
+
+   `OUTCOME[t.outcome].label` was written when every touchpoint was a call.
+   Then a rung could be settled by hand and a company profile could be sent —
+   both touchpoints, neither with an entry in that lexicon — and two surfaces
+   read `.label` off `undefined`.
+
+   THE FAILURE IS WHY THIS IS WORTH CHECKING. It throws inside the string a
+   page is built from, so the assignment never happens and the surface keeps
+   the markup it had before the write. Nothing looks broken; the write simply
+   appears not to have landed, which is the hardest kind of defect to be told
+   about. It cost a debugging session here.
+
+   Narrow on purpose: only `OUTCOME[…outcome]` dereferenced straight through.
+   That is the one key in this file whose domain has widened and will widen
+   again, and a check that flagged every lexicon lookup produced twenty-nine
+   findings of which one was real. `kindLabel` is the guarded reader; the
+   ternary and `|| {}` forms are fine and are not flagged. */
+{
+  const src = read('assets/bdr.js');
+  const re = /OUTCOME\[([A-Za-z_$][\w$]*\.outcome)\]\s*\./g;
+  let x;
+  while ((x = re.exec(src))) {
+    const from = src.lastIndexOf('\n', x.index) + 1;
+    const line = src.slice(from, src.indexOf('\n', x.index));
+    /* `X ? OUTCOME[x.outcome].label : …` and `(OUTCOME[x.outcome] || {}).label`
+       both survive a missing key. */
+    if (/\?|\|\|\s*\{/.test(line)) continue;
+    fail('8 touchpoint-kind',
+      'OUTCOME[' + x[1] + '] is dereferenced unguarded — a touchpoint that is ' +
+      'not a call throws here and the surface silently keeps its last render. ' +
+      'Use kindLabel(): ' + line.trim().slice(0, 80));
+  }
+}
+
 /* ── Report ──────────────────────────────────────────────────────────────── */
 notes.push('handlers ' + handlers.size + ' · controls ' + drawn.size +
   ' · classes used ' + used.size + ' · rules this build defines ' + mineDefined.size);

@@ -106,6 +106,22 @@
     if (n > 0 && n < 7) return 'in ' + n + ' days';
     return sayDay(iso);
   };
+  /* HOW LONG AGO, ALWAYS RELATIVE. `sayWhen` falls back to the date past a
+     week, which is right inside a sentence and wrong in a column beside the
+     date itself: the call history printed "16 Aug · Omar Fathy · Callback ·
+     16 Aug" — the same fact twice with three hundred pixels between the
+     copies. Weeks rather than days past a fortnight, because "37 days ago" is
+     a number you have to convert before it means anything. */
+  const sayAgo = (iso) => {
+    const n = -daysBetween(TODAY_ISO, iso.slice(0, 10));
+    if (n <= 0) return 'today';
+    if (n === 1) return 'yesterday';
+    if (n < 7) return n + ' days ago';
+    if (n < 14) return 'last week';
+    if (n < 60) return Math.round(n / 7) + ' weeks ago';
+    return Math.round(n / 30) + ' months ago';
+  };
+
   /* ══ WRITTEN WITHOUT A REGEX, AND ON PURPOSE ═══════════════════════════
      This was `replace(/\B(?=(\d{3})+(?!\d))/g, ',')` and the shell on this
      machine ate the backslashes out of it — twice, through a quoted heredoc
@@ -225,6 +241,16 @@
     { k: 'renewal-near', label: 'Renewal near' },
     { k: 'other',        label: 'Something opened' },
   ];
+  /* ══ NOT EVERY TOUCHPOINT IS A CALL ════════════════════════════════════
+     Two of them are not: a rung somebody settled by hand, and the company
+     profile going out after a call that went nowhere. Both are written to
+     the record as touchpoints because that is what they are, and both need
+     a name — without one the history printed the raw key, `sent`, in the
+     slot where every other row says how a call went. */
+  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent' };
+  const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
+    : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
+
   const OPENING = Object.create(null);
   OPENINGS.forEach((o) => (OPENING[o.k] = o));
   const openLabel = (k) => (OPENING[k] ? OPENING[k].label : k);
@@ -1346,16 +1372,6 @@
         empty: 'Nobody has rung this company yet.',
       });
     }
-    const h = byId('histList');
-    if (h) {
-      const c = DB.byCon[S.con];
-      vlist({
-        host: h,
-        items: peek((DB.touchesOf[S.con] || []).map((id) => TOUCH[id]).filter(Boolean)).rows,
-        rowH: 64, rowClass: 's-qrow', key: (t) => t.id, row: touchRow,
-        empty: c && untouched(c) ? 'Nobody has rung them yet.' : 'No calls on the record.',
-      });
-    }
   }
 
   /* ══ ONE PERSON, AS A CARD ══════════════════════════════════════════════
@@ -1477,8 +1493,14 @@
       };
     }
     if (last) {
-      return { text: 'Last call was ' + esc(OUTCOME[last.outcome].label.toLowerCase()) + ', ' +
-        esc(sayWhen(last.at)) + '.', from: 'the call before this one' };
+      /* `kindLabel`, not `OUTCOME[...]`. The newest touchpoint stopped being
+         guaranteed to be a call the moment a rung could be settled by hand
+         and a profile could be sent, and this read `undefined.label` on both
+         — a throw inside the page's own string, so the whole record failed to
+         render and the surface simply kept showing the version before the
+         write. A write that appears not to have happened. */
+      return { text: 'Last was ' + esc(kindLabel(last).toLowerCase()) + ', ' +
+        esc(sayWhen(last.at)) + '.', from: 'the touchpoint before this one' };
     }
     return null;
   }
@@ -1658,7 +1680,7 @@
   function campTouchRow(t) {
     const c = DB.byCon[t.con];
     const o = OUTCOME[t.outcome];
-    const head = o ? o.label : t.moved ? rungLabel(t.moved[1]) : t.outcome;
+    const head = kindLabel(t);
     return '<div class="s-qrow-id">' +
         '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
           esc(c ? c.name : 'Somebody') + '</button>' +
@@ -1668,24 +1690,6 @@
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
   }
 
-  /* One call on the record. What happened, what came of it, and when. */
-  function touchRow(t) {
-    const o = OUTCOME[t.outcome];
-    const said = t.proposals.map((p) => PROPOSAL[p] && PROPOSAL[p].label).filter(Boolean)
-      .concat(t.objections.map((p) => OBJECTION[p] && OBJECTION[p].label).filter(Boolean));
-    /* A rung somebody moved by hand is not a call, and the history says so
-       rather than filing it under an outcome it never had. */
-    const head = o ? o.label
-      : t.moved ? rungLabel(t.moved[0]) + ' → ' + rungLabel(t.moved[1])
-      : t.outcome;
-    return '<div class="s-qrow-id">' +
-        '<span class="s-qrow-name">' + esc(head) + '</span>' +
-        '<span class="s-qrow-sub">' + esc(actor(t.by).name) + ' · ' + esc(sayWhen(t.at)) + '</span>' +
-      '</div>' +
-      '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span>' +
-        (said.length ? '<span class="s-qrow-lead">' + esc(said.join(' · ')) + '</span>' : '') +
-      '</div>';
-  }
 
   /* ── THE RAIL — one reading, in the shell's own card ──
      Same anatomy the V3 rail uses: a scope line, then a briefing card of
@@ -3192,6 +3196,7 @@
             (camps.length ? ' · On ' + camps.map((k) => esc(k.name)).join(', ') : ' · On no campaign') +
           '</p>' +
           ladder(c) +
+          '<p class="s-block-sub">' + esc(whatNext(c)) + '</p>' +
           movesBlock(c) +
           (c.next ? '<p class="s-block-sub">Next: <b>' + esc(c.next.what) + '</b> ' +
             esc(sayWhen(c.next.due)) + '.</p>' +
@@ -3204,17 +3209,58 @@
             : '') +
           (c.remember ? '<p class="s-block-sub">Remember — ' + esc(c.remember.text) +
             ' <i>' + esc(actor(c.remember.by).name) + '</i></p>' : '') +
+          /* The same line the card carries, on the surface you land on when
+             you press the card. A reading that only exists in a grid is a
+             reading you lose by opening the thing it is about. */
+          aimyBlock(aimySays(c)) +
         '</div>' +
       '</section>' +
       '<section class="s-block s-block-wide" aria-label="What has been said">' +
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">What has been said</h2>' +
-          '<span class="s-block-say">' + plural(n, 'call') + ' on the record</span>' +
+          '<span class="s-block-say">' + plural(n, 'touchpoint') + ' on the record</span>' +
         '</div>' +
-        '<div class="b-vlist" id="histList"></div>' +
-        peekFoot(peek(DB.touchesOf[c.id] || []), 'call') +
+        callsBlock(c) +
       '</section>' +
     '</div>';
+  }
+
+  /* ══ EVERY TOUCHPOINT, WITH THE WHOLE OF IT INSIDE ═════════════════════
+     It was a one-line row: outcome, who, when, and the note squeezed beside
+     them. Everything a call actually produced — what was asked for, what
+     pushed back, what opened, which rung it moved, what it left owing, the
+     transcript — was written to the record and shown nowhere on it.
+
+     So it is the record's card, drawn by the renderer the read-back uses.
+     The closed line is when · who dialled · how it went, which is the whole
+     of what a history is scanned for; everything else is inside.
+
+     NEWEST OPEN. The last call is the one you need before the next, and a
+     history whose every entry is shut asks you to press before it tells you
+     anything. */
+  function callsBlock(c) {
+    const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    if (!all.length) {
+      return '<p class="b-vfoot">' + (untouched(c)
+        ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
+    }
+    const pg = peek(all);
+    return '<div class="s-calls">' + pg.rows.map((t, i) => {
+      const o = OUTCOME[t.outcome];
+      return '<details class="s-call"' + (i === 0 ? ' open' : '') + '>' +
+        '<summary class="s-call-sum">' +
+          '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
+          '<span class="s-call-by' + (t.by === 'aimy' ? ' is-ai' : '') + '">' +
+            esc(actor(t.by).name) + '</span>' +
+          '<span class="s-call-out tone-' + esc(o ? o.tone : 'neutral') + '">' +
+            esc(kindLabel(t)) + '</span>' +
+          '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
+        '</summary>' +
+        '<div class="s-call-body">' +
+          callSummaryHtml(factsOfTouch(t), c, t.note, t.lines) +
+        '</div>' +
+      '</details>';
+    }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
   }
 
   /* The rungs only a person can settle. Rendered only where they apply — a
@@ -3235,7 +3281,37 @@
     return '<div class="b-cuts">' + ms.map((m, i) =>
       '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
       '" type="button" data-move="' + esc(m.k) + '">' + esc(m.label) + '</button>').join('') +
+      /* Offered wherever they have been reached and there is no meeting:
+         that is exactly the case the process calls "showed no interest". */
+      (c.checkpoint === 'answered' || c.checkpoint === 'callback'
+        ? '<button class="s-inline-btn" type="button" data-sendprofile="' + esc(c.id) +
+          '">Send the company profile</button>'
+        : '') +
     '</div>';
+  }
+
+  /* ══ WHAT HAPPENS NEXT, AND WHOSE JOB IT IS ════════════════════════════
+     The ladder says where they stand. It does not say what standing there
+     means you do — and for the last two rungs it means somebody else does
+     it. A BDR's part of this process ends at the handover: discovery, the
+     proof meeting, the commercial one and the resolution belong to the
+     director, and a page that stops naming them at the handover leaves the
+     caller thinking the lead has gone quiet. */
+  function whatNext(c) {
+    switch (c.checkpoint) {
+      case 'not-called':  return 'Next: ring them for the first time.';
+      case 'no-answer':   return 'Next: try again, or find a number they answer.';
+      case 'callback':    return 'Next: ring them back when they said.';
+      case 'answered':    return 'Next: ask for the meeting, or send them something and ring again.';
+      case 'meeting-set': return 'Next: the meeting happens, then say here whether they turned up.';
+      case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this rung is waiting on.';
+      case 'interested':  return 'Next: hand them to the director. Past that it is discovery, proof, commercial and resolution — and none of those are yours.';
+      case 'handed-over': return 'Done. The director runs discovery, proof, commercial and resolution from here.';
+      case 'declined':    return 'Nothing is owed. Ring again only if something has changed.';
+      case 'wrong-number': return 'Nothing is owed until somebody finds a number that is theirs.';
+      case 'do-not-call': return 'Nothing is owed, and nothing may be. They opted out.';
+      default:            return 'Next: ring them.';
+    }
   }
 
   /* The ladder: eight bars and one sentence. The bars carry the position, the
@@ -4256,6 +4332,36 @@
      ladder's bottom rung is "act, then toast with Undo", and every one of
      these is reversible and touches one lead. */
 
+  /* ══ THE BRANCH WITH NO CONTROL ════════════════════════════════════════
+     The process has it: they answered, they showed no interest, so you send
+     the company profile and ring again later. It was a step in the flow
+     with nowhere to press, so it was either not done or done outside the
+     product and never written down. It is a touchpoint like any other. */
+  function sendProfile(id) {
+    const c = DB.byCon[id];
+    if (!c) return;
+    const camp = DB.byCamp[campFor(c)];
+    const before = { next: c.next };
+    const now = new Date().toISOString();
+    const t = {
+      id: 'e' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
+      outcome: 'sent',
+      proposals: ['info'], objections: [], openings: [],
+      note: 'Sent the company profile' + (camp ? ' for ' + camp.name : '') + '.',
+      lines: [], next: null, moved: null,
+    };
+    /* It buys a reason to ring again, so it sets one. */
+    patchCon(c, { next: { what: 'Call them back', due: dayAdd(3) } });
+    addTouch(t);
+    paint();
+    toast('Company profile sent to ' + c.name.split(' ')[0] + ' · ring back in 3 days', () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+  }
+
   const MOVES = [
     { k: 'showed-up',   label: 'They showed up',  from: ['meeting-set'] },
     { k: 'no-show',     label: 'They did not show', from: ['meeting-set'] },
@@ -4710,7 +4816,7 @@
         (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
         sayWhen(c.next.due)) : ''));
     body += line('What has passed', hist.length
-      ? esc(plural(hist.length, 'call') + ', last ' + OUTCOME[last.outcome].label.toLowerCase() +
+      ? esc(plural(hist.length, 'touchpoint') + ', last ' + kindLabel(last).toLowerCase() +
         ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
       : 'Nothing. This is the first contact.');
     if (c.remember) {
@@ -4826,26 +4932,53 @@
      the checkpoint it WOULD set, and one that fell back to the record's own
      next step would print a follow-up already on the record as though this
      call had produced it. */
-  function callFacts(call, c, mv) {
-    const h = logHeard(call);
-    const o = OUTCOME[call.outcome];
+  /* ══ THE PROPOSED CALL AND THE LOGGED ONE ARE THE SAME CARD ════════════
+     Drawn by one function, which is the whole reason it exists: a proposal
+     rendered by a second renderer is a proposal that can disagree with what
+     it becomes. So both shapes are flattened into one set of facts first —
+     a pending call resolves its axes through `logHeard` and states the move
+     it WOULD make; a touchpoint on the record already carries both. */
+  const factsOfPending = (call, c, mv) => ({
+    outcome: call.outcome,
+    props: logHeard(call).props, objs: logHeard(call).objs, opps: logHeard(call).opps,
+    from: c.checkpoint, to: mv.to, next: mv.next,
+  });
+  const factsOfTouch = (t) => ({
+    outcome: t.outcome,
+    props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
+    from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
+  });
+
+  function callFacts(f, c) {
+    const o = OUTCOME[f.outcome];
     const rows = [];
     if (o) rows.push(['Outcome', o.label, o.tone]);
+    /* A rung somebody settled by hand and a profile going out are not
+       calls, and the card says what they were rather than filing them
+       under an outcome they never had. */
+    else if (KINDS[f.outcome]) rows.push(['What happened', KINDS[f.outcome], 'neutral']);
     /* Stated even when empty. A groundwork call is a thing that happened,
        and a missing row is indistinguishable from one nobody filled in. */
-    rows.push(['Asked for', h.props.length
-      ? h.props.map((k) => PROPOSAL[k].label).join(' · ') : 'nothing',
-      h.props.length ? 'ok' : 'neutral']);
-    if (h.objs.length) {
-      rows.push(['Obstacle', h.objs.map((k) => OBJECTION[k].label).join(' · '), 'warn']);
+    if (o) {
+      rows.push(['Asked for', f.props.length
+        ? f.props.map((k) => (PROPOSAL[k] || {}).label || k).join(' · ') : 'nothing',
+        f.props.length ? 'ok' : 'neutral']);
     }
-    if (h.opps.length) {
-      rows.push(['Opening', h.opps.map((k) => openLabel(k)).join(' · '), 'ok']);
+    if (f.objs.length) {
+      rows.push(['Obstacle', f.objs.map((k) => (OBJECTION[k] || {}).label || k).join(' · '), 'warn']);
     }
-    rows.push(['Checkpoint', mv.to
-      ? rungLabel(c.checkpoint) + ' → ' + rungLabel(mv.to)
-      : 'stays at ' + rungLabel(c.checkpoint), mv.to ? 'ok' : 'neutral']);
-    if (mv.next) rows.push(['Next', mv.next.what + ', ' + sayWhen(mv.next.due), 'neutral']);
+    if (f.opps.length) {
+      rows.push(['Opening', f.opps.map((k) => openLabel(k)).join(' · '), 'ok']);
+    }
+    /* On the record the move is the one that HAPPENED, so it is stated as
+       one. On a proposal there is a checkpoint it would leave from, so the
+       row says where it stays when the answer is nowhere. */
+    if (f.to) {
+      rows.push(['Checkpoint', (f.from ? rungLabel(f.from) + ' → ' : '') + rungLabel(f.to), 'ok']);
+    } else if (c) {
+      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || c.checkpoint), 'neutral']);
+    }
+    if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
     return rows;
   }
 
@@ -4853,16 +4986,16 @@
      facts, then what was said, then what is worth remembering, then the
      transcript folded away. The caption is the quiet half and the value the
      loud one, so facts of different kinds read down a single edge. */
-  function callSummaryHtml(call, c, mv) {
-    const lines = call.lines || [];
+  function callSummaryHtml(f, c, note, lines) {
+    lines = lines || [];
     return '<div class="s-callsum">' +
       '<div class="s-callsum-rows">' +
-        callFacts(call, c, mv).map((r) => '<div class="s-callsum-row">' +
+        callFacts(f, c).map((r) => '<div class="s-callsum-row">' +
           '<span class="s-callsum-cap">' + esc(r[0]) + '</span>' +
           '<span class="s-callsum-val tone-' + esc(r[2]) + '">' + esc(r[1]) + '</span>' +
         '</div>').join('') +
       '</div>' +
-      (call.note ? '<p class="s-callsum-note">' + esc(call.note) + '</p>' : '') +
+      (note ? '<p class="s-callsum-note">' + esc(note) + '</p>' : '') +
       (c.remember ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
         esc(c.remember.text) + '</p>' : '') +
       (lines.length ? '<details class="s-trace">' +
@@ -4899,7 +5032,7 @@
          AiMY said one line above, and a card that repeats the two things
          bracketing it is asking to be skipped. */
       card: '<div class="s-callsum-in-turn">' +
-        callSummaryHtml(Object.assign({}, call, { note: '' }), c, mv) + '</div>',
+        callSummaryHtml(factsOfPending(call, c, mv), c, '', call.lines) + '</div>',
       step: 'calllog',
       opts: [{ k: 'go', label: sess
         ? (nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish')
@@ -5478,6 +5611,9 @@
       paintCall();
       return;
     }
+    const sp = t.closest('[data-sendprofile]');
+    if (sp) { sendProfile(sp.getAttribute('data-sendprofile')); return; }
+
     const mv = t.closest('[data-move]');
     if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
 
