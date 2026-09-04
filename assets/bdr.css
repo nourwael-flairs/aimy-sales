@@ -120,3 +120,11 @@
    while you are typing into it without taking the caret with it. */
 .b-outs { display: flex; flex-direction: column; gap: 8px; }
 .b-outs .b-cuts { margin-bottom: 0; }
+
+/* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
+   A row of counts, stated rather than linked. These are RUNGS, and the queue
+   under them cuts by what is owed — so a door here would open a filter that
+   does not exist, which is worse than no door. */
+.b-tally { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; }
+.b-tally-item { font-size: var(--fs-xs); color: var(--d400); }
+.b-tally-item b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }

@@ -1198,7 +1198,7 @@
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
-    byId('wbStage').innerHTML = S.con ? contactPage() : homePage();
+    byId('wbStage').innerHTML = S.con ? contactPage() : S.camp ? campPage() : homePage();
     mountLists();
     paintRail();
     paintProto();
@@ -1210,7 +1210,7 @@
   function mountLists() {
     const q = byId('queueList');
     if (q) {
-      const all = queue(null, S.q);
+      const all = queue(S.camp || null, S.q);
       const from = Math.min(pageAt(), Math.max(0, Math.ceil(all.length / PAGE) - 1)) * PAGE;
       vlist({
         host: q, items: all.slice(from, from + PAGE), rowH: 72, rowClass: 's-qrow',
@@ -1224,6 +1224,16 @@
         host: cs, items: myCampaigns(), rowH: 72, rowClass: 'b-camp-row',
         key: (c) => c.id, row: camprow,
         empty: 'You are on no campaign.',
+      });
+    }
+    const feed = byId('campFeed');
+    if (feed) {
+      const ids = DB.touch.filter((t) => t.camp === S.camp)
+        .sort((a, b) => (a.at > b.at ? -1 : 1)).slice(0, 400);
+      vlist({
+        host: feed, items: ids, rowH: 64, rowClass: 's-qrow',
+        key: (t) => t.id, row: campTouchRow,
+        empty: 'Nothing has happened on this campaign yet.',
       });
     }
     const h = byId('histList');
@@ -1279,6 +1289,22 @@
       '<button class="s-insight-lnk b-camp-go" type="button" data-camp="' + esc(k.id) + '">Work it</button>';
   }
 
+  /* The same call, seen from the campaign rather than from the person — so
+     the name leads, because on this surface WHO is the thing you do not
+     already know. */
+  function campTouchRow(t) {
+    const c = DB.byCon[t.con];
+    const o = OUTCOME[t.outcome];
+    const head = o ? o.label : t.moved ? rungLabel(t.moved[1]) : t.outcome;
+    return '<div class="s-qrow-id">' +
+        '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
+          esc(c ? c.name : 'Somebody') + '</button>' +
+        '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(actor(t.by).name) +
+          ' · ' + esc(sayWhen(t.at)) + '</span>' +
+      '</div>' +
+      '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
+  }
+
   /* One call on the record. What happened, what came of it, and when. */
   function touchRow(t) {
     const o = OUTCOME[t.outcome];
@@ -1324,6 +1350,29 @@
           evidence: [{ val: n, cap: n === 1 ? 'call' : 'calls' },
             { val: c.attempts, cap: 'attempts' }].filter((e) => e.val),
           act: c.next ? esc(c.next.what) + ' ' + esc(sayWhen(c.next.due)) : null,
+        },
+      };
+    }
+    const k = S.camp && DB.byCamp[S.camp];
+    if (k && mine(k)) {
+      const cq = queue(k.id);
+      const cdue = cq.filter((x) => bucketOf(x) === 'due').length;
+      const cafter = cq.filter((x) => bucketOf(x) === 'after').length;
+      return {
+        eyebrow: 'This campaign', subject: k.name,
+        card: {
+          state: cdue || cafter ? 'staged' : 'detected',
+          text: cdue
+            ? '<b>' + plural(cdue, 'person') + '</b> on this campaign ' + verbFor(cdue, 'is') +
+              ' owed something today.'
+            : cafter
+              ? '<b>' + plural(cafter, 'meeting') + '</b> here ' + verbFor(cafter, 'has') +
+                ' been and gone with nothing recorded.'
+              : '<b>' + commas(cq.length) + '</b> people here can be rung and nothing is overdue.',
+          evidence: [{ val: commas(cq.length), cap: 'to call' },
+            { val: commas(membersOf(k.id).length), cap: 'on it' }],
+          act: cdue ? 'Show the ' + cdue : cafter ? 'Show the ' + cafter : null,
+          q: cdue ? 'due' : cafter ? 'after' : null,
         },
       };
     }
@@ -1526,6 +1575,128 @@
       '</div>' +
       '<div class="b-vlist" id="campList"></div>' +
     '</section>';
+  }
+
+  /* ══ ONE CAMPAIGN, AS THE PERSON WORKING IT SEES IT ═════════════════════
+     Not the campaign's page — the BDR's page about the campaign. It answers
+     one question first: what do I have to do on this today. No funnel, no
+     financials, no stage flow, no roster of who owns what. Those are a
+     manager's questions and they come back when a manager does.
+
+     ONLY CAMPAIGNS YOU ARE ON. A URL to any other one says so and stops,
+     rather than rendering somebody else's work as though it were yours. */
+  function campPage() {
+    const k = DB.byCamp[S.camp];
+    if (!k) {
+      return '<div class="s-home"><section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">No such campaign</h2>' +
+        '<div class="s-rec-body"><p class="s-block-sub">That campaign is not in the book.</p>' +
+        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+      '</section></div>';
+    }
+    if (!mine(k)) {
+      return '<div class="s-home"><section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">You are not on this campaign, so there is nothing here for you ' +
+          'to work. ' + esc(actor(k.owner).name) + ' owns it — ask them to add you.</p>' +
+          '<button class="s-back" type="button" data-home>Back to today</button>' +
+        '</div>' +
+      '</section></div>';
+    }
+
+    const all = queue(k.id, 'all');
+    const counts = Object.create(null);
+    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    const members = membersOf(k.id);
+    const left = daysBetween(TODAY_ISO, k.to);
+    const shown = queue(k.id, S.q);
+    const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+    const p = Math.min(pageAt(), pages - 1);
+    const from = p * PAGE;
+    const to = Math.min(shown.length, from + PAGE);
+    const ring = shown.slice(from, to).filter((c) => rowVerb(c) === 'Call');
+
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-home>Back to today</button>' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">' + esc(k.goal) + '. ' +
+            (left > 0 ? 'Ends in ' + plural(left, 'day') + '.' : 'Past its end date.') + '</p>' +
+
+          /* WHAT YOU ARE ON IT TO DO, in numbers that are each a door. The
+             sentence names the work; the chips under it are the same cuts
+             the queue below is filtered by, so pressing one narrows the
+             thing it is describing rather than opening a second surface. */
+          '<p class="s-block-sub">You are on this campaign to call. ' +
+            '<b>' + commas(all.length) + '</b> of its ' + plural(members.length, 'person') +
+            ' can be rung' +
+            (counts.due ? ', <b>' + counts.due + '</b> owed something today' : '') +
+            (counts.after ? ', <b>' + counts.after + '</b> waiting on a verdict' : '') +
+          '.</p>' +
+
+          '<div class="b-cuts">' +
+            (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
+              esc(k.id) + '">Call the next one</button>' : '') +
+            (ring.length ? '<button class="s-inline-btn" type="button" data-callall="' +
+              esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' : '') +
+          '</div>' +
+
+          tally(members) +
+        '</div>' +
+      '</section>' +
+
+      pitchBlock(k) +
+
+      '<section class="s-block s-block-wide" aria-label="To call on this campaign">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2></div>' +
+        cuts(counts, all) +
+        '<div class="b-vlist" id="queueList"></div>' +
+        pager(from, to, shown.length, p, pages) +
+      '</section>' +
+
+      '<section class="s-block s-block-wide" aria-label="What happened">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2>' +
+          '<span class="s-block-say">newest first</span></div>' +
+        '<div class="b-vlist" id="campFeed"></div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  /* Where the campaign's people stand. Informational: these are rungs, and
+     the queue below cuts by what is OWED, not by rung — so a door here would
+     open a filter that does not exist. Stated, not linked, rather than
+     pretending to be pressable. */
+  function tally(members) {
+    const n = rungCounts(members);
+    const rows = LADDER.concat(EXITS).filter((x) => n[x.k]);
+    if (!rows.length) return '';
+    return '<div class="b-tally">' + rows.map((x) =>
+      '<span class="b-tally-item"><b>' + commas(n[x.k]) + '</b> ' + esc(x.label.toLowerCase()) +
+      '</span>').join('') + '</div>';
+  }
+
+  /* Preparation, folded away after the first visit. Native `<details>`, which
+     is a disclosure and not a modal: it takes no focus, blocks nothing, and
+     remembers nothing you have to dismiss. */
+  function pitchBlock(k) {
+    const sells = k.sells.map((s) => SELL[s]).filter(Boolean);
+    return '<details class="s-rec-block" id="pitchBox"' + (UI.pitchSeen ? '' : ' open') + '>' +
+      '<summary class="s-rec-cap">What we are selling them</summary>' +
+      '<div class="s-rec-body">' +
+        '<p class="s-block-sub">' + sells.map((s) =>
+          '<b>' + esc(s.name) + '</b> — ' + esc(s.blurb)).join('. ') + '.</p>' +
+        '<p class="s-block-sub">' + esc(k.pitch) + '</p>' +
+        '<div class="s-callsum-rows">' + k.objections.map((o) =>
+          '<div class="s-callsum-row">' +
+            '<span class="s-callsum-mem">' + esc(OBJECTION[o.k].label) + '</span>' +
+            '<span class="s-callsum-val">' + esc(o.say) + '</span>' +
+          '</div>').join('') + '</div>' +
+        '<div class="b-cuts">' + k.resources.map((r) =>
+          '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>' +
+      '</div>' +
+    '</details>';
   }
 
   /* ══ ONE PERSON ═════════════════════════════════════════════════════════
@@ -2456,7 +2627,16 @@
     if (back) { go({ con: '' }); return; }
 
     const camp = t.closest('[data-camp]');
-    if (camp) { toast('The campaign page is the next step of the build.'); return; }
+    if (camp) { go(Object.assign(cleared(), { camp: camp.getAttribute('data-camp') })); return; }
+
+    const nextin = t.closest('[data-callnextin]');
+    if (nextin) {
+      const k = nextin.getAttribute('data-callnextin');
+      const first = queue(k, S.q).filter((c) => rowVerb(c) === 'Call')[0];
+      if (first) startCall(first.id);
+      else toast('Nobody in this cut has a number to ring.');
+      return;
+    }
 
     const cut = t.closest('[data-q]');
     if (cut) { go(Object.assign(cleared(), { q: cut.getAttribute('data-q') })); return; }
@@ -2566,6 +2746,15 @@
       return;
     }
   });
+
+  /* The pitch opens the first time and stays however you left it after that.
+     `toggle` does not bubble, so it is caught in the capture phase rather
+     than by hanging a listener on an element every repaint replaces. */
+  document.addEventListener('toggle', (e) => {
+    if (!e.target || e.target.id !== 'pitchBox') return;
+    UI.pitchSeen = !e.target.open;
+    saveUI();
+  }, true);
 
   document.addEventListener('input', (e) => {
     const n = e.target.closest('[data-note]');
