@@ -1875,6 +1875,17 @@
     '</label>';
   }
 
+  /* ══ BACK, AND IT SAYS WHERE ═══════════════════════════════════════════
+     `Back to today` and `Back to the queue` were two names for one place —
+     the briefing you start from — and neither carried an arrow, so the one
+     control on the page whose whole meaning is a direction was drawn as a
+     line of text. The chevron is V3's, at V3's weight. */
+  const backBtn = (attr, label) =>
+    '<button class="s-back" type="button" ' + attr + '>' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M15 18l-6-6 6-6"/></svg>' + esc(label) + '</button>';
+
   function switcher(here) {
     const one = (k, label, n, over) =>
       '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
@@ -2342,8 +2353,7 @@
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
     const callableN = people.filter(callable).length;
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
+      backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
       '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(l.name) + '</h2>' +
         '<div class="s-rec-body">' +
@@ -2419,8 +2429,7 @@
 
   function buildPickKind() {
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
+      backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
       '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
         '<div class="s-sheet-kind">New list</div>' +
         '<h1 class="s-sheet-name">What are you collecting?</h1>' +
@@ -2462,9 +2471,9 @@
     }
 
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'kind' }))) +
-        '">Companies or people</button>' +
+      backBtn('data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'kind' }))) + '"',
+        'Companies or people') +
       '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
         '<div class="s-sheet-kind">New list · ' + (kind === 'con' ? 'People' : 'Companies') + '</div>' +
         '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
@@ -3030,7 +3039,7 @@
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such campaign</h2>' +
         '<div class="s-rec-body"><p class="s-block-sub">That campaign is not in the book.</p>' +
-        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+        backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
     if (!mine(k)) {
@@ -3039,7 +3048,7 @@
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">You are not on this campaign, so there is nothing here for you ' +
           'to work. ' + esc(actor(k.owner).name) + ' owns it — ask them to add you.</p>' +
-          '<button class="s-back" type="button" data-home>Back to today</button>' +
+          backBtn('data-home', 'Back to the briefing') +
         '</div>' +
       '</section></div>';
     }
@@ -3067,7 +3076,7 @@
        caption gutter — `.s-rec-head` is what this build had been reaching
        for and reimplementing badly. */
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-home>Back to today</button>' +
+      backBtn('data-home', 'Back to the briefing') +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Campaign · ' + esc(actor(k.owner).name) + '</span>' +
@@ -3442,6 +3451,20 @@
   function sellingBlock(k) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cap = (t) => '<h3 class="b-sell-cap">' + esc(t) + '</h3>';
+    /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════
+       What we sell and what they push back on are the same shape — a name
+       and a line about it — and they were drawn two different ways: the
+       first as bold-then-text run together on one line, the second in a
+       96px RIGHT-aligned gutter where "Something else" wrapped to two lines
+       and every label ended at a different distance from its own answer.
+       Four left edges in one block, and nothing to scan down.
+
+       One grid, one left edge, labels left-aligned so they start where the
+       eye is already going. The "is-say" modifier marks the lines you
+       actually speak, which get full ink; a product blurb is read, not said. */
+    const rows = (pairs, mod) => '<div class="b-say' + (mod || '') + '">' +
+      pairs.map((r) => '<span class="b-say-k">' + esc(r[0]) + '</span>' +
+        '<span class="b-say-v">' + esc(r[1]) + '</span>').join('') + '</div>';
     return '<details class="s-block s-block-wide b-sell" id="pitchBox"' +
       (UI.pitchSeen ? '' : ' open') + '>' +
       '<summary class="b-sell-sum"><span class="s-block-h">What to say</span>' +
@@ -3450,19 +3473,14 @@
       '<div class="b-sell-body">' +
 
         cap('What we sell them') +
-        '<div class="b-sell-list">' + sells.map((x) =>
-          '<p class="b-sell-item"><b>' + esc(x.name) + '</b>' + esc(x.blurb) + '</p>').join('') +
-        '</div>' +
+        rows(sells.map((x) => [x.name, x.blurb])) +
 
         cap('Open with') +
         '<p class="b-sell-pitch">' + esc(k.pitch) + '</p>' +
 
         cap('What comes back, and what to say to it') +
-        '<div class="s-callsum-rows">' + k.objections.map((o) =>
-          '<div class="s-callsum-row">' +
-            '<span class="s-callsum-cap">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
-            '<span class="s-callsum-val">' + esc(o.say) + '</span>' +
-          '</div>').join('') + '</div>' +
+        rows(k.objections.map((o) =>
+          [(OBJECTION[o.k] || {}).label || o.k, o.say]), ' is-say') +
 
         (k.resources.length
           ? cap('What you can send') +
@@ -3493,7 +3511,7 @@
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such company</h2>' +
         '<div class="s-rec-body"><p class="s-block-sub">That company is not in the book.</p>' +
-        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+        backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
     const people = consAt(a.id).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y));
@@ -3507,7 +3525,7 @@
     const free = myCampaigns().filter((k) => camps.indexOf(k) < 0).slice(0, 5);
 
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-back>Back</button>' +
+      backBtn('data-back', 'Back') +
       '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(a.name) + '</h2>' +
         '<div class="s-rec-body">' +
@@ -3643,14 +3661,14 @@
         '<h2 class="s-rec-cap">No such person</h2>' +
         '<div class="s-rec-body"><p class="s-block-sub">That record is not in the book. ' +
         'It may have been on a list that was discarded.</p>' +
-        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+        backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
     const a = accOf(c);
     const camps = campsOf(c);
     const n = (DB.touchesOf[c.id] || []).length;
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-back>Back to the queue</button>' +
+      backBtn('data-back', 'Back to the briefing') +
       '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(c.name) + '</h2>' +
         '<div class="s-rec-body">' +
@@ -4910,14 +4928,43 @@
 
   const readNtf = new Set();
 
+  /* ══ A ROW IS WHO, WHEN, WHAT AND ONE VERB ═════════════════════════════
+     The V3 shape, and the fields are the shape: a severity dot, the name,
+     when it was owed, what is owed, and the thing to press. Mine carried a
+     single run-on sentence and no priority, so twelve rows read as twelve
+     copies of one line and nothing said which to do first. */
   function ntfRows() {
     const rows = [];
-    queue(null, 'callback').slice(0, 12).forEach((c) => rows.push({
-      id: 'back-' + c.id, con: c.id,
-      what: c.name + ' asked to be rung back ' +
-        (c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)),
-      cta: 'Call them',
-    }));
+    /* Callbacks whose day has come or gone. Overdue is the only p1 a BDR
+       has: it is a promise to a person, with a date on it, already broken. */
+    queue(null, 'callback').forEach((c) => {
+      if (!c.next) return;
+      const d = daysBetween(TODAY_ISO, c.next.due);
+      if (d > 0) return;
+      rows.push({
+        id: 'back-' + c.id, con: c.id, p: d < 0 ? 1 : 2,
+        type: c.name, when: sayWhen(c.next.due),
+        body: c.next.what + (d < 0 ? ', and it was due ' : ', due ') +
+          sayWhen(c.next.due) + '.',
+        cta: 'Call them',
+      });
+    });
+    /* A meeting whose date has passed and nobody has said what happened.
+       It leaves the queue at `meeting-set`, so nothing else on this product
+       would ever bring it back up. */
+    DB.con.forEach((c) => {
+      if (c.checkpoint !== 'meeting-set' || !c.next) return;
+      if (daysBetween(TODAY_ISO, c.next.due) >= 0) return;
+      if (!campsOf(c).some(mine)) return;
+      rows.push({
+        id: 'met-' + c.id, con: c.id, p: 2,
+        type: c.name, when: sayWhen(c.next.due),
+        body: c.next.what + ' was ' + sayWhen(c.next.due) +
+          ' and nobody has said whether they turned up.',
+        cta: 'Say what happened',
+      });
+    });
+    rows.sort((a, b) => a.p - b.p);
     return rows.slice(0, 12);
   }
 
@@ -4928,13 +4975,29 @@
     const cnt = byId('ntfCount');
     cnt.hidden = !unread;
     cnt.textContent = unread;
+    /* ══ THE ROW IS A LIST ITEM, NOT A BUTTON ══════════════════════════
+       Mine put `.ntf-row` on a `button` and `.ntf-row-cta` on a `span`
+       inside it. Both classes are written for the other element: the row
+       is a flex list item and a button centres its text, so every line
+       came out centred; the cta is a pill with padding and a border, and
+       an inline span carrying it wrapped `Call them` across two lines with
+       the border broken between them. Nothing was wrong with the CSS.
+
+       This is the V3 renderer's own markup, element for element. */
     byId('ntfList').innerHTML = rows.length
-      ? rows.map((r) => '<li><button class="ntf-row' +
-          (readNtf.has(r.id) ? ' is-read' : '') + '" type="button" data-con="' +
-          esc(r.con) + '"><span class="ntf-row-main">' +
-          '<span class="ntf-row-body">' + esc(r.what) + '</span>' +
-          '<span class="ntf-row-cta">' + esc(r.cta) + '</span>' +
-          '</span></button></li>').join('')
+      ? rows.map((r) => '<li class="ntf-row' +
+          (readNtf.has(r.id) ? ' is-read' : '') + '">' +
+          '<span class="ntf-sev p' + r.p + '"></span>' +
+          '<div class="ntf-row-main">' +
+            '<div class="ntf-row-head">' +
+              '<span class="ntf-row-type">' + esc(r.type) + '</span>' +
+              '<span class="ntf-row-when">' + esc(r.when) + '</span>' +
+            '</div>' +
+            '<p class="ntf-row-body">' + esc(r.body) + '</p>' +
+            '<button class="ntf-row-cta" type="button" data-ntf="' + esc(r.id) +
+              '" data-ntf-con="' + esc(r.con) + '">' + esc(r.cta) + '</button>' +
+          '</div>' +
+        '</li>').join('')
       : '<li class="ntf-empty">Nothing is waiting on you.</li>';
   }
 
@@ -6138,6 +6201,18 @@
       if (!panel.hidden) paintBell();
       return;
     }
+    /* A notification acted on is a notification read, and the panel closes
+       behind you — a popover still standing over the record it just opened
+       is something to dismiss before you can work. */
+    const ntf = t.closest('[data-ntf]');
+    if (ntf) {
+      readNtf.add(ntf.getAttribute('data-ntf'));
+      byId('ntfPanel').hidden = true;
+      byId('ntfBell').setAttribute('aria-expanded', 'false');
+      go(Object.assign(cleared(), { con: ntf.getAttribute('data-ntf-con') }));
+      return;
+    }
+
     if (t.closest('#ntfClear')) {
       ntfRows().forEach((r) => readNtf.add(r.id));
       paintBell();

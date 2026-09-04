@@ -471,14 +471,6 @@
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
 }
 .b-sell-cap:first-child { margin-top: 0; }
-.b-sell-list { display: flex; flex-direction: column; gap: 4px; }
-/* The name carries the weight and the blurb follows it on the same line, so
-   two offerings read as two things rather than as one long sentence. */
-.b-sell-item { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-base); }
-.b-sell-item b {
-  color: var(--d50); font-weight: var(--fw-bold);
-  margin-right: 8px;
-}
 /* THE ONE LINE YOU SAY OUT LOUD, at the deck step. Everything else in this
    block is something you look at; this is something you speak, and it was at
    the same 13px as the tags under it. */
@@ -510,3 +502,47 @@
 .s-call-by { color: var(--d200); }
 .s-call-ago { color: var(--d300); }
 .s-block-say { color: var(--d200); }
+/* The way back is a navigation control, not a footnote. At --d400 it was the
+   dimmest thing on a record page, under a masthead at full ink. */
+.s-back { color: var(--d200); }
+.ntf-row-body { color: var(--d100); }
+.ntf-row-when { color: var(--d300); }
+.ntf-empty { color: var(--d200); }
+/* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
+   What we sell and what they push back on are the same shape — a name and a
+   line about it — and they were drawn two different ways. The first ran bold
+   name into plain blurb on one line with an 8px gap, so where the name ended
+   was a thing you worked out rather than saw. The second sat in a 96px RIGHT-
+   aligned gutter, which put "Something else" on two lines and left every
+   label a different distance from the answer it belongs to.
+
+   One grid. Labels LEFT-aligned, because a column you scan down has to start
+   at the same place every time, and a right-aligned gutter only aligns the
+   end nobody reads from. 140px holds every label in this lexicon on one line.
+
+   And the answers are capped at 58ch. They ran the full block — measured at
+   800px, about 130 characters — which is roughly twice the width anybody
+   tracks a line back across. */
+.b-say {
+  display: grid; grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px 20px; align-items: baseline;
+}
+.b-say-k {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
+  min-width: 0;
+}
+.b-say-v {
+  font-size: var(--fs-xs); color: var(--d200);
+  line-height: var(--lh-base); max-width: 58ch; min-width: 0;
+  text-wrap: pretty;
+}
+/* The lines you SAY, at full ink and a step up in weight. A product blurb is
+   something you read before the call; an answer to an objection is something
+   that comes out of your mouth during it, and the two were the same colour. */
+.b-say.is-say .b-say-v { color: var(--d50); font-weight: var(--fw-medium); }
+.b-say.is-say { gap: 14px 20px; }
+@media (max-width: 611.98px) {
+  /* Below this the label column costs more than the alignment is worth. */
+  .b-say, .b-say.is-say { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .b-say-v { margin-bottom: 10px; }
+}
