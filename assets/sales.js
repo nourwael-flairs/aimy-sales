@@ -12704,9 +12704,17 @@
     const st = campState(l);
     const members = campMembers(l);
     const n = members.length;
-    const ev = DB.eventsOf[l.k] || [];
-    const sent = ev.filter((e) => e.kind === 'sent').length;
-    const back = ev.filter((e) => e.kind === 'replied').length;
+    /* ══ THE TOUCHPOINT RECORD, NOT THE SEQUENCE LOG ══════════════════════
+       `DB.eventsOf` holds what the SEQUENCE did; `DB.touch` holds what
+       happened. They are close, they are not the same, and moving this block
+       under the five nodes put the difference on one screen: the tally read
+       11 calls and Measure, two hundred pixels below it, read 12. Measure is
+       right — it counts the record every other figure on this page counts,
+       and a campaign worked by hand has touchpoints and no sequence at all.
+       So this counts the record too, and the two cannot disagree again. */
+    const ts = campSent(l);
+    const sent = ts.filter((t) => t.dir !== 'in').length;
+    const back = ts.filter((t) => t.dir === 'in').length;
     const done = members.filter((a) => ENDINGS.includes(statusOf(a)));
     const won = done.filter((a) => a.outcome === 'won').length;
     const lost = done.length - won;
@@ -12717,32 +12725,16 @@
     const gone = l.from ? Math.max(0, daysAgo(l.from)) : null;
     const day = span != null && gone != null ? { day: Math.min(gone + 1, span), span, left } : null;
 
-    /* Hand-logged touchpoints, for the campaigns with no sequence on them —
-       the branch the sentence builder has always had, kept so a figure of
-       zero sent does not silently mean "nothing happened". */
-    const byHand = sent ? 0 : campSent(l).filter((t) => t.dir === 'out').length;
+    /* ── AND THE MIX OFF THE SAME ROWS ──
+       It was read through `l.trail`, because `DB.event` carries a step and
+       not a channel — so the mix described what the sequence was SHAPED to
+       do. A touchpoint carries its own channel, which is what was actually
+       done, and it needs no join to say so.
 
-    /* ══ IT IS NOT ALL EMAIL ═══════════════════════════════════════════════
-
-       `sent` counts every outbound step in the sequence, and this campaign's
-       sequence is an opening email, a CALL and an ONLINE MEETING — so "25
-       sent" was reporting eleven phone calls and eight video meetings as
-       though somebody had emailed them. The channel is the difference
-       between a campaign that is being worked and one that is being mailed
-       at, and the figure was flattening it away.
-
-       `DB.event` deliberately carries no channel — it holds `step`, and the
-       step's channel lives on `c.trail`, which is the one place a sequence's
-       shape is written down. So the mix is read through the step rather than
-       copied onto the event: still one source, and a channel change on a
-       step cannot leave a stale count behind it. */
-    const stepCh = {};
-    (l.trail || []).forEach((s) => { stepCh[s.n] = s.ch; });
+       `byHand` went with the join. It existed to stop a campaign with no
+       sequence reporting zero; with one source there is no second case. */
     const byCh = {};
-    ev.filter((e) => e.kind === 'sent').forEach((e) => {
-      const ch = stepCh[e.step];
-      if (ch) byCh[ch] = (byCh[ch] || 0) + 1;
-    });
+    ts.filter((t) => t.dir !== 'in').forEach((t) => { if (t.ch) byCh[t.ch] = (byCh[t.ch] || 0) + 1; });
     /* ── NAMED AS THE THING THAT HAPPENED ──
 
        `TAX.channel`'s labels are picker labels: `Phone`, `Online`, `AiMY`.
@@ -12758,7 +12750,7 @@
       .filter((k) => byCh[k])
       .map((k) => ({ k, n: byCh[k], noun: CH_NOUN[k](byCh[k]) }));
 
-    return { st, members, n, sent, back, byHand, done: done.length, won, lost, live, day,
+    return { st, members, n, sent, back, done: done.length, won, lost, live, day,
              mix, inWay: inWayOf(members) };
   }
 
@@ -12780,11 +12772,13 @@
     if (st === 'finished') bits.push(`It closed ${l.to ? fmtAgo(l.to) : 'already'}.`);
     else if (span != null && gone != null) bits.push(`Day ${Math.min(gone + 1, span)} of ${span}, ${left > 0 ? plural(left, 'day') + ' left' : 'past its date'}.`);
 
-    const ev = DB.eventsOf[l.k] || [];
-    const sent = ev.filter((e) => e.kind === 'sent').length;
-    const back = ev.filter((e) => e.kind === 'replied').length;
+    /* Same source as the tally above it, for the same reason. And
+       `touchpoint`, not `message`: eleven of these are phone calls. */
+    const ts = campSent(l);
+    const sent = ts.filter((t) => t.dir !== 'in').length;
+    const back = ts.filter((t) => t.dir === 'in').length;
     if (sent) {
-      bits.push(`${plural(sent, 'message')} out and ${back ? `${plural(back, 'reply', 'replies')} back` : 'nothing back yet'}.`);
+      bits.push(`${plural(sent, 'touchpoint')} out and ${back ? `${plural(back, 'reply', 'replies')} back` : 'nothing back yet'}.`);
     } else {
       const ts = campSent(l).filter((t) => t.dir === 'out').length;
       bits.push(ts
@@ -12848,8 +12842,8 @@
 
        A campaign with no sequence on it has hand-logged touchpoints and a
        sent count of zero, and a bare 0 would report that as nothing done. */
-    const outCap = p.sent ? 'Touchpoints' : 'Logged by hand';
-    const outVal = p.sent || p.byHand;
+    const outCap = 'Touchpoints';
+    const outVal = p.sent;
     const outSub = p.mix.length ? p.mix.map((c) => `${c.n} ${c.noun}`).join(' · ') : null;
 
     const seg = (k, v, label) => (v ? `<span class="s-tally-seg is-${k}" style="flex-grow:${v}" title="${esc(`${v} ${label}`)}"></span>` : '');
