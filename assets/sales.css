@@ -7382,12 +7382,13 @@ div.s-pipe-cell { cursor: default; }
    Side by side the comparison is the layout rather than something the reader
    holds in their head across a scroll.
 
-   `auto-fit` and not two fixed tracks: the objections block does not draw on
-   a campaign where nobody has given a reason, and one column stretched to
-   half the width with air beside it is worse than one column full width. */
+   TWO TRACKS, NOT `auto-fit`. `auto-fit` fits as many 20rem columns as the
+   width allows, which on a wide screen is THREE — so the panel drew a third,
+   empty column and the two sections took two thirds of it. There are exactly
+   two things here and there always will be, so the grid says two. */
 .s-wrong {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 32px;
   align-items: start;
   background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
@@ -7401,6 +7402,10 @@ div.s-pipe-cell { cursor: default; }
 }
 /* The mark spans both columns and reads once, above them. */
 .s-wrong-mark { grid-column: 1 / -1; margin: 0; }
+/* If only one section draws, it takes the width rather than sitting in half
+   of it with air beside it. It is the second child because the mark is the
+   first, so `:only-child` cannot say this. */
+.s-wrong > .s-sheet-block:nth-child(2):last-child { grid-column: 1 / -1; }
 /* ── THE READING, WITH NO CARD AROUND IT ──
    It was a bordered panel inside the panel. What made it legible as AiMY's
    was the card; what makes it legible now is that the whole block is, so it
