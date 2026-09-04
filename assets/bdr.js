@@ -1568,7 +1568,7 @@
     const camps = myCampaigns();
     const pg = paged(camps);
     return '<div class="s-home">' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">Your campaigns</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
@@ -1819,7 +1819,7 @@
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     return '<div class="s-home">' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">Lists</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">A list is how new people get into a campaign, and ' +
@@ -1859,7 +1859,7 @@
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(l.name) + '</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">' + esc(l.crit) + '. Found by ' + esc(l.via) + ', ' +
@@ -1896,7 +1896,7 @@
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">Who are we looking for?</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">Every count is what you would have left if you pressed it. ' +
@@ -2089,14 +2089,14 @@
   function campPage() {
     const k = DB.byCamp[S.camp];
     if (!k) {
-      return '<div class="s-home"><section class="s-rec-block">' +
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such campaign</h2>' +
         '<div class="s-rec-body"><p class="s-block-sub">That campaign is not in the book.</p>' +
         '<button class="s-back" type="button" data-home>Back to today</button></div>' +
       '</section></div>';
     }
     if (!mine(k)) {
-      return '<div class="s-home"><section class="s-rec-block">' +
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">You are not on this campaign, so there is nothing here for you ' +
@@ -2115,7 +2115,7 @@
 
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-home>Back to today</button>' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">' + esc(k.goal) + '. ' +
@@ -2179,7 +2179,7 @@
      remembers nothing you have to dismiss. */
   function pitchBlock(k) {
     const sells = k.sells.map((s) => SELL[s]).filter(Boolean);
-    return '<details class="s-rec-block" id="pitchBox"' + (UI.pitchSeen ? '' : ' open') + '>' +
+    return '<details class="s-rec-block s-block-wide" id="pitchBox"' + (UI.pitchSeen ? '' : ' open') + '>' +
       '<summary class="s-rec-cap">What we are selling them</summary>' +
       '<div class="s-rec-body">' +
         '<p class="s-block-sub">' + sells.map((s) =>
@@ -2202,7 +2202,7 @@
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
-      return '<div class="s-home"><section class="s-rec-block">' +
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">No such person</h2>' +
         '<div class="s-rec-body"><p class="s-block-sub">That record is not in the book. ' +
         'It may have been on a list that was discarded.</p>' +
@@ -2214,7 +2214,7 @@
     const n = (DB.touchesOf[c.id] || []).length;
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-back>Back to the queue</button>' +
-      '<section class="s-rec-block">' +
+      '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(c.name) + '</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">' + esc(c.title) + ' at ' + esc(a ? a.name : 'an unknown account') +
