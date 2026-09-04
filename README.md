@@ -19,14 +19,11 @@ inside `index.html`, so a cached document asks for the old assets for ever;
 
 ## What a BDR does here
 
-**Three surfaces, chosen at the top of the page.** Calls, Campaigns and Lists,
-each with its count, in the design system's segmented control. They were one
-page once; the result was a single scroll holding three unrelated jobs, and
-Lists had no door at all.
-
-It is in the page rather than down the left-hand side: navigation in a column
-spends a permanent column on three words. `#navBar` is the shell's own host for
-it. The rail carries the AiMY reading and nothing else.
+**The heading is the switcher.** The block title reads Calls · Campaigns ·
+Lists — the one you are on at heading weight, the other two quiet beside it and
+pressable. There is no navigation column and no control above the heading: a
+product with three surfaces does not need a row of chrome to say which one you
+are on. The rail carries the AiMY reading and nothing else.
 
 | surface | url | what it is |
 |---|---|---|
@@ -37,17 +34,26 @@ it. The rail carries the AiMY reading and nothing else.
 Under those sit the three records: one campaign (`?camp=`), one person
 (`?con=`), one list (`?list=`).
 
-**Today** ranks everybody callable and says why each one is on the list. Six
-cuts, and their counts sum to the whole — one bucket per person, and the bucket
-function *is* the ranking, so the chips and the order cannot drift apart.
+**A cut is a rung.** The queue is cut four ways and every one of them is a
+place on the ladder, so there is no second vocabulary to learn. They sum to the
+whole, because a person stands on exactly one rung.
 
-| bucket | what it means |
+| cut | the rung it is |
 |---|---|
-| After a meeting | the meeting has been and gone and nobody has said what came of it |
-| Due | a callback or a promise falls today, or already has |
-| Try again | rung, nobody picked up, and it has been two days |
-| Open | you have spoken, nothing is owed |
-| Never rung | nobody has tried |
+| Callbacks | they asked to be rung back, and the date has come |
+| New | nobody has rung them |
+| No answer | rung, nobody picked up |
+| Answered | you got them, and there is no meeting yet |
+
+Once a meeting is booked they leave the queue — the BDR's part is done until it
+happens, and a caller working a list does not want the people they have already
+closed in it.
+
+Every row does the same thing, because on this surface there is only one thing
+to do, and it says **Call**. It briefly said "Say what happened" on people whose
+meeting had passed: a second verb, for a second job, in the middle of a list you
+are dialling down. The call logs the touchpoint; a separate step to report the
+same call is the step this build exists to remove.
 
 **One worklist per surface, paged. Everything else is context, capped.** Fifteen
 is a screenful: ring through it, press once for the next fifteen. A thousand
