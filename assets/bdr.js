@@ -1763,19 +1763,7 @@
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
 
     return '<div class="s-home">' +
-      '<section class="slv" aria-label="Since your last visit">' +
-        '<div class="slv-head">' +
-          '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-          '<h1 class="slv-title">Today</h1>' +
-          '<span class="slv-time">' + esc(sayDay(TODAY_ISO)) + '</span>' +
-        '</div>' +
-        '<div class="slv-body"><p class="slv-line">' + openerText(counts, all, camps) + '</p></div>' +
-        '<div class="s-starts-wrap">' +
-          '<span class="s-starts-cap">Start</span>' +
-          startStrip(counts, all, camps) +
-        '</div>' +
-      '</section>' +
-
+      topBrief('calls') +
       queueBlock(all, counts) +
     '</div>';
   }
@@ -1787,6 +1775,7 @@
     const camps = myCampaigns();
     const pg = paged(camps);
     return '<div class="s-home">' +
+      topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
         '<div class="s-camp-list-head">' + switcher('camps') + '</div>' +
         '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
@@ -1797,9 +1786,70 @@
     '</div>';
   }
 
-  /* What today is, in one paragraph with the numbers in it. Only conditions
-     that hold are named — a sentence listing three things that are all zero
-     is a sentence that has to be read to learn nothing. */
+  /* ══ THE BRIEFING FOLLOWS YOU ═══════════════════════════════════════════
+     It sat on the calls surface only, so switching to Campaigns or Lists
+     dropped the one block that says what today is and what to start. It
+     renders above all three now, and what it SAYS changes with where you
+     are — a paragraph about the call queue standing over a page of lists is
+     a paragraph about somewhere else.
+
+     The strip always carries a starting gate. A BDR whose queue is empty has
+     nothing to do on this product unless something offers to go and find
+     more, and "Find leads" is that door on every surface. */
+  function topBrief(here) {
+    const all = queue(null, 'all');
+    const counts = Object.create(null);
+    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    const camps = myCampaigns();
+    return '<section class="slv s-block-wide" aria-label="Today">' +
+      '<div class="slv-head">' +
+        '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+        '<h1 class="slv-title">Today</h1>' +
+        '<span class="slv-time">' + esc(sayDay(TODAY_ISO)) + '</span>' +
+      '</div>' +
+      '<div class="slv-body"><p class="slv-line">' +
+        briefSentence(here, counts, all, camps) + '</p></div>' +
+      '<div class="s-starts-wrap">' +
+        '<span class="s-starts-cap">Start</span>' +
+        startStrip(here, counts, all, camps) +
+      '</div>' +
+    '</section>';
+  }
+
+  /* What today is, on this surface, in one paragraph with the numbers in it.
+     Only conditions that hold are named — a sentence listing three things
+     that are all zero has to be read to learn nothing. */
+  /* How long a campaign has. A window that has already shut is not "in 0
+     days" — that is an arithmetic clamp wearing a sentence. */
+  function closesIn(k) {
+    const d = daysBetween(TODAY_ISO, k.to);
+    return d > 0 ? 'closes first, in ' + plural(d, 'day') : 'is already past its end date';
+  }
+
+  function briefSentence(here, counts, all, camps) {
+    if (here === 'camps') {
+      const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
+      const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
+      if (!camps.length) return 'You are on no campaign, so there is nobody to ring.';
+      return plural(camps.length, 'campaign') + ' are yours. <b>' + esc(busiest.name) +
+        '</b> has the most left to ring at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
+        esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
+    }
+    if (here === 'lists') {
+      if (!DB.list.length) {
+        return 'You have built no lists. A list is how anybody new reaches your queue — ' +
+          'describe who to look for and what comes back is the list.';
+      }
+      const people = DB.list.reduce((n, l) => n + l.has.length, 0);
+      const parked = DB.list.filter((l) => !l.for).length;
+      return plural(DB.list.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
+        (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
+          '</b> on no campaign, so nobody on ' + (parked === 1 ? 'it' : 'them') +
+          ' is in your queue' : ', all of them on a campaign') + '.';
+    }
+    return openerText(counts, all, camps);
+  }
+
   function openerText(counts, all, camps) {
     const bits = [];
     if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
@@ -1816,19 +1866,53 @@
 
   /* Four ways to start, each with the reason it is worth pressing. The V3
      build's strip, with a BDR's four acts in it. */
-  function startStrip(counts, all, camps) {
-    const opens = [
-      { k: 'callnext', label: 'Call the next one',
-        why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
-      { k: 'callback', label: 'Work the callbacks',
-        why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
-          : 'nobody asked for one' },
-      { k: 'not-called', label: 'Ring somebody new',
-        why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
-          : 'everyone has been tried' },
-      { k: 'camps', label: 'Pick a campaign',
-        why: plural(camps.length, 'campaign') + ' are yours to work' },
-    ];
+  function startStrip(here, counts, all, camps) {
+    /* THE GATE IS ON EVERY SURFACE. A caller whose queue is empty has nothing
+       to do on this product unless something offers to go and find more, so
+       the door that starts the finding is on all three rather than buried on
+       the one page that already has lists on it. */
+    const findLeads = { k: 'find', label: 'Find leads',
+      why: DB.list.length ? 'describe who to look for; what comes back is a list'
+        : 'the way anybody new reaches your queue' };
+
+    let opens;
+    if (here === 'camps') {
+      const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
+      const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
+      opens = [
+        busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
+          why: plural(queue(busiest.id).length, 'person') + ' left to ring on it' } : null,
+        soonest && soonest.id !== (busiest && busiest.id)
+          ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name, why: closesIn(soonest) }
+          : null,
+        { k: 'callnext', label: 'Call the next one',
+          why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        findLeads,
+      ].filter(Boolean);
+    } else if (here === 'lists') {
+      const parked = DB.list.filter((l) => !l.for)[0];
+      opens = [
+        findLeads,
+        parked ? { k: 'list:' + parked.id, label: 'Put a list to work',
+          why: esc(parked.name) + ' is on no campaign yet' } : null,
+        { k: 'callnext', label: 'Call the next one',
+          why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        { k: 'camps', label: 'Pick a campaign',
+          why: plural(camps.length, 'campaign') + ' are yours to work' },
+      ].filter(Boolean);
+    } else {
+      opens = [
+        { k: 'callnext', label: 'Call the next one',
+          why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        { k: 'callback', label: 'Work the callbacks',
+          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
+            : 'nobody asked for one' },
+        { k: 'not-called', label: 'Ring somebody new',
+          why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
+            : 'everyone has been tried' },
+        findLeads,
+      ];
+    }
     return '<div class="s-starts" role="group" aria-label="Ways to start">' +
       opens.map((o) => '<button class="s-start" type="button" data-start="' + esc(o.k) + '">' +
         '<span class="s-start-label">' + esc(o.label) + '</span>' +
@@ -2037,6 +2121,7 @@
     const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     return '<div class="s-home">' +
+      topBrief('lists') +
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
           '<button class="s-inline-btn" type="button" data-go="' +
@@ -3594,6 +3679,19 @@
     const start = t.closest('[data-start]');
     if (start) {
       const k = start.getAttribute('data-start');
+      /* Two of the openers name a record rather than a cut. */
+      if (k.indexOf('camp:') === 0) {
+        go(Object.assign(cleared(), { camp: k.slice(5) }));
+        return;
+      }
+      if (k.indexOf('list:') === 0) {
+        go(Object.assign(cleared(), { list: k.slice(5) }));
+        return;
+      }
+      if (k === 'find') {
+        go(Object.assign(cleared(), { on: 'lists', build: '1' }));
+        return;
+      }
       if (k === 'callnext') {
         const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);

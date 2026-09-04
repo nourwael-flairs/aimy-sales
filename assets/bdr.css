@@ -285,9 +285,22 @@
    on trust, and the first wrong one costs the rest.
 
    Tinted rather than bordered: it belongs to the card, not beside it. */
+/* ── THE BLOCK IS THE CARD'S FLEXIBLE REGION ──────────────────────────────
+   It had no bottom margin and the foot above it took `margin-top: auto`, so
+   the free space in a card landed BETWEEN them — which meant the tallest card
+   in a row had no space at all and its block's rounded bottom sat flush on
+   the footer rule. Measured across nine cards: gaps of 28, 11, 0, 0, 51, 51,
+   0, 0, 0. Zero reads as clipped, and 51 next to 0 reads as broken.
+
+   So the block absorbs the slack instead of the gap doing it. `flex: 1 1 auto`
+   lets it grow to whatever the row's tallest card left over, its text stays
+   at the top, and every card's block now ends the same distance above the
+   foot. The blocks differ in height and agree on where they finish, which is
+   the opposite of what they did before. */
 .b-aimy {
+  flex: 1 1 auto;
   display: flex; gap: 8px; align-items: flex-start;
-  margin: 10px 14px 0; padding: 10px 12px;
+  margin: 10px 14px 14px; padding: 10px 12px;
   background: var(--accent-dim);
   border-radius: var(--r-md);
 }
