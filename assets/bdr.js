@@ -3099,19 +3099,18 @@
         '</div>' +
       '</section>' +
 
-      /* THE WORK, SECOND. */
+      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO RING. A caller who
+         opens straight onto a worklist never learns how the campaign is
+         doing, because nobody scrolls past their own queue to find out. */
+      campLead(k) +
+
+      /* THE WORK. */
       queueBlock(all, counts) +
 
-      /* How it is going, under the doing of it. */
-      '<section class="s-block s-block-wide" aria-label="Where it stands">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Where it stands</h2>' +
-          '<span class="s-block-say">' + esc(plural(members.length, 'person')) +
-          ' on this campaign</span></div>' +
-        tally(members) +
-        campAimy(k) +
-      '</section>' +
+      /* The detail behind the headline, under the doing of it. */
+      campStands(k) +
 
-      pitchBlock(k) +
+      sellingBlock(k) +
 
       /* Context, not a worklist: the last few things that happened here and
          the count of what they are the last few of. A second pager on this
@@ -3125,6 +3124,100 @@
         peekFoot(peek(campFeedItems(k.id)), 'call') +
       '</section>' +
     '</div>';
+  }
+
+  /* ══ WHERE A CAMPAIGN IS AGAINST WHAT IT IS FOR ═══════════════════════
+     Read once and used by the lead block, the figures and the readings, so
+     three parts of one page cannot report three different positions.
+
+     The goal's own verb picks the rung: a campaign to book meetings is
+     measured at `meeting-set`, one to open conversations at `answered`.
+     Counting everyone ever reached against a meetings goal is how this
+     page once reported 35 of 22 with 111 people still unrung. */
+  function campStand(k) {
+    const members = membersOf(k.id);
+    const n = rungCounts(members);
+    const target = Number((k.goal.match(/\b(\d{1,4})\b/) || [])[1]) || 0;
+    const wantsMeeting = !/\bconversation/i.test(k.goal);
+    const at = wantsMeeting ? 'meeting-set' : 'answered';
+    const done = members.filter((c) => rank(c.checkpoint) >= rank(at)).length;
+    const left = daysBetween(TODAY_ISO, k.to);
+    const need = Math.max(0, target - done);
+    return {
+      members: members, n: n, target: target, done: done, need: need, left: left,
+      noun: wantsMeeting ? 'meeting' : 'conversation',
+      /* Whole weeks, rounded up, because half a meeting a week is not a
+         rate anybody can work to. */
+      perWeek: left > 0 ? Math.ceil(need / Math.max(1, left / 7)) : 0,
+      reached: members.filter((c) => rank(c.checkpoint) >= rank('answered')).length,
+    };
+  }
+
+  /* ══ THE ONE THING THE PAGE IS ABOUT, BEFORE THE WORK ══════════════════
+     A campaign page opened straight onto a queue, which tells a caller who
+     to ring and nothing about whether the ringing is working. The numbers
+     that answer that were below the queue, in a flat run of ten counts, and
+     nobody scrolls past their own worklist to find out how they are doing.
+
+     So the figure leads, the consequence follows it at the deck step, and
+     the actions are underneath — the shell's own lead-insight anatomy, the
+     one it uses wherever a page has a single finding worth announcing.
+
+     THE CONSEQUENCE IS ARITHMETIC, NOT ENCOURAGEMENT. "You need 3 a week"
+     is a rate somebody can hold themselves to; "good progress" is a mood.
+     Where the sum has nothing to say — past the goal, or past the end date
+     — it says that instead rather than dressing it up. */
+  function campLead(k) {
+    const st = campStand(k);
+    const all = queue(k.id, 'all');
+    /* ══ A BUTTON COUNTS WHAT IT OPENS ═════════════════════════════════════
+       These read the rung tally at first — 14 callbacks, 102 never rung — and
+       the cuts they open show 9 and 58, because the queue drops anyone whose
+       follow-up is still in the future and anyone without a number. A door
+       labelled with a different number from the room behind it is worse than
+       an unlabelled door: you arrive believing something has gone missing. */
+    const fresh = queue(k.id, 'not-called').length;
+    const back = queue(k.id, 'callback').length;
+
+    const deck = !st.target
+      ? 'This one has no number in its goal, so there is nothing to measure it against.'
+      : !st.need
+        ? 'It is past its goal. Everything from here is on top.'
+        : st.left <= 0
+          ? 'It is past its end date and <b>' + commas(st.need) + '</b> short.'
+          : '<b>' + commas(st.perWeek) + ' a week</b> lands the other ' +
+            commas(st.need) + ' before it closes.';
+
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where this campaign is">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">Read off the record</span>' +
+      '</div>' +
+      '<div class="s-lead-line">' +
+        '<span class="s-lead-n">' + commas(st.done) + '</span>' +
+        '<span class="s-lead-say">' + (st.target
+          ? 'of the <span class="s-lead-of">' + commas(st.target) + '</span> ' +
+            esc(st.noun) + 's this campaign is for' +
+            (st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go.'
+                         : ', and it is past its end date.')
+          : esc(st.noun) + 's so far, out of ' + plural(st.members.length, 'person') +
+            ' on it.') + '</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' + deck + '</p>' +
+      '<div class="s-lead-acts">' +
+        (all.length
+          ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
+            esc(k.id) + '">Call the next one</button>' : '') +
+        (back ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
+          'Work the ' + commas(back) + ' callbacks</button>' : '') +
+        (fresh ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
+          'Show the ' + commas(fresh) + ' never rung</button>' : '') +
+        (all.length ? '' :
+          '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
+          '">Nobody left to ring — find more</button>') +
+      '</div>' +
+    '</section>';
   }
 
   /* ══ WHAT AiMY MAKES OF ONE CAMPAIGN ═══════════════════════════════════
@@ -3253,50 +3346,129 @@
      the queue below cuts by what is OWED, not by rung — so a door here would
      open a filter that does not exist. Stated, not linked, rather than
      pretending to be pressable. */
-  /* ══ THE RUNGS, THEN THE WAYS OUT ══════════════════════════════════════
-     Ten counts in one flat run put `9 meeting set` and `2 do not call` at
-     the same rank, reading as one scale with ten steps — and it is not a
-     scale, it is a ladder with three exits beside it. A lead does not climb
-     to `declined`; it leaves. So the ladder runs in its own order on its
-     own line, and what has left the ladder sits under it and quieter.
+  /* ══ WHERE IT STANDS, AS A NARROWING ══════════════════════════════════
+     Ten counts in one flat run — `81 not called · 42 no answer · 17
+     callback · 7 answered · 9 meeting set · 1 interested · 4 handed over ·
+     13 declined · 6 wrong number · 2 do not call` — is a sentence you have
+     to read word by word to find anything in, and it hid the one shape a
+     campaign has: it narrows. Two hundred people rung, forty answered, nine
+     with a meeting. The narrowing IS the finding.
 
-     Informational, not pressable: these are rungs and the queue below cuts
-     by what is CALLABLE, so a door here would open a filter that does not
-     exist. Stated, rather than pretending. */
-  function tally(members) {
+     So four figures for what a BDR acts on, then the ladder as bars drawn
+     against the whole roster — every bar against the same total, or the
+     narrowing disappears — and the exits under it, because a lead does not
+     climb to `declined`, it leaves. */
+  /* ══ THE LADDER AS A NARROWING ═════════════════════════════════════════
+     Every bar is drawn against the WHOLE roster rather than against the
+     largest rung, because the narrowing is the finding: two hundred rung,
+     forty answered, nine with a meeting. Scaled to the biggest bar instead,
+     every campaign looks the same shape and the one fact this block exists
+     to show disappears.
+
+     Shared with the company page, which asks the same question of seven
+     people that a campaign asks of two hundred. Two components for one
+     question is two things to learn and two places for them to drift. */
+  /* WRITTEN OUT, NOT COMPOSED. `'tone-' + x.tone` is invisible to the audit,
+     which searches the source for the class names this build draws — and it
+     said so: three rules defined and rendered nowhere, on rules that were
+     rendered on every bar of every funnel. A class whose name only exists
+     while the page is running is a class the audit cannot pair with its rule,
+     and the rule it cannot pair is the one that silently stops applying. */
+  const FN_TONE = { ok: 'tone-ok', warn: 'tone-warn', neutral: 'tone-neutral',
+    err: 'tone-warn' };
+
+  function funnelOf(members) {
     const n = rungCounts(members);
-    const run = (set, cls) => {
-      const rows = set.filter((x) => n[x.k]);
-      if (!rows.length) return '';
-      return '<div class="b-tally' + cls + '">' + rows.map((x) =>
-        '<span class="b-tally-item"><b>' + commas(n[x.k]) + '</b> ' +
-        esc(x.label.toLowerCase()) + '</span>').join('') + '</div>';
-    };
-    const out = EXITS.filter((x) => n[x.k]).reduce((t, x) => t + n[x.k], 0);
-    return run(LADDER, '') +
-      (out ? '<p class="b-tally-out">' + esc(plural(out, 'person')) + ' left the ladder — ' +
-        EXITS.filter((x) => n[x.k]).map((x) =>
+    const total = members.length || 1;
+    const bars = LADDER.filter((x) => n[x.k]).map((x) =>
+      '<span class="b-fn-name">' + esc(x.label) + '</span>' +
+      '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[x.tone] || 'tone-neutral') + '" ' +
+        'style="width:' + Math.max(1, Math.round((n[x.k] / total) * 100)) + '%"></span></span>' +
+      '<span class="b-fn-n">' + commas(n[x.k]) + '</span>').join('');
+    const gone = EXITS.filter((x) => n[x.k]);
+    const goneN = gone.reduce((t, x) => t + n[x.k], 0);
+    return (bars ? '<div class="b-funnel">' + bars + '</div>' : '') +
+      (goneN ? '<p class="b-tally-out">' + esc(plural(goneN, 'person')) +
+        ' left the ladder — ' + gone.map((x) =>
           commas(n[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
   }
 
-  /* Preparation, folded away after the first visit. Native `<details>`, which
-     is a disclosure and not a modal: it takes no focus, blocks nothing, and
-     remembers nothing you have to dismiss. */
-  function pitchBlock(k) {
-    const sells = k.sells.map((s) => SELL[s]).filter(Boolean);
-    return '<details class="s-rec-block s-block-wide" id="pitchBox"' + (UI.pitchSeen ? '' : ' open') + '>' +
-      '<summary class="s-rec-cap">What we are selling them</summary>' +
-      '<div class="s-rec-body">' +
-        '<p class="s-block-sub">' + sells.map((s) =>
-          '<b>' + esc(s.name) + '</b> — ' + esc(s.blurb)).join('. ') + '.</p>' +
-        '<p class="s-block-sub">' + esc(k.pitch) + '</p>' +
+  function campStands(k) {
+    const st = campStand(k);
+    const n = st.n;
+    const fig = (cap, val, sub, tone) =>
+      '<div class="s-af">' +
+        '<span class="s-af-cap">' + esc(cap) + '</span>' +
+        '<span class="s-af-val' + (tone ? ' tone-' + tone : '') + '">' + commas(val) + '</span>' +
+        '<span class="s-af-sub">' + esc(sub) + '</span>' +
+      '</div>';
+
+
+    return '<section class="s-block s-block-wide" aria-label="Where it stands">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">Where it stands</h2>' +
+        '<span class="s-block-say">' + esc(plural(st.members.length, 'person')) +
+        ' on this campaign</span></div>' +
+
+      '<div class="s-afs">' +
+        fig('Never rung', n['not-called'] || 0, 'nobody has tried them yet') +
+        fig('Rung, no answer', n['no-answer'] || 0, 'tried and never picked up') +
+        fig('Reached', st.reached, 'you got them on the phone', 'ok') +
+        fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
+          (n.interested || 0) + (n['handed-over'] || 0), 'a time in a diary', 'ok') +
+      '</div>' +
+
+      funnelOf(st.members) +
+      campAimy(k) +
+    '</section>';
+  }
+
+
+  /* ══ WHAT TO SAY, IN THE ORDER YOU SAY IT ══════════════════════════════
+     It was one paragraph of product names run together, a second paragraph
+     of pitch, a set of objections drawn with `.s-callsum-mem` — the Remember
+     style, an accent stripe meant for a durable fact about one person — and
+     a row of grey tags. Four kinds of preparation at one weight, in a block
+     whose whole job is to be scanned in the ten seconds before a call
+     connects.
+
+     Now it runs in the order the call does: what we sell, the sentence you
+     open with, what comes back at you and the agreed answer to it, and what
+     you can send afterwards. The opener gets the deck step because it is the
+     one thing here you actually say out loud.
+
+     STILL A DISCLOSURE, open the first time and however you left it after.
+     A caller who has run this campaign for three weeks does not need the
+     pitch on screen above the feed every time they come back. */
+  function sellingBlock(k) {
+    const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
+    const cap = (t) => '<h3 class="b-sell-cap">' + esc(t) + '</h3>';
+    return '<details class="s-block s-block-wide b-sell" id="pitchBox"' +
+      (UI.pitchSeen ? '' : ' open') + '>' +
+      '<summary class="b-sell-sum"><span class="s-block-h">What to say</span>' +
+        '<span class="s-block-say">' + esc(sells.map((x) => x.name).join(' and ')) +
+        '</span></summary>' +
+      '<div class="b-sell-body">' +
+
+        cap('What we sell them') +
+        '<div class="b-sell-list">' + sells.map((x) =>
+          '<p class="b-sell-item"><b>' + esc(x.name) + '</b>' + esc(x.blurb) + '</p>').join('') +
+        '</div>' +
+
+        cap('Open with') +
+        '<p class="b-sell-pitch">' + esc(k.pitch) + '</p>' +
+
+        cap('What comes back, and what to say to it') +
         '<div class="s-callsum-rows">' + k.objections.map((o) =>
           '<div class="s-callsum-row">' +
-            '<span class="s-callsum-mem">' + esc(OBJECTION[o.k].label) + '</span>' +
+            '<span class="s-callsum-cap">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<span class="s-callsum-val">' + esc(o.say) + '</span>' +
           '</div>').join('') + '</div>' +
-        '<div class="b-cuts">' + k.resources.map((r) =>
-          '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>' +
+
+        (k.resources.length
+          ? cap('What you can send') +
+            '<div class="b-cuts">' + k.resources.map((r) =>
+              '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>'
+          : '') +
       '</div>' +
     '</details>';
   }
@@ -3387,7 +3559,7 @@
               '</div>'
             : '') +
 
-          tally(people) +
+          funnelOf(people) +
           aimyBlock(accSays(a, people, hist)) +
         '</div>' +
       '</section>' +

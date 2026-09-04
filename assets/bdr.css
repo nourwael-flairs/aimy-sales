@@ -111,9 +111,6 @@
    A row of counts, stated rather than linked. These are RUNGS, and the queue
    under them cuts by what is owed — so a door here would open a filter that
    does not exist, which is worse than no door. */
-.b-tally { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; }
-.b-tally-item { font-size: var(--fs-xs); color: var(--d400); }
-.b-tally-item b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 
 /* §8 held a labelled chip row per axis. The builder asks in the composer
    now, the way the V3 build does — you say who you are after and the page
@@ -398,10 +395,6 @@
 .b-find-x:hover { color: var(--d100); }
 .b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 
-/* The ways off the ladder, under it and quieter. Not a second tally row: it
-   is a sentence, because three counts that share one fact — these people are
-   no longer callable — read as a sentence and not as a scale. */
-.b-tally-out { margin-top: 6px; font-size: var(--fs-xs); color: var(--d600); }
 
 /* ══ 18. THE ACTIONS BELOW THE TITLE ROW ═══════════════════════════════════
    `Call these 15` and `Let AiMY call 15` are drawn from what the search
@@ -417,3 +410,103 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   margin: -8px 0 16px;
 }
+
+/* ══ 19. THE LADDER AS A NARROWING ═════════════════════════════════════════
+   Ten counts in one flat run put `9 meeting set` and `2 do not call` at the
+   same rank and hid the one shape a campaign has: it narrows. Two hundred
+   rung, forty answered, nine with a meeting.
+
+   Three columns, and the middle one is the finding. Every bar is drawn
+   against the WHOLE roster rather than against the largest rung — scaled to
+   the biggest bar, every campaign looks the same shape and the narrowing
+   disappears. The name and the number are at full ink because they are the
+   content; the track behind the bar is the only quiet thing here. */
+.b-funnel {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 8px 14px; align-items: center; margin: 4px 0 4px;
+}
+.b-fn-name { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); }
+.b-fn-bar {
+  height: 8px; border-radius: var(--r-pill);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  overflow: hidden;
+}
+.b-fn-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+.b-fn-fill.tone-ok { background: var(--ok-text); }
+.b-fn-fill.tone-warn { background: var(--warn-text); }
+.b-fn-fill.tone-neutral { background: var(--d300); }
+.b-fn-n {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums;
+}
+/* The ways off the ladder. A sentence, not a fourth bar: three counts that
+   share one fact — these people are no longer callable — read as a sentence,
+   and drawing them as steps would put leaving on the same scale as climbing. */
+.b-tally-out { margin-top: 10px; font-size: var(--fs-xs); color: var(--d200); }
+
+/* ══ 20. WHAT TO SAY ═══════════════════════════════════════════════════════
+   Four kinds of preparation at one weight, in the block a caller scans in the
+   ten seconds before a call connects. It ran the product names together in a
+   paragraph, gave the pitch the same step, drew the objections with the
+   Remember stripe — a treatment meant for a durable fact about one person —
+   and finished with grey tags.
+
+   Now each part is captioned and the opener is the loudest thing in it,
+   because the opener is the only line here you say out loud. */
+.b-sell { padding: 0; }
+.b-sell-sum {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px;
+  cursor: pointer; list-style: none; margin-bottom: var(--sp-4);
+}
+.b-sell-sum::-webkit-details-marker { display: none; }
+.b-sell-sum::before { content: "▸ "; color: var(--d300); font-size: var(--fs-xs); }
+.b-sell[open] .b-sell-sum::before { content: "▾ "; }
+.b-sell-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
+.b-sell-body { display: flex; flex-direction: column; gap: 8px; }
+/* The caption steps, which is what makes four groups read as four groups.
+   Not muted: a label you cannot read is a group with no name on it. */
+.b-sell-cap {
+  margin: 12px 0 2px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
+}
+.b-sell-cap:first-child { margin-top: 0; }
+.b-sell-list { display: flex; flex-direction: column; gap: 4px; }
+/* The name carries the weight and the blurb follows it on the same line, so
+   two offerings read as two things rather than as one long sentence. */
+.b-sell-item { font-size: var(--fs-xs); color: var(--d200); line-height: var(--lh-base); }
+.b-sell-item b {
+  color: var(--d50); font-weight: var(--fw-bold);
+  margin-right: 8px;
+}
+/* THE ONE LINE YOU SAY OUT LOUD, at the deck step. Everything else in this
+   block is something you look at; this is something you speak, and it was at
+   the same 13px as the tags under it. */
+.b-sell-pitch {
+  font-size: var(--ty-deck); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50);
+  max-width: 62ch; text-wrap: pretty;
+}
+
+/* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
+   `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
+   for chrome — a placeholder, a disabled control — and the shell spends them
+   on content: `.s-block-sub` is the sentence under every heading in this
+   build, `.b-vfoot` is how many of what you are looking at, `.s-rec-kind` is
+   what kind of thing you have open. All three are things the reader is meant
+   to read, drawn in the colour of things they are not.
+
+   Raised, and the hierarchy comes from size and weight where it already did:
+   `.s-block-sub` is 13px against a 20px heading, `.b-vfoot` is 13px under a
+   card grid. Nothing here changes a size — it only stops the smaller step
+   from also being the dimmer one. */
+.s-block-sub { color: var(--d200); }
+.b-vfoot { color: var(--d200); }
+.s-rec-kind { color: var(--d300); }
+.b-faint { color: var(--d300); }
+.b-aimy-from { color: var(--d300); }
+.s-callsum-cap { color: var(--d300); }
+.s-callsum-val { color: var(--d50); }
+.s-call-by { color: var(--d200); }
+.s-call-ago { color: var(--d300); }
+.s-block-say { color: var(--d200); }
