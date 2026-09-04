@@ -2939,9 +2939,15 @@
               esc(k.id) + '">Call the next one</button>' : '') +
             (ring.length ? '<button class="s-inline-btn" type="button" data-callall="' +
               esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' : '') +
+            /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
+               the only door to the finder was on a surface two clicks away
+               that does not know which campaign you were working. */
+            '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
+              '">Find more for this campaign</button>' +
           '</div>' +
 
           tally(members) +
+          campAimy(k) +
         '</div>' +
       '</section>' +
 
@@ -2961,6 +2967,128 @@
         peekFoot(peek(campFeedItems(k.id)), 'call') +
       '</section>' +
     '</div>';
+  }
+
+  /* ══ WHAT AiMY MAKES OF ONE CAMPAIGN ═══════════════════════════════════
+     The card gets one line, because a grid of fourteen cards each holding
+     four readings is a wall. The page can carry more — but only readings
+     the card cannot give you, and only ones that are read off the corpus
+     with the count in them.
+
+     Every one states its basis and most carry a door, because a reading
+     you cannot act on from where you are reading it is a reading you have
+     to remember. Capped at three: a page of insights is a page nobody
+     finishes, and the fourth-best thing AiMY noticed is not worth the
+     reader deciding which three of five to trust.
+
+     AGAINST THE GOAL, FIRST. Every campaign goal in this book opens with a
+     number — "Open 20 conversations in Central Europe" — so the goal is
+     countable, and where it stands is the question the campaign exists to
+     answer. Read out of the sentence rather than stored beside it, so a
+     goal that is edited cannot leave a target behind that disagrees. */
+  function campReadings(k) {
+    const here = DB.touch.filter((t) => t.camp === k.id);
+    const members = membersOf(k.id);
+    const left = daysBetween(TODAY_ISO, k.to);
+    const out = [];
+
+    const target = Number((k.goal.match(/\b(\d{1,4})\b/) || [])[1]);
+    if (target) {
+      /* ══ IT HAS TO COUNT THE THING THE GOAL COUNTS ══════════════════════
+         The first cut counted everyone who had ever been got on the phone
+         against a goal that asks for MEETINGS, and reported "35 of the 22
+         this campaign is for" — a progress line claiming a hundred and sixty
+         per cent while a hundred and eleven people sat unrung under it. The
+         goal's own verb decides the rung: a campaign to book meetings is
+         measured at `meeting-set`, one to open conversations at `answered`.
+         Said in the ladder's words rather than the goal's, so the sentence
+         cannot claim to have parsed a goal it only skimmed. */
+      const wantsMeeting = !/\bconversation/i.test(k.goal);
+      const at = wantsMeeting ? 'meeting-set' : 'answered';
+      const done = members.filter((c) => rank(c.checkpoint) >= rank(at)).length;
+      out.push({
+        text: '<b>' + commas(done) + '</b> ' + (wantsMeeting
+          ? 'have a meeting in a diary' : 'have been got on the phone') +
+          ', against a goal of <b>' + commas(target) + '</b>.' +
+          (left > 0 ? ' ' + plural(left, 'day') + ' left.' : ' Past its end date.'),
+        from: 'the goal and where its people stand',
+      });
+    }
+
+    /* What this audience says no about, counted, with the answer the
+       campaign has already agreed to it. */
+    const objs = Object.create(null);
+    let gave = 0;
+    here.forEach((t) => (t.objections || []).forEach((o) => { objs[o] = (objs[o] || 0) + 1; gave++; }));
+    const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
+    if (top && objs[top] >= 3) {
+      const agreed = k.objections.filter((o) => o.k === top)[0];
+      out.push({
+        text: '<b>' + esc((OBJECTION[top] || {}).label || top) + '</b> is what they push back ' +
+          'on — ' + objs[top] + ' of the ' + gave + ' reasons anybody gave here. ' +
+          esc(agreed ? agreed.say : (OBJECTION[top] || {}).blurb || ''),
+        from: plural(here.length, 'call') + ' on this campaign',
+      });
+    }
+
+    /* The hour this campaign gets through, which is not the book's hour:
+       a campaign into one region rings a different clock. */
+    const h = hourOf(here);
+    if (h) {
+      out.push({
+        text: 'It gets through most around <b>' + h.hour + ':00</b> — ' + h.pct +
+          '% of the ' + commas(h.n) + ' calls made in that hour.',
+        from: 'every call on this campaign',
+      });
+    }
+
+    /* People on the ladder that nobody has touched in a fortnight. Not the
+       never-rung — those are on the numbers line above — but the ones that
+       were being worked and stopped, which no count on this page shows. */
+    const cold = members.filter((c) => !isExit(c.checkpoint) &&
+      c.checkpoint !== 'not-called' && c.lastCallAt &&
+      daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) >= 14);
+    if (cold.length) {
+      out.push({
+        /* STATED, NOT LINKED. The stale ones sit across three rungs, and the
+           cuts on this page are the rungs — every callable person is in
+           exactly one, which is what makes the chips add up to All. A door
+           here would have to point at one rung and quietly lose the rest, or
+           add an overlapping cut and break the arithmetic under it. */
+        text: '<b>' + commas(cold.length) + '</b> were being worked and have not been ' +
+          'rung in a fortnight. They are spread across the cuts below.',
+        from: 'the last call on each of their records',
+      });
+    }
+
+    return out.slice(0, 3);
+  }
+
+  /* The best hour over any set of calls. `bestHour` is this over the whole
+     book and caches; this one is scoped and does not, because the scope
+     changes with the page. */
+  function hourOf(list) {
+    const hours = Object.create(null);
+    list.forEach((t) => {
+      const h = new Date(t.at).getHours();
+      if (h < 7 || h > 19) return;
+      const b = hours[h] || (hours[h] = { n: 0, got: 0 });
+      b.n++;
+      if (t.outcome === 'reached') b.got++;
+    });
+    const best = Object.keys(hours).filter((x) => hours[x].n >= 20)
+      .sort((x, y) => hours[y].got / hours[y].n - hours[x].got / hours[x].n)[0];
+    if (!best) return null;
+    return { hour: Number(best), n: hours[best].n,
+      pct: Math.round((hours[best].got / hours[best].n) * 100) };
+  }
+
+  /* Each reading is a block, and one with somewhere to go carries the door
+     rather than describing where you would find it. */
+  function campAimy(k) {
+    const rs = campReadings(k);
+    if (!rs.length) return '';
+    return rs.map(aimyBlock).join('');
   }
 
   /* Where the campaign's people stand. Informational: these are rungs, and
@@ -5270,8 +5398,9 @@
     return open.length ? say[open[0]] : '';
   }
 
-  function lbuildStart() {
-    LBUILD = { kind: null, terms: [], step: 'kind', name: null };
+  function lbuildStart(campId) {
+    LBUILD = { kind: null, terms: [], step: 'kind', name: null,
+      camp: (campId && DB.byCamp[campId] && mine(DB.byCamp[campId])) ? campId : null };
     TURNS.length = 0;
     openCanvas();
     lbuildPush('What are you collecting — companies, or the people at them?',
@@ -5408,7 +5537,8 @@
     /* Find leads opens the conversation, which carries the way onto the
        page on its first turn. The gate is inside the first real question
        rather than being a screen of its own. */
-    if (t.closest('[data-bopen]')) { lbuildStart(); return; }
+    const bop = t.closest('[data-bopen]');
+    if (bop) { lbuildStart(bop.getAttribute('data-bopen') || null); return; }
 
     const lb = t.closest('[data-lb]');
     if (lb) { lbuildOpt(lb.getAttribute('data-lb')); return; }
@@ -5504,7 +5634,17 @@
     }
 
     const cut = t.closest('[data-q]');
-    if (cut) { go(Object.assign(cleared(), { q: cut.getAttribute('data-q') })); return; }
+    if (cut) {
+      /* A CUT NARROWS WHAT YOU ARE LOOKING AT, and on a campaign page what you
+         are looking at is the campaign. Clearing every key sent you to the
+         whole book's queue instead — the chip said Callbacks, the count under
+         it said 48, and you landed on a list of six hundred. */
+      const over = cleared();
+      over.q = cut.getAttribute('data-q');
+      if (S.camp) over.camp = S.camp;
+      go(over);
+      return;
+    }
 
     const pg = t.closest('[data-page]');
     if (pg) { go({ p: pg.getAttribute('data-page') }); return; }
@@ -5524,7 +5664,7 @@
         go(Object.assign(cleared(), { list: k.slice(5) }));
         return;
       }
-      if (k === 'find') { lbuildStart(); return; }
+      if (k === 'find') { lbuildStart(null); return; }
       if (k === 'callnext') {
         const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
