@@ -5235,10 +5235,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The first head on the page follows the title and the recommendation, so it
    takes the header's gap rather than a section break's. */
 .s-camp-page .s-rec-main > .s-sect-head:first-of-type { margin-top: 32px; }
-/* And the second finding pairs with the first rather than starting again:
-   what is in the way and what to offer better are one region read in order,
-   so they sit a block apart and not a section apart. */
-.s-camp-page .s-sheet-block + .s-sheet-block > .s-sect-head { margin-top: 24px; }
+/* The rule that paired the two findings when they were stacked is gone with
+   the stack. It also beat the panel's own reset on specificity, so the right
+   column's head sat 24px below the left one's — two columns of one panel,
+   starting at different heights. */
 .s-sect-main { display: flex; align-items: baseline; gap: 12px; }
 /* ── THE KICKER ──
 
@@ -7376,6 +7376,38 @@ div.s-pipe-cell { cursor: default; }
 /* Prose. The quote panel was sized for a paragraph, and a four-character
    description turned it into a mostly empty box. */
 .s-camp-page .s-sheet-block { margin-bottom: 24px; }
+/* ══ WHAT IS GOING WRONG, BOTH SIDES OF IT, ON ONE ROW ═════════════════════
+   In the way and What to offer better were 743px stacked, and they are the
+   same shape twice — a sentence and a ranked list of reasons with counts.
+   Side by side the comparison is the layout rather than something the reader
+   holds in their head across a scroll.
+
+   `auto-fit` and not two fixed tracks: the objections block does not draw on
+   a campaign where nobody has given a reason, and one column stretched to
+   half the width with air beside it is worse than one column full width. */
+.s-wrong {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 32px;
+  align-items: start;
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
+  padding: 20px;
+  border-radius: var(--r-lg);
+  margin-bottom: 24px;
+}
+/* The section break belongs to the panel, not to the heads inside it — they
+   are columns now, and a 64px top margin on a column head is a column that
+   starts two-thirds of the way down its own box. */
+.s-camp-page .s-wrong > .s-sheet-block { margin-bottom: 0; }
+.s-camp-page .s-wrong .s-sect-head { margin-top: 0; }
+/* `auto-fit` alone did not stack these: measured at 700px it kept two tracks
+   and squeezed them to 290, where "Lost the person who wanted this, and
+   nobody has replaced them." is three lines. Below 900 the comparison is not
+   worth the wrapping, so they stack — the same width the campaign row drops
+   its reason at. */
+@media (max-width: 900px) {
+  .s-wrong { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
 /* The tally closes the flow section; the next head owns the gap after it. */
 .s-camp-page .s-tally { margin-bottom: 24px; }
 /* The campaign's own title override is gone — `.s-sheet-name` carries the

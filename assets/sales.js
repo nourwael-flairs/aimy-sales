@@ -12640,8 +12640,23 @@
             Both read the members. A campaign nobody is on has no obstacles
             and no objections because it has no subject, and the section that
             fixes that — Find, below — is the one that still draws. */ ''}
-      ${(l.members || []).length ? campInWay(l) : ''}
-      ${(l.members || []).length ? campOffer(l) : ''}
+      ${/* ══ ONE PANEL, TWO COLUMNS, BECAUSE IT IS ONE QUESTION ═══════════
+            These were two stacked sections, 743px between them, and they
+            are the same shape twice: a headline sentence and a ranked list
+            of reasons with a count on each. They are also the same
+            QUESTION asked of the two sides of a campaign — what is holding
+            the organizations up, and what the people who said no told us.
+            Read one under the other you compare them by memory; read them
+            side by side and the comparison is the layout.
+
+            Not wrapped in AiMY's mark, whatever the panel looks like. Both
+            columns are counts — the campaign's own arithmetic, and nobody's
+            opinion. The one thing on either side that IS a reading keeps
+            the mark it already has, inside the column it belongs to. */ ''}
+      ${(l.members || []).length ? `<div class="s-wrong">
+        ${campInWay(l)}
+        ${campOffer(l)}
+      </div>` : ''}
 
 
 
