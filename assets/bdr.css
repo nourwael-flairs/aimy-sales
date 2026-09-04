@@ -1,0 +1,512 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AiMY SALES — THE BDR BUILD
+
+   One role, one job: call people on the campaigns you are on, and say what
+   happened. This sheet owns the SHELL and everything inside the page.
+   `aimy-ds.css` owns tokens and components and is never edited — it is an
+   extracted copy of the library, and a product that edits it has forked the
+   library without saying so.
+
+   ── WHAT THIS FILE MAY ASSUME ───────────────────────────────────────────────
+   The library ships tokens (--d50…--d950, --brand, --accent, --ok/warn/err,
+   --sp-*, --fs-*, --r-*, --t-*) and components (.btn, .chip, .tag, .bcard,
+   .list-row, .stat-card, .skeleton, .empty-state, .work-state, .aimy-float-*,
+   .aimy-overlay, .aimy-toast). It ships NO shell: no topbar, no rail, no main
+   column. All of that is here.
+
+   ── THE NAMING RULE, AND THE ONE EXCEPTION ─────────────────────────────────
+   Everything this build invents is prefixed `b-`, so nothing it writes can
+   collide with a library class. The exception is the SHELL SKELETON —
+   .app-topnav, .app-body, .app-main, .page-scroll, .page-inner, .topnav-*,
+   .aimy-float-wrap, .aimy-overlay. Those names are a contract:
+   aimy-responsive.css targets .page-scroll, .aimy-float-wrap, .aimy-overlay,
+   .topnav-tabs and .topnav-tabs-inner by name, and renaming them would
+   silently drop the scaling, the keyboard inset and the top-bar collision fix.
+   They are shared vocabulary across AiMY QA, Knowledge and Sales; they stay.
+
+   ── THE THREE LIBRARY OVERRIDES ────────────────────────────────────────────
+   Marked §OVERRIDE below. Each one is a library declaration that is wrong
+   under this shell, fixed HERE rather than THERE. There are three and there
+   should never be four without a note saying why.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ══ 1. TOKENS THIS BUILD ADDS ═════════════════════════════════════════════
+   Only what the shell needs and the library does not have. Every colour is a
+   library token; nothing here invents a hex. */
+:root {
+  --rail-width: 208px;
+  --call-width: 320px;
+  --page-max: 1080px;
+
+  /* The rung colours for the checkpoint ladder. Semantic tokens only, so the
+     ladder reads the same in both themes and cannot drift from status
+     colour anywhere else in the product. */
+  --rung-off: var(--d700);
+  --rung-on: var(--accent);
+  --rung-done: var(--ok);
+  --rung-end: var(--err);
+}
+
+/* §OVERRIDE 1 — the library pairs Urbanist with Poppins (aimy-ds.css:134).
+   Two geometric sans with near-identical skeletons separate nothing at the
+   sizes this product sets, and the second family is a whole font request for
+   it. Urbanist 800 does the display role. Same argument the V3 build made;
+   done as a token swap so no rule has to know. */
+:root:root {
+  --font-display: var(--font-sans);
+}
+
+/* ══ 2. THE SHELL ══════════════════════════════════════════════════════════
+   Three zones: a fixed 60px top bar, a rail, and one scrolling column.
+   `aimy-responsive.css` sets :root to `height:100dvh; overflow:hidden` and
+   puts `zoom` on body — so the ONLY scroller in the product is .page-scroll,
+   and anything that needs to scroll has to live inside it. */
+body {
+  margin: 0;
+  background: var(--body-bg);
+  color: var(--d50);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-base);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-topnav {
+  flex: 0 0 var(--topbar-height);
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--hairline);
+  position: relative;
+  z-index: 300;
+}
+
+.topnav-logo { display: flex; align-items: center; gap: var(--sp-2); }
+.topnav-logo-mark { display: flex; align-items: center; color: var(--d50); }
+.topnav-spacer { flex: 1 1 0; min-width: var(--sp-2); }
+
+/* Centred between the two spacers rather than on the viewport, which is what
+   keeps it from colliding with the right-hand cluster at any width. The V3
+   build centred it absolutely and needed a media query to undo that; this
+   one cannot collide by construction. */
+.topnav-tabs { display: flex; justify-content: center; min-width: 0; }
+.topnav-tabs-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--card-bg-raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  min-width: 0;
+}
+
+.topnav-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--d400);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.topnav-tab:hover { color: var(--d50); background: var(--glass-bg); }
+.topnav-tab.active { color: var(--d50); background: var(--accent-dim); }
+
+.topnav-right { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* The way out to the previous build. One link, because you are on this one
+   and the only thing worth offering is the way back to the other. */
+.b-ver-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  color: var(--d400);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
+  text-decoration: none;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.b-ver-link:hover { color: var(--d50); border-color: var(--card-border-hover); }
+
+.b-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--d400);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-icon-btn:hover { color: var(--d50); background: var(--glass-bg); }
+.b-icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* One icon at a time. Both ship in the markup so the swap costs no repaint,
+   and the theme decides which is shown — without this the toggle draws a sun
+   and a moon on top of each other, which is what the audit caught. The icon
+   shown is the one you are switching TO. */
+.b-icon-moon { display: none; }
+:root[data-theme="light"] .b-icon-sun { display: none; }
+:root[data-theme="light"] .b-icon-moon { display: block; }
+
+.b-bell-dot {
+  position: absolute;
+  top: var(--sp-1);
+  right: var(--sp-1);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--err);
+  border: 2px solid var(--card-bg);
+}
+
+.b-who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-left: var(--sp-2);
+}
+.b-who-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--accent), var(--brand));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+}
+.b-who-text { display: flex; flex-direction: column; line-height: var(--lh-tight); }
+.b-who-name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-who-role { font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500); }
+
+.app-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* ══ 3. THE RAIL — an index, not a briefing ═══════════════════════════════
+   Three doors and the counts behind them. The V3 build put findings here and
+   then also on the page, and the two disagreed the moment either changed.
+   What needs a person is on the page; what EXISTS is here. */
+.b-rail {
+  flex: 0 0 var(--rail-width);
+  width: var(--rail-width);
+  padding: var(--sp-4) var(--sp-3);
+  background: var(--card-bg);
+  border-right: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  overflow: hidden;
+}
+.b-rail-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--d300);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-rail-link:hover { color: var(--d50); background: var(--glass-bg); }
+.b-rail-link[aria-current="page"] { color: var(--d50); background: var(--accent-dim); }
+.b-rail-n {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  color: var(--d500);
+  font-variant-numeric: tabular-nums;
+}
+.b-rail-link[aria-current="page"] .b-rail-n { color: var(--d300); }
+
+.b-rail-head {
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--d600);
+}
+
+/* ══ 4. MAIN AND THE ONE SCROLLER ═════════════════════════════════════════ */
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 96px is the float bar's band. aimy-responsive.css adds the keyboard inset
+     to this same number for scroll-padding; the two must agree. */
+  padding-bottom: 96px;
+}
+.page-inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-6) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+/* ══ 5. PAGE FURNITURE ════════════════════════════════════════════════════ */
+.b-h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tighter);
+  line-height: var(--lh-tight);
+  color: var(--text-strong);
+}
+.b-sub {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--d400);
+  max-width: 68ch;
+}
+.b-block { display: flex; flex-direction: column; gap: var(--sp-3); }
+.b-block-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.b-block-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight);
+  color: var(--text-strong);
+}
+.b-block-note { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d500); }
+.b-panel {
+  padding: var(--sp-4);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-xl);
+}
+.b-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.b-num { font-variant-numeric: tabular-nums; font-weight: var(--fw-bold); color: var(--d50); }
+.b-dim { color: var(--d500); }
+
+/* ══ 6. THE CALL PANEL — a shell region, not an overlay ═══════════════════
+   A call is live and timed, and you move around during one: you open the
+   contact, you read the campaign's pitch, you check what was said last time.
+   A container that dies on navigation cannot hold that, so it sits beside
+   the main column and survives every URL change by construction. */
+.b-call {
+  flex: 0 0 var(--call-width);
+  width: var(--call-width);
+  background: var(--card-bg);
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.b-call[hidden] { display: none; }
+
+/* ══ 7. THE COMPOSER ══════════════════════════════════════════════════════
+   §OVERRIDE 2 — the library ships .aimy-float-wrap as `position: absolute`
+   (aimy-ds.css:1101), which pins it to .app-main and therefore slides under
+   the call panel when one opens. Fixed, and offset by the panel's width when
+   it is open, so the bar stays centred on what you can actually see. */
+.aimy-float-wrap {
+  position: fixed;
+  left: var(--rail-width);
+  right: 0;
+  z-index: 200;
+  transition: right var(--t-base);
+}
+body.is-calling .aimy-float-wrap { right: var(--call-width); }
+
+/* §OVERRIDE 3 — same reason, for the canvas. The library positions the
+   overlay against its offset parent; this shell needs it to clear the top
+   bar and the call panel, both of which are outside .app-main. */
+.aimy-overlay {
+  position: fixed;
+  top: var(--topbar-height);
+  left: var(--rail-width);
+  right: 0;
+  z-index: 500;
+  transition: right var(--t-base);
+}
+body.is-calling .aimy-overlay { right: var(--call-width); }
+
+/* ══ 8. PROTOTYPE CONTROLS — not product UI ═══════════════════════════════ */
+.b-proto {
+  position: fixed;
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
+}
+.b-proto-panel {
+  width: 272px;
+  padding: var(--sp-4);
+  background: var(--panel-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.b-proto-panel[hidden] { display: none; }
+.b-proto-title {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--d500);
+}
+.b-proto-line { display: flex; justify-content: space-between; gap: var(--sp-3); color: var(--d300); }
+.b-proto-line b { color: var(--d50); font-variant-numeric: tabular-nums; }
+.b-proto-note { color: var(--d500); font-size: var(--fs-xs); line-height: var(--lh-snug); }
+.b-proto-link { color: var(--ai-text); text-decoration: none; font-weight: var(--fw-semibold); }
+.b-proto-link:hover { text-decoration: underline; }
+
+/* ══ 9. TOASTS ════════════════════════════════════════════════════════════
+   Every write lands here, and every write can be taken back from here. */
+.b-toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 700;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: center;
+  pointer-events: none;
+}
+.b-toast {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  max-width: 560px;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--panel-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  font-size: var(--fs-base);
+  color: var(--d100);
+}
+.b-toast-undo {
+  border: 0;
+  background: transparent;
+  color: var(--ai-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.b-toast-undo:hover { text-decoration: underline; }
+
+/* A state screen belongs here — "you are not on this campaign", the empty
+   queue, the failed load. Its rules arrive with the surface that renders
+   them; written ahead of that they are rules nothing uses, which is what
+   check 4 exists to catch and did. */
+
+/* ══ 10. MOTION ═══════════════════════════════════════════════════════════
+   The library ships its own reduced-motion block. This is for what this
+   sheet adds: nothing here animates anything but transform and opacity, and
+   nothing exceeds 300ms, so freezing the transitions is the whole guard. */
+@media (prefers-reduced-motion: reduce) {
+  .aimy-float-wrap,
+  .aimy-overlay { transition: none; }
+}
+
+/* ══ 11. NARROW ═══════════════════════════════════════════════════════════
+   1087.98 = 1280 x 0.85, the viewport script's floor. Below it the rail is a
+   row of doors above the page rather than a column beside it — a 208px
+   column is a quarter of the screen at that width, and the queue is the
+   thing that needs the room. */
+@media (max-width: 1087.98px) {
+  .app-body { flex-direction: column; }
+  .b-rail {
+    flex: 0 0 auto;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+    overflow-x: auto;
+  }
+  .b-rail-head { display: none; }
+  .b-rail-link { width: auto; white-space: nowrap; }
+  .aimy-float-wrap,
+  .aimy-overlay { left: 0; }
+}
+
+/* Under 900 layout px the call panel cannot be a column and stay usable, so
+   it becomes a band across the bottom with the page above it. */
+@media (max-width: 899.98px) {
+  .app-body { position: relative; }
+  .b-call {
+    flex: 0 0 auto;
+    width: auto;
+    max-height: 46%;
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+  body.is-calling .aimy-float-wrap,
+  body.is-calling .aimy-overlay { right: 0; }
+}
