@@ -1129,11 +1129,13 @@
     DB.byList = Object.create(null);
     DB.touchesOf = Object.create(null);
     DB.membersOf = Object.create(null);
+    DB.consOf = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
+      (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
     });
     DB.touch.forEach((t) => {
@@ -1202,6 +1204,18 @@
      stored, so none of them can contradict the field it reads. */
 
   const accOf = (c) => DB.byAcc[c.acc];
+  /* EVERYBODY AT ONE COMPANY, which is the fact the queue can never show
+     you: it ranks people, so four ways into one account arrive on four
+     different pages days apart, and the second caller has no idea the
+     first one rang. */
+  const consAt = (accId) => (DB.consOf[accId] || []).map((id) => DB.byCon[id]).filter(Boolean);
+  /* And every call anybody has made into it, newest first. */
+  const touchesAt = (accId) => {
+    const out = [];
+    consAt(accId).forEach((c) =>
+      (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) out.push(TOUCH[id]); }));
+    return out.sort((a, b) => (a.at > b.at ? -1 : 1));
+  };
   const campsOf = (c) => c.camps.map((k) => DB.byCamp[k]).filter(Boolean);
   const mine = (c) => c.crew.indexOf(me().id) >= 0;
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
@@ -1237,7 +1251,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -1295,6 +1309,7 @@
     byId('chipBar').innerHTML = '';
     paintWho();
     byId('wbStage').innerHTML = S.con ? contactPage()
+      : S.acc ? accPage()
       : S.camp ? campPage()
       : S.on === 'lists' ? listsPage()
       : S.on === 'camps' ? campsPage()
@@ -1321,6 +1336,14 @@
         host: feed, items: peek(campFeedItems(S.camp)).rows, rowH: 64, rowClass: 's-qrow',
         key: (t) => t.id, row: campTouchRow,
         empty: 'Nothing has happened on this campaign yet.',
+      });
+    }
+    const af = byId('accFeed');
+    if (af) {
+      vlist({
+        host: af, items: peek(touchesAt(S.acc)).rows, rowH: 64, rowClass: 's-qrow',
+        key: (t) => t.id, row: campTouchRow,
+        empty: 'Nobody has rung this company yet.',
       });
     }
     const h = byId('histList');
@@ -2780,6 +2803,32 @@
     save();
   }
 
+  /* The company decision, made once. Mirrors `addListTo` exactly, including
+     the undo: a write that cannot be taken back is a write nobody presses. */
+  function addAccTo(accId, campId) {
+    const a = DB.byAcc[accId];
+    const k = DB.byCamp[campId];
+    if (!a || !k) return;
+    const touched = [];
+    consAt(accId).forEach((c) => {
+      if (c.camps.indexOf(campId) < 0) {
+        patchCon(c, { camps: c.camps.concat([campId]) });
+        touched.push(c.id);
+      }
+    });
+    if (!touched.length) { toast('Everybody here is already on ' + k.name + '.'); return; }
+    reindex();
+    paint();
+    toast(plural(touched.length, 'person') + ' at ' + a.name + ' joined ' + k.name, () => {
+      touched.forEach((id) => {
+        const c = DB.byCon[id];
+        patchCon(c, { camps: c.camps.filter((x) => x !== campId) });
+      });
+      reindex();
+      paint();
+    });
+  }
+
   function addListTo(listId, campId) {
     const l = DB.byList[listId];
     const k = DB.byCamp[campId];
@@ -2944,6 +2993,166 @@
     '</details>';
   }
 
+  /* ══ ONE COMPANY ════════════════════════════════════════════════════════
+     The surface this build did not have. An account was a phrase on
+     somebody's record — `QA Manager at Zenport Engineering · Manufacturing
+     · 260 staff` — and nothing you could open, so the four people at
+     Zenport were four unrelated rows in a queue that ranks individuals.
+     Ringing one of them told you nothing about the other three, and two
+     BDRs could work the same company for a fortnight without either
+     surface saying so.
+
+     THE FACTS ARE RANKED, which is V3's argument and it holds here: size
+     is what every ICP is written against, so it leads; what and where is
+     the next filter; how the record reached us is a fact about our book
+     and not about the company, so it goes last and quietest. Six facts at
+     one weight is a block you have to read word by word. */
+  function accPage() {
+    const a = DB.byAcc[S.acc];
+    if (!a) {
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
+        '<h2 class="s-rec-cap">No such company</h2>' +
+        '<div class="s-rec-body"><p class="s-block-sub">That company is not in the book.</p>' +
+        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+      '</section></div>';
+    }
+    const people = consAt(a.id).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y));
+    const ring = people.filter(callable);
+    const mineHere = people.filter((c) => campsOf(c).some(mine));
+    const hist = touchesAt(a.id);
+    const camps = [];
+    people.forEach((c) => campsOf(c).forEach((k) => {
+      if (mine(k) && camps.indexOf(k) < 0) camps.push(k);
+    }));
+    const free = myCampaigns().filter((k) => camps.indexOf(k) < 0).slice(0, 5);
+
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-back>Back</button>' +
+      '<section class="s-rec-block s-block-wide">' +
+        '<h2 class="s-rec-cap">' + esc(a.name) + '</h2>' +
+        '<div class="s-rec-body">' +
+          /* Rank one: the size. */
+          '<p class="s-block-sub"><b>' + commas(a.size) + ' staff</b> · ' +
+            esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' + esc(a.country) + '</p>' +
+          /* Rank two: our record of them. Quieter, because none of it
+             changes who you ring next. */
+          '<p class="s-block-sub b-faint">' + esc(a.domain) +
+            (REGION[a.region] ? ' · ' + esc(REGION[a.region].label) : '') +
+            /* THREE, AND THEN A COUNT. A company on seven campaigns printed
+               seven names into a line that is meant to be the quiet one, and
+               the whole header wrapped to four rows to hold them. */
+            (camps.length
+              ? ' · on ' + camps.slice(0, 3).map((k) =>
+                  '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
+                  '">' + esc(k.name) + '</button>').join(', ') +
+                (camps.length > 3 ? ' and ' + (camps.length - 3) + ' more of yours' : '')
+              : ' · on none of your campaigns') +
+          '</p>' +
+
+          '<p class="s-block-sub"><b>' + plural(people.length, 'person') + '</b> here' +
+            (mineHere.length ? ', <b>' + mineHere.length + '</b> on a campaign of yours' : '') +
+            (ring.length ? ', <b>' + ring.length + '</b> you can ring now' : '') +
+            '. ' + (hist.length
+              ? plural(hist.length, 'call') + ' into this company so far.'
+              : 'Nobody has rung it.') + '</p>' +
+
+          '<div class="b-cuts">' +
+            (ring.length
+              ? '<button class="s-insight-lnk primary" type="button" data-call="' +
+                  esc(ring[0].id) + '">Call ' + esc(ring[0].name.split(' ')[0]) + '</button>' +
+                (ring.length > 1
+                  ? '<button class="s-inline-btn" type="button" data-callall="' +
+                    esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
+                    ' here</button>'
+                  : '')
+              : '') +
+          '</div>' +
+
+          /* ONE PRESS PUTS THE WHOLE COMPANY ON A CAMPAIGN. Adding four
+             people one record at a time is the same decision made four
+             times, and the decision is about the company. */
+          (free.length
+            ? '<p class="s-block-sub">Put everybody here on a campaign:</p>' +
+              '<div class="b-cuts">' + free.map((k) =>
+                '<button class="filter-chip" type="button" data-addacc="' + esc(a.id) +
+                '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
+              '</div>'
+            : '') +
+
+          tally(people) +
+          aimyBlock(accSays(a, people, hist)) +
+        '</div>' +
+      '</section>' +
+
+      '<section class="s-block s-block-wide" aria-label="Who is here">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
+          '<span class="s-block-say">' + plural(people.length, 'person') + '</span></div>' +
+        qgrid(paged(people).rows) +
+        pager(paged(people), 'person') +
+      '</section>' +
+
+      /* Every call into the company, whoever made it and whoever they
+         rang. On an account the person is the thing that tells two calls
+         apart, so the row leads with the name. */
+      '<section class="s-block s-block-wide" aria-label="What has been said here">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2>' +
+          '<span class="s-block-say">newest first</span></div>' +
+        '<div class="b-vlist" id="accFeed"></div>' +
+        peekFoot(peek(hist), 'call') +
+      '</section>' +
+    '</div>';
+  }
+
+  /* What AiMY makes of a company, read off the corpus and never composed.
+     The order is the order the facts change your next move in. */
+  function accSays(a, people, hist) {
+    /* Somebody else got through here. That is the most useful sentence on
+       the page and the one nothing else in this product would tell you. */
+    const got = hist.filter((t) => t.outcome === 'reached')[0];
+    if (got) {
+      const who = DB.byCon[got.con];
+      return {
+        text: esc(actor(got.by).name) + ' got through to ' +
+          esc(who ? who.name : 'somebody here') + ' ' + esc(sayWhen(got.at)) +
+          '. Open on what they said, not on the pitch.',
+        from: 'the calls into this company',
+      };
+    }
+    /* An opening anybody heard here. It is about the company, so it is
+       true of everybody at it. */
+    const opened = hist.filter((t) => t.openings && t.openings.length)[0];
+    if (opened) {
+      return { text: esc(openLabel(opened.openings[0])) + ' came up here ' +
+        esc(sayWhen(opened.at)) + ' — it is true of everybody at this company.',
+        from: 'a call into this account' };
+    }
+    /* What this company pushes back on, if it has said the same thing twice. */
+    const n = Object.create(null);
+    hist.forEach((t) => (t.objections || []).forEach((o) => (n[o] = (n[o] || 0) + 1)));
+    const top = Object.keys(n).sort((x, y) => n[y] - n[x])[0];
+    if (top && n[top] > 1) {
+      return { text: esc(OBJECTION[top].label) + ' has come up ' + times(n[top]) +
+        ' here. ' + esc(OBJECTION[top].blurb),
+        from: plural(hist.length, 'call') + ' into this company' };
+    }
+    /* Rung and rung and nothing, across the whole company. */
+    if (hist.length >= 3 && !got) {
+      return { text: plural(hist.length, 'call') + ' in and nobody here has picked up. ' +
+        'It may be a switchboard rather than the people.',
+        from: 'this company’s own history' };
+    }
+    /* Nothing has happened, so the useful thing is who they are. */
+    const ring = people.filter(callable).length;
+    return { text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) +
+      ' staff in ' + esc(a.city) + ', and ' + (ring
+        ? plural(ring, 'person') + ' here can be rung today'
+        : 'nobody here has a number you can ring') + '.',
+      from: 'the account itself' };
+  }
+
+  /* "2 times" is a count wearing a sentence’s clothes. */
+  const times = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : n + ' times');
+
   /* ══ ONE PERSON ═════════════════════════════════════════════════════════
      Who they are, where they stand on the ladder, and what has been said.
      The brief and the post-meeting controls arrive with the call panel. */
@@ -2965,9 +3174,13 @@
       '<section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(c.name) + '</h2>' +
         '<div class="s-rec-body">' +
-          '<p class="s-block-sub">' + esc(c.title) + ' at ' + esc(a ? a.name : 'an unknown account') +
-            (a ? ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' + esc(a.country) +
-              ' · ' + commas(a.size) + ' staff' : '') + '</p>' +
+          '<p class="s-block-sub">' + esc(c.title) + ' at ' +
+            (a
+              ? '<button class="s-inline-btn" type="button" data-acc="' + esc(a.id) + '">' +
+                  esc(a.name) + '</button>' +
+                ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' +
+                esc(a.country) + ' · ' + commas(a.size) + ' staff'
+              : 'an unknown account') + '</p>' +
           '<p class="s-block-sub">' +
             (c.phone
               ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(c.id) +
@@ -5138,6 +5351,12 @@
     if (t.closest('[data-save]')) { saveList(); return; }
     const lst = t.closest('[data-list]');
     if (lst) { go(Object.assign(cleared(), { list: lst.getAttribute('data-list') })); return; }
+    const acc = t.closest('[data-acc]');
+    if (acc) { go(Object.assign(cleared(), { acc: acc.getAttribute('data-acc') })); return; }
+
+    const adda = t.closest('[data-addacc]');
+    if (adda) { addAccTo(adda.getAttribute('data-addacc'), adda.getAttribute('data-tocamp')); return; }
+
     const addl = t.closest('[data-addlist]');
     if (addl) { addListTo(addl.getAttribute('data-addlist'), addl.getAttribute('data-tocamp')); return; }
 

@@ -332,3 +332,17 @@
    .s-cb-opts, .s-cb-opt and .s-cb-hint — so this build renders those and
    defines nothing. */
 
+
+/* ══ 15. THE THIRD RANK ON A RECORD HEADER ════════════════════════════════
+   A company header carries three ranks of fact, and the shell has two: the
+   heading, and `.s-block-sub` at `--d500` for everything under it. The third
+   is our record OF the company rather than a fact about it — the domain, the
+   region, which campaigns of ours it sits on — and none of it changes who
+   you ring next, so at `--d500` beside the headcount it competed with the one
+   line the block exists for.
+
+   `--d600`, which is the next step down the ink ladder the library already
+   ships. Barely muted, on purpose: quiet enough to rank below the size and
+   the industry, loud enough that the domain is still readable, because a
+   fact nobody can read is a fact that may as well not be drawn. */
+.b-faint { color: var(--d600); }
