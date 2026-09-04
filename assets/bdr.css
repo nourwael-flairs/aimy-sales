@@ -56,8 +56,6 @@
 .b-vlist > .b-vrow:first-child { border-top: 1px solid var(--hairline); }
 .b-vlist > .b-vrow:first-child { border-top: 0; }
 
-.b-vrow.is-press { cursor: pointer; }
-.b-vrow.is-press:hover { background: var(--glass-bg); }
 .b-vfoot { padding: 12px 0 0; font-size: var(--fs-xs); color: var(--d500); }
 
 /* ══ 2. THE CHECKPOINT LADDER ══════════════════════════════════════════════
@@ -155,3 +153,23 @@
    library's own gap register. `--text-strong` is the token that already means
    "the strongest text on this surface" and it flips with the theme. */
 .evidence-pill .val { color: var(--text-strong); }
+
+/* ══ 10. THE RAIL'S INDEX ══════════════════════════════════════════════════
+   Three doors above the reading. A list with no door was reachable only by
+   typing a URL; a campaign list buried under a thousand queue rows could
+   only be reached by scrolling past them. This is the V3 rail's original
+   job, restored: a short, complete index of what is here, with the counts. */
+.rail-nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+.rail-nav-link {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 12px; border: 0; border-radius: var(--r-md);
+  background: transparent; color: var(--d300);
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  text-align: left; cursor: pointer;
+  transition: color var(--t-fast), background-color var(--t-fast);
+}
+.rail-nav-link:hover { color: var(--d50); background: var(--glass-bg); }
+.rail-nav-link[aria-current="page"] { color: var(--d50); background: var(--accent-dim); }
+.rail-nav-label { flex: 1 1 auto; min-width: 0; }
+.rail-nav-n { font-variant-numeric: tabular-nums; color: var(--d500); }
+.rail-nav-link[aria-current="page"] .rail-nav-n { color: var(--d200); }

@@ -116,11 +116,20 @@ used.forEach((where, c) => {
 });
 
 /* ── 4. EVERY RULE THIS BUILD DEFINES IS A RULE IT USES ──────────────────── */
+/* EVERY rule in bdr.css, not just the `b-` prefixed ones. The first cut only
+   looked at `.b-*`, so six `.rail-nav*` rules — named to sit with the shell's
+   own `.rail-*` family — were defined, never checked, and would have gone on
+   being unused without a word. This file is small and entirely this build's:
+   if a rule is in it and nothing renders it, that is a finding whatever it is
+   called. The library overrides pass because the shell renders them. */
 const mineDefined = new Set();
 {
-  const selectors = CSS.replace(/\{[^{}]*\}/g, '{}');
+  /* Comments out FIRST. This file explains itself by naming the rules it is
+     not duplicating — `.s-queue`, `.s-camp-row` — and a scan that reads prose
+     as selectors reports those as unused rules that were never rules. */
+  const selectors = CSS.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{[^{}]*\}/g, '{}');
   let x;
-  const re = /\.(b-[A-Za-z0-9_-]*)/g;
+  const re = /\.([A-Za-z][A-Za-z0-9_-]*)/g;
   while ((x = re.exec(selectors))) mineDefined.add(x[1]);
 }
 mineDefined.forEach((c) => {

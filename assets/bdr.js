@@ -1187,8 +1187,16 @@
      One object mirrors the query string, one function writes it, one function
      repaints. A surface that is not in the URL is a surface you cannot send
      anybody. */
-  const SCALAR = ['con', 'camp', 'lists', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
-  const DEFAULTS = { q: 'all' };
+  /* ══ ONE SURFACE AT A TIME ══════════════════════════════════════════════
+     `on` names the top-level surface and there are three of them: the calls,
+     the campaigns, the lists. They were stacked on one page and the result
+     was a single scroll holding three unrelated jobs — you could not get to
+     the campaigns without going past a thousand people, and the lists had no
+     door at all.
+
+     Under those sit the three records: one campaign, one person, one list. */
+  const SCALAR = ['on', 'con', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
+  const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
   function parse() {
@@ -1245,7 +1253,8 @@
     paintWho();
     byId('wbStage').innerHTML = S.con ? contactPage()
       : S.camp ? campPage()
-      : S.lists ? listsPage()
+      : S.on === 'lists' ? listsPage()
+      : S.on === 'camps' ? campsPage()
       : homePage();
     mountLists();
     paintRail();
@@ -1259,10 +1268,8 @@
   function mountLists() {
     const q = byId('queueList');
     if (q) {
-      const all = queue(S.camp || null, S.q);
-      const from = Math.min(pageAt(), Math.max(0, Math.ceil(all.length / PAGE) - 1)) * PAGE;
       vlist({
-        host: q, items: all.slice(from, from + PAGE), rowH: 72, rowClass: 's-qrow',
+        host: q, items: paged(queue(S.camp || null, S.q)).rows, rowH: 72, rowClass: 's-qrow',
         key: (c) => c.id, row: qrow,
         empty: 'Nobody in this part of the queue.',
       });
@@ -1270,34 +1277,33 @@
     const cs = byId('campList');
     if (cs) {
       vlist({
-        host: cs, items: myCampaigns(), rowH: 72, rowClass: 'b-camp-row',
+        host: cs, items: paged(myCampaigns()).rows, rowH: 72, rowClass: 'b-camp-row',
         key: (c) => c.id, row: camprow,
         empty: 'You are on no campaign.',
       });
     }
     const nl = byId('netList');
     if (nl) {
-      vlist({ host: nl, items: buildMatched().slice(0, 200), rowH: 64, rowClass: 's-qrow',
+      vlist({ host: nl, items: peek(buildMatched()).rows, rowH: 64, rowClass: 's-qrow',
         key: (n) => n.id, row: netRow, empty: 'Nothing matches those criteria.' });
     }
     const ll = byId('listList');
     if (ll) {
-      vlist({ host: ll, items: DB.list.slice().reverse(), rowH: 72, rowClass: 's-qrow',
+      vlist({ host: ll, items: paged(DB.list.slice().reverse()).rows, rowH: 72, rowClass: 's-qrow',
         key: (l) => l.id, row: listRow, empty: 'You have not built one yet.' });
     }
     const lp = byId('listPeople');
     if (lp) {
-      const l = DB.byList[S.lists];
-      vlist({ host: lp, items: (l ? l.has : []).map((id) => DB.byCon[id]).filter(Boolean),
+      const l = DB.byList[S.list];
+      vlist({ host: lp,
+        items: paged((l ? l.has : []).map((id) => DB.byCon[id]).filter(Boolean)).rows,
         rowH: 72, rowClass: 's-qrow', key: (c) => c.id, row: qrow,
         empty: 'Nobody on it.' });
     }
     const feed = byId('campFeed');
     if (feed) {
-      const ids = DB.touch.filter((t) => t.camp === S.camp)
-        .sort((a, b) => (a.at > b.at ? -1 : 1)).slice(0, 400);
       vlist({
-        host: feed, items: ids, rowH: 64, rowClass: 's-qrow',
+        host: feed, items: peek(campFeedItems(S.camp)).rows, rowH: 64, rowClass: 's-qrow',
         key: (t) => t.id, row: campTouchRow,
         empty: 'Nothing has happened on this campaign yet.',
       });
@@ -1306,7 +1312,8 @@
     if (h) {
       const c = DB.byCon[S.con];
       vlist({
-        host: h, items: (DB.touchesOf[S.con] || []).map((id) => TOUCH[id]).filter(Boolean),
+        host: h,
+        items: peek((DB.touchesOf[S.con] || []).map((id) => TOUCH[id]).filter(Boolean)).rows,
         rowH: 64, rowClass: 's-qrow', key: (t) => t.id, row: touchRow,
         empty: c && untouched(c) ? 'Nobody has rung them yet.' : 'No calls on the record.',
       });
@@ -1358,6 +1365,10 @@
   /* The same call, seen from the campaign rather than from the person — so
      the name leads, because on this surface WHO is the thing you do not
      already know. */
+  function campFeedItems(campId) {
+    return DB.touch.filter((t) => t.camp === campId).sort((a, b) => (a.at > b.at ? -1 : 1));
+  }
+
   function campTouchRow(t) {
     const c = DB.byCon[t.con];
     const o = OUTCOME[t.outcome];
@@ -1465,10 +1476,32 @@
     };
   }
 
+  /* ══ THE RAIL IS THE INDEX, AND THEN THE READING ════════════════════════
+     Three doors and the counts behind them, then what AiMY makes of wherever
+     you are. The index came first in the V3 shell for a reason its own
+     comment gives: campaigns could only be reached by asking for them, which
+     is a fine way to reach a thing you know the name of and a poor way to
+     learn there are fourteen. Lists had it worse here — it had no door at
+     all, and was reachable only by typing a URL. */
+  function railNav() {
+    const here = S.con ? '' : S.camp ? 'camps' : (S.on || 'calls');
+    const door = (k, label, n, over) =>
+      '<button class="rail-nav-link" type="button" data-go="' + esc(JSON.stringify(over)) + '"' +
+      (here === k ? ' aria-current="page"' : '') + '>' +
+      '<span class="rail-nav-label">' + esc(label) + '</span>' +
+      '<span class="rail-nav-n">' + commas(n) + '</span></button>';
+    return '<nav class="rail-nav" aria-label="What is here">' +
+      door('calls', 'Calls', queue().length, cleared()) +
+      door('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
+      door('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+    '</nav>';
+  }
+
   function paintRail() {
     const r = railReading();
     const c = r.card;
     byId('appRail').innerHTML =
+      railNav() +
       '<div class="rail-read">' +
         '<div class="rail-scope">' +
           '<span class="rail-scope-cap">' + esc(r.eyebrow) + '</span>' +
@@ -1525,7 +1558,27 @@
       '</section>' +
 
       queueBlock(all, counts) +
-      campsBlock(camps) +
+    '</div>';
+  }
+
+  /* ══ THE CAMPAIGNS YOU ARE ON ═══════════════════════════════════════════
+     Its own surface, not a block under a thousand people. Paged like every
+     other worklist, because fourteen today is forty next quarter. */
+  function campsPage() {
+    const camps = myCampaigns();
+    const pg = paged(camps);
+    return '<div class="s-home">' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">Your campaigns</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">' + plural(camps.length, 'campaign') + ' you are on, ' +
+            'ranked by how soon they close. Each one says how much of it is yours to ring.</p>' +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Campaigns">' +
+        '<div class="b-vlist" id="campList"></div>' +
+        pager(pg, 'campaign') +
+      '</section>' +
     '</div>';
   }
 
@@ -1593,55 +1646,78 @@
   const PAGE = 15;
   const pageAt = () => Math.max(0, parseInt(S.p, 10) || 0);
 
-  function queueBlock(all, counts) {
-    const shown = queue(null, S.q);
-    const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+  /* ══ ONE PAGER PER SURFACE, AND ONE WORKLIST UNDER IT ═══════════════════
+     Every surface leads with exactly one list you WORK, and that list is
+     paged. Everything else on the surface is CONTEXT — what has happened on
+     this campaign, what was said to this person, what a search would return
+     — and context is capped and says how much it is showing of what.
+
+     The distinction is not cosmetic. Two pagers on one page share a page
+     number or need two, and both are worse than deciding which of the two
+     lists is the reason you came. */
+  function paged(items) {
+    const total = items.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE));
     const p = Math.min(pageAt(), pages - 1);
     const from = p * PAGE;
-    const to = Math.min(shown.length, from + PAGE);
+    const to = Math.min(total, from + PAGE);
+    return { rows: items.slice(from, to), from: from, to: to, total: total, p: p, pages: pages };
+  }
+
+  /* A capped view of context. Never a scrollbar into a thousand rows: the
+     last few, and the count of what it is the last few of. */
+  const PEEK = 8;
+  function peek(items) {
+    return { rows: items.slice(0, PEEK), total: items.length };
+  }
+  /* `end` is which end you are looking at. A feed is newest-first, so eight
+     rows of it are the LAST eight things that happened; a search preview is
+     unordered, so eight rows of it are simply the first eight. Calling both
+     "the last 8" would be wrong about one of them every time. */
+  function peekFoot(pg, one, many, end) {
+    if (!pg.total) return '';
+    if (pg.total <= PEEK) return '<p class="b-vfoot">' + plural(pg.total, one, many) + '.</p>';
+    return '<p class="b-vfoot">The ' + (end || 'last') + ' ' + PEEK + ' of ' +
+      plural(pg.total, one, many) + '.</p>';
+  }
+
+  function queueBlock(all, counts) {
+    const pg = paged(queue(S.camp || null, S.q));
+    const ring = pg.rows.filter((c) => rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">To call</h2>' +
-        (function () {
-          const page = shown.slice(from, to);
-          const ring = page.filter((c) => rowVerb(c) === 'Call').length;
-          if (!ring) return '';
-          return '<button class="s-inline-btn" type="button" data-callall="' +
-            esc(page.filter((c) => rowVerb(c) === 'Call').map((c) => c.id).join(',')) +
-            '">Call these ' + ring + '</button>';
-        })() +
+        (ring.length
+          ? '<button class="s-inline-btn" type="button" data-callall="' +
+            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
+          : '') +
       '</div>' +
       cuts(counts, all) +
       '<div class="b-vlist" id="queueList"></div>' +
-      pager(from, to, shown.length, p, pages) +
+      pager(pg, 'person') +
     '</section>';
   }
-
   /* Where you are, and the two ways to move. Never "load more": a caller
      needs to be able to go back to the fifteen they were just on. */
-  function pager(from, to, total, p, pages) {
-    if (!total) return '';
+  function pager(pg, one, many) {
+    const noun = one || 'row';
+    if (!pg.total) return '';
+    if (pg.pages === 1) {
+      return '<p class="b-vfoot">' + plural(pg.total, noun, many) + ', all of them here.</p>';
+    }
     return '<div class="b-pager">' +
-      '<span class="b-vfoot">' + commas(from + 1) + '–' + commas(to) + ' of ' +
-        commas(total) + ' · page ' + (p + 1) + ' of ' + commas(pages) + '</span>' +
+      '<span class="b-vfoot">' + commas(pg.from + 1) + '–' + commas(pg.to) + ' of ' +
+        commas(pg.total) + ' ' + verbFor(pg.total, noun) + ' · page ' + (pg.p + 1) +
+        ' of ' + commas(pg.pages) + '</span>' +
       '<span class="b-pager-go">' +
-        (p > 0 ? '<button class="s-inline-btn" type="button" data-page="' + (p - 1) +
+        (pg.p > 0 ? '<button class="s-inline-btn" type="button" data-page="' + (pg.p - 1) +
           '">Back ' + PAGE + '</button>' : '') +
-        (p < pages - 1 ? '<button class="s-inline-btn" type="button" data-page="' + (p + 1) +
-          '">Next ' + Math.min(PAGE, total - to) + '</button>' : '') +
+        (pg.p < pg.pages - 1 ? '<button class="s-inline-btn" type="button" data-page="' +
+          (pg.p + 1) + '">Next ' + Math.min(PAGE, pg.total - pg.to) + '</button>' : '') +
       '</span>' +
     '</div>';
   }
 
-  function campsBlock(camps) {
-    return '<section class="s-block s-block-wide" aria-label="Your campaigns">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Your campaigns</h2>' +
-        '<span class="s-block-say">' + plural(camps.length, 'campaign') + ' you are on</span>' +
-      '</div>' +
-      '<div class="b-vlist" id="campList"></div>' +
-    '</section>';
-  }
 
   /* ══ BUILDING A LIST ════════════════════════════════════════════════════
      The BDR's other job. You describe who to look for, the sources answer,
@@ -1708,7 +1784,7 @@
     t[axis] = has ? (t[axis] || []).filter((x) => x !== val) : (t[axis] || []).concat([val]);
     const flat = [];
     Object.keys(t).forEach((a) => t[a].forEach((v) => flat.push(a + ':' + v)));
-    go({ bt: flat.join(','), lists: '1', build: '1' });
+    go({ bt: flat.join(','), on: 'lists', build: '1' });
   }
 
   /* What the search returns. An axis with nothing ticked does not narrow —
@@ -1740,17 +1816,16 @@
 
   function listsPage() {
     if (S.build) return buildPage();
-    const open = S.lists && S.lists !== '1' ? DB.byList[S.lists] : null;
+    const open = S.list ? DB.byList[S.list] : null;
     if (open) return listPage(open);
     return '<div class="s-home">' +
-      '<button class="s-back" type="button" data-home>Back to today</button>' +
       '<section class="s-rec-block">' +
         '<h2 class="s-rec-cap">Lists</h2>' +
         '<div class="s-rec-body">' +
           '<p class="s-block-sub">A list is how new people get into a campaign, and ' +
             'therefore into your queue. Describe who to look for; what comes back is the list.</p>' +
           '<div class="b-cuts"><button class="s-insight-lnk primary" type="button" ' +
-            'data-go="' + esc(JSON.stringify(Object.assign(cleared(), { lists: '1', build: '1' }))) +
+            'data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: '1' }))) +
             '">Build a list</button></div>' +
         '</div>' +
       '</section>' +
@@ -1759,6 +1834,7 @@
             '<div class="s-camp-list-head"><h2 class="s-block-h">Your lists</h2>' +
             '<span class="s-block-say">' + plural(DB.list.length, 'list') + '</span></div>' +
             '<div class="b-vlist" id="listList"></div>' +
+            pager(paged(DB.list), 'list') +
           '</section>'
         : '') +
     '</div>';
@@ -1782,7 +1858,7 @@
     const callableN = people.filter(callable).length;
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { lists: '1' }))) + '">Back to lists</button>' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
       '<section class="s-rec-block">' +
         '<h2 class="s-rec-cap">' + esc(l.name) + '</h2>' +
         '<div class="s-rec-body">' +
@@ -1802,6 +1878,7 @@
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2></div>' +
         '<div class="b-vlist" id="listPeople"></div>' +
+        pager(paged(people), 'person') +
       '</section>' +
     '</div>';
   }
@@ -1818,7 +1895,7 @@
 
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { lists: '1' }))) + '">Back to lists</button>' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Back to lists</button>' +
       '<section class="s-rec-block">' +
         '<h2 class="s-rec-cap">Who are we looking for?</h2>' +
         '<div class="s-rec-body">' +
@@ -1860,10 +1937,13 @@
             : '') +
         '</div>' +
       '</section>' +
+      /* A preview, not a worklist. You are here to decide whether the
+         criteria are right, and eight rows answers that — a scroll through
+         nine hundred strangers does not, and Save takes them all either way. */
       '<section class="s-block s-block-wide" aria-label="What came back">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2>' +
-        '<span class="s-block-say">the first of ' + commas(found.length) + '</span></div>' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2></div>' +
         '<div class="b-vlist" id="netList"></div>' +
+        peekFoot(peek(found), 'match', 'matches', 'first') +
       '</section>' +
     '</div>';
   }
@@ -1927,10 +2007,10 @@
     DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
     reindex();
     save();
-    go(Object.assign(cleared(), { lists: id }));
+    go(Object.assign(cleared(), { list: id }));
     toast('Saved ' + plural(madeCon.length, 'person') + ' as "' + l.name + '"', () => {
       dropList(id);
-      go(Object.assign(cleared(), { lists: '1', build: '1', bt: S.bt }));
+      go(Object.assign(cleared(), { on: 'lists', build: '1', bt: S.bt }));
     });
   }
 
@@ -1977,7 +2057,7 @@
         const c = DB.byCon[id];
         c.camps = c.camps.filter((x) => x !== campId);
       });
-      reindex(); save(); go(Object.assign(cleared(), { lists: listId }));
+      reindex(); save(); go(Object.assign(cleared(), { list: listId }));
     });
   }
 
@@ -2031,12 +2111,7 @@
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
     const members = membersOf(k.id);
     const left = daysBetween(TODAY_ISO, k.to);
-    const shown = queue(k.id, S.q);
-    const pages = Math.max(1, Math.ceil(shown.length / PAGE));
-    const p = Math.min(pageAt(), pages - 1);
-    const from = p * PAGE;
-    const to = Math.min(shown.length, from + PAGE);
-    const ring = shown.slice(from, to).filter((c) => rowVerb(c) === 'Call');
+    const ring = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
 
     return '<div class="s-home">' +
       '<button class="s-back" type="button" data-home>Back to today</button>' +
@@ -2070,17 +2145,18 @@
 
       pitchBlock(k) +
 
-      '<section class="s-block s-block-wide" aria-label="To call on this campaign">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2></div>' +
-        cuts(counts, all) +
-        '<div class="b-vlist" id="queueList"></div>' +
-        pager(from, to, shown.length, p, pages) +
-      '</section>' +
+      queueBlock(all, counts) +
 
+      /* Context, not a worklist: the last few things that happened here and
+         the count of what they are the last few of. A second pager on this
+         page would share a page number with the queue above it or need one
+         of its own, and both are worse than deciding which of the two lists
+         is the reason you came. */
       '<section class="s-block s-block-wide" aria-label="What happened">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2>' +
           '<span class="s-block-say">newest first</span></div>' +
         '<div class="b-vlist" id="campFeed"></div>' +
+        peekFoot(peek(campFeedItems(k.id)), 'call') +
       '</section>' +
     '</div>';
   }
@@ -2174,6 +2250,7 @@
           '<span class="s-block-say">' + plural(n, 'call') + ' on the record</span>' +
         '</div>' +
         '<div class="b-vlist" id="histList"></div>' +
+        peekFoot(peek(DB.touchesOf[c.id] || []), 'call') +
       '</section>' +
     '</div>';
   }
@@ -3275,7 +3352,7 @@
     if (finder) { go({ bk: finder.getAttribute('data-finder') }); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
     const lst = t.closest('[data-list]');
-    if (lst) { go(Object.assign(cleared(), { lists: lst.getAttribute('data-list') })); return; }
+    if (lst) { go(Object.assign(cleared(), { list: lst.getAttribute('data-list') })); return; }
     const addl = t.closest('[data-addlist]');
     if (addl) { addListTo(addl.getAttribute('data-addlist'), addl.getAttribute('data-tocamp')); return; }
 
@@ -3305,7 +3382,7 @@
         if (first) startCall(first.id);
         else toast('Nobody in this cut has a number to ring.');
       } else if (k === 'lists') {
-        go(Object.assign(cleared(), { lists: '1' }));
+        go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
         byId('campList').scrollIntoView({ block: 'start' });
       } else {
@@ -3495,7 +3572,7 @@
            the obvious next thing is not "dial somebody" — it is the surface
            you are actually on, and Enter guessing otherwise is the product
            taking an action nobody asked for. */
-        if (S.lists) return;
+        if (S.on === 'lists') return;
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
         if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
       } else if (c.state === 'ready') callGo();
