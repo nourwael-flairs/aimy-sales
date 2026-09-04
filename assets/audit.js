@@ -31,10 +31,15 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
-const JS = read('assets/bdr.js');
+/* Comments are not markup. The shell keeps `data-page` and `data-gopage` in a
+   comment as the record of a trap that was removed, and a scan of raw text
+   reads those as controls nothing handles. */
+const strip = (s) => s.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
+const JS = strip(read('assets/bdr.js'));
 const CSS = read('assets/bdr.css');
-const HTML = read('index.html');
+const HTML = strip(read('index.html'));
 const DS = read('assets/aimy-ds.css');
+const SALES = read('assets/sales.css');
 
 const fails = [];
 const notes = [];
@@ -46,6 +51,7 @@ const MARKERS = {
   'theme': 'the html element attribute the design system themes on',
   'submit-on-enter': 'read by a keydown listener, not by a click',
   'i': 'the row index a windowed list writes for its own bookkeeping',
+  'work-state': 'the canonical value the design system reads off a work-state chip',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */
@@ -74,7 +80,7 @@ handlers.forEach((v) => {
 /* ── 3. EVERY CLASS USED IS A CLASS DEFINED ──────────────────────────────── */
 const defined = new Set();
 const SEL_RE = /\.(-?[A-Za-z_][A-Za-z0-9_-]*)/g;
-[CSS, DS].forEach((src) => {
+[CSS, DS, SALES].forEach((src) => {
   /* Selectors only: strip declaration blocks first, or `.5s` and decimal
      values in `transform: scale(.98)` register as class names. */
   const selectors = src.replace(/\{[^{}]*\}/g, '{}');
@@ -84,14 +90,20 @@ const SEL_RE = /\.(-?[A-Za-z_][A-Za-z0-9_-]*)/g;
 });
 
 const used = new Map();
+let skipped = 0;
 const CLASS_RE = /class="([^"]*)"/g;
 [['index.html', HTML], ['assets/bdr.js', JS]].forEach((pair) => {
   let x;
   const re = new RegExp(CLASS_RE.source, 'g');
   while ((x = re.exec(pair[1]))) {
+    /* A class list built by concatenation — `class="' + cls + '"` — is not a
+       list of class names, and splitting it on whitespace yields fragments of
+       the expression. `cls`, `k` and `0` were all reported as undefined
+       classes on the first run of this check. The whole attribute is skipped
+       and counted, so the report says how much it could not see rather than
+       inventing findings out of the parts it misread. */
+    if (/['"`+]|\$\{/.test(x[1])) { skipped++; continue; }
     x[1].split(/\s+/).forEach((c) => {
-      /* Class lists built by concatenation carry template fragments; only
-         plain names are checkable, and the rest are reported as skipped. */
       if (!c || /[^A-Za-z0-9_-]/.test(c)) return;
       if (!used.has(c)) used.set(c, pair[0]);
     });

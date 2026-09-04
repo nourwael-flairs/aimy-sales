@@ -97,8 +97,35 @@
     if (n > 0 && n < 7) return 'in ' + n + ' days';
     return sayDay(iso);
   };
-  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
-  const commas = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  /* ══ WRITTEN WITHOUT A REGEX, AND ON PURPOSE ═══════════════════════════
+     This was `replace(/\B(?=(\d{3})+(?!\d))/g, ',')` and the shell on this
+     machine ate the backslashes out of it — twice, through a quoted heredoc
+     that is supposed to pass text through untouched. What was left,
+     `/B(?=(d{3})+(?!d))/`, is a VALID regular expression that matches nothing,
+     so every number in the product silently lost its separators and no check
+     could see it. Same family as the sed trap: an edit tool that rewrites a
+     file through a shell is an edit tool that can quietly change what the
+     file says. A loop has nothing to lose. */
+  const commas = (n) => {
+    const s = String(n);
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+      out += s[i];
+      const left = s.length - 1 - i;
+      if (left > 0 && left % 3 === 0) out += ',';
+    }
+    return out;
+  };
+
+  /* The irregulars live here rather than at the call sites. `plural` takes a
+     second word for the plural, and every place that says "person" has to
+     remember to pass it — which is one place forgetting away from "105
+     persons", and that is exactly what the first cut of the briefing said. */
+  const IRREGULAR = { person: 'people', is: 'are', has: 'have', it: 'they', this: 'these' };
+  const plural = (n, one, many) =>
+    commas(n) + ' ' + (n === 1 ? one : (many || IRREGULAR[one] || one + 's'));
+  /* The verb alone, for a sentence that already carries its own number. */
+  const verbFor = (n, one) => (n === 1 ? one : IRREGULAR[one] || one + 's');
 
   /* ══ 2. VOCABULARY ══════════════════════════════════════════════════════ */
 
@@ -656,7 +683,6 @@
      it is not a preference — a full save would fail, and fail late. */
 
   const KEY_DB = 'aimy-sales-bdr:db:v1';
-  const KEY_THEME = 'aimy-sales-bdr:theme';
   const KEY_UI = 'aimy-sales-bdr:ui';
 
   const DB = {
@@ -818,7 +844,7 @@
      One object mirrors the query string, one function writes it, one function
      repaints. A surface that is not in the URL is a surface you cannot send
      anybody. */
-  const SCALAR = ['con', 'camp', 'lists', 'build', 'bk', 'bt', 'q', 'chat', 'as'];
+  const SCALAR = ['con', 'camp', 'lists', 'build', 'bk', 'bt', 'q', 'p', 'chat', 'as'];
   const DEFAULTS = { q: 'all' };
   const S = Object.create(null);
 
@@ -842,117 +868,422 @@
     return over;
   }
   function go(over, replace) {
+    const wasOn = S.con + '|' + S.camp;
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
     parse();
     paint();
+    /* A NEW SURFACE STARTS AT ITS TOP; A NEW PAGE OF ONE DOES NOT.
+       Opening a person from row eleven of the queue landed on their record
+       eleven rows down it — the header, the ladder and the whole reason you
+       opened it were above the fold. Moving through the queue's pages is the
+       opposite case: you are working a list, the rows change underneath you,
+       and being thrown to the top of the document each time is what makes a
+       pager worse than a scroll. */
+    if (wasOn !== S.con + '|' + S.camp) byId('pageScroll').scrollTop = 0;
   }
 
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
 
+  /* The shell is `sales.css`'s and this does not repaint it: it fills the
+     hosts the document already has. `#wbStage` is the surface, `#appRail` is
+     the reading beside it, and the topnav's identity is written once.
+
+     THE OTHER THREE HOSTS ARE EMPTIED, NOT LEFT. `#navBar`, `#filterBar` and
+     `#chipBar` belong to a workbench this build does not have — a filter row
+     standing above a queue that reads no filters is a control that lies
+     about what it does. */
   function paint() {
     dropLists();
-    paintRail();
+    byId('navBar').innerHTML = '';
+    byId('filterBar').innerHTML = '';
+    byId('chipBar').innerHTML = '';
     paintWho();
-    byId('page').innerHTML = pageHtml();
+    byId('wbStage').innerHTML = S.con ? contactPage() : homePage();
     mountLists();
+    paintRail();
     paintProto();
   }
 
   /* The lists a surface declares, mounted after its markup exists. Kept apart
-     from `pageHtml` because a windowed list cannot be a string: it has to
-     measure where it landed before it knows what to draw. */
+     from the page's string because a windowed list cannot be one: it has to
+     measure where it landed before it knows which rows to draw. */
   function mountLists() {
-    const roster = byId('roster');
-    if (roster) {
-      const people = DB.con;
+    const q = byId('queueList');
+    if (q) {
+      const all = queue(null, S.q);
+      const from = Math.min(pageAt(), Math.max(0, Math.ceil(all.length / PAGE) - 1)) * PAGE;
       vlist({
-        host: roster,
-        items: people,
-        rowH: 56,
-        key: (c) => c.id,
-        row: personRow,
-        empty: 'Nobody here.',
+        host: q, items: all.slice(from, from + PAGE), rowH: 72, rowClass: 's-qrow',
+        key: (c) => c.id, row: qrow,
+        empty: 'Nobody in this part of the queue.',
+      });
+    }
+    const cs = byId('campList');
+    if (cs) {
+      vlist({
+        host: cs, items: myCampaigns(), rowH: 72, rowClass: 'b-camp-row',
+        key: (c) => c.id, row: camprow,
+        empty: 'You are on no campaign.',
+      });
+    }
+    const h = byId('histList');
+    if (h) {
+      const c = DB.byCon[S.con];
+      vlist({
+        host: h, items: (DB.touchesOf[S.con] || []).map((id) => TOUCH[id]).filter(Boolean),
+        rowH: 64, rowClass: 's-qrow', key: (t) => t.id, row: touchRow,
+        empty: c && untouched(c) ? 'Nobody has rung them yet.' : 'No calls on the record.',
       });
     }
   }
 
-  /* One person, one row. The same anatomy everywhere a person is listed. */
-  function personRow(c) {
+  /* One person in a queue, in the row anatomy this product already has:
+     who on the first line, why they are ranked here on the second, and the
+     way in beside both. */
+  function qrow(c, i) {
     const a = accOf(c);
-    const r = RUNG[c.checkpoint] || RUNG['not-called'];
-    return '<div class="b-vmain">' +
-        '<div class="b-vname">' + esc(c.name) + '</div>' +
-        '<div class="b-vsub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') +
-          (a ? ' · ' + esc(a.city) : '') + '</div>' +
+    const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
+    return '<div class="s-qrow-id">' +
+        '<button class="s-qrow-name" type="button" data-con="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
+        '<span class="s-qrow-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</span>' +
       '</div>' +
-      '<span class="tag tag-' + r.tone + '">' + esc(r.label) + '</span>' +
-      '<span class="b-dim">' + (c.phone ? esc(c.phone) : 'no number') + '</span>';
+      '<div class="s-qrow-why">' +
+        '<span class="s-qrow-because">' + whyLine(c) + '</span>' +
+        (camp ? '<span class="s-qrow-lead">' + esc(camp.name) + '</span>' : '') +
+      '</div>' +
+      /* Only the first row is filled. Six identical primaries is six
+         recommendations, which is none — the list is already ranked, so the
+         top row is the recommendation and says so by being the only filled
+         thing on the surface. */
+      '<button class="s-insight-lnk s-qrow-go' + (i === 0 ? ' primary' : '') +
+        '" type="button" data-con="' + esc(c.id) + '">' + rowVerb(c) + '</button>';
   }
 
-  /* The rail is an index: what exists, and how much of it. Not findings —
-     those are on the page, where there is room to say why they matter. */
-  function paintRail() {
+  /* One campaign. The numbers on the second line are the ones that decide
+     whether to open it, and they are the same derivations the campaign's own
+     page reads — so a row and the page it opens cannot disagree. */
+  function camprow(k) {
+    const q = queue(k.id);
+    const due = q.filter((c) => bucketOf(c) === 'due').length;
+    const after = q.filter((c) => bucketOf(c) === 'after').length;
+    const left = daysBetween(TODAY_ISO, k.to);
+    return '<button class="b-camp-name" type="button" data-camp="' + esc(k.id) + '">' + esc(k.name) + '</button>' +
+      '<div class="b-camp-why">' +
+        '<span><b>' + commas(q.length) + '</b> to call</span>' +
+        (due ? '<span><b>' + due + '</b> due</span>' : '') +
+        (after ? '<span><b>' + after + '</b> after a meeting</span>' : '') +
+        '<span>' + (left > 0 ? 'ends in ' + plural(left, 'day') : 'past its end date') + '</span>' +
+      '</div>' +
+      '<button class="s-insight-lnk b-camp-go" type="button" data-camp="' + esc(k.id) + '">Work it</button>';
+  }
+
+  /* One call on the record. What happened, what came of it, and when. */
+  function touchRow(t) {
+    const o = OUTCOME[t.outcome];
+    const said = t.proposals.map((p) => PROPOSAL[p] && PROPOSAL[p].label).filter(Boolean)
+      .concat(t.objections.map((p) => OBJECTION[p] && OBJECTION[p].label).filter(Boolean));
+    return '<div class="s-qrow-id">' +
+        '<span class="s-qrow-name">' + esc(o ? o.label : t.outcome) + '</span>' +
+        '<span class="s-qrow-sub">' + esc(actor(t.by).name) + ' · ' + esc(sayWhen(t.at)) + '</span>' +
+      '</div>' +
+      '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span>' +
+        (said.length ? '<span class="s-qrow-lead">' + esc(said.join(' · ')) + '</span>' : '') +
+      '</div>';
+  }
+
+  /* ── THE RAIL — one reading, in the shell's own card ──
+     Same anatomy the V3 rail uses: a scope line, then a briefing card of
+     conclusion, evidence and one named action. What it reads is scoped to
+     whatever is open, because a reading about the whole book beside one
+     person is a reading about something else. */
+  const WS_LABEL = {
+    detected: 'Found', recommended: 'Suggested', drafted: 'Drafted',
+    staged: 'Awaiting you', completed: 'Done', failed: 'Stopped', reading: 'Reading',
+  };
+
+  function railReading() {
+    const c = S.con && DB.byCon[S.con];
+    if (c) {
+      const n = (DB.touchesOf[c.id] || []).length;
+      const r = RUNG[c.checkpoint];
+      return {
+        eyebrow: 'This person', subject: c.name,
+        card: {
+          state: 'reading',
+          text: n
+            ? 'Rung <b>' + plural(n, 'time') + '</b> and standing at <b>' + esc(r.label) +
+              '</b> — ' + esc(r.say) + '.'
+            : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
+          evidence: [{ val: n, cap: n === 1 ? 'call' : 'calls' },
+            { val: c.attempts, cap: 'attempts' }].filter((e) => e.val),
+          act: c.next ? esc(c.next.what) + ' ' + esc(sayWhen(c.next.due)) : null,
+        },
+      };
+    }
     const q = queue();
+    const due = q.filter((x) => bucketOf(x) === 'due').length;
+    const after = q.filter((x) => bucketOf(x) === 'after').length;
     const camps = myCampaigns();
-    const here = S.con || S.camp ? '' : (S.lists ? 'lists' : 'today');
-    const link = (key, label, n, over) =>
-      '<button class="b-rail-link" type="button" data-go="' + esc(JSON.stringify(over)) + '"' +
-      (here === key ? ' aria-current="page"' : '') + '>' +
-      esc(label) + '<span class="b-rail-n">' + commas(n) + '</span></button>';
+    return {
+      eyebrow: 'Your book', subject: null,
+      card: {
+        state: due || after ? 'staged' : 'detected',
+        text: due
+          ? '<b>' + plural(due, 'person') + '</b> ' + verbFor(due, 'is') +
+            ' owed something today across your ' + plural(camps.length, 'campaign') + '.'
+          : after
+            ? '<b>' + plural(after, 'meeting') + '</b> ' + verbFor(after, 'has') +
+              ' been and gone with nothing recorded.'
+            : '<b>' + commas(q.length) + '</b> people are callable across your ' +
+              plural(camps.length, 'campaign') + ', and nothing is overdue.',
+        evidence: [{ val: commas(q.length), cap: 'to call' }, { val: camps.length, cap: 'campaigns' }],
+        act: due ? 'Show the ' + due : after ? 'Show the ' + after : null,
+        q: due ? 'due' : after ? 'after' : null,
+      },
+    };
+  }
+
+  function paintRail() {
+    const r = railReading();
+    const c = r.card;
     byId('appRail').innerHTML =
-      '<div class="b-rail-head">What is here</div>' +
-      link('today', 'Today', q.length, cleared()) +
-      link('camps', 'Campaigns', camps.length, Object.assign(cleared(), { camp: 'all' })) +
-      link('lists', 'Lists', DB.list.length, Object.assign(cleared(), { lists: '1' }));
+      '<div class="rail-read">' +
+        '<div class="rail-scope">' +
+          '<span class="rail-scope-cap">' + esc(r.eyebrow) + '</span>' +
+          (r.subject ? '<span class="rail-scope-name">' + esc(r.subject) + '</span>' : '') +
+        '</div>' +
+        '<div class="bcard rail-card">' +
+          '<div class="bcard-meta"><span class="type-label rail-state p2">' +
+            esc(WS_LABEL[c.state] || 'Reading') + '</span></div>' +
+          '<p class="bcard-conclusion rail-conclusion">' + c.text + '</p>' +
+          (c.evidence && c.evidence.length
+            ? '<div class="bcard-evidence rail-evidence">' + c.evidence.map((e) =>
+                '<span class="evidence-pill"><span class="val">' + esc(String(e.val)) + '</span>' +
+                esc(e.cap) + '</span>').join('') + '</div>'
+            : '') +
+          (c.act
+            ? '<button class="s-insight-lnk rail-act" type="button"' +
+              (c.q ? ' data-q="' + esc(c.q) + '"' : ' data-home') + '>' + esc(c.act) + '</button>'
+            : '') +
+        '</div>' +
+      '</div>';
   }
 
   function paintWho() {
     const p = me();
-    byId('whoAvatar').textContent = p.initials;
-    byId('whoName').textContent = p.name;
+    byId('userAvatar').textContent = p.initials;
+    byId('userName').textContent = p.name;
+    byId('userRole').textContent = 'BDR';
   }
 
-  /* Step 2 renders what the corpus holds. The queue, the campaigns and the
-     rest arrive in the steps that build them; this proves the engine. */
-  function pageHtml() {
+  /* ══ HOME — the two things a BDR opens this to see ══════════════════════
+     People to call, and the campaigns they are on. The opener above them is
+     the shell's own "Since your last visit" block; the ways to start are its
+     own strip. Nothing else is on this page, because everything else was a
+     different role's question. */
+  function homePage() {
     const q = queue();
+    const all = queue(null, 'all');
     const camps = myCampaigns();
-    const counts = rungCounts(DB.con);
-    return '' +
-      '<div>' +
-        '<h1 class="b-h1">Today</h1>' +
-        '<p class="b-sub">' + esc(me().name) + ', you are on ' + plural(camps.length, 'campaign') +
-        ' and ' + commas(q.length) + ' people are waiting to be rung.</p>' +
-      '</div>' +
-      '<section class="b-block">' +
-        '<div class="b-block-head"><h2 class="b-block-title">What the book holds</h2>' +
-        '<span class="b-block-note">Seeded from one number, so every count can be checked twice.</span></div>' +
-        '<div class="b-panel">' +
-          row('Campaigns', DB.camp.length, plural(camps.length, 'is', 'are') + ' mine') +
-          row('Organizations', DB.acc.length, '') +
-          row('People', DB.con.length, commas(DB.con.filter((c) => c.phone).length) + ' with a number') +
-          row('Calls on the record', DB.touch.length, '') +
+    const counts = Object.create(null);
+    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+
+    return '<div class="s-home">' +
+      '<section class="slv" aria-label="Since your last visit">' +
+        '<div class="slv-head">' +
+          '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<h1 class="slv-title">Today</h1>' +
+          '<span class="slv-time">' + esc(sayDay(TODAY_ISO)) + '</span>' +
+        '</div>' +
+        '<div class="slv-body"><p class="slv-line">' + openerText(counts, all, camps) + '</p></div>' +
+        '<div class="s-starts-wrap">' +
+          '<span class="s-starts-cap">Start</span>' +
+          startStrip(counts, all, camps) +
         '</div>' +
       '</section>' +
-      '<section class="b-block">' +
-        '<div class="b-block-head"><h2 class="b-block-title">Where they stand</h2></div>' +
-        '<div class="b-panel">' +
-          LADDER.concat(EXITS).map((x) => row(x.label, counts[x.k] || 0, x.say)).join('') +
-        '</div>' +
-      '</section>' +
-      '<section class="b-block">' +
-        '<div class="b-block-head"><h2 class="b-block-title">Everybody</h2>' +
-        '<span class="b-block-note">' + commas(DB.con.length) +
-        ' people, windowed — about thirty rows exist at a time.</span></div>' +
-        '<div class="b-panel"><div id="roster"></div></div>' +
-      '</section>';
+
+      queueBlock(all, counts) +
+      campsBlock(camps) +
+    '</div>';
   }
-  function row(label, n, note) {
-    return '<div class="b-row"><span>' + esc(label) + '</span>' +
-      '<span class="b-num">' + commas(n) + '</span>' +
-      (note ? '<span class="b-dim">' + esc(note) + '</span>' : '') + '</div>';
+
+  /* What today is, in one paragraph with the numbers in it. Only conditions
+     that hold are named — a sentence listing three things that are all zero
+     is a sentence that has to be read to learn nothing. */
+  function openerText(counts, all, camps) {
+    const bits = [];
+    if (counts.due) bits.push('<b>' + plural(counts.due, 'person') + '</b> ' +
+      verbFor(counts.due, 'is') + ' owed something today');
+    if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
+      verbFor(counts.after, 'has') + ' been and gone with nothing recorded');
+    if (counts.retry) bits.push('<b>' + commas(counts.retry) + '</b> are ready for another try');
+    if (!bits.length) bits.push('nothing is owed and nothing is overdue');
+    return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
+      '</b> people on them can be rung. ' +
+      bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.';
+  }
+
+  /* Four ways to start, each with the reason it is worth pressing. The V3
+     build's strip, with a BDR's four acts in it. */
+  function startStrip(counts, all, camps) {
+    const opens = [
+      { k: 'callnext', label: 'Call the next one',
+        why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+      { k: 'due', label: 'Work what is due',
+        why: counts.due ? plural(counts.due, 'person') + ' owed something today' : 'nothing is owed today' },
+      { k: 'untouched', label: 'Ring somebody new',
+        why: counts.untouched ? commas(counts.untouched) + ' have never been rung' : 'everyone has been tried' },
+      { k: 'camps', label: 'Pick a campaign',
+        why: plural(camps.length, 'campaign') + ' are yours to work' },
+    ];
+    return '<div class="s-starts" role="group" aria-label="Ways to start">' +
+      opens.map((o) => '<button class="s-start" type="button" data-start="' + esc(o.k) + '">' +
+        '<span class="s-start-label">' + esc(o.label) + '</span>' +
+        '<span class="s-start-why">' + o.why + '</span>' +
+      '</button>').join('') + '</div>';
+  }
+
+  /* The queue, cut by state. The cuts are always visible and their counts sum
+     to All, so the row of chips is also the shape of the day. */
+  function cuts(counts, all) {
+    const on = S.q || 'all';
+    const chip = (k, label, n) =>
+      '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
+      esc(k) + '">' + esc(label) + '<span class="b-cut-n">' + commas(n) + '</span></button>';
+    return '<div class="b-cuts">' + chip('all', 'All', all.length) +
+      BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') + '</div>';
+  }
+
+  /* ══ A PAGE OF THE QUEUE, NOT THE QUEUE ════════════════════════════════
+     The book holds a thousand callable people and a campaign holds thousands
+     more. Handing that to a scrollbar is not scale, it is an endless list: a
+     caller cannot tell where they are in it, cannot come back to the same
+     place, and gets no sense of having finished anything.
+
+     So the queue is worked a PAGE at a time. Fifteen is a screenful — you
+     see the whole of what is in front of you without scrolling, ring through
+     it, and press once for the next fifteen. The total is stated on every
+     page, so bounding what is drawn never hides how much there is.
+
+     The windowing underneath stays, and is not redundant: it is what lets a
+     campaign's roster or a heavy account's call history render at all. Here
+     it simply has fifteen rows to draw. */
+  const PAGE = 15;
+  const pageAt = () => Math.max(0, parseInt(S.p, 10) || 0);
+
+  function queueBlock(all, counts) {
+    const shown = queue(null, S.q);
+    const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+    const p = Math.min(pageAt(), pages - 1);
+    const from = p * PAGE;
+    const to = Math.min(shown.length, from + PAGE);
+    return '<section class="s-block s-block-wide" aria-label="To call">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">To call</h2>' +
+        (function () {
+          const page = shown.slice(from, to);
+          const ring = page.filter((c) => rowVerb(c) === 'Call').length;
+          if (!ring) return '';
+          return '<button class="s-inline-btn" type="button" data-callall>Call these ' +
+            ring + '</button>';
+        })() +
+      '</div>' +
+      cuts(counts, all) +
+      '<div class="b-vlist" id="queueList"></div>' +
+      pager(from, to, shown.length, p, pages) +
+    '</section>';
+  }
+
+  /* Where you are, and the two ways to move. Never "load more": a caller
+     needs to be able to go back to the fifteen they were just on. */
+  function pager(from, to, total, p, pages) {
+    if (!total) return '';
+    return '<div class="b-pager">' +
+      '<span class="b-vfoot">' + commas(from + 1) + '–' + commas(to) + ' of ' +
+        commas(total) + ' · page ' + (p + 1) + ' of ' + commas(pages) + '</span>' +
+      '<span class="b-pager-go">' +
+        (p > 0 ? '<button class="s-inline-btn" type="button" data-page="' + (p - 1) +
+          '">Back ' + PAGE + '</button>' : '') +
+        (p < pages - 1 ? '<button class="s-inline-btn" type="button" data-page="' + (p + 1) +
+          '">Next ' + Math.min(PAGE, total - to) + '</button>' : '') +
+      '</span>' +
+    '</div>';
+  }
+
+  function campsBlock(camps) {
+    return '<section class="s-block s-block-wide" aria-label="Your campaigns">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Your campaigns</h2>' +
+        '<span class="s-block-say">' + plural(camps.length, 'campaign') + ' you are on</span>' +
+      '</div>' +
+      '<div class="b-vlist" id="campList"></div>' +
+    '</section>';
+  }
+
+  /* ══ ONE PERSON ═════════════════════════════════════════════════════════
+     Who they are, where they stand on the ladder, and what has been said.
+     The brief and the post-meeting controls arrive with the call panel. */
+  function contactPage() {
+    const c = DB.byCon[S.con];
+    if (!c) {
+      return '<div class="s-home"><section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">No such person</h2>' +
+        '<div class="s-rec-body"><p class="s-block-sub">That record is not in the book. ' +
+        'It may have been on a list that was discarded.</p>' +
+        '<button class="s-back" type="button" data-home>Back to today</button></div>' +
+      '</section></div>';
+    }
+    const a = accOf(c);
+    const camps = campsOf(c);
+    const n = (DB.touchesOf[c.id] || []).length;
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-back>Back to the queue</button>' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">' + esc(c.name) + '</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">' + esc(c.title) + ' at ' + esc(a ? a.name : 'an unknown account') +
+            (a ? ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' + esc(a.country) +
+              ' · ' + commas(a.size) + ' staff' : '') + '</p>' +
+          '<p class="s-block-sub">' +
+            (c.phone
+              ? 'Phone <a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>'
+              : 'No number on file.') +
+            (camps.length ? ' · On ' + camps.map((k) => esc(k.name)).join(', ') : ' · On no campaign') +
+          '</p>' +
+          ladder(c) +
+          (c.next ? '<p class="s-block-sub">Next: <b>' + esc(c.next.what) + '</b> ' +
+            esc(sayWhen(c.next.due)) + '.</p>' : '') +
+          (c.remember ? '<p class="s-block-sub">Remember — ' + esc(c.remember.text) +
+            ' <i>' + esc(actor(c.remember.by).name) + '</i></p>' : '') +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="What has been said">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">What has been said</h2>' +
+          '<span class="s-block-say">' + plural(n, 'call') + ' on the record</span>' +
+        '</div>' +
+        '<div class="b-vlist" id="histList"></div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  /* The ladder: eight bars and one sentence. The bars carry the position, the
+     sentence carries the meaning. An exit is not a rung — it lights the whole
+     track in the exit's colour, because a lead that said no is not standing
+     partway up anything. */
+  function ladder(c) {
+    const out = isExit(c.checkpoint);
+    const at = rank(c.checkpoint);
+    const bars = LADDER.map((x, i) => {
+      const cls = out ? 'is-exit' : i < at ? 'is-done' : i === at ? 'is-now' : '';
+      return '<span class="b-rung ' + cls + '"></span>';
+    }).join('');
+    const r = RUNG[c.checkpoint];
+    return '<div class="b-ladder">' + bars + '</div>' +
+      '<p class="b-ladder-say"><b>' + esc(r.label) + '</b> — ' + esc(r.say) +
+      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt)) : '') + '.</p>';
   }
 
   function rungCounts(list) {
@@ -961,33 +1292,73 @@
     return out;
   }
 
-  /* The ranked queue. Ranks are stated here once and read everywhere, so the
-     home block, the campaign page and the composer cannot disagree about who
-     is next. */
-  function queue(campId) {
+  /* ══ THE BUCKETS — one per person, and they are also the ranking ═══════
+     Every callable person is in exactly ONE of these, which is what lets the
+     chips add up to All. A first cut made them overlapping filters — a
+     meeting whose date has passed is both "after a meeting" and "due" — and
+     then the row of counts adds to more than the list it sits above, which
+     is the kind of arithmetic nobody can defend when asked.
+
+     The order is the queue's order, and there is only one of them: `qRank`
+     reads the same function, so the chips and the ranking cannot drift. */
+  const BUCKETS = [
+    { k: 'after',     label: 'After a meeting' },
+    { k: 'due',       label: 'Due' },
+    { k: 'retry',     label: 'Try again' },
+    { k: 'open',      label: 'Open' },
+    { k: 'untouched', label: 'Never rung' },
+  ];
+  function bucketOf(c) {
+    if (awaitingDecision(c)) return 'after';
+    if (dueToday(c)) return 'due';
+    if (retry(c)) return 'retry';
+    if (untouched(c)) return 'untouched';
+    return 'open';
+  }
+  const B_ORDER = Object.create(null);
+  BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
+
+  /* Why this person is on the list today, with the fact in it. A queue that
+     cannot say why it ranked somebody is a queue you have to trust. */
+  function whyLine(c) {
+    const b = bucketOf(c);
+    if (b === 'after') return 'Met <b>' + esc(sayWhen(c.next.due)) + '</b> — nothing recorded since';
+    if (b === 'due') {
+      const late = c.next.due < TODAY_ISO;
+      return esc(c.next.what) + (late ? ' — <b>' + esc(sayWhen(c.next.due)) + '</b>' : ' <b>today</b>');
+    }
+    if (b === 'retry') return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
+    if (b === 'untouched') return 'Never rung';
+    return 'Spoke <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, nothing owed';
+  }
+  /* What the row's press does. The action names the real next step: after a
+     meeting nobody has ruled on, the move is to say what happened, not to
+     ring them again. */
+  const rowVerb = (c) => (bucketOf(c) === 'after' ? 'Say what happened' : 'Call');
+
+  /* The ranked queue. Stated once and read everywhere, so home, the campaign
+     page and the composer cannot disagree about who is next. */
+  function queue(campId, bucket) {
     const meId = me().id;
     const mineCamps = Object.create(null);
     myCampaigns().forEach((c) => (mineCamps[c.id] = 1));
-    let pool = campId ? membersOf(campId) : DB.con;
+    const pool = campId ? membersOf(campId) : DB.con;
     const out = [];
     for (let i = 0; i < pool.length; i++) {
       const c = pool[i];
       if (!c || !callable(c)) continue;
       if (campId) { if (c.camps.indexOf(campId) < 0) continue; }
-      else if (!c.camps.some((k) => mineCamps[k])) continue;
-      if (c.owner && c.owner !== meId && !campId) continue;
+      else {
+        if (!c.camps.some((k) => mineCamps[k])) continue;
+        if (c.owner && c.owner !== meId) continue;
+      }
+      if (bucket && bucket !== 'all' && bucketOf(c) !== bucket) continue;
       out.push(c);
     }
     out.sort((a, b) => qRank(a) - qRank(b) || qTie(a, b));
     return UI.cap ? out.slice(0, UI.cap) : out;
   }
-  function qRank(c) {
-    if (overdue(c)) return 0;
-    if (dueToday(c)) return 1;
-    if (retry(c)) return 2;
-    if (untouched(c)) return 3;
-    return 4;
-  }
+  const qRank = (c) => B_ORDER[bucketOf(c)];
   function qTie(a, b) {
     const ea = earliestEnd(a), eb = earliestEnd(b);
     if (ea !== eb) return ea < eb ? -1 : 1;
@@ -1064,7 +1435,17 @@
       }
       const top = topOf();
       const st = scroller.scrollTop;
-      const vh = scroller.clientHeight;
+      /* ══ A ZERO VIEWPORT IS NOT AN EMPTY LIST ══════════════════════════
+         `clientHeight` is 0 whenever the scroller has not been laid out —
+         mounted before the fonts settle, inside a collapsed ancestor, or in
+         a browser pane the host has hidden. The arithmetic then puts the
+         window's end before its start and the list draws nothing, which is
+         indistinguishable from having no rows. Measured: the queue reported
+         zero children while holding a hundred and five people.
+
+         A guess is better than nothing here, because it is self-correcting:
+         the first real scroll or resize recomputes it with a true height. */
+      const vh = scroller.clientHeight || 700;
       let first = Math.floor((st - top) / rowH) - overscan;
       let last = Math.ceil((st - top + vh) / rowH) + overscan;
       if (first < 0) first = 0;
@@ -1073,11 +1454,15 @@
       if (!force && first === self.first && last === self.last) return;
       self.first = first;
       self.last = last;
+      /* The row carries its OWN class from sales.css — `.s-qrow` and friends
+         — and `.b-vrow` only positions it. Two row designs for one product
+         is how an appendix becomes a second design system. */
+      const cls = (o.rowClass ? o.rowClass + ' ' : '') + 'b-vrow';
       let html = '';
       for (let i = first; i < last; i++) {
-        html += '<div class="b-vrow' + (i === self.cursor ? ' is-cursor' : '') +
-          '" data-i="' + i + '" style="height:' + rowH + 'px;transform:translateY(' +
-          (i * rowH) + 'px)">' + o.row(self.items[i], i, i === self.cursor) + '</div>';
+        html += '<article class="' + cls + '" data-i="' + i +
+          '" style="height:' + rowH + 'px;transform:translateY(' + (i * rowH) + 'px)">' +
+          o.row(self.items[i], i, i === self.cursor) + '</article>';
       }
       host.innerHTML = html;
     }
@@ -1149,15 +1534,26 @@
   /* ── Toast. Every write lands here and every write can be taken back from
      here, which is what makes a one-press control safe to offer. ── */
   let toastTimer = null;
+  let UNDO = null;
   function toast(msg, undo) {
-    const host = byId('toastHost');
-    host.innerHTML = '<div class="b-toast"><span>' + esc(msg) + '</span>' +
-      (undo ? '<button class="b-toast-undo" type="button" data-undo>Undo</button>' : '') + '</div>';
+    /* The library's toast, with its own clock: `.aimy-toast-progress` scales
+       from 1 to 0 over the toast's life, so a receipt carrying an Undo says
+       how long you have rather than reading as stuck. */
+    const life = undo ? 6000 : 4000;
     UNDO = undo || null;
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { host.innerHTML = ''; UNDO = null; }, undo ? 9000 : 4000);
+    byId('toastHost').innerHTML =
+      '<div class="aimy-toast visible s-toast">' +
+        '<span class="aimy-toast-icon"><svg width="13" height="15" viewBox="0 0 18 20">' +
+          '<use href="#aimy-logo-small"/></svg></span>' +
+        '<span class="aimy-toast-body"><span class="aimy-toast-title">' + esc(msg) + '</span></span>' +
+        (undo ? '<span class="aimy-toast-divider"></span>' +
+          '<button class="aimy-toast-undo" type="button" data-undo>Undo</button>' : '') +
+        '<span class="aimy-toast-progress"><span class="aimy-toast-progress-fill" ' +
+          'style="animation-duration:' + life + 'ms"></span></span>' +
+      '</div>';
+    toastTimer = setTimeout(() => { byId('toastHost').innerHTML = ''; UNDO = null; }, life);
   }
-  let UNDO = null;
 
   /* ── The prototype panel. Not product UI: what the corpus holds, the way
      back to the previous build, and the reset. ── */
@@ -1167,24 +1563,29 @@
     let bytes = 0;
     try { bytes = (localStorage.getItem(KEY_DB) || '').length; } catch (e) {}
     p.innerHTML =
-      '<div class="b-proto-title">Prototype</div>' +
-      '<div class="b-proto-line"><span>People</span><b>' + commas(DB.con.length) + '</b></div>' +
-      '<div class="b-proto-line"><span>Calls</span><b>' + commas(DB.touch.length) + '</b></div>' +
-      '<div class="b-proto-line"><span>Saved changes</span><b>' + commas(bytes) + ' B</b></div>' +
-      '<div class="b-proto-line"><span>Queue cap</span><b>' + (UI.cap || 'off') + '</b></div>' +
-      '<div class="b-row">' +
-        '<button class="btn btn-sm" type="button" data-cap="3">Cap at 3</button>' +
-        '<button class="btn btn-sm" type="button" data-cap="0">No cap</button>' +
+      '<div class="proto-sec">' +
+        '<div class="proto-h">What the corpus holds</div>' +
+        '<div class="proto-build">' + commas(DB.con.length) + ' people · ' +
+          commas(DB.touch.length) + ' calls · ' + commas(bytes) + ' bytes of your changes</div>' +
       '</div>' +
-      '<div class="b-row">' +
+      '<div class="proto-sec">' +
+        '<div class="proto-h">Looking as</div>' +
         REPS.filter((x) => x.fn === 'bdr').map((x) =>
-          '<button class="btn btn-sm' + (x.id === me().id ? ' btn-accent' : '') +
-          '" type="button" data-as="' + x.id + '">' + esc(x.name.split(' ')[0]) + '</button>').join('') +
+          '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
+          esc(x.name) + (x.id === me().id ? ' — you' : '') + '</button>').join('') +
       '</div>' +
-      '<div class="b-proto-note">Changes are kept in this browser. The corpus itself is rebuilt from one seed on every load.</div>' +
-      '<div class="b-row">' +
-        '<button class="btn btn-sm btn-err" type="button" data-reset>Reset to seed</button>' +
-        '<a class="b-proto-link" href="old/" target="_blank" rel="noopener">Previous build</a>' +
+      '<div class="proto-sec">' +
+        '<div class="proto-h">Queue</div>' +
+        '<button class="proto-link" type="button" data-cap="3">Cap it at 3</button>' +
+        '<button class="proto-link" type="button" data-cap="0">No cap' +
+          (UI.cap ? '' : ' — on') + '</button>' +
+      '</div>' +
+      '<div class="proto-sec">' +
+        '<div class="proto-h">Start over</div>' +
+        '<button class="proto-link" type="button" data-reset>Reset to seed</button>' +
+        '<a class="proto-link" href="old/" target="_blank" rel="noopener">The V3 build</a>' +
+        '<div class="proto-build">Your changes live in this browser. The corpus itself is ' +
+          'rebuilt from one seed on every load.</div>' +
       '</div>';
   }
 
@@ -1198,19 +1599,66 @@
     const home = t.closest('[data-home]');
     if (home) { go(cleared()); return; }
 
-    const goEl = t.closest('[data-go]');
-    if (goEl) {
-      let over = {};
-      try { over = JSON.parse(goEl.getAttribute('data-go')); } catch (err) {}
-      go(over);
+    const con = t.closest('[data-con]');
+    if (con) { go({ con: con.getAttribute('data-con') }); return; }
+
+    /* Back to where you were, not to the front page. `data-home` clears every
+       key, which from row eleven of page four of the Due cut means losing the
+       cut, the page and the row — three deliberate choices, undone by the
+       control that was supposed to return you to them. */
+    const back = t.closest('[data-back]');
+    if (back) { go({ con: '' }); return; }
+
+    const camp = t.closest('[data-camp]');
+    if (camp) { toast('The campaign page is the next step of the build.'); return; }
+
+    const cut = t.closest('[data-q]');
+    if (cut) { go(Object.assign(cleared(), { q: cut.getAttribute('data-q') })); return; }
+
+    const pg = t.closest('[data-page]');
+    if (pg) { go({ p: pg.getAttribute('data-page') }); return; }
+
+    /* The four openers. Each one is a narrowing of the queue or a jump to the
+       top of it — none of them opens a surface of its own, because a way to
+       start that needs a page first is not a way to start. */
+    const start = t.closest('[data-start]');
+    if (start) {
+      const k = start.getAttribute('data-start');
+      if (k === 'callnext') {
+        const first = queue(null, S.q)[0];
+        if (first) go({ con: first.id });
+        else toast('Nobody is callable right now.');
+      } else if (k === 'camps') {
+        byId('campList').scrollIntoView({ block: 'start' });
+      } else {
+        go(Object.assign(cleared(), { q: k }));
+      }
       return;
     }
 
-    const theme = t.closest('[data-theme-toggle]');
-    if (theme) { toggleTheme(); return; }
+    const callall = t.closest('[data-callall]');
+    if (callall) { toast('Calling through a queue arrives with the call panel.'); return; }
 
-    const bell = t.closest('[data-bell]');
-    if (bell) { toast('Nothing is waiting on you yet.'); return; }
+    /* The tray's quick chips are the shell's, and they name queue cuts. */
+    const quick = t.closest('[data-quick]');
+    if (quick) {
+      const v = quick.getAttribute('data-quick');
+      const map = { 'due=overdue': 'due', 'status=going-cold': 'retry',
+        'status=untouched': 'untouched', 'owner=mine': 'all' };
+      go(Object.assign(cleared(), { q: map[v] || 'all' }));
+      return;
+    }
+
+    const railToggle = t.closest('#railToggle');
+    if (railToggle) {
+      document.body.classList.toggle('rail-open');
+      railToggle.setAttribute('aria-expanded', String(document.body.classList.contains('rail-open')));
+      return;
+    }
+    if (t.closest('#railScrim')) { document.body.classList.remove('rail-open'); return; }
+
+    const closeC = t.closest('[data-overlay-close]');
+    if (closeC) { byId('aimyOverlay').classList.remove('open'); return; }
 
     const undoEl = t.closest('[data-undo]');
     if (undoEl) { const fn = UNDO; UNDO = null; byId('toastHost').innerHTML = ''; if (fn) fn(); return; }
@@ -1233,14 +1681,6 @@
       return;
     }
   });
-
-  function toggleTheme() {
-    const root = document.documentElement;
-    const light = root.getAttribute('data-theme') === 'light';
-    if (light) root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', 'light');
-    try { localStorage.setItem(KEY_THEME, light ? 'dark' : 'light'); } catch (e) {}
-  }
 
   window.addEventListener('popstate', () => { parse(); paint(); });
   window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
