@@ -282,6 +282,304 @@
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
 
+  /* ── Two names the ported reader expects ──
+     The V3 build calls these `shift` and `iso`; this one calls them `dayOf`
+     and `isoDay`. Adapters rather than edits: the reader is ported verbatim
+     so it can be diffed against its original, and a rename inside it is the
+     first step towards two readers that quietly disagree. */
+  const shift = (d, n) => new Date(d.getTime() + n * DAY_MS);
+  const iso = (d) => isoDay(d);
+
+  /* How a call reads at a glance, on the four-value axis the V3 build used
+     for every channel. This build stores the call's own disposition and does
+     not carry that second axis as a field — but the reader returns it, and a
+     sentence that says "booked a demo" without naming a disposition is the
+     one case where it is the only thing that knows the call went well. */
+  const callToOutcome = (k) =>
+    k === 'reached' || k === 'callback' ? 'positive'
+      : k === 'no-answer' ? 'no-answer'
+      : k === 'not-interested' || k === 'do-not-call' ? 'negative' : 'neutral';
+
+  /* ══ THE READING — one sentence in, four axes out ═════════════════════
+
+     Ported from the V3 build unchanged, lexicons and all. It turns what a
+     caller types — "reception would not put me through, pricing came up" —
+     into a disposition, what was asked for, what was pushed back on and
+     what opened up. It is the reason logging a call is a sentence rather
+     than a form: AiMY reads it and shows what it read, and you agree in a
+     word or correct it in another sentence.
+
+     ORDER IS THE RANKING inside each lexicon — first match wins — so the
+     specific phrasings sit above the general ones. That is also why a
+     correction is read ALONE rather than appended to the transcript: read
+     together, a gatekeeper heard on the call would beat "actually I spoke
+     to her" for ever, and the more you insisted the less it would listen.
+  ══════════════════════════════════════════════════════════════════════ */
+  /* ORDERED, AND THE ORDER IS THE RANKING — first match wins, so the
+     specific phrasings sit above the general ones. "Spoke to reception" is a
+     gatekeeper and not a conversation; "do not call again" is not merely
+     disinterest; a wrong number is not a call nobody picked up. Same rule
+     `TAX` states about its own lists, and for the same reason: a ranking has
+     to live somewhere, and a lexicon sorted by accident ranks by accident. */
+  const READ_DISP = [
+    [/\b(do not call|do not ring|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
+    [/\b(wrong number|wrong extension|number is wrong|not her number|not his number|not their number|no longer in service|dead line)\b/, 'wrong-number'],
+    [/\b(gatekeeper|reception|receptionist|switchboard|front desk|secretary|assistant|pa|screened|not put me through|get past|take a message|who is calling|put you through|she is in|he is in|in workshops|in meetings all)\b/, 'gatekeeper'],
+    [/\b(no answer|no one answered|nobody answered|nobody picked up|did not answer|did not pick up|voicemail|voice mail|answerphone|answering machine|rang out|busy tone|engaged tone|left a message|no show|no-show|did not show)\b/, 'no-answer'],
+    [/\b(call back|called back|callback|call me back|ring back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
+    [/\b(not interested|no thanks|not for us|not a fit|declined|hung up|brushed me off|no appetite)\b/, 'not-interested'],
+    [/\b(spoke|talked|chatted|got through|reached her|reached him|reached them|good|good chat|good conversation|went well|positive|keen|interested|promising|receptive|open to)\b/, 'reached'],
+  ];
+
+  /* IN `TAX.proposal`'s OWN ORDER, because the FIRST proposal is the one that
+     names the next step — so the order this reads in is the order that
+     decides what lands on the record, and a second ranking invented here
+     would schedule a different follow-up than the chips imply. */
+  /* ══ THESE READ TWO VOICES NOW, AND THEY WERE WRITTEN FOR ONE ═════════════
+
+     Every pattern below was tuned for a REP'S NOTE — the reporting voice.
+     "She would not put me through." "Call her back Thursday." "We do not
+     offer that." Then `Read the call` started handing them a TRANSCRIPT,
+     which is the speaking voice and says the same things differently: a
+     gatekeeper does not report being a gatekeeper, she says *"Can I take a
+     message?"*; nobody on a call says "send them the deck", they say *"send
+     me that"*.
+
+     So each lexicon gains the spoken form of what it already looks for.
+     Nothing new is recognised — the same five proposals, the same five
+     obstacles — they are simply recognised when said out loud as well as
+     when written down. The alternative was a fixture written to match the
+     patterns, which is teaching to the test. */
+  const READ_PROP = [
+    [/\b(meeting|meet|sit down|in the diary|book a time|coffee|half an hour|half hour|thirty minutes)\b/, 'meeting'],
+    [/\b(demo|demonstration|walkthrough|walk through|show them|see it working)\b/, 'demo'],
+    [/\b(proposal|quote|quotation|statement of work|sow|rate card)\b/, 'proposal'],
+    [/\b(deck|case study|one pager|one-pager|brochure|price list|pricing page|materials|send the|send her|send him|send them|send it|send over|email over|forward it|send me|send us|email me|email us)\b/, 'info'],
+    [/\b(call back|callback|ring back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
+  ];
+
+  const READ_OBJ = [
+    [/\b(feature|features|does not do|cannot do|can not do|no api|does not support|not able to|functionality|integration)\b/, 'feature'],
+    [/\b(we do not offer|we do not provide|out of scope|not something we do|no capacity|we cannot cover)\b/, 'service'],
+    [/\b(price|prices|pricing|cost|costs|expensive|budget|too much|cheaper|day rate|rates)\b/, 'pricing'],
+    [/\b(timing|not now|next quarter|next year|later in the year|too early|busy period|revisit|already committed|freeze|q1|q2|q3|q4)\b/, 'timing'],
+    [/\b(pushed back|objected|not convinced|reservations|hesitant)\b/, 'other'],
+  ];
+
+  const READ_OPP = [
+    [/\b(raised|funding|funded|series a|series b|series c|series d|investment round|new investor|closed a round)\b/, 'funding'],
+    [/\b(moved to|new role|left for|joining|changed jobs|has moved|starts at)\b/, 'job-change'],
+    [/\b(promoted|promotion|stepped up|now heads|took over as)\b/, 'promotion'],
+    [/\b(new cto|new cio|new coo|new head of|new director|new vp|new manager|just hired|joined last month)\b/, 'new-hire'],
+    [/\b(hiring|recruiting|vacancy|vacancies|job ad|growing the team|headcount|taking on)\b/, 'job-posting'],
+    [/\b(on our site|visited our|our website|downloaded|looked at our|read our)\b/, 'web-visit'],
+    [/\b(renewal|renew|contract ends|contract is up|notice period|up for renewal)\b/, 'renewal'],
+  ];
+
+
+  /* ══ WHEN NOTHING ON THE LIST FITS, THE LIST GROWS ═════════════════════
+
+     The lexicons above read a sentence for values this product already has a
+     name for. Real calls produce things it does not: their legal team wants
+     to see a DPA first, they asked for a reference from a bank the same size,
+     the blocker is an internal system nobody has heard of. All of that used
+     to land nowhere — the reading came back empty on that axis, the chips sat
+     untouched, and the only trace was the note.
+
+     THESE READ THE FRAME, NOT THE VALUE. A lexicon asks "does the sentence
+     contain 'pricing'". These ask "does the sentence say somebody pushed back
+     on SOMETHING", and take the something. That is what makes it a reading
+     rather than a guess: the sentence itself says which axis it is talking
+     about — "pushed back on X" is an obstacle whatever X turns out to be, and
+     "asked me for X" is a proposal. Nothing is inferred from a bare phrase,
+     because a bare phrase does not say which axis it belongs to and inventing
+     one would be exactly the guess this reader refuses everywhere else.
+
+     They fire ONLY where the axis came back empty. A sentence that says
+     "pushed back on the price" has already been read as Pricing; adding a
+     second chip saying "the price" would be the same fact twice, once in a
+     shape nothing can count.
+
+     WHERE THE WORDS GO. Each axis has a "Something else" chip — obstacle
+     always did, proposal and opportunity now do — and the chip takes the
+     words as its label. So the filters and the counts see a real axis value
+     they can add up, and the rep sees what was actually said. A free-text key
+     on an axis would have given the second and destroyed the first. */
+  const READ_FRAME = [
+    ['objection', /\b(?:pushed back on|push back on|objected to|worried about|concerned about|nervous about|stuck on|blocked by|the (?:problem|issue|blocker|sticking point|hold ?up) (?:is|was)|not happy (?:with|about))\s+([^.,;—–]+)/i],
+    ['proposal', /\b(?:asked (?:me )?(?:for|to)|asked whether we could|wants us to|wanted us to|would like us to|requested|i offered to|offered to|promised to|agreed to)\s+([^.,;—–]+)/i],
+    /* Tighter than the other two, and deliberately. "They are" and "they just"
+       open a good-news clause and a bad-news one equally well, so only the
+       cues that cannot be anything but news are here. The guard below does
+       the rest. */
+    ['opportunity', /\b(?:good news[:,]?|worth knowing[:,]?|they (?:have )?just|they are about to|they told me they(?:'| a)re)\s+([^.,;—–]+)/i],
+  ];
+
+  /* A phrase only becomes a chip if it is short enough to BE one and long
+     enough to mean something. Four words is where a captured clause stops
+     being a label and starts being a sentence somebody has to read twice, so
+     it is trimmed there and the whole of it stays in the note either way. */
+  const saidPhrase = (s) => {
+    const w = String(s || '').trim().replace(/\s+/g, ' ').split(' ');
+    if (w.length < 2) return null;
+    const cut = w.slice(0, 6);
+    return (cut.join(' ') + (w.length > 6 ? '…' : '')).replace(/^./, (c) => c.toUpperCase());
+  };
+  /* THE READING, AND IT IS THE ONLY ONE IN THIS FILE. `readTouch` — the float
+     bar's reader, which has turned a sentence into a touchpoint since v3 — is
+     now a projection of this rather than a second lexicon beside it. Two
+     parsers over one language is two parsers that drift, and the drift is
+     invisible: the same sentence logged through two doors would quietly
+     produce two different records. */
+  function readCall(text) {
+    /* Contractions are expanded before anything is matched, so "wouldn't put
+       me through" and "would not put me through" are the same sentence. A
+       lexicon carrying both spellings of every negation is a lexicon that
+       will one day carry only one of them. */
+    const t = ' ' + String(text || '').toLowerCase()
+      .replace(/[’‘]/g, "'")
+      .replace(/n't\b/g, ' not')
+      .replace(/\s+/g, ' ') + ' ';
+
+    const first = (lex) => { const hit = lex.filter(([re]) => re.test(t))[0]; return hit ? hit[1] : null; };
+    const all = (lex) => lex.filter(([re]) => re.test(t)).map(([, k]) => k);
+
+    const disp = first(READ_DISP);
+    const props = all(READ_PROP);
+    const opps = all(READ_OPP);
+    let objs = all(READ_OBJ);
+    /* `other` is the fallback and behaves like one — it means an obstacle
+       that is none of the four above, so it only stands when none of them
+       did. "Pushed back on pricing" is pricing, once. */
+    if (objs.length > 1) objs = objs.filter((k) => k !== 'other');
+
+    /* TWO DISPOSITIONS CANNOT HAVE PRODUCED A PROPOSAL, and both of them
+       contain the words that name one. "Do not call again" carries "call
+       again"; a wrong number is a call that never reached anybody to ask
+       anything of. Read literally, the first was recording that the rep had
+       proposed another call to somebody who had just told them never to ring
+       back — a chip that contradicts the disposition beside it, ticked by the
+       same sentence that set it. */
+    if (disp === 'do-not-call' || disp === 'wrong-number') props.length = 0;
+
+    /* ══ THE TWO FIELDS THAT RETURN WORDS, NOT KEYS ═══════════════════════
+
+       Everything above resolves to a KEY, and a key read out of a lowercased
+       sentence is the same key. The next step and the line to remember are
+       different in kind: they are WORDS, and they go on the record for the
+       next person to read — "call marije in the hague" is what the lowercased
+       copy produces, and `remember` in particular is read back at the top of
+       the next brief. So both are matched case-insensitively against the
+       original sentence, and only the day-of-the-week test is handed the
+       lowercase form, because `readWhen` compares against lowercase names. */
+    const raw = ' ' + String(text || '').replace(/[’‘]/g, "'").replace(/n't\b/gi, ' not').replace(/\s+/g, ' ') + ' ';
+
+    /* The next step, read exactly as the float bar has always read it. */
+    const m = raw.match(/next step(?: is)?[: ]+([^.,;—–]+)/i) || raw.match(/\b(?:then|follow up with|send)\b[: ]+([^.,;—–]+)/i);
+    /* THE DATE COMES OUT OF THE CLAUSE THAT NAMES THE NEXT STEP, and out of
+       nowhere else. "She is back Thursday" is a fact about her; reading a day
+       out of it and scheduling our follow-up on it would be the surface
+       inventing an appointment from a sentence about somebody's diary.
+       `readWhen` answers 7 for anything it cannot place, which is a sensible
+       default and a useless signal — so whether a day was NAMED is tested
+       separately from which day it was. */
+    const when = m && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(m[1])
+      ? readWhen(m[1].toLowerCase()) : null;
+    let next = null;
+    if (m) {
+      const what = m[1].trim();
+      next = {
+        what: what
+          .replace(/\b(on|next|this)?\s*(monday|tuesday|wednesday|thursday|friday|week|month)\b/gi, '')
+          /* Drop the leading article. "Next step: a demo" is how somebody
+             writes it and "A demo" is not how a next step is named. */
+          .replace(/^\s*(a|an|the)\s+/i, '')
+          .trim()
+          .replace(/^./, (c) => c.toUpperCase()) || 'Follow up',
+        due: iso(shift(TODAY, when == null ? readWhen(what.toLowerCase()) : when)),
+        by: me().id,
+      };
+    }
+
+    /* ON AN EXPLICIT CUE ONLY. `remember` is the one field AiMY writes WORDS
+       into rather than ticking, and it goes on the RECORD rather than on the
+       call — it outlives everything else on this form. So it is read when
+       somebody says "remember: …" and never inferred from an ordinary
+       sentence: a durable fact nobody meant to state is a durable fact nobody
+       will think to correct. */
+    const rm = raw.match(/\b(?:remember|note that|worth knowing|for next time)\b[:, ]+([^.;]+)/i);
+    const remember = rm ? rm[1].trim().replace(/^./, (c) => c.toUpperCase()) : null;
+
+    /* ── And what the sentence said that no list has a name for ──
+
+       Only where the axis came back empty, and only where the frame that
+       fired belongs on that axis at all. Two guards beyond that:
+
+       · A PHRASE THAT IS ALREADY A KNOWN VALUE IS DROPPED. "They just told me
+         they are not interested" trips the news frame and the phrase reads
+         back as a disposition — recording it as an opening would be the
+         reading contradicting itself in the same breath.
+
+       · NOTHING OPENS ON A CALL THAT REACHED NOBODY, and nothing is asked for
+         on one that ended in "never ring again". Both are the same rule the
+         proposal guard above states: a chip that contradicts the disposition
+         beside it is worse than an empty axis. */
+    const said = {};
+    const known = (phrase) => {
+      const p = ' ' + phrase.toLowerCase() + ' ';
+      return [READ_DISP, READ_PROP, READ_OBJ, READ_OPP].some((lex) => lex.some(([re]) => re.test(p)));
+    };
+    const spoke = !disp || disp === 'reached' || disp === 'callback' || disp === 'gatekeeper';
+    const asked = disp !== 'do-not-call' && disp !== 'wrong-number';
+    const empty = { objection: !objs.length, proposal: !props.length, opportunity: !opps.length };
+    for (const [axis, re] of READ_FRAME) {
+      if (!empty[axis]) continue;
+      if (axis === 'opportunity' && !spoke) continue;
+      if (axis === 'proposal' && !asked) continue;
+      const hit = raw.match(re);
+      if (!hit) continue;
+      const phrase = saidPhrase(hit[1]);
+      if (!phrase || known(phrase)) continue;
+      said[axis] = phrase;
+    }
+    /* The axis value is `other` — a real value the filters and the counts can
+       add up — and the words ride beside it. A free-text key on the axis
+       would have shown the rep what was said and made it uncountable. */
+    if (said.objection) objs.push('other');
+    if (said.proposal) props.push('other');
+    if (said.opportunity) opps.push('other');
+
+    /* THE FOUR-VALUE AXIS, PROJECTED HERE ONCE. `callToOutcome` already maps
+       the seven a caller picks onto the four every channel shares; two
+       readings fall outside it and are read on their own terms. A meeting
+       AGREED is an outcome no disposition carries — "spoke to them" and
+       "booked a demo" are the same disposition and very different news — and
+       a sentence can be plainly sour without the call having ended badly
+       ("they liked it, no budget until Q3"). */
+    const booked = /\b(booked|scheduled|agreed to meet|set up a call|set up a demo|set up a meeting|in the diary)\b/.test(t);
+    const sour = /\b(negative|no budget|pushed back|declined|went badly)\b/.test(t);
+    const outcome = booked ? 'meeting-booked'
+      : disp ? callToOutcome(disp)
+      : sour ? 'negative' : 'neutral';
+
+    return { disp, props, objs, opps, next, when, remember, outcome, said };
+  }
+
+  function readWhen(s) {
+    const days = { monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5 };
+    for (const d of Object.keys(days)) {
+      if (s.includes(d)) {
+        const delta = (days[d] - TODAY.getDay() + 7) % 7;
+        return delta === 0 ? 7 : delta;
+      }
+    }
+    if (/next week/.test(s)) return 7;
+    if (/next month/.test(s)) return 30;
+    if (/tomorrow/.test(s)) return 1;
+    return 7;
+  }
+
+
   /* ══ 3. THE CORPUS ══════════════════════════════════════════════════════ */
 
   const SEED = 20260904;
@@ -958,7 +1256,9 @@
          top row is the recommendation and says so by being the only filled
          thing on the surface. */
       '<button class="s-insight-lnk s-qrow-go' + (i === 0 ? ' primary' : '') +
-        '" type="button" data-con="' + esc(c.id) + '">' + rowVerb(c) + '</button>';
+        '" type="button" ' + (bucketOf(c) === 'after'
+          ? 'data-con="' + esc(c.id) + '"'
+          : 'data-call="' + esc(c.id) + '"') + '>' + rowVerb(c) + '</button>';
   }
 
   /* One campaign. The numbers on the second line are the ones that decide
@@ -1186,8 +1486,9 @@
           const page = shown.slice(from, to);
           const ring = page.filter((c) => rowVerb(c) === 'Call').length;
           if (!ring) return '';
-          return '<button class="s-inline-btn" type="button" data-callall>Call these ' +
-            ring + '</button>';
+          return '<button class="s-inline-btn" type="button" data-callall="' +
+            esc(page.filter((c) => rowVerb(c) === 'Call').map((c) => c.id).join(',')) +
+            '">Call these ' + ring + '</button>';
         })() +
       '</div>' +
       cuts(counts, all) +
@@ -1248,7 +1549,10 @@
               ' · ' + commas(a.size) + ' staff' : '') + '</p>' +
           '<p class="s-block-sub">' +
             (c.phone
-              ? 'Phone <a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>'
+              ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(c.id) +
+                '">Call ' + esc(c.name.split(' ')[0]) + '</button>' +
+                ' <a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' +
+                esc(c.phone) + '</a>'
               : 'No number on file.') +
             (camps.length ? ' · On ' + camps.map((k) => esc(k.name)).join(', ') : ' · On no campaign') +
           '</p>' +
@@ -1589,6 +1893,436 @@
       '</div>';
   }
 
+  /* ══ 7b. THE CALL ═══════════════════════════════════════════════════════
+     A call is live and timed, and you move around during one — you open the
+     person, you read the campaign's pitch, you check what was said last
+     time. So it is a shell region beside the main column, not a modal, and
+     it survives everything the URL does by construction.
+
+     FOUR STATES, AND THE MIDDLE ONE IS REACHED BY A PERSON. `ready` shows
+     the brief and waits; pressing Start begins `connecting`; the clock only
+     starts at `live`, because a timer running through the ringing lies about
+     the one thing it measures; `logging` is after you hang up.
+
+     THE TELEPHONY IS FIXTURE. No Twilio, no WebRTC, no network of any kind:
+     a transcript grows a line at a time from a script chosen by the person's
+     own `fate`, so a demo walked twice tells the same story twice. The one
+     real-world handoff is the `tel:` link on the record. */
+
+  const DIAL_MS = 1600;
+  const LINE_MS = 4000;
+  let CALL_DIAL = null, CALL_TICK = null, CALL_LINE = null;
+
+  /* One script per fate, written so the reader reads each back to the fate it
+     came from. `assets/audit.js` asserts exactly that — a fixture that drifts
+     from the lexicon would make the panel's suggestion wrong in a way only a
+     careful reader would ever notice. */
+  const CALL_SCRIPTS = {
+    reached: [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'Speaking.'],
+      ['you', 'I will keep it short. We take the support desk work off teams your size.'],
+      ['them', 'Go on, I am open to hearing it.'],
+      ['you', 'Rather than talk at you, could I show you the thing working?'],
+      ['them', 'Yes, I am interested. Send me a demo next week — though the price came up last time we looked at this.'],
+    ],
+    gatekeeper: [
+      ['you', 'Morning, could I speak to {first}?'],
+      ['them', 'Can I take a message? She is in workshops all week.'],
+      ['you', 'When is the best time to try her?'],
+      ['them', 'I could not say. I will pass it on.'],
+    ],
+    'no-answer': [
+      ['you', 'Dialling…'],
+      ['them', 'The line rings out.'],
+      ['you', 'Left a voicemail.'],
+    ],
+    callback: [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'It is, but you have caught me walking into something.'],
+      ['you', 'No problem at all. When suits?'],
+      ['them', 'Call me back Thursday.'],
+    ],
+    'not-interested': [
+      ['you', 'Morning — is that {first}?'],
+      ['them', 'It is.'],
+      ['you', 'We take support desk work off teams your size.'],
+      ['them', 'Not interested, we have just signed with someone.'],
+    ],
+  };
+  function scriptFor(c) {
+    const s = CALL_SCRIPTS[c.fate] || CALL_SCRIPTS.reached;
+    const first = c.name.split(' ')[0];
+    return s.map((l) => [l[0], l[1].split('{first}').join(first)]);
+  }
+
+  const callOn = () => (DB.call ? DB.byCon[DB.call.con] : null);
+  const fmtClock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+  function clearCallTimers() {
+    if (CALL_DIAL) { clearTimeout(CALL_DIAL); CALL_DIAL = null; }
+    if (CALL_TICK) { clearInterval(CALL_TICK); CALL_TICK = null; }
+    if (CALL_LINE) { clearInterval(CALL_LINE); CALL_LINE = null; }
+  }
+
+  /* Which campaign this call belongs to. A person can be on two; the one that
+     matters is a campaign of mine, because that is the work I am doing. */
+  function campFor(c) {
+    const k = c.camps.filter((x) => DB.byCamp[x] && mine(DB.byCamp[x]))[0] || c.camps[0];
+    return k || null;
+  }
+
+  function startCall(id, sess) {
+    const c = DB.byCon[id];
+    if (!c) return;
+    if (!c.phone) { toast('No number on file for ' + c.name + '. Nothing to dial.'); return; }
+    if (c.dnc) { toast(c.name + ' asked not to be called again.'); return; }
+    clearCallTimers();
+    DB.call = {
+      con: id, camp: campFor(c), state: 'ready', secs: 0,
+      script: scriptFor(c), shown: 0, note: '', outcome: null, read: null,
+      when: 1, sess: sess || (DB.call && DB.call.sess) || null,
+    };
+    document.body.classList.add('is-calling');
+    paintCall();
+  }
+
+  function callGo() {
+    const c = DB.call;
+    if (!c || c.state !== 'ready') return;
+    c.state = 'connecting';
+    paintCall();
+    CALL_DIAL = setTimeout(() => {
+      CALL_DIAL = null;
+      if (!DB.call || DB.call.state !== 'connecting') return;
+      DB.call.state = 'live';
+      DB.call.secs = 0;
+      CALL_TICK = setInterval(() => {
+        if (!DB.call) return;
+        DB.call.secs++;
+        const el = byId('callTimer');
+        if (el) el.textContent = fmtClock(DB.call.secs);
+      }, 1000);
+      CALL_LINE = setInterval(growTranscript, LINE_MS);
+      growTranscript();
+      paintCall();
+    }, DIAL_MS);
+  }
+
+  function growTranscript() {
+    const c = DB.call;
+    if (!c || c.state !== 'live') return;
+    if (c.shown >= c.script.length) { clearInterval(CALL_LINE); CALL_LINE = null; return; }
+    c.shown++;
+    const host = byId('callLines');
+    if (host) { host.innerHTML = transcriptHtml(c); host.scrollTop = host.scrollHeight; }
+  }
+  function transcriptHtml(c) {
+    if (!c.shown) return '<p class="call-none">Nothing said yet.</p>';
+    return c.script.slice(0, c.shown).map((l) =>
+      '<p class="call-line' + (l[0] === 'you' ? ' is-you' : '') + '">' + esc(l[1]) + '</p>').join('');
+  }
+  const transcriptText = (c) => c.script.slice(0, c.shown).map((l) => l[1]).join(' ');
+
+  /* Hanging up is where AiMY reads what it heard. The reading is a
+     SUGGESTION — it lights an outcome and shows what it took from the call,
+     and nothing is written until you press Log. */
+  function endCall() {
+    const c = DB.call;
+    if (!c || c.state === 'ready' || c.state === 'logging') return;
+    clearCallTimers();
+    c.state = 'logging';
+    const heard = readCall(transcriptText(c));
+    c.read = heard;
+    /* ══ WHEN IT CANNOT TELL, IT UNDER-CLAIMS ══════════════════════════
+       This fell back to `reached` whenever any line had been said, and the
+       first line of every script is the CALLER'S own opening. Hang up two
+       seconds in and AiMY lit Connected on the evidence of "could I speak
+       to Sofie?" — a claim that you reached somebody, made out of you
+       asking to. Measured on a gatekeeper fixture ended early.
+
+       `no-answer` is the honest default: it is the one outcome that does
+       not assert contact (`writes: false`), so guessing it wrong costs a
+       correction rather than a false record of a conversation. */
+    c.outcome = heard.disp || 'no-answer';
+    c.guessed = !heard.disp;
+    if (heard.when) c.when = heard.when;
+    paintCall();
+  }
+
+  /* ══ WHAT A CALL DOES TO A LEAD ═════════════════════════════════════════
+     Pure, and the only thing that moves a rung on a call. A checkpoint never
+     goes BACKWARDS on a call — ringing somebody you have already met does
+     not un-meet them — and an exit is never climbed out of by a call, only
+     by Undo. */
+  function moveFor(c, outcome, props) {
+    const at = rank(c.checkpoint);
+    const has = (k) => props.indexOf(k) >= 0;
+    const up = (k) => (isExit(c.checkpoint) ? null : rank(k) > at ? k : null);
+    if (outcome === 'do-not-call') return { to: 'do-not-call', next: null, dnc: true };
+    if (outcome === 'wrong-number') return { to: 'wrong-number', next: null };
+    if (outcome === 'not-interested') return { to: 'declined', next: null };
+    if (outcome === 'no-answer' || outcome === 'gatekeeper') return { to: up('no-answer') };
+    if (outcome === 'callback') {
+      return { to: up('callback'), next: { what: 'Call them back', due: dayAdd(DB.call.when) } };
+    }
+    /* Connected. What was asked for decides how far it moves. */
+    if (has('meeting') || has('demo')) {
+      return {
+        to: up('meeting-set'),
+        next: { what: has('demo') ? 'Demo for them' : 'Meeting with them', due: dayAdd(DB.call.when) },
+      };
+    }
+    if (has('callback')) return { to: up('answered'), next: { what: 'Call them back', due: dayAdd(DB.call.when) } };
+    if (has('info')) return { to: up('answered'), next: { what: 'Send what was promised', due: dayAdd(1) } };
+    if (has('proposal')) return { to: up('answered'), next: { what: 'Proposal to them', due: dayAdd(3) } };
+    return { to: up('answered') };
+  }
+
+  /* ══ ONE WRITE, TWO PLACES IT SHOWS ═════════════════════════════════════
+     The touchpoint and the contact's rung are the whole of it. Everything
+     the campaign reports — how many are left to call, how many callbacks are
+     due, how many meetings are set, its rung tally, its feed — is derived
+     from those two, so the person's record and the campaign they are on
+     cannot disagree about what just happened. */
+  function logCall() {
+    const call = DB.call;
+    if (!call || call.state !== 'logging') return;
+    const c = DB.byCon[call.con];
+    const heard = call.read || {};
+    const noted = call.note ? readCall(call.note) : null;
+    /* A CORRECTION IS READ ALONE AND WINS PER AXIS. Read together with the
+       transcript, a gatekeeper heard on the call would outrank "actually I
+       spoke to her" for ever, because the lexicon ranks by specificity and
+       not by recency — the more you insisted, the less it would listen. */
+    const props = noted && noted.props.length ? noted.props : (heard.props || []);
+    const objs = noted && noted.objs.length ? noted.objs : (heard.objs || []);
+    const opps = noted && noted.opps.length ? noted.opps : (heard.opps || []);
+    const outcome = call.outcome || 'no-answer';
+
+    const before = {
+      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, attempts: c.attempts,
+      lastCallAt: c.lastCallAt, next: c.next, remember: c.remember, dnc: c.dnc,
+    };
+    const mv = moveFor(c, outcome, props);
+    const now = new Date().toISOString();
+    const t = {
+      id: 't' + (Date.now().toString(36)) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: call.camp, by: me().id, at: now,
+      secs: call.secs, outcome: outcome,
+      proposals: props, objections: objs, openings: opps,
+      note: call.note || (heard.disp ? 'Logged from the call.' : 'No answer.'),
+      lines: call.script.slice(0, call.shown).map((l) => ({ who: l[0], text: l[1] })),
+      next: mv.next || null,
+      moved: mv.to ? [c.checkpoint, mv.to] : null,
+    };
+    const fields = { attempts: c.attempts + 1, lastCallAt: now };
+    if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
+    if (mv.next) fields.next = mv.next;
+    if (mv.dnc) fields.dnc = true;
+    /* A terminal owes nothing. Leaving a callback on a lead that has just
+       opted out is a queue entry for a call nobody may make. */
+    if (mv.to && isExit(mv.to)) fields.next = null;
+    const remember = (noted && noted.remember) || heard.remember;
+    if (remember) fields.remember = { text: remember, by: me().id, at: now };
+
+    patchCon(c, fields);
+    addTouch(t);
+
+    const camp = DB.byCamp[call.camp];
+    const said = OUTCOME[outcome] ? OUTCOME[outcome].label.toLowerCase() : outcome;
+    const moved = mv.to ? ' · moved to ' + rungLabel(mv.to) : '';
+    const where = camp ? ' · ' + camp.name + ' now has ' +
+      plural(queue(camp.id).length, 'person') + ' to call' : '';
+    toast('Logged ' + said + ' with ' + c.name.split(' ')[0] + moved + where, () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+      paintCall();
+    });
+
+    advance();
+  }
+
+  /* On to the next one in the session, or done. */
+  function advance() {
+    const call = DB.call;
+    const sess = call && call.sess;
+    if (!sess) { closeCall(); paint(); return; }
+    sess.done.push(call.con);
+    const nextId = sess.ids.filter((id) =>
+      sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0];
+    if (!nextId) {
+      const n = sess.done.length;
+      closeCall();
+      paint();
+      toast('Session finished — ' + plural(n, 'call') + ' logged.');
+      return;
+    }
+    startCall(nextId, sess);
+    paint();
+  }
+
+  function skipCall() {
+    const call = DB.call;
+    if (!call) return;
+    if (call.sess) { call.sess.skipped.push(call.con); advance(); return; }
+    closeCall();
+  }
+
+  function closeCall() {
+    clearCallTimers();
+    DB.call = null;
+    document.body.classList.remove('is-calling');
+    paintCall();
+  }
+
+  /* A run through a set. AiMY's version is advanced by a clock and yours by a
+     disposition; only the tick differs, so a session is not a second call
+     model and not a page of its own. */
+  function callAll(ids) {
+    const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
+    if (!live.length) { toast('Nobody in this set has a number to ring.'); return; }
+    const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
+    startCall(live[0], sess);
+    paint();
+  }
+
+  function paintCall() {
+    const host = byId('callPanel');
+    host.hidden = !DB.call;
+    host.innerHTML = DB.call ? callPanel() : '';
+  }
+
+  function callPanel() {
+    const call = DB.call;
+    const c = callOn();
+    if (!c) return '';
+    const a = accOf(c);
+    const camp = DB.byCamp[call.camp];
+    const ready = call.state === 'ready';
+    const dialing = call.state === 'connecting';
+    const logging = call.state === 'logging';
+    const sess = call.sess;
+    const at = sess ? sess.done.length + sess.skipped.length + 1 : 0;
+
+    return '<div class="call-head">' +
+        '<span class="call-live' + (ready ? ' is-ready' : dialing ? ' is-dialing' : '') +
+          '" aria-hidden="true"></span>' +
+        '<span class="call-timer" id="callTimer">' +
+          (ready ? 'Ready to call' : dialing ? 'Connecting…' : fmtClock(call.secs)) + '</span>' +
+        (sess ? '<span class="call-of">' + at + ' of ' + sess.ids.length + '</span>' : '') +
+      '</div>' +
+
+      '<div class="call-who-block">' +
+        '<p class="call-name">' + esc(c.name) + '</p>' +
+        '<p class="call-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</p>' +
+        '<p class="call-num">' + esc(c.phone) + '</p>' +
+        '<p class="call-sub">' + esc(rungLabel(c.checkpoint)) +
+          (camp ? ' · ' + esc(camp.name) : '') + '</p>' +
+      '</div>' +
+
+      /* Three lines of preparation, and only while there is time to read
+         them. Once the phone is ringing the transcript takes the space —
+         a brief you cannot act on any more is a brief in the way. */
+      (ready ? briefBlock(c, camp) : '') +
+
+      (ready ? '' : '<div class="call-lines" id="callLines">' + transcriptHtml(call) + '</div>') +
+
+      (logging ? outcomeBlock(call, c) : '') +
+
+      '<div class="call-tools">' +
+        (ready
+          ? '<button class="call-go" type="button" data-callgo>Start call</button>'
+          : logging
+            ? '<button class="call-go" type="button" data-calllog>Log &amp; next</button>'
+            : '<button class="call-end" type="button" data-callend>End</button>') +
+        (ready || logging
+          ? '<button class="call-tool" type="button" data-callskip>' +
+            (sess ? 'Skip' : 'Close') + '</button>'
+          : '') +
+      '</div>';
+  }
+
+  /* WHO THIS IS AND WHAT TO SAY. On a first call there is no history to
+     report, so the campaign's own preparation takes its place — what we
+     sell, how to open, and what they will push back on. */
+  function briefBlock(c, camp) {
+    const n = (DB.touchesOf[c.id] || []).length;
+    const last = n ? TOUCH[DB.touchesOf[c.id][0]] : null;
+    const obj = camp && camp.objections.length ? camp.objections[0] : null;
+    const rows = [];
+    rows.push(['Open with', camp
+      ? SELL[camp.sells[0]].name + ' — ' + SELL[camp.sells[0]].blurb
+      : 'Ask what they are running this with today.']);
+    if (last) {
+      rows.push(['Last time', OUTCOME[last.outcome].label + ', ' + sayWhen(last.at) +
+        (last.note ? ' — ' + last.note : '')]);
+    } else {
+      rows.push(['First call', 'Nobody has spoken to them. The campaign is all you have.']);
+    }
+    if (obj) rows.push(['They push back on', OBJECTION[obj.k].label + '. ' + obj.say]);
+    if (c.remember) rows.push(['Remember', c.remember.text]);
+    return '<div class="s-callsum">' +
+      '<div class="s-callsum-cap">Before you speak to ' + esc(c.name.split(' ')[0]) + '</div>' +
+      '<div class="s-callsum-rows">' + rows.map((r) =>
+        '<div class="s-callsum-row"><span class="s-callsum-mem">' + esc(r[0]) + '</span>' +
+        '<span class="s-callsum-val">' + esc(r[1]) + '</span></div>').join('') + '</div>' +
+      '<button class="s-insight-lnk" type="button" data-con="' + esc(c.id) + '">The whole record</button>' +
+    '</div>';
+  }
+
+  /* WHAT HAPPENED, IN ONE PRESS. Seven outcomes, always visible, with the
+     one AiMY read already lit. Under it a line to type, which AiMY reads for
+     what was asked for and what pushed back — and which overrides the
+     transcript on whatever it speaks to. */
+  function outcomeBlock(call, c) {
+    const heard = call.read || {};
+    const noted = call.note ? readCall(call.note) : null;
+    const props = noted && noted.props.length ? noted.props : (heard.props || []);
+    const objs = noted && noted.objs.length ? noted.objs : (heard.objs || []);
+    const opps = noted && noted.opps.length ? noted.opps : (heard.opps || []);
+    const chips = props.map((k) => PROPOSAL[k] && PROPOSAL[k].label)
+      .concat(objs.map((k) => OBJECTION[k] && OBJECTION[k].label))
+      .concat(opps.map((k) => OPENING[k] && OPENING[k].label))
+      .filter(Boolean);
+    const wantsDate = call.outcome === 'callback' ||
+      props.indexOf('meeting') >= 0 || props.indexOf('demo') >= 0 || props.indexOf('callback') >= 0;
+    const mv = moveFor(c, call.outcome || 'no-answer', props);
+
+    return '<div class="b-outs">' +
+      '<div class="s-callsum-cap">' +
+        (heard.disp
+          ? 'AiMY read this as ' + esc(OUTCOME[heard.disp].label)
+          : 'AiMY could not tell from what was said — say what happened') +
+      '</div>' +
+      '<div class="b-cuts">' + OUTCOMES.map((o) =>
+        '<button class="filter-chip' + (call.outcome === o.k ? ' active' : '') +
+        '" type="button" data-out="' + o.k + '">' + esc(o.label) + '</button>').join('') + '</div>' +
+
+      (wantsDate ? '<div class="b-cuts">' + [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']]
+        .map((d) => '<button class="filter-chip' + (call.when === d[0] ? ' active' : '') +
+          '" type="button" data-when="' + d[0] + '">' + esc(d[1]) + '</button>').join('') +
+        '</div>' : '') +
+
+      '<label class="ds-field call-note-field">' +
+        '<span class="s-field-label">In a line</span>' +
+        '<textarea class="ds-textarea" rows="2" spellcheck="false" data-note ' +
+          'placeholder="What happened, what you asked for, what they pushed back on.">' +
+          esc(call.note) + '</textarea>' +
+      '</label>' +
+
+      (chips.length ? '<div class="b-cuts">' + chips.map((x) =>
+        '<span class="tag tag-neutral">' + esc(x) + '</span>').join('') + '</div>' : '') +
+
+      '<p class="s-callsum-note">' +
+        (mv.to ? 'Moves them to <b>' + esc(rungLabel(mv.to)) + '</b>' : 'Stays at <b>' +
+          esc(rungLabel(c.checkpoint)) + '</b>') +
+        (mv.next ? ', and sets <b>' + esc(mv.next.what) + '</b> for ' + esc(sayWhen(mv.next.due)) : '') +
+        '.</p>' +
+    '</div>';
+  }
+
   /* ══ 8. THE ROUTER ══════════════════════════════════════════════════════
      One delegated listener. Every control is a `data-` verb matched by
      `closest`, so a row can be re-rendered without losing its behaviour and
@@ -1625,9 +2359,9 @@
     if (start) {
       const k = start.getAttribute('data-start');
       if (k === 'callnext') {
-        const first = queue(null, S.q)[0];
-        if (first) go({ con: first.id });
-        else toast('Nobody is callable right now.');
+        const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
+        if (first) startCall(first.id);
+        else toast('Nobody in this cut has a number to ring.');
       } else if (k === 'camps') {
         byId('campList').scrollIntoView({ block: 'start' });
       } else {
@@ -1636,8 +2370,37 @@
       return;
     }
 
+    const callone = t.closest('[data-call]');
+    if (callone) { startCall(callone.getAttribute('data-call')); return; }
+
     const callall = t.closest('[data-callall]');
-    if (callall) { toast('Calling through a queue arrives with the call panel.'); return; }
+    if (callall) {
+      const ids = callall.getAttribute('data-callall');
+      callAll(ids ? ids.split(',') : []);
+      return;
+    }
+
+    if (t.closest('[data-callgo]')) { callGo(); return; }
+    if (t.closest('[data-callend]')) { endCall(); return; }
+    if (t.closest('[data-calllog]')) { logCall(); return; }
+    if (t.closest('[data-callskip]')) { skipCall(); return; }
+
+    const out = t.closest('[data-out]');
+    if (out && DB.call) {
+      /* Pressing an outcome mid-call ends it: you know how it went before the
+         script does, and making somebody press End first is a step for the
+         product's benefit. */
+      if (DB.call.state === 'live' || DB.call.state === 'connecting') endCall();
+      DB.call.outcome = out.getAttribute('data-out');
+      paintCall();
+      return;
+    }
+    const when = t.closest('[data-when]');
+    if (when && DB.call) {
+      DB.call.when = Number(when.getAttribute('data-when')) || 1;
+      paintCall();
+      return;
+    }
 
     /* The tray's quick chips are the shell's, and they name queue cuts. */
     const quick = t.closest('[data-quick]');
@@ -1682,6 +2445,23 @@
     }
   });
 
+  document.addEventListener('input', (e) => {
+    const n = e.target.closest('[data-note]');
+    if (!n || !DB.call) return;
+    DB.call.note = n.value;
+    /* NOT `paintCall()`. Repainting the panel replaces the textarea the
+       caret is sitting in, and the caret goes with it — you would lose the
+       cursor on every keystroke. Only what the reading changes is redrawn. */
+    const box = byId('callPanel').querySelector('.b-outs');
+    if (box) {
+      const c = callOn();
+      box.outerHTML = outcomeBlock(DB.call, c);
+      const again = byId('callPanel').querySelector('[data-note]');
+      if (again) { again.value = DB.call.note; again.focus();
+        again.setSelectionRange(again.value.length, again.value.length); }
+    }
+  });
+
   window.addEventListener('popstate', () => { parse(); paint(); });
   window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
 
@@ -1721,6 +2501,7 @@
        scrolls and then reads the DOM has to be able to force the render
        itself rather than wait for a frame that is not coming. */
     vlists: VLISTS,
+    read: readCall,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,

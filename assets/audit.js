@@ -174,6 +174,67 @@ const BANNED = [
   if (crlf && lf) fail('7 line-endings', p + ' mixes ' + crlf + ' CRLF and ' + lf + ' LF endings');
 });
 
+/* ── 8. EVERY FIXTURE TRANSCRIPT STILL READS BACK TO ITS OWN FATE ────────
+   The five call scripts are written against the reader's lexicons, and the
+   two live in the same file with nothing tying them together. Reword a line
+   and the panel starts proposing the wrong outcome on that call — which is
+   not an error, not a crash, and not visible unless somebody happens to walk
+   that fixture and read the suggestion carefully.
+
+   The reader is pure and depends on nothing but its own lexicons, so it can
+   be lifted out of the source and run here. */
+{
+  const raw = read('assets/bdr.js');
+  const grab = (name, kind) => {
+    const at = raw.indexOf('  ' + kind + ' ' + name);
+    if (at < 0) return null;
+    /* Each of these ends at the first line that is exactly two spaces and a
+       closing brace or bracket — the file's own indentation contract. */
+    const end = raw.indexOf(kind === 'function' ? '\n  }\n' : '\n  ];\n', at);
+    return end < 0 ? null : raw.slice(at, end + 4);
+  };
+  const parts = [
+    grab('READ_DISP', 'const'), grab('READ_PROP', 'const'), grab('READ_OBJ', 'const'),
+    grab('READ_OPP', 'const'), grab('READ_FRAME', 'const'),
+  ];
+  if (parts.some((p) => !p)) {
+    fail('8 fixtures', 'could not lift the reader out of bdr.js to test it');
+  } else {
+    const saidPhrase = (s) => {
+      const w = String(s || '').trim().replace(/\s+/g, ' ').split(' ');
+      if (w.length < 2) return null;
+      return (w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '')).replace(/^./, (c) => c.toUpperCase());
+    };
+    let READ_DISP;
+    const scope = {};
+    try {
+      // eslint-disable-next-line no-new-func
+      const load = new Function('saidPhrase', parts.join('\n') + '\n return { READ_DISP };');
+      READ_DISP = load(saidPhrase).READ_DISP;
+    } catch (e) {
+      fail('8 fixtures', 'the lifted lexicons did not parse: ' + e.message);
+    }
+    if (READ_DISP) {
+      const scripts = raw.slice(raw.indexOf('const CALL_SCRIPTS'), raw.indexOf('function scriptFor'));
+      const fates = ['reached', 'gatekeeper', 'no-answer', 'callback', 'not-interested'];
+      fates.forEach((f) => {
+        const key = new RegExp("(?:^|\\n)\\s*'?" + f + "'?:\\s*\\[", 'm');
+        const at = scripts.search(key);
+        if (at < 0) { fail('8 fixtures', 'no call script for the fate ' + f); return; }
+        const block = scripts.slice(at, scripts.indexOf('\n    ],', at));
+        const text = (block.match(/'([^']*)'/g) || []).join(' ').toLowerCase();
+        const hit = READ_DISP.filter((r) => r[0].test(text))[0];
+        const got = hit ? hit[1] : null;
+        if (got !== f) {
+          fail('8 fixtures', 'the ' + f + ' call script reads as ' +
+            (got || 'nothing') + ', so the panel would propose the wrong outcome');
+        }
+      });
+      notes.push('call fixtures checked: ' + fates.length);
+    }
+  }
+}
+
 /* ── Report ──────────────────────────────────────────────────────────────── */
 notes.push('handlers ' + handlers.size + ' · controls ' + drawn.size +
   ' · classes used ' + used.size + ' · rules this build defines ' + mineDefined.size);

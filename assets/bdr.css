@@ -112,3 +112,11 @@
   gap: 12px; flex-wrap: wrap; margin-top: 12px;
 }
 .b-pager-go { display: flex; gap: 8px; }
+
+/* ══ 6. WHAT HAPPENED, AFTER THE CALL ══════════════════════════════════════
+   The panel's logging half: the seven outcomes, the date chips when one is
+   owed, the line you type, and the sentence saying what pressing Log will do
+   to the record. A column inside a column, so it can be redrawn on its own
+   while you are typing into it without taking the caret with it. */
+.b-outs { display: flex; flex-direction: column; gap: 8px; }
+.b-outs .b-cuts { margin-bottom: 0; }
