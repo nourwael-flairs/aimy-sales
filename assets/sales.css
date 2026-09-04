@@ -4200,6 +4200,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The goal keeps its marker and the biggest loss keeps its tone — the two
    things the rows carried that a bare figure does not. */
 .s-fn-figs { margin-bottom: 24px; }
+/* The unit, over the row rather than in every caption. `.s-reasons-head`
+   carries 12px of padding for the rows it usually sits over; these figures
+   have none, so the label lines up with the first of them. */
+.s-fn-unit { padding-left: 0; }
 .s-fn-figs .s-af-cap { display: flex; align-items: baseline; gap: 8px; }
 .s-fn-figs .s-af.is-goal .s-af-cap { color: var(--ink-primary); }
 .s-fn-figs .s-af.is-weak .s-af-val { color: var(--warn-text); }

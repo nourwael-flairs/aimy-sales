@@ -12286,7 +12286,18 @@
        The rate moves to the sub, where it is the qualifier it always was:
        `5` is the result and `83% of the 6` is how good that is. The four
        steps fill the four-column grid exactly. */
-    return `<div class="s-afs s-fn-figs">
+    /* ══ AND WHAT IS BEING COUNTED ═════════════════════════════════════
+       `Replied 6` here means six ORGANIZATIONS answered; `Replied 6` in the
+       logged figures two hundred pixels above means six inbound touchpoints.
+       On this campaign they are the same digit and they are not the same
+       fact — two people at one company both writing back is two there and
+       one here. Neither row said which it was.
+
+       One label over the row, the way the reason lists on this page already
+       name their unit. It covers all four because all four count the same
+       thing: an organization passes a step or it does not. */
+    return `<p class="s-reasons-head s-fn-unit">Organizations</p>
+    <div class="s-afs s-fn-figs">
       ${conv.map((x) => `<div class="s-af${x.st.k === 'booked' ? ' is-goal' : ''}${
           weak && x === weak ? ' is-weak' : ''}">
           <span class="s-af-cap">${esc(x.st.label)}${
