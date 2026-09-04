@@ -134,3 +134,24 @@
    so the chips get the full width — at four axes and ten options a side label
    costs a column the options need. */
 .b-axis { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+/* The keyboard cursor. j and k move it, o opens the row it is on. Tinted
+   rather than outlined: an outline on an absolutely positioned row of fixed
+   height would be clipped by its own neighbours. */
+.b-vrow.is-cursor { background: var(--accent-dim); }
+
+/* ══ 9. ONE LIBRARY DEFECT, OVERRIDDEN HERE AND FLAGGED ════════════════════
+   `aimy-ds.css:627` sets `.evidence-pill .val { color: #fff }` — a hard-coded
+   white, which the design system's own Level 1 gate bans. In light mode the
+   pill's ground is near-white, so the NUMBER on every rail card is white on
+   white: the figure that makes the card's sentence believable is the one part
+   of it nobody can read. Measured: computed colour rgb(255,255,255) on
+   "1,066 to call".
+
+   This is not new and not caused by this build — the V3 build under /old/ has
+   the same line and the same defect. It is fixed HERE rather than THERE
+   because the library is an extracted copy and stays a faithful one, and it
+   is written down rather than quietly patched because it belongs in the
+   library's own gap register. `--text-strong` is the token that already means
+   "the strongest text on this surface" and it flips with the theme. */
+.evidence-pill .val { color: var(--text-strong); }

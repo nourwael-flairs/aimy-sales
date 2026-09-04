@@ -2390,7 +2390,7 @@
       const cls = (o.rowClass ? o.rowClass + ' ' : '') + 'b-vrow';
       let html = '';
       for (let i = first; i < last; i++) {
-        html += '<article class="' + cls + '" data-i="' + i +
+        html += '<article class="' + cls + (i === self.cursor ? ' is-cursor' : '') + '" data-i="' + i +
           '" style="height:' + rowH + 'px;transform:translateY(' + (i * rowH) + 'px)">' +
           o.row(self.items[i], i, i === self.cursor) + '</article>';
       }
@@ -3466,6 +3466,75 @@
       const again = byId('callPanel').querySelector('[data-note]');
       if (again) { again.value = DB.call.note; again.focus();
         again.setSelectionRange(again.value.length, again.value.length); }
+    }
+  });
+
+  /* ══ THE KEYBOARD, BECAUSE THE MOUSE IS THE SLOW PART ═══════════════════
+     Two hundred calls in a day is two hundred rounds of: read the brief,
+     dial, listen, say what happened, next. Every one of those is a key here,
+     and the hand never leaves the home row except to type the note.
+
+     Enter is the whole loop. It means "the obvious next thing" at every
+     state — dial the next one, start this one, hang up, log it and go on —
+     which is what makes it one key rather than four. */
+  const TYPING = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const typing = TYPING(e.target);
+
+    /* `/` puts the cursor in the composer from anywhere, which is the one
+       shortcut people try without being told. */
+    if (e.key === '/' && !typing) { e.preventDefault(); byId('floatInput').focus(); return; }
+
+    if (e.key === 'Enter' && !typing) {
+      e.preventDefault();
+      const c = DB.call;
+      if (!c) {
+        const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+      } else if (c.state === 'ready') callGo();
+      else if (c.state === 'live' || c.state === 'connecting') endCall();
+      else if (c.state === 'logging') logCall();
+      return;
+    }
+
+    if (typing) return;
+
+    if (DB.call) {
+      /* The seven outcomes on the number row, in the order they are drawn.
+         Pressing one mid-call ends the call first — you know how it went
+         before the transcript does. */
+      const n = OUTCOMES.filter((o) => o.key === e.key)[0];
+      if (n) {
+        e.preventDefault();
+        if (DB.call.state === 'live' || DB.call.state === 'connecting') endCall();
+        DB.call.outcome = n.k;
+        paintCall();
+        return;
+      }
+      if (e.key === 'n' || e.key === 'N') {
+        const note = byId('callPanel').querySelector('[data-note]');
+        if (note) { e.preventDefault(); note.focus(); }
+        return;
+      }
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); skipCall(); return; }
+    }
+
+    /* Moving through whatever list the surface leads with, and opening the
+       row the cursor is on. */
+    const list = VLISTS[0];
+    if (!list || !list.items.length) return;
+    if (e.key === 'j' || e.key === 'ArrowDown') {
+      e.preventDefault(); list.focus(list.cursor < 0 ? 0 : list.cursor + 1); return;
+    }
+    if (e.key === 'k' || e.key === 'ArrowUp') {
+      e.preventDefault(); list.focus(list.cursor < 0 ? 0 : list.cursor - 1); return;
+    }
+    if (e.key === 'o' && list.cursor >= 0) {
+      const item = list.items[list.cursor];
+      if (item && item.id && item.id[0] === 'p') { e.preventDefault(); go({ con: item.id }); }
+      return;
     }
   });
 
