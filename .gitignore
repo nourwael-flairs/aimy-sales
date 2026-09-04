@@ -1,9 +1,13 @@
 .claude
-GAPS.md
-readme.md
 design-system/
 .impeccable
-AUDIT.md
+
+# The V3 build's own ledgers. Scoped to old/ when that build moved there, so a
+# new root README.md can be tracked; unscoped, `readme.md` matched it too
+# (core.ignorecase=true) and the new one could never be committed.
+old/GAPS.md
+old/README.md
+old/AUDIT.md
 
 # wrangler files
 .wrangler
