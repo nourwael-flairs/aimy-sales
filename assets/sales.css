@@ -3940,7 +3940,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the row below is another. It was 12 against 8 and the block read as nine
    evenly-spaced lines rather than five groups. */
 .s-camp-id {
-  gap: 24px; margin-bottom: 0;
+  gap: 16px; margin-bottom: 0;
   max-width: 88ch;
 }
 /* ══ THE GAP INSIDE A NAME IS NOT THE GAP BETWEEN GROUPS ═════════════════
@@ -4190,9 +4190,23 @@ body.is-calling { --fb-reserve: var(--call-width); }
    figure it is competing with is the lead at 60, so it takes the display
    step and the gap between the two stays legible. */
 .s-tally { display: flex; flex-direction: column; gap: 16px; }
-.s-tally-figs { margin-bottom: 0; gap: 20px; }
-.s-tally-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
-.s-tally-figs .s-af-cap { color: var(--ink-secondary); }
+/* Shared with the funnel's figures: the campaign's two figure rows say what
+   happened and what came of it, and reading the same is the point. */
+.s-tally-figs, .s-fn-figs { margin-bottom: 0; gap: 20px; }
+.s-tally-figs .s-af-val,
+.s-fn-figs .s-af-val { font-size: var(--ty-display); letter-spacing: var(--ls-tight); }
+.s-tally-figs .s-af-cap,
+.s-fn-figs .s-af-cap { color: var(--ink-secondary); }
+/* The goal keeps its marker and the biggest loss keeps its tone — the two
+   things the rows carried that a bare figure does not. */
+.s-fn-figs { margin-bottom: 24px; }
+/* The unit, over the row rather than in every caption. `.s-reasons-head`
+   carries 12px of padding for the rows it usually sits over; these figures
+   have none, so the label lines up with the first of them. */
+.s-fn-unit { padding-left: 0; }
+.s-fn-figs .s-af-cap { display: flex; align-items: baseline; gap: 8px; }
+.s-fn-figs .s-af.is-goal .s-af-cap { color: var(--ink-primary); }
+.s-fn-figs .s-af.is-weak .s-af-val { color: var(--warn-text); }
 /* The channel breakdown, spanning the grid under the figure it breaks down.
    `Touchpoints 25` is honest but incomplete: eleven of those were calls and
    eight were meetings, and a campaign being worked on the phone is a
@@ -5080,77 +5094,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The goal row is marked, because a campaign is measured against what it was
    for and this one says so in its own goal statement — a scoping call. It
    was the one figure the tab never carried. */
-.s-funnel { display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
-/* ── ONE LINE A STEP ──
-   Four columns and two rows became four columns and one. The bar is gone —
-   the percentage was drawing the same shape more precisely — so the meaning
-   column takes the space it had, on the same line as the name it explains
-   rather than wrapped underneath it. */
-.s-fn-row {
-  display: grid;
-  grid-template-columns: 140px 56px 84px 92px minmax(0, 1fr);
-  align-items: baseline; gap: 4px 16px;
-  padding: 12px; margin-left: -12px; border-radius: var(--r-md);
-}
-/* The step that loses most, marked on the COUNT rather than the rate — the
-   sentence above ranks by how many fell out, and the mark has to be on the
-   figure it ranked. Toning the percentage would have pointed at a different
-   row from the one the sentence names. */
-.s-fn-row.is-weak .s-fn-n { color: var(--warn-text); }
-.s-fn-row.is-goal { background: var(--card-bg-raised); }
-/* 168, and the name does not wrap. At 132 the goal row broke `Booked a call`
-   over two lines to fit its own marker beside it, which put one row of a
-   five-row comparison at a different height than the other four. */
-.s-fn-name {
-  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
-  font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-secondary);
-}
-.s-fn-row.is-goal .s-fn-name { color: var(--ink-primary); }
+/* ── THE FUNNEL IS A FIGURE ROW NOW ──
+   `.s-funnel`, `.s-fn-row`, `.s-fn-name`, `.s-fn-pct`, `.s-fn-n` and
+   `.s-fn-of` are gone with the table they drew. Four rows of `name · rate ·
+   N of M` asked to be read; the results are given at a glance instead, in
+   `.s-afs` — the same anatomy the logged figures above them use. What
+   survives is the goal's marker, because a figure row has nowhere else to
+   put it. */
 .s-fn-goal {
   font-size: var(--ty-micro); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--accent-text);
-}
-/* `.s-fn-track` and `.s-fn-fill` are gone. Each row carried a bar, a count,
-   a percentage and "N lost here" — four ways of saying one fall, and the bar
-   was the least precise. The percentages descend 50 · 25 · 21 · 8, which is
-   the shape the bars were drawing. */
-/* `12 of 24` — the conversion's own two numbers, so the percentage above can
-   be checked rather than taken. The count is full ink, the denominator one
-   step down in weight, because they are not the same claim. */
-.s-fn-n {
-  font-size: var(--ty-body); font-weight: var(--fw-extrabold);
-  color: var(--ink-primary); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.s-fn-of { font-weight: var(--fw-regular); color: var(--ink-secondary); }
-/* THE COLUMN YOU SCAN. Every percentage here used to be of the campaign's
-   whole size — 50 · 25 · 21 · 8 — which answers "how many got this far" and
-   hides the only thing a funnel is read for. Each row converts from the row
-   above it now, so 83 against two 50s says where to look, and the figure is
-   sized to be looked at. */
-.s-fn-pct {
-  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
-  color: var(--ink-primary); font-variant-numeric: tabular-nums;
-  letter-spacing: var(--ls-tight);
-}
-/* What the row means and what it cost, under the bar rather than beside it —
-   at this width a fifth column would squeeze the track to nothing. */
-/* What the step MEANS, beside its name rather than under it — "Reached" is
-   a word this product coined and a reader is owed its definition on the same
-   line. Body-adjacent ink, not faint: it is the half that makes the number
-   readable. */
-/* THE SECOND SHARE, IN ITS OWN COLUMN. It rode with the definition for one
-   pass and wrapped two rows of four to a second line, which put a comparison
-   at two different heights — the thing a column exists to prevent. Its own
-   cell, one step below the step rate in size, because the step rate is the
-   question this block is scanned for and this is the follow-up. */
-.s-fn-all {
-  grid-column: 4;
-  font-size: var(--ty-meta); color: var(--ink-secondary);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.s-fn-say {
-  grid-column: 5;
-  font-size: var(--ty-meta); color: var(--ink-secondary); min-width: 0;
 }
 /* Bounces are not a stage. Stated beside the funnel they distort, with the
    fix attached, rather than as a step nobody passes through. */
@@ -5214,22 +5167,32 @@ body.is-calling { --fb-reserve: var(--call-width); }
    `flex-wrap` is deliberately off. If a deck ever does run long, it wraps
    under itself inside its own column rather than dropping below the figure
    — which is what turned this into an L the first time. */
-.s-sect-head { margin: 48px 0 24px; }
+/* ══ THE LADDER, WHICH IS THE WHOLE OF THE SECTIONING ═══════════════════
+   No rules, no borders, no boxes: the only thing separating one region of
+   the campaign page from the next is how far apart they are, so the gaps
+   have to be far enough apart from each other to be READ as different.
+
+   They were not. 24 between the rows inside a section, 24 between blocks,
+   48 between sections — 2:1, which reads as "a bit more" — and ZERO around
+   the identity block, the largest thing on the page. The biggest structural
+   boundary had the smallest gap, which is exactly what "everything is
+   leaking into everything" describes.
+
+   64 / 24 / 16. A 4:1 ratio between the outer step and the inner one is not
+   a judgement call for the reader to make. */
+.s-sect-head { margin: 64px 0 24px; }
+/* Two exceptions, both narrowed to a DIRECT child so a head nested inside a
+   block cannot claim them — the first cut used `:first-of-type` unscoped,
+   which every block's own head matched, and the 64 landed nowhere.
+
+   The first head on the page follows the title and the recommendation, so it
+   takes the header's gap rather than a section break's. */
+.s-camp-page .s-rec-main > .s-sect-head:first-of-type { margin-top: 32px; }
+/* The rule that paired the two findings when they were stacked is gone with
+   the stack. It also beat the panel's own reset on specificity, so the right
+   column's head sat 24px below the left one's — two columns of one panel,
+   starting at different heights. */
 .s-sect-main { display: flex; align-items: baseline; gap: 12px; }
-.s-sect-fig {
-  display: flex; align-items: baseline; gap: 8px; flex: none;
-  font-variant-numeric: tabular-nums;
-}
-.s-sect-fig-n {
-  font-size: var(--ty-display); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-tight); line-height: var(--lh-none);
-  color: var(--ink-primary);
-}
-.s-sect-fig-of {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-faint);
-}
 /* ── THE KICKER ──
 
    Eleven pixels, weight 700, `--d500` — the faintest and smallest thing in
@@ -5266,12 +5229,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
    Body prose in the secondary ink: a clear step under the headline, and
    plainly legible rather than plainly ignorable. The figures inside it take
    primary ink, because those are the parts a reader is deciding on. */
-.s-sect-sum {
-  font-size: var(--ty-body); line-height: var(--lh-base);
-  color: var(--ink-secondary); max-width: 62ch; margin-top: 12px;
-  text-wrap: pretty;
-}
-.s-sect-sum b { color: var(--ink-primary); font-weight: var(--fw-extrabold); }
 .s-straight-say {
   font-size: var(--fs-base); color: var(--d100);
   line-height: var(--lh-base); font-variant-numeric: tabular-nums;
@@ -7164,7 +7121,24 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   font-family: inherit; text-align: left; cursor: pointer;
   transition: background-color var(--t-fast);
 }
-button.s-pipe-cell:hover { background: var(--card-bg-raised); }
+/* ── AT REST, A PRESSABLE THING HAS TO LOOK PRESSABLE ──
+   Four of the five cells were flat until the pointer was already on them, so
+   the strip read as one card and four labels and nothing offered the other
+   four. Three steps now — a ground at rest, a lighter one under the pointer,
+   the accent fill when it is open — and no line anywhere.
+
+   ONLY ON `button`. `div.s-pipe-cell` is the read-only strip a tier that
+   cannot open stages gets, and leaving it flat makes the same signal work
+   the other way: the ground is what says this one can be pressed. */
+/* MEASURED, not chosen by eye. `--card-bg` is rgb(20,27,36) and the ground
+   the strip is painted on is rgb(23,26,28) — both at luminance 26, so a
+   resting ground drawn in it was invisible and the affordance did not exist.
+   `--card-bg-raised` is luminance 37, which reads. */
+button.s-pipe-cell { background: var(--card-bg-raised); }
+/* `:not(.is-here)`, or the hover ground beats the open cell's accent on
+   specificity — `button.s-pipe-cell:hover` outweighs `.s-pipe-cell.is-here`,
+   so pointing at the stage you are standing in turned it grey. */
+button.s-pipe-cell:not(.is-here):hover { background: var(--accent-dim); }
 .s-pipe-cell:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 div.s-pipe-cell { cursor: default; }
 
@@ -7262,11 +7236,6 @@ div.s-pipe-cell { cursor: default; }
 .s-stage-name {
   font-size: var(--ty-heading); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-tight); color: var(--ink-primary);
-}
-.s-stage-fn {
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--ink-secondary);
 }
 /* Only ever "waiting on you" or "nobody on it" — the two things the Team row
    above cannot say, and both of them are findings, so they are toned. */
@@ -7372,6 +7341,72 @@ div.s-pipe-cell { cursor: default; }
 /* Prose. The quote panel was sized for a paragraph, and a four-character
    description turned it into a mostly empty box. */
 .s-camp-page .s-sheet-block { margin-bottom: 24px; }
+/* ══ WHAT IS GOING WRONG, BOTH SIDES OF IT, ON ONE ROW ═════════════════════
+   In the way and What to offer better were 743px stacked, and they are the
+   same shape twice — a sentence and a ranked list of reasons with counts.
+   Side by side the comparison is the layout rather than something the reader
+   holds in their head across a scroll.
+
+   TWO TRACKS, NOT `auto-fit`. `auto-fit` fits as many 20rem columns as the
+   width allows, which on a wide screen is THREE — so the panel drew a third,
+   empty column and the two sections took two thirds of it. There are exactly
+   two things here and there always will be, so the grid says two. */
+.s-wrong {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  align-items: start;
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.10), rgba(0, 102, 255, 0.04));
+  padding: 20px;
+  border-radius: var(--r-lg);
+  /* THE SECTION BREAK BELONGS TO THE PANEL. It used to come from the first
+     column head's own 64px top margin; the panel resets those to zero so the
+     two columns start level, which left the whole block sitting 20px under
+     the Client row above it. */
+  margin: 64px 0 24px;
+}
+/* The mark spans both columns and reads once, above them. */
+.s-wrong-mark { grid-column: 1 / -1; margin: 0; }
+/* If only one section draws, it takes the width rather than sitting in half
+   of it with air beside it. It is the second child because the mark is the
+   first, so `:only-child` cannot say this. */
+.s-wrong > .s-sheet-block:nth-child(2):last-child { grid-column: 1 / -1; }
+/* ── THE READING, WITH NO CARD AROUND IT ──
+   It was a bordered panel inside the panel. What made it legible as AiMY's
+   was the card; what makes it legible now is that the whole block is, so it
+   is set as prose with the spacing doing the separating. */
+.s-offer-read { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+/* `.s-insight-txt` ships `flex: 1 1 200px`, which inside a ROW is a sensible
+   minimum measure and inside this COLUMN is a 200px HEIGHT basis — the
+   two-line sentence measured 170px tall with 130px of it empty, which is the
+   hole under the reading. Here it is prose in a stack, so it sizes to its
+   own text. The type comes with it: it used to be set by the card. */
+.s-offer-read .s-insight-txt {
+  flex: none; display: block;
+  font-size: var(--ty-body); color: var(--ink-secondary);
+}
+.s-offer-read .s-insight-txt b { color: var(--ink-primary); }
+.s-offer-read .s-insight-acts { flex: none; }
+/* And the proposal loses its raised ground with the card that held it. It was
+   a surface inside a surface to say "this part is different"; inside a panel
+   that is already AiMY's, a third ground reads as a third block. The label
+   above it and the space around it were always what set it apart. */
+.s-offer-read .s-offer-fix { background: none; padding: 0; margin-top: 0; }
+/* The section break belongs to the panel, not to the heads inside it — they
+   are columns now, and a 64px top margin on a column head is a column that
+   starts two-thirds of the way down its own box. */
+.s-camp-page .s-wrong > .s-sheet-block { margin-bottom: 0; }
+.s-camp-page .s-wrong .s-sect-head { margin-top: 0; }
+/* `auto-fit` alone did not stack these: measured at 700px it kept two tracks
+   and squeezed them to 290, where "Lost the person who wanted this, and
+   nobody has replaced them." is three lines. Below 900 the comparison is not
+   worth the wrapping, so they stack — the same width the campaign row drops
+   its reason at. */
+@media (max-width: 900px) {
+  .s-wrong { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+/* The tally closes the flow section; the next head owns the gap after it. */
+.s-camp-page .s-tally { margin-bottom: 24px; }
 /* The campaign's own title override is gone — `.s-sheet-name` carries the
    title step for both surfaces now. */
 
