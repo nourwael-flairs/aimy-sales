@@ -964,7 +964,39 @@
       if (!c.phone && chance(r, 0.1)) { c.phone = '+31 6 ' + between(r, 1000000, 9999999); c.enrichedAt = dayAdd(-1); }
     });
 
-    return { camp: camp, acc: acc, con: con, touch: touch };
+    /* ── What the sources can find ──
+       The book is what you have; this is what is out there. Three thousand
+       rows a search runs against, generated from the same pools so a result
+       looks like the book it will join. About an eighth of them are already
+       yours — which is the whole reason "not already in the book" is a
+       criterion rather than a promise. */
+    const net = [];
+    for (let i = 0; i < 3000; i++) {
+      const ind = pick(r, INDUSTRIES);
+      const city = pick(r, CITIES);
+      const known = chance(r, 0.12);
+      const mirror = known ? acc[Math.floor(r() * ACC_N)] : null;
+      net.push({
+        id: 'n' + i,
+        co: mirror ? mirror.name : pick(r, STEM_A) + pick(r, STEM_B) + ' ' + pick(r, SUFFIX[ind.k]),
+        domain: mirror ? mirror.domain : null,
+        industry: mirror ? mirror.industry : ind.k,
+        city: mirror ? mirror.city : city[0],
+        country: mirror ? mirror.country : city[1],
+        size: mirror ? mirror.size : pick(r, [40, 80, 140, 260, 480, 900, 1600, 3200, 6000]),
+        name: pick(r, FIRST) + ' ' + pick(r, LAST),
+        title: pick(r, TITLES),
+        known: !!mirror,
+        /* Reachability is what the suppliers actually differ on, so it is
+           rolled here and re-rolled by which supplier you pick. */
+        seedPhone: r(),
+        seedEmail: r(),
+      });
+      const n = net[net.length - 1];
+      if (!n.domain) n.domain = n.co.toLowerCase().replace(/[^a-z]+/g, '') + pick(r, ['.com', '.nl', '.eu', '.io', '.de']);
+    }
+
+    return { camp: camp, acc: acc, con: con, touch: touch, net: net };
   }
 
   /* A stable small hash, used to pick a contact's fate without spending the
@@ -985,6 +1017,10 @@
 
   const DB = {
     camp: [], acc: [], con: [], touch: [], list: [], session: [],
+    /* What the sources can find, as opposed to what the book holds. Read
+       only by the list builder; never indexed, because nothing here is a
+       record until somebody saves it. */
+    net: [],
     byCamp: Object.create(null),
     byAcc: Object.create(null),
     byCon: Object.create(null),
@@ -996,7 +1032,8 @@
 
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
-  let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [], dismissed: [], read: [] };
+  let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
+    dismissed: [], read: [], made: [] };
 
   let saveTimer = null;
   function save() {
@@ -1068,7 +1105,7 @@
 
   function load() {
     const s = seed();
-    DB.camp = s.camp; DB.acc = s.acc; DB.con = s.con; DB.touch = s.touch;
+    DB.camp = s.camp; DB.acc = s.acc; DB.con = s.con; DB.touch = s.touch; DB.net = s.net;
     DB.list = []; DB.session = [];
     let raw = null;
     try { raw = localStorage.getItem(KEY_DB); } catch (e) {}
@@ -1076,7 +1113,15 @@
       try {
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
-          DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [], dismissed: [], read: [] }, d);
+          DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
+            dismissed: [], read: [], made: [] }, d);
+          /* The accounts and people a saved list minted come back before the
+             contact patches are applied, or a patch would have nothing to
+             land on and the list would open on an empty roster. */
+          (DELTA.made || []).forEach((m) => {
+            DB.acc = DB.acc.concat(m.acc);
+            DB.con = DB.con.concat(m.con);
+          });
           const byId = Object.create(null);
           DB.con.forEach((c) => (byId[c.id] = c));
           Object.keys(DELTA.con).forEach((id) => {
@@ -1198,7 +1243,10 @@
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
-    byId('wbStage').innerHTML = S.con ? contactPage() : S.camp ? campPage() : homePage();
+    byId('wbStage').innerHTML = S.con ? contactPage()
+      : S.camp ? campPage()
+      : S.lists ? listsPage()
+      : homePage();
     mountLists();
     paintRail();
     paintBell();
@@ -1226,6 +1274,23 @@
         key: (c) => c.id, row: camprow,
         empty: 'You are on no campaign.',
       });
+    }
+    const nl = byId('netList');
+    if (nl) {
+      vlist({ host: nl, items: buildMatched().slice(0, 200), rowH: 64, rowClass: 's-qrow',
+        key: (n) => n.id, row: netRow, empty: 'Nothing matches those criteria.' });
+    }
+    const ll = byId('listList');
+    if (ll) {
+      vlist({ host: ll, items: DB.list.slice().reverse(), rowH: 72, rowClass: 's-qrow',
+        key: (l) => l.id, row: listRow, empty: 'You have not built one yet.' });
+    }
+    const lp = byId('listPeople');
+    if (lp) {
+      const l = DB.byList[S.lists];
+      vlist({ host: lp, items: (l ? l.has : []).map((id) => DB.byCon[id]).filter(Boolean),
+        rowH: 72, rowClass: 's-qrow', key: (c) => c.id, row: qrow,
+        empty: 'Nobody on it.' });
     }
     const feed = byId('campFeed');
     if (feed) {
@@ -1576,6 +1641,361 @@
       '</div>' +
       '<div class="b-vlist" id="campList"></div>' +
     '</section>';
+  }
+
+  /* ══ BUILDING A LIST ════════════════════════════════════════════════════
+     The BDR's other job. You describe who to look for, the sources answer,
+     and what comes back IS the list — there is no separate "run" step and no
+     wizard, because describing and finding are one act.
+
+     TWO PRESSES TO A LIST. Chips narrow it, Save writes it. A third press
+     puts it on a campaign, which is what makes its people appear in the
+     queue. Every chip is always visible and toggling one is the whole of the
+     interaction; nothing opens, nothing has to be dismissed. */
+
+  const FINDERS = [
+    { k: 'apollo', name: 'Apollo', phone: 0.74, email: 0.86 },
+    { k: 'zoom', name: 'ZoomInfo', phone: 0.58, email: 0.79 },
+    { k: 'serper', name: 'Exa / Serper', phone: 0.41, email: 0.62 },
+  ];
+
+  const BUILD_AXES = [
+    { k: 'industry', label: 'Industry', of: (n) => n.industry,
+      opts: () => INDUSTRIES.map((i) => [i.k, i.label]) },
+    { k: 'size', label: 'Headcount', of: (n) => sizeBand(n.size),
+      opts: () => SIZE_BANDS.map((b) => [b.k, b.label]) },
+    { k: 'where', label: 'Where', of: (n) => n.country,
+      opts: () => COUNTRY_OPTS },
+    { k: 'title', label: 'Job title', of: (n) => titleBand(n.title),
+      opts: () => TITLE_BANDS.map((b) => [b.k, b.label]) },
+  ];
+
+  const SIZE_BANDS = [
+    { k: 'small', label: 'Under 200', lo: 0, hi: 199 },
+    { k: 'mid', label: '200 to 1,000', lo: 200, hi: 1000 },
+    { k: 'large', label: '1,000 to 5,000', lo: 1001, hi: 5000 },
+    { k: 'huge', label: 'Over 5,000', lo: 5001, hi: 1e9 },
+  ];
+  const sizeBand = (n) => (SIZE_BANDS.filter((b) => n >= b.lo && n <= b.hi)[0] || SIZE_BANDS[0]).k;
+
+  const TITLE_BANDS = [
+    { k: 'support', label: 'Support & service', re: /support|service|care|contact centre/i },
+    { k: 'quality', label: 'Quality', re: /quality|qa/i },
+    { k: 'tech', label: 'Technology', re: /technolog|engineering|cto|cio|it director|digital/i },
+    { k: 'ops', label: 'Operations', re: /operations|coo|shared services|back office/i },
+  ];
+  const titleBand = (t) => (TITLE_BANDS.filter((b) => b.re.test(t))[0] || { k: 'other' }).k;
+
+  const COUNTRY_OPTS = [['NL', 'Netherlands'], ['BE', 'Belgium'], ['DE', 'Germany'],
+    ['FR', 'France'], ['IE', 'Ireland'], ['SE', 'Sweden'], ['DK', 'Denmark'],
+    ['ES', 'Spain'], ['IT', 'Italy']];
+
+  /* The criteria, out of the URL. `bt` is a comma list of `axis:value`, so a
+     half-described search is a link somebody can send. */
+  function terms() {
+    const out = Object.create(null);
+    String(S.bt || '').split(',').filter(Boolean).forEach((p) => {
+      const at = p.indexOf(':');
+      if (at < 0) return;
+      const a = p.slice(0, at), v = p.slice(at + 1);
+      (out[a] || (out[a] = [])).push(v);
+    });
+    return out;
+  }
+  function toggleTerm(axis, val) {
+    const t = terms();
+    const has = (t[axis] || []).indexOf(val) >= 0;
+    t[axis] = has ? (t[axis] || []).filter((x) => x !== val) : (t[axis] || []).concat([val]);
+    const flat = [];
+    Object.keys(t).forEach((a) => t[a].forEach((v) => flat.push(a + ':' + v)));
+    go({ bt: flat.join(','), lists: '1', build: '1' });
+  }
+
+  /* What the search returns. An axis with nothing ticked does not narrow —
+     an empty filter that excluded everything would make the first press of
+     any chip look like it found something. */
+  function buildMatched(over) {
+    const t = over || terms();
+    const only = (t.only || []).indexOf('new') >= 0;
+    return DB.net.filter((n) => {
+      if (only && n.known) return false;
+      for (let i = 0; i < BUILD_AXES.length; i++) {
+        const ax = BUILD_AXES[i];
+        const want = t[ax.k];
+        if (want && want.length && want.indexOf(ax.of(n)) < 0) return false;
+      }
+      return true;
+    });
+  }
+  /* How many a chip would leave, if it were the only change. Counts on the
+     chips are what makes narrowing legible before you press. */
+  function countWith(axis, val) {
+    const t = terms();
+    const cur = t[axis] || [];
+    t[axis] = cur.indexOf(val) >= 0 ? cur.filter((x) => x !== val) : cur.concat([val]);
+    return buildMatched(t).length;
+  }
+
+  const finderOf = () => FINDERS.filter((f) => f.k === (S.bk || 'apollo'))[0] || FINDERS[0];
+
+  function listsPage() {
+    if (S.build) return buildPage();
+    const open = S.lists && S.lists !== '1' ? DB.byList[S.lists] : null;
+    if (open) return listPage(open);
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-home>Back to today</button>' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">Lists</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">A list is how new people get into a campaign, and ' +
+            'therefore into your queue. Describe who to look for; what comes back is the list.</p>' +
+          '<div class="b-cuts"><button class="s-insight-lnk primary" type="button" ' +
+            'data-go="' + esc(JSON.stringify(Object.assign(cleared(), { lists: '1', build: '1' }))) +
+            '">Build a list</button></div>' +
+        '</div>' +
+      '</section>' +
+      (DB.list.length
+        ? '<section class="s-block s-block-wide" aria-label="Your lists">' +
+            '<div class="s-camp-list-head"><h2 class="s-block-h">Your lists</h2>' +
+            '<span class="s-block-say">' + plural(DB.list.length, 'list') + '</span></div>' +
+            '<div class="b-vlist" id="listList"></div>' +
+          '</section>'
+        : '') +
+    '</div>';
+  }
+
+  function listRow(l) {
+    const camp = l.for && DB.byCamp[l.for];
+    return '<button class="s-qrow-name" type="button" data-list="' + esc(l.id) + '">' +
+        esc(l.name) + '</button>' +
+      '<div class="s-qrow-why">' +
+        '<span class="s-qrow-because"><b>' + commas(l.has.length) + '</b> people · ' +
+          esc(l.crit) + '</span>' +
+        '<span class="s-qrow-lead">' + (camp ? esc(camp.name) : 'on no campaign') + '</span>' +
+      '</div>' +
+      '<button class="s-insight-lnk s-qrow-go" type="button" data-list="' + esc(l.id) + '">Open</button>';
+  }
+
+  function listPage(l) {
+    const camp = l.for && DB.byCamp[l.for];
+    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
+    const callableN = people.filter(callable).length;
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { lists: '1' }))) + '">Back to lists</button>' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">' + esc(l.name) + '</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">' + esc(l.crit) + '. Found by ' + esc(l.via) + ', ' +
+            esc(sayWhen(l.at)) + '. <b>' + commas(l.has.length) + '</b> people, ' +
+            '<b>' + commas(callableN) + '</b> of them callable.</p>' +
+          (camp
+            ? '<p class="s-block-sub">On <b>' + esc(camp.name) + '</b>, so they are in your queue.</p>'
+            : '<p class="s-block-sub">On no campaign yet — put it on one and its people join ' +
+              'your queue.</p>' +
+              '<div class="b-cuts">' + myCampaigns().slice(0, 6).map((k) =>
+                '<button class="filter-chip" type="button" data-addlist="' + esc(l.id) +
+                '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
+              '</div>') +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="Who is on it">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2></div>' +
+        '<div class="b-vlist" id="listPeople"></div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  function buildPage() {
+    const t = terms();
+    const found = buildMatched(t);
+    const f = finderOf();
+    const only = (t.only || []).indexOf('new') >= 0;
+    const chip = (axis, val, label, n) =>
+      '<button class="filter-chip' + ((t[axis] || []).indexOf(val) >= 0 ? ' active' : '') +
+      '" type="button" data-term="' + esc(axis + ':' + val) + '">' + esc(label) +
+      '<span class="b-cut-n">' + commas(n) + '</span></button>';
+
+    return '<div class="s-home">' +
+      '<button class="s-back" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { lists: '1' }))) + '">Back to lists</button>' +
+      '<section class="s-rec-block">' +
+        '<h2 class="s-rec-cap">Who are we looking for?</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">Every count is what you would have left if you pressed it. ' +
+            'Nothing is ticked to begin with, so the first number you see is everything ' +
+            'the sources hold.</p>' +
+
+          BUILD_AXES.map((ax) =>
+            '<div class="b-axis"><span class="s-callsum-mem">' + esc(ax.label) + '</span>' +
+            '<div class="b-cuts">' + ax.opts().map((o) =>
+              chip(ax.k, o[0], o[1], countWith(ax.k, o[0]))).join('') + '</div></div>').join('') +
+
+          '<div class="b-axis"><span class="s-callsum-mem">Already yours</span>' +
+            '<div class="b-cuts">' +
+              chip('only', 'new', 'Not already in the book', countWith('only', 'new')) +
+            '</div></div>' +
+
+          '<div class="b-axis"><span class="s-callsum-mem">Where to look</span>' +
+            '<div class="b-cuts">' + FINDERS.map((x) =>
+              '<button class="filter-chip' + (f.k === x.k ? ' active' : '') +
+              '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
+              '<span class="b-cut-n">' + Math.round(x.phone * 100) + '% with a number</span>' +
+              '</button>').join('') + '</div></div>' +
+
+          '<p class="s-block-sub"><b>' + commas(found.length) + '</b> of ' +
+            commas(DB.net.length) + ' match' + (only ? ', and none of them is already yours' : '') +
+            '. ' + esc(f.name) + ' would give you a number for about ' +
+            commas(Math.round(found.length * f.phone)) + ' of them.</p>' +
+
+          '<div class="b-cuts">' +
+            (found.length
+              ? '<button class="s-insight-lnk primary" type="button" data-save>Save these ' +
+                commas(Math.min(found.length, 500)) + '</button>'
+              : '<span class="s-block-sub">Nothing matches. Untick something.</span>') +
+          '</div>' +
+          (found.length > 500
+            ? '<p class="s-block-sub">Capped at 500 — a list is a morning of calling, ' +
+              'not a database. Narrow it and you choose which 500.</p>'
+            : '') +
+        '</div>' +
+      '</section>' +
+      '<section class="s-block s-block-wide" aria-label="What came back">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What came back</h2>' +
+        '<span class="s-block-say">the first of ' + commas(found.length) + '</span></div>' +
+        '<div class="b-vlist" id="netList"></div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  function netRow(n) {
+    const f = finderOf();
+    const hasPhone = n.seedPhone < f.phone;
+    return '<div class="s-qrow-id">' +
+        '<span class="s-qrow-name">' + esc(n.name) + '</span>' +
+        '<span class="s-qrow-sub">' + esc(n.title) + ' · ' + esc(n.co) + '</span>' +
+      '</div>' +
+      '<div class="s-qrow-why">' +
+        '<span class="s-qrow-because">' + esc(INDUSTRY[n.industry].label) + ' · ' +
+          esc(n.city) + ' · ' + commas(n.size) + ' staff</span>' +
+        '<span class="s-qrow-lead' + (hasPhone ? '' : ' s-qrow-none') + '">' +
+          (hasPhone ? 'number' : 'no number') + (n.known ? ' · already yours' : '') + '</span>' +
+      '</div>';
+  }
+
+  /* Saving mints the people, so from here they are ordinary records: the
+     queue, the ladder and the call panel cannot tell where they came from. */
+  function saveList() {
+    const t = terms();
+    const found = buildMatched(t).slice(0, 500);
+    if (!found.length) return;
+    const f = finderOf();
+    const now = new Date().toISOString();
+    const id = 'l' + Date.now().toString(36);
+    const madeAcc = [];
+    const madeCon = [];
+    found.forEach((n, i) => {
+      const accId = 'x' + id + '_' + i;
+      const a = {
+        id: accId, name: n.co, domain: n.domain, industry: n.industry,
+        city: n.city, country: n.country, region: CC_REGION[n.country], size: n.size,
+      };
+      const c = {
+        id: 'y' + id + '_' + i, acc: accId, name: n.name, title: n.title,
+        phone: n.seedPhone < f.phone ? '+31 6 ' + String(1000000 + Math.floor(n.seedPhone * 8999999)) : null,
+        email: n.seedEmail < f.email
+          ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') + '@' + n.domain
+          : null,
+        camps: [], owner: me().id, checkpoint: 'not-called', checkpointAt: null,
+        attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
+        fate: ['reached', 'gatekeeper', 'no-answer', 'callback', 'not-interested'][i % 5],
+        enrichedAt: null,
+      };
+      madeAcc.push(a);
+      madeCon.push(c);
+    });
+    const crit = describeTerms(t);
+    const l = {
+      id: id, name: autoName(t), kind: 'con', terms: S.bt || '', crit: crit,
+      has: madeCon.map((c) => c.id), by: me().id, at: now, for: null, via: f.name,
+      found: buildMatched(t).length,
+    };
+    DB.acc = DB.acc.concat(madeAcc);
+    DB.con = DB.con.concat(madeCon);
+    DB.list.push(l);
+    DELTA.list.push(l);
+    DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
+    reindex();
+    save();
+    go(Object.assign(cleared(), { lists: id }));
+    toast('Saved ' + plural(madeCon.length, 'person') + ' as "' + l.name + '"', () => {
+      dropList(id);
+      go(Object.assign(cleared(), { lists: '1', build: '1', bt: S.bt }));
+    });
+  }
+
+  function dropList(id) {
+    const i = DB.list.findIndex((x) => x.id === id);
+    if (i >= 0) DB.list.splice(i, 1);
+    const j = DELTA.list.findIndex((x) => x.id === id);
+    if (j >= 0) DELTA.list.splice(j, 1);
+    (DELTA.made || []).filter((m) => m.list === id).forEach((m) => {
+      const accIds = Object.create(null);
+      m.acc.forEach((a) => (accIds[a.id] = 1));
+      const conIds = Object.create(null);
+      m.con.forEach((c) => (conIds[c.id] = 1));
+      DB.acc = DB.acc.filter((a) => !accIds[a.id]);
+      DB.con = DB.con.filter((c) => !conIds[c.id]);
+    });
+    DELTA.made = (DELTA.made || []).filter((m) => m.list !== id);
+    reindex();
+    save();
+  }
+
+  function addListTo(listId, campId) {
+    const l = DB.byList[listId];
+    const k = DB.byCamp[campId];
+    if (!l || !k) return;
+    const before = l.for;
+    l.for = campId;
+    const touched = [];
+    l.has.forEach((id) => {
+      const c = DB.byCon[id];
+      if (c && c.camps.indexOf(campId) < 0) { c.camps.push(campId); touched.push(id); }
+    });
+    const dl = DELTA.list.filter((x) => x.id === listId)[0];
+    if (dl) dl.for = campId;
+    (DELTA.made || []).filter((m) => m.list === listId).forEach((m) =>
+      m.con.forEach((c) => { if (touched.indexOf(c.id) >= 0) c.camps = DB.byCon[c.id].camps.slice(); }));
+    reindex();
+    save();
+    go(Object.assign(cleared(), { camp: campId }));
+    toast(plural(touched.length, 'person') + ' joined ' + k.name, () => {
+      l.for = before;
+      if (dl) dl.for = before;
+      touched.forEach((id) => {
+        const c = DB.byCon[id];
+        c.camps = c.camps.filter((x) => x !== campId);
+      });
+      reindex(); save(); go(Object.assign(cleared(), { lists: listId }));
+    });
+  }
+
+  function describeTerms(t) {
+    const bits = [];
+    BUILD_AXES.forEach((ax) => {
+      const v = t[ax.k];
+      if (!v || !v.length) return;
+      const opts = Object.create(null);
+      ax.opts().forEach((o) => (opts[o[0]] = o[1]));
+      bits.push(v.map((x) => opts[x] || x).join(' or '));
+    });
+    if ((t.only || []).indexOf('new') >= 0) bits.push('not already in the book');
+    return bits.length ? bits.join(' · ') : 'everyone the sources hold';
+  }
+  function autoName(t) {
+    const d = describeTerms(t);
+    return d.length > 46 ? d.slice(0, 44) + '…' : d.replace(/^./, (c) => c.toUpperCase());
   }
 
   /* ══ ONE CAMPAIGN, AS THE PERSON WORKING IT SEES IT ═════════════════════
@@ -2844,6 +3264,21 @@
     const camp = t.closest('[data-camp]');
     if (camp) { go(Object.assign(cleared(), { camp: camp.getAttribute('data-camp') })); return; }
 
+    const term = t.closest('[data-term]');
+    if (term) {
+      const v = term.getAttribute('data-term');
+      const at = v.indexOf(':');
+      toggleTerm(v.slice(0, at), v.slice(at + 1));
+      return;
+    }
+    const finder = t.closest('[data-finder]');
+    if (finder) { go({ bk: finder.getAttribute('data-finder') }); return; }
+    if (t.closest('[data-save]')) { saveList(); return; }
+    const lst = t.closest('[data-list]');
+    if (lst) { go(Object.assign(cleared(), { lists: lst.getAttribute('data-list') })); return; }
+    const addl = t.closest('[data-addlist]');
+    if (addl) { addListTo(addl.getAttribute('data-addlist'), addl.getAttribute('data-tocamp')); return; }
+
     const nextin = t.closest('[data-callnextin]');
     if (nextin) {
       const k = nextin.getAttribute('data-callnextin');
@@ -2869,6 +3304,8 @@
         const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
         else toast('Nobody in this cut has a number to ring.');
+      } else if (k === 'lists') {
+        go(Object.assign(cleared(), { lists: '1' }));
       } else if (k === 'camps') {
         byId('campList').scrollIntoView({ block: 'start' });
       } else {

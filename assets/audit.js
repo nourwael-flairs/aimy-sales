@@ -52,6 +52,7 @@ const MARKERS = {
   'submit-on-enter': 'read by a keydown listener, not by a click',
   'i': 'the row index a windowed list writes for its own bookkeeping',
   'work-state': 'the canonical value the design system reads off a work-state chip',
+  'tocamp': 'the second half of data-addlist, read off the same element by its handler',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */

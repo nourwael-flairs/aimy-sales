@@ -128,3 +128,9 @@
 .b-tally { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; }
 .b-tally-item { font-size: var(--fs-xs); color: var(--d400); }
 .b-tally-item b { color: var(--d50); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+
+/* ══ 8. DESCRIBING WHO TO LOOK FOR ═════════════════════════════════════════
+   One labelled row of chips per axis. The label sits above rather than beside
+   so the chips get the full width — at four axes and ten options a side label
+   costs a column the options need. */
+.b-axis { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
