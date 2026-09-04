@@ -12271,23 +12271,21 @@
                 same denominator said nothing at all. */ ''}
           <span class="s-fn-pct">${x.rate == null ? '—' : `${Math.round(x.rate * 100)}%`}</span>
           <span class="s-fn-n">${x.n} <span class="s-fn-of">of ${x.prev}</span></span>
-          ${/* ══ BOTH SHARES, WHICH IS WHAT THE GUIDANCE ACTUALLY SAYS ═══
-                Step conversion pinpoints where the problem is; cumulative
-                says how much is left by the end. Amplitude and Domo both
-                describe them as complementary and recommend showing both —
-                the mistake this block made was showing ONLY the cumulative,
-                which hid an 83% step behind a 21% total.
+          ${/* ══ TWO OF THE FOUR COLUMNS ARE GONE ═════════════════════════
+                Each row carried the step rate, the counts behind it, the
+                share of the top, AND a definition — four readings of one
+                fall, and on the first row two of them printed the same
+                digits: `50%` beside `50% of 24`, because Reached converts
+                from the top. The definition column restated the row's own
+                name in lower case; "Replied" does not need "they answered"
+                beside it.
 
-                So the step rate keeps the column it is scanned in, and the
-                cumulative rides with the definition at the smallest step:
-                on Won, `40%` is the close rate and `8% of the 24` is what
-                the campaign actually converted, and a reader needs both to
-                know whether to fix the close or the top.
-
-                No "of those that replied" suffix — `5 of 6` states the
-                denominator and the row above it is literally named. */ ''}
-          <span class="s-fn-all">${Math.round((x.n / top) * 100)}% of ${top}</span>
-          <span class="s-fn-say">${esc(x.st.say)}</span>
+                What is left is the rate, and the two numbers it is made of.
+                The counts chain — 12 of 24, 6 of 12, 5 of 6 — and that
+                chain IS the cumulative the third column was drawing, one
+                step at a time and checkable. The one cumulative figure
+                worth stating on its own is the goal's, and the sentence
+                above the funnel states it in words. */ ''}
         </div>`).join('')}
     </div>
     ${bounced ? `<div class="s-fn-note">
