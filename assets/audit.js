@@ -55,7 +55,7 @@ const MARKERS = {
   'tocamp': 'the second half of data-addlist, read off the same element by its handler',
   'card': 'which person a queue card is about, read by the keyboard cursor, not by a click',
   'auto': 'the derived list name, compared against by the name field so it knows when you disagreed',
-  'ntf-con': 'which person a notification is about, read off the same element by the data-ntf handler',
+  'ntf-id': 'the task id AiMY QA\'s panel writes on each row for its own bookkeeping',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */

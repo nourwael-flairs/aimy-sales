@@ -503,9 +503,6 @@
 /* The way back is a navigation control, not a footnote. At --d400 it was the
    dimmest thing on a record page, under a masthead at full ink. */
 .s-back { color: var(--d200); }
-.ntf-row-body { color: var(--d100); }
-.ntf-row-when { color: var(--d300); }
-.ntf-empty { color: var(--d200); }
 /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
    What we sell and what they push back on are the same shape — a name and a
    line about it — and they were drawn two different ways. The first ran bold
@@ -866,3 +863,150 @@
    the today-line stacked inside two margins. */
 .s-home .s-lead-line { margin-bottom: 12px; }
 .b-lead-today { margin: -6px 0 14px; font-size: var(--t-ui); }
+
+/* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
+   A 2px rail down the left, a node per touchpoint on it in the tone of how
+   the call went, a larger accent ring where a rung was climbed, and the rung
+   it reached on the line. The cards are the same cards; the rail is drawn
+   in the column the section already reserves for it. Metrics set once:
+   10px dot, 14px milestone ring, 26px gutter, rail at 7px. */
+.b-tl { position: relative; padding-left: 26px; display: flex; flex-direction: column; gap: 10px; }
+.b-tl::before {
+  content: ''; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 2px;
+  background: var(--card-border); border-radius: 1px;
+}
+.b-tl-month { margin: 6px 0 0; }
+.b-tl > .b-tl-month:first-child { margin-top: 0; }
+.b-tl-item { position: relative; }
+.b-tl-dot {
+  position: absolute; left: -24px; top: 17px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--d400); box-shadow: 0 0 0 3px var(--body-bg);
+}
+.b-tl-dot.tone-ok { background: var(--ok-text); }
+.b-tl-dot.tone-warn { background: var(--warn-text); }
+.b-tl-dot.tone-err { background: var(--err-text); }
+.b-tl-dot.tone-neutral { background: var(--d400); }
+/* A rung climbed: the ring is the milestone, in accent, and the node sits
+   on the rail a shade larger so the eye catches it scanning down. */
+.b-tl-item.is-milestone .b-tl-dot {
+  width: 14px; height: 14px; left: -26px; top: 15px;
+  background: var(--body-bg); border: 3px solid var(--accent);
+}
+.b-tl-item.is-milestone .b-tl-dot.tone-err { border-color: var(--err-text); }
+.b-tl-move {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--accent-text);
+  white-space: nowrap;
+}
+.b-tl-move.is-out { color: var(--err-text); }
+/* Where it began. */
+.b-tl-end {
+  position: relative; padding: 4px 0 2px;
+  font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-tl-dot.is-end { top: 8px; background: var(--d300); }
+
+/* ══ 28. THE NOTIFICATIONS PANEL — AiMY QA'S CSS, VERBATIM ═════════════════
+   Copied out of ../QA/index.html by line range. QA names its tokens
+   differently; the bridge below maps them onto this shell's so the rules
+   themselves are untouched. The wash values are QA's own, dark and light. */
+.ntf-anchor {
+  --qa-accent: var(--accent); --qa-accent-rgb: var(--accent-rgb);
+  --wash-3: rgba(255,255,255,0.04); --wash-6: rgba(255,255,255,0.07); --wash-7: rgba(255,255,255,0.08);
+  --transition-fast: 150ms;
+}
+:root[data-theme="light"] .ntf-anchor {
+  --wash-3: rgba(16,24,40,0.05); --wash-6: rgba(16,24,40,0.09); --wash-7: rgba(16,24,40,0.1);
+}
+
+.ntf-anchor { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.topnav-bell:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+.bell-dot[hidden] { display: none; }
+
+.ntf-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  font-family: "Urbanist", sans-serif;
+  text-align: left;
+}
+.ntf-panel[hidden] { display: none; }
+
+/* Scrollbar, matching .dashboard-scroll / .overlay-thread rather than
+   leaving the browser default sitting inside a 14px-radius card.
+   --wash-6 and --card-border are the only wash/border tokens declared in
+   all six files' dark roots; --wash-8/--wash-11 used elsewhere are not. */
+.ntf-panel { scrollbar-width: thin; scrollbar-color: var(--wash-6) transparent; }
+.ntf-panel::-webkit-scrollbar { width: 6px; }
+.ntf-panel::-webkit-scrollbar-track { background: transparent; }
+.ntf-panel::-webkit-scrollbar-thumb { background: var(--wash-6); border-radius: 4px; }
+.ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
+
+.ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
+.ntf-head b { font-size: 12px; font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
+.ntf-count {
+  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9999px;
+  background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ntf-count[hidden] { display: none; }
+.ntf-clear {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 10.5px; font-weight: 600; color: var(--d500);
+  padding: 2px 4px; border-radius: 6px;
+  transition: color var(--transition-fast);
+}
+.ntf-clear:hover { color: var(--d100); }
+.ntf-clear:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 1px; }
+
+.ntf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ntf-row {
+  display: flex; gap: 9px; padding: 10px; border-radius: 10px;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.ntf-row:hover { background: var(--wash-3); }
+.ntf-row.is-read { opacity: 0.45; }
+.ntf-sev { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: var(--d500); }
+.ntf-sev.p1 { background: var(--err); }
+.ntf-sev.p2 { background: var(--warn); }
+.ntf-sev.p3 { background: var(--qa-accent); }
+.ntf-row-main { flex: 1; min-width: 0; }
+.ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.ntf-row-type { font-size: 11px; font-weight: 800; color: var(--d50); }
+.ntf-row-when { margin-left: auto; font-size: 10px; color: var(--d500); flex-shrink: 0; }
+.ntf-row-body { margin: 0 0 7px; font-size: 11.5px; line-height: 1.5; color: var(--d400); }
+.ntf-row-cta {
+  font-family: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer;
+  padding: 4px 10px; border-radius: 9999px;
+  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent);
+  border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.ntf-row-cta:hover { background: rgba(var(--qa-accent-rgb), 0.2); border-color: rgba(var(--qa-accent-rgb), 0.4); }
+.ntf-row-cta:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+
+.ntf-foot { padding: 8px 4px 4px; border-top: 1px solid var(--wash-6); margin-top: 6px; }
+.ntf-foot-btn {
+  width: 100%; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  padding: 8px; border-radius: 9px; background: var(--wash-3);
+  border: 1px solid var(--wash-6); color: var(--d300);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.ntf-foot-btn:hover { background: var(--wash-6); color: var(--d50); }
+.ntf-foot-btn:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+.ntf-empty { padding: 22px 12px; text-align: center; font-size: 11.5px; color: var(--d500); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
+}

@@ -1402,7 +1402,7 @@
       : homePage();
     mountLists();
     paintRail();
-    paintBell();
+    refreshTasks();
     paintProto();
   }
 
@@ -1694,16 +1694,17 @@
     const ring = people.filter(callable).length;
     return '<article class="type-card s-card b-qcard" data-open="list:' + esc(l.id) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + (camp ? 'ok' : 'neutral') + '">' +
-          (camp ? 'On a campaign' : 'Not on one yet') + '</span>' +
+        /* The tag says WHICH campaign. "On a campaign" told you the state
+           and made you open the card to learn the one fact that matters. */
+        '<span class="tag tag-' + (camp ? 'ok' : 'warn') + '">' +
+          (camp ? 'On ' + esc(camp.name) : 'Not on a campaign') + '</span>' +
         '<span class="tc-type">' + esc(l.via) + '</span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
       '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
-        commas(ring) + '</b> of them ringable' +
-        (camp ? ' · on ' + esc(camp.name) : '') + '</div>' +
+        commas(ring) + '</b> of them ringable</div>' +
       aimyBlock(listSays(l, people, ring, camp)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num">built ' + esc(sayWhen(l.at)) + '</span>' +
@@ -2373,14 +2374,13 @@
         '<div class="b-acts">' +
           '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
         '</div>' +
-        '<p class="s-block-sub">A list is how new people reach your queue. Describe who to ' +
-          'look for; what comes back is the list, and putting it on a campaign puts them ' +
-          'in front of you.</p>' +
         (found.length
           ? lgrid(paged(found).rows) + pager(paged(found), 'list')
           : '<p class="b-vfoot">' + (S.find
             ? 'No list matches “' + esc(S.find) + '”.'
-            : 'You have not built one yet. ' +
+            : 'You have not built one yet. A list is how new people reach your queue: ' +
+              'describe who to look for, and putting what comes back on a campaign puts ' +
+              'them in front of you. ' +
               '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>') +
             '</p>') +
       '</section>' +
@@ -2388,35 +2388,125 @@
   }
 
 
+  /* ══ ONE LIST, AS A JOURNEY ═════════════════════════════════════════════
+     You open a list to decide one thing: is it on a campaign yet, and if it
+     is, who on it is left to ring. The page answered with the name in the
+     caption gutter, the criteria and the counts in one grey sentence, and
+     no Call action at all — a list of forty-six people, thirty-two of them
+     ringable, and nowhere to press.
+
+     Now: the masthead with the one chip that matters beside the name, what
+     AiMY makes of the list with a door, the action row decided by state,
+     the people never-rung first, where they all stand, and what has been
+     said to them. */
   function listPage(l) {
     const camp = l.for && DB.byCamp[l.for];
-    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
-    const callableN = people.filter(callable).length;
+    /* NEVER-RUNG FIRST. A list exists to bring new people in; the ones
+       nobody has tried lead, the rest follow up the ladder, exits last. */
+    const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
+    const people = l.has.map((id) => DB.byCon[id]).filter(Boolean)
+      .sort((x, y) => (order(x) - order(y)) || qTie(x, y));
+    const ring = people.filter(callable);
+    const hist = [];
+    people.forEach((c) => (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) hist.push(TOUCH[id]); }));
+    hist.sort((a, b) => (a.at > b.at ? -1 : 1));
+    const chip = camp
+      ? { label: 'On ' + camp.name, tone: 'ok' }
+      : { label: 'Not on a campaign yet', tone: 'warn' };
+    const first = ring[0];
+    const callFirst = first
+      ? '<button class="s-inline-btn" type="button" data-call="' + esc(first.id) + '">Call ' +
+        esc(first.name.split(' ')[0]) + '</button>'
+      : '';
+
+    /* [2] ONE ROW, DECIDED BY STATE. Off a campaign the list has one job —
+       getting onto one — so the chips are the row. On one, the phone. */
+    const actions = camp
+      ? (first
+          ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
+              '">Call the next one on this list</button>' +
+            (ring.length > 1
+              ? '<button class="s-inline-btn" type="button" data-callall="' +
+                esc(ring.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
+                Math.min(PAGE, ring.length) + '</button>'
+              : '')
+          : '<span class="s-block-sub">Nobody on it has a number you can ring now.</span>') +
+        '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
+          'Open ' + esc(camp.name) + '</button>'
+      : '<span class="b-camps-cap">Put it on a campaign</span>' +
+        myCampaigns().slice(0, 6).map((k) =>
+          '<button class="filter-chip" type="button" data-addlist="' + esc(l.id) +
+          '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('');
+
     return '<div class="s-home">' +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">' + esc(l.name) + '</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">' + esc(l.crit) + '. Found by ' + esc(l.via) + ', ' +
-            esc(sayWhen(l.at)) + '. <b>' + commas(l.has.length) + '</b> people, ' +
-            '<b>' + commas(callableN) + '</b> of them callable.</p>' +
-          (camp
-            ? '<p class="s-block-sub">On <b>' + esc(camp.name) + '</b>, so they are in your queue.</p>'
-            : '<p class="s-block-sub">On no campaign yet — put it on one and its people join ' +
-              'your queue.</p>' +
-              '<div class="b-cuts">' + myCampaigns().slice(0, 6).map((k) =>
-                '<button class="filter-chip" type="button" data-addlist="' + esc(l.id) +
-                '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
-              '</div>') +
+
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">List · found by ' + esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
+        '<div class="s-rec-title">' +
+          '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
+        '<div class="s-rec-facts">' +
+          '<div><span>' + esc(l.crit) + '</span></div>' +
+          '<div>' +
+            '<span><b>' + commas(people.length) + '</b> people</span>' +
+            '<span>' + (ring.length
+              ? '<b>' + commas(ring.length) + '</b> you can ring now'
+              : 'nobody you can ring now') + '</span>' +
+            '<span>' + commas(l.found || people.length) + ' found</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="s-rec-actions">' + actions + '</div>' +
       '</section>' +
+
+      listLead(l, people, ring, camp) +
+
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2></div>' +
-        qgrid(paged(people).rows) +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
+          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
+          ' · never rung first, then by rung</span></div>' +
+        qgrid(paged(people).rows, 'Nobody is on this list.') +
         pager(paged(people), 'person') +
+      '</section>' +
+
+      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
+          '<span class="s-block-say">what the list has yielded</span></div>' +
+        funnelOf(people) +
+      '</section>' +
+
+      '<section class="s-block s-block-wide" aria-label="What has been said to them">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said to them</h2>' +
+          '<span class="s-block-say">newest first</span></div>' +
+        feedBlock(hist, 'Nobody on this list has been rung yet. ' + callFirst) +
       '</section>' +
     '</div>';
   }
+
+  /* [3] What AiMY makes of the list, with a door. The card's two readings
+     that mean something — it is on no campaign, or people came back without
+     a number — get the block. The fallback, how many have been rung, is what
+     the funnel two sections down shows, and is not drawn as a panel. */
+  function listLead(l, people, ring, camp) {
+    const said = listSays(l, people, ring.length, camp);
+    if (!said || said.from === 'their own records') return '';
+    const first = ring[0];
+    const door = first
+      ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
+        esc(first.name.split(' ')[0]) + (camp ? '' : ' anyway') + '</button>'
+      : '';
+    return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this list">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">' + esc(said.from) + '</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' + said.text + '</p>' +
+      (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
+    '</section>';
+  }
+
 
   /* ══ THE BUILDER, PORTED FROM THE V3 BUILD ══════════════════════════════
      Four steps, and the V3 build's arguments for each of them hold here:
@@ -4018,6 +4108,18 @@
      NEWEST OPEN. The last call is the one you need before the next, and a
      history whose every entry is shut asks you to press before it tells you
      anything. */
+  /* ══ THE JOURNEY, ON A RAIL ═════════════════════════════════════════════
+     Eight cards in a column read as a list. The same eight on a rail read
+     as what they are: one person's history, newest at the top, with the
+     rungs they climbed marked on the way down. Every touchpoint is a node
+     in the tone of how it went; a touchpoint that MOVED a rung is a
+     milestone — a larger accent ring and the rung it reached on the line —
+     so the ladder is readable down the rail without opening anything. The
+     rail ends where the journey began: the first rung, and the count.
+
+     The card underneath each node is unchanged, and so are its handlers.
+     Written out per tone rather than composed, for the audit. */
+  const TL_TONE = { ok: 'tone-ok', warn: 'tone-warn', neutral: 'tone-neutral', err: 'tone-err' };
   function callsBlock(c) {
     const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     if (!all.length) {
@@ -4025,23 +4127,30 @@
         ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
     }
     const pg = peek(all);
-    /* GROUPED BY MONTH. Thirteen touchpoints over four months read as one
-       list; a month heading where the month changes is what every timeline
-       in the references does, and it costs nothing when there is one. */
+    const climbed = all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).length;
+    const oldest = all[all.length - 1];
     let month = '';
-    return '<div class="s-calls">' + pg.rows.map((t, i) => {
+    return '<div class="b-tl">' + pg.rows.map((t, i) => {
       const o = OUTCOME[t.outcome];
       const m = t.at.slice(0, 7);
       const head = m !== month
-        ? '<h3 class="b-month">' + esc(monthName(t.at)) + '</h3>' : '';
+        ? '<h3 class="b-month b-tl-month">' + esc(monthName(t.at)) + '</h3>' : '';
       month = m;
-      return head + '<details class="s-call"' + (i === 0 ? ' open' : '') + '>' +
+      const up = t.moved && rank(t.moved[1]) > rank(t.moved[0]);
+      const out = t.moved && isExit(t.moved[1]);
+      return head + '<details class="s-call b-tl-item' + (up || out ? ' is-milestone' : '') + '"' +
+        (i === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
+          '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : 'neutral'] || 'tone-neutral') +
+            '" aria-hidden="true"></span>' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
           '<span class="s-call-by' + (t.by === 'aimy' ? ' is-ai' : '') + '">' +
             esc(actor(t.by).name) + '</span>' +
           '<span class="s-call-out tone-' + esc(o ? o.tone : 'neutral') + '">' +
             esc(kindLabel(t)) + '</span>' +
+          (t.moved
+            ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
+            : '') +
           '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
         '</summary>' +
         '<div class="s-call-body">' +
@@ -4052,8 +4161,16 @@
           callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
         '</div>' +
       '</details>';
-    }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
+    }).join('') +
+      /* Where it began. Read off the whole history, not the eight shown, so
+         the end of the rail is the true start of the journey. */
+      '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
+        'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
+        (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
+      '</div>' +
+    '</div>' + peekFoot(pg, 'touchpoint');
   }
+
 
 
   /* ══ WHAT HAPPENS NEXT, AND WHOSE JOB IT IS ════════════════════════════
@@ -5199,80 +5316,230 @@
      briefing summarises, so the two cannot go stale relative to each other —
      there is only one queue and one set of buckets. */
 
-  const readNtf = new Set();
+  /* ══ THE NOTIFICATIONS PANEL IS AiMY QA'S, BYTE FOR BYTE ═══════════════
+     The IIFE below is copied out of ../QA/index.html by line range and not
+     edited: it builds each row with createElement, derives the dot and the
+     count from what is unread, opens on the bell, closes on an outside
+     click and on Escape, walks the rows with the arrow keys, and sends a
+     row's question to the canvas through `window.aimyOpenCanvas`. The one
+     line added hands `render` out so the panel can be refreshed after a
+     write, which QA never needed because its rows never changed.
 
-  /* ══ A ROW IS WHO, WHEN, WHAT AND ONE VERB ═════════════════════════════
-     The V3 shape, and the fields are the shape: a severity dot, the name,
-     when it was owed, what is owed, and the thing to press. Mine carried a
-     single run-on sentence and no priority, so twelve rows read as twelve
-     copies of one line and nothing said which to do first. */
-  function ntfRows() {
-    const rows = [];
-    /* Callbacks whose day has come or gone. Overdue is the only p1 a BDR
-       has: it is a promise to a person, with a date on it, already broken. */
-    queue(null, 'callback').forEach((c) => {
-      if (!c.next) return;
-      const d = daysBetween(TODAY_ISO, c.next.due);
-      if (d > 0) return;
-      rows.push({
-        id: 'back-' + c.id, con: c.id, p: d < 0 ? 1 : 2,
-        type: c.name, when: sayWhen(c.next.due),
-        body: c.next.what + (d < 0 ? ', and it was due ' : ', due ') +
-          sayWhen(c.next.due) + '.',
-        cta: 'Call them',
-      });
-    });
-    /* A meeting whose date has passed and nobody has said what happened.
-       It leaves the queue at `meeting-set`, so nothing else on this product
-       would ever bring it back up. */
-    DB.con.forEach((c) => {
-      if (c.checkpoint !== 'meeting-set' || !c.next) return;
-      if (daysBetween(TODAY_ISO, c.next.due) >= 0) return;
-      if (!campsOf(c).some(mine)) return;
-      rows.push({
-        id: 'met-' + c.id, con: c.id, p: 2,
-        type: c.name, when: sayWhen(c.next.due),
-        body: c.next.what + ' was ' + sayWhen(c.next.due) +
-          ' and nobody has said whether they turned up.',
+     What is ours is the ROWS. QA's are QA's business; these are computed
+     from the corpus in the same shape — type · status · one sentence · one
+     verb · a question for the canvas — one row per KIND of thing that
+     needs you, and a kind with nothing to say is not drawn. */
+  const AIMY_TASKS = [];
+  function bdrTasks() {
+    const tasks = [];
+    const backs = queue(null, 'callback').filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) <= 0);
+    const late = backs.filter((c) => daysBetween(TODAY_ISO, c.next.due) < 0).length;
+    if (backs.length) {
+      tasks.push({ id: 'callbacks', sev: late ? 'p1' : 'p2', type: 'Callbacks',
+        when: late ? late + ' overdue' : 'due today',
+        body: plural(backs.length, 'person') + ' asked to be rung back and their day has come.' +
+          (late ? ' ' + late + ' of them ' + (late === 1 ? 'is' : 'are') + ' already overdue.' : ''),
+        cta: 'Work the callbacks',
+        ask: 'Who asked to be rung back and is due today?' });
+    }
+    const met = DB.con.filter((c) => c.checkpoint === 'meeting-set' && c.next &&
+      daysBetween(TODAY_ISO, c.next.due) < 0 && campsOf(c).some(mine));
+    if (met.length) {
+      tasks.push({ id: 'meetings', sev: 'p2', type: 'Meetings', when: met.length + ' unconfirmed',
+        body: plural(met.length, 'meeting') + (met.length === 1 ? ' has' : ' have') +
+          ' passed and nobody has said whether they turned up.',
         cta: 'Say what happened',
-      });
+        ask: 'Which meetings have passed without anyone saying whether they turned up?' });
+    }
+    const closing = myCampaigns()
+      .map((k) => ({ k: k, left: daysBetween(TODAY_ISO, k.to), fresh: queue(k.id, 'not-called').length }))
+      .filter((x) => x.left > 0 && x.left <= 21 && x.fresh)
+      .sort((a, b) => a.left - b.left)[0];
+    if (closing) {
+      tasks.push({ id: 'closing-' + closing.k.id, sev: 'p2', type: 'Campaign',
+        when: plural(closing.left, 'day') + ' left',
+        body: closing.k.name + ' closes in ' + plural(closing.left, 'day') + ' with ' +
+          commas(closing.fresh) + ' people never rung.',
+        cta: 'Show the campaign', ask: closing.k.name });
+    }
+    const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
+    if (today.length) {
+      tasks.push({ id: 'run-today', sev: 'p3', type: 'Run', when: 'today',
+        body: 'You rang ' + plural(today.length, 'person') + ' today: ' +
+          today.filter((t) => t.outcome === 'reached').length + ' got through, ' +
+          today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length + ' meetings set.',
+        cta: 'Read the summary', ask: 'What happened today?' });
+    }
+    const loose = DB.list.filter((l) => !l.for);
+    if (loose.length) {
+      const n = loose.reduce((t, l) => t + l.has.length, 0);
+      tasks.push({ id: 'lists-loose', sev: 'p3', type: 'Lists', when: loose.length + ' not on one',
+        body: plural(loose.length, 'list') + (loose.length === 1 ? ' is' : ' are') +
+          ' on no campaign, so ' + plural(n, 'person') + ' are not in your queue.',
+        cta: 'Put them on one', ask: 'Which of my lists are not on a campaign?' });
+    }
+    return tasks;
+  }
+  function refreshTasks() {
+    AIMY_TASKS.length = 0;
+    bdrTasks().forEach((t) => AIMY_TASKS.push(t));
+    if (window.aimyNtfRender) window.aimyNtfRender();
+  }
+  /* QA's hook. A row's question goes where a typed one goes. */
+  window.aimyOpenCanvas = function (q) { runInput(q); };
+
+(function () {
+  var bell   = document.getElementById('ntfBell');
+  var panel  = document.getElementById('ntfPanel');
+  var list   = document.getElementById('ntfList');
+  var dot    = document.getElementById('ntfDot');
+  var count  = document.getElementById('ntfCount');
+  var clear  = document.getElementById('ntfClear');
+  var askAll = document.getElementById('ntfAskAll');
+  if (!bell || !panel || !list) return;
+
+  var read = {};
+
+  function unread() {
+    var n = 0;
+    for (var i = 0; i < AIMY_TASKS.length; i++) if (!read[AIMY_TASKS[i].id]) n++;
+    return n;
+  }
+
+  /* The dot and the count are derived, never hardcoded. The bell this
+     replaced had a permanently-visible red dot nothing could clear. */
+  function syncCount() {
+    var n = unread();
+    if (count) { count.textContent = n; count.hidden = n === 0; }
+    if (dot) dot.hidden = n === 0;
+    bell.setAttribute('aria-label', n === 0
+      ? 'Notifications, nothing waiting on you'
+      : 'Notifications, ' + n + ' waiting on you');
+  }
+
+  function render() {
+    while (list.firstChild) list.removeChild(list.firstChild);
+    if (!AIMY_TASKS.length) {
+      var empty = document.createElement('li');
+      empty.className = 'ntf-empty';
+      empty.textContent = 'Nothing waiting on you.';
+      list.appendChild(empty);
+      syncCount();
+      return;
+    }
+    AIMY_TASKS.forEach(function (t) {
+      var li = document.createElement('li');
+      li.className = 'ntf-row' + (read[t.id] ? ' is-read' : '');
+      li.setAttribute('data-ntf-id', t.id);
+
+      var sev = document.createElement('span');
+      sev.className = 'ntf-sev ' + t.sev;
+      sev.setAttribute('aria-hidden', 'true');
+
+      var main = document.createElement('div');
+      main.className = 'ntf-row-main';
+
+      var head = document.createElement('div');
+      head.className = 'ntf-row-head';
+      var type = document.createElement('span');
+      type.className = 'ntf-row-type';
+      type.textContent = t.type;
+      var when = document.createElement('span');
+      when.className = 'ntf-row-when';
+      when.textContent = t.when;
+      head.appendChild(type);
+      head.appendChild(when);
+
+      var body = document.createElement('p');
+      body.className = 'ntf-row-body';
+      body.textContent = t.body;
+
+      var cta = document.createElement('button');
+      cta.className = 'ntf-row-cta';
+      cta.type = 'button';
+      cta.textContent = t.cta;
+      cta.addEventListener('click', function () { start(t); });
+
+      main.appendChild(head);
+      main.appendChild(body);
+      main.appendChild(cta);
+      li.appendChild(sev);
+      li.appendChild(main);
+      list.appendChild(li);
     });
-    rows.sort((a, b) => a.p - b.p);
-    return rows.slice(0, 12);
+    syncCount();
   }
 
-  function paintBell() {
-    const rows = ntfRows();
-    const unread = rows.filter((r) => !readNtf.has(r.id)).length;
-    byId('ntfDot').hidden = !unread;
-    const cnt = byId('ntfCount');
-    cnt.hidden = !unread;
-    cnt.textContent = unread;
-    /* ══ THE ROW IS A LIST ITEM, NOT A BUTTON ══════════════════════════
-       Mine put `.ntf-row` on a `button` and `.ntf-row-cta` on a `span`
-       inside it. Both classes are written for the other element: the row
-       is a flex list item and a button centres its text, so every line
-       came out centred; the cta is a pill with padding and a border, and
-       an inline span carrying it wrapped `Call them` across two lines with
-       the border broken between them. Nothing was wrong with the CSS.
-
-       This is the V3 renderer's own markup, element for element. */
-    byId('ntfList').innerHTML = rows.length
-      ? rows.map((r) => '<li class="ntf-row' +
-          (readNtf.has(r.id) ? ' is-read' : '') + '">' +
-          '<span class="ntf-sev p' + r.p + '"></span>' +
-          '<div class="ntf-row-main">' +
-            '<div class="ntf-row-head">' +
-              '<span class="ntf-row-type">' + esc(r.type) + '</span>' +
-              '<span class="ntf-row-when">' + esc(r.when) + '</span>' +
-            '</div>' +
-            '<p class="ntf-row-body">' + esc(r.body) + '</p>' +
-            '<button class="ntf-row-cta" type="button" data-ntf="' + esc(r.id) +
-              '" data-ntf-con="' + esc(r.con) + '">' + esc(r.cta) + '</button>' +
-          '</div>' +
-        '</li>').join('')
-      : '<li class="ntf-empty">Nothing is waiting on you.</li>';
+  function ctas() {
+    return Array.prototype.slice.call(list.querySelectorAll('.ntf-row-cta'));
   }
+
+  function isOpen() { return !panel.hidden; }
+
+  function openPanel() {
+    render();
+    panel.hidden = false;
+    bell.setAttribute('aria-expanded', 'true');
+    var first = ctas()[0];
+    if (first) first.focus();
+  }
+
+  function closePanel(returnFocus) {
+    panel.hidden = true;
+    bell.setAttribute('aria-expanded', 'false');
+    if (returnFocus) bell.focus();
+  }
+
+  /* Graceful when the adapter is missing rather than throwing, the six
+     files define it in six different places. */
+  function toCanvas(q) {
+    if (typeof window.aimyOpenCanvas === 'function') window.aimyOpenCanvas(q);
+  }
+
+  /* Opening the task is what marks it read. The panel closes first so it
+     cannot float above the canvas overlay. */
+  function start(t) {
+    read[t.id] = true;
+    closePanel(false);
+    toCanvas(t.ask);
+  }
+
+  bell.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (isOpen()) closePanel(false); else openPanel();
+  });
+
+  if (clear) clear.addEventListener('click', function () {
+    AIMY_TASKS.forEach(function (t) { read[t.id] = true; });
+    render();
+  });
+
+  if (askAll) askAll.addEventListener('click', function () {
+    closePanel(false);
+    toCanvas('Across everything waiting on me right now, what should I do first and why?');
+  });
+
+  document.addEventListener('click', function (e) {
+    if (isOpen() && !panel.contains(e.target) && !bell.contains(e.target)) closePanel(false);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (!isOpen()) return;
+    if (e.key === 'Escape') { e.preventDefault(); closePanel(true); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    var items = ctas();
+    if (!items.length) return;
+    e.preventDefault();
+    var i = items.indexOf(document.activeElement);
+    if (i === -1) { items[0].focus(); return; }
+    items[e.key === 'ArrowDown' ? (i + 1) % items.length
+                                : (i - 1 + items.length) % items.length].focus();
+  });
+
+  window.aimyNtfRender = render;
+  render();
+})();
+
 
   /* ══ 7e. THE COMPOSER, AND THE CANVAS BEHIND IT ═════════════════════════
      The bar drives the page. Four routes, in the order a caller means them:
@@ -5475,6 +5742,26 @@
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
       '">' + esc(label) + '</button>';
 
+    if (/\bmeeting/.test(q)) {
+      const met = DB.con.filter((c) => c.checkpoint === 'meeting-set' && c.next &&
+        daysBetween(TODAY_ISO, c.next.due) < 0 && campsOf(c).some(mine));
+      if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
+      return '<b>' + plural(met.length, 'meeting') + '</b> ' + (met.length === 1 ? 'has' : 'have') +
+        ' passed and nobody has said whether they turned up.' +
+        '<div class="b-cuts">' + met.slice(0, 6).map((c) =>
+          door(c.name + ' · ' + sayWhen(c.next.due), Object.assign(cleared(), { con: c.id }))).join('') +
+        '</div>';
+    }
+    if (/\blists?\b/.test(q)) {
+      const loose = DB.list.filter((l) => !l.for);
+      if (!loose.length) return 'Every list is on a campaign, so everybody on them is in your queue.';
+      return '<b>' + plural(loose.length, 'list') + '</b> ' + (loose.length === 1 ? 'is' : 'are') +
+        ' on no campaign, so their people are not in your queue.' +
+        '<div class="b-cuts">' + loose.map((l) =>
+          door(l.name + ' · ' + plural(l.has.length, 'person'),
+            Object.assign(cleared(), { on: 'lists', list: l.id }))).join('') +
+        '</div>';
+    }
     if (/callback|call back|rung back|owe|due/.test(q)) {
       return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be rung back' +
         (S.camp ? ' on this campaign' : ' across your ' +
@@ -6488,37 +6775,6 @@
       return;
     }
 
-    const bell = t.closest('#ntfBell');
-    if (bell) {
-      const panel = byId('ntfPanel');
-      panel.hidden = !panel.hidden;
-      bell.setAttribute('aria-expanded', String(!panel.hidden));
-      if (!panel.hidden) paintBell();
-      return;
-    }
-    /* A notification acted on is a notification read, and the panel closes
-       behind you — a popover still standing over the record it just opened
-       is something to dismiss before you can work. */
-    const ntf = t.closest('[data-ntf]');
-    if (ntf) {
-      readNtf.add(ntf.getAttribute('data-ntf'));
-      byId('ntfPanel').hidden = true;
-      byId('ntfBell').setAttribute('aria-expanded', 'false');
-      go(Object.assign(cleared(), { con: ntf.getAttribute('data-ntf-con') }));
-      return;
-    }
-
-    if (t.closest('#ntfClear')) {
-      ntfRows().forEach((r) => readNtf.add(r.id));
-      paintBell();
-      return;
-    }
-    if (t.closest('#ntfAskAll')) {
-      byId('ntfPanel').hidden = true;
-      runInput('What is due today?');
-      return;
-    }
-
     if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
     if (ask) { runInput(ask.getAttribute('data-ask')); return; }
@@ -6785,9 +7041,8 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    const panel = byId('ntfPanel');
     if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
-    if (!panel.hidden) { panel.hidden = true; return; }
+    /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
   });
 
