@@ -1360,7 +1360,35 @@
     SCALAR.forEach((k) => { if (k !== 'as') over[k] = ''; });
     return over;
   }
+  /* ══ THE GATE ON LEAVING AN UNSAVED RESULT ═════════════════════════════
+     V3 guarded a drafted list with its decision surface — the list's name,
+     how many are in it, and the two ways out — after trying a browser
+     `beforeunload` prompt and throwing it out: the browser draws that one,
+     so it cannot say what it is about, and it only ever offers leave or
+     stay when the decision has three answers.
+
+     Ours is that decision, drawn INLINE at the top of the result rather
+     than as a modal: a press that would leave the builder with a result
+     nobody has saved does not navigate; it paints the gate, which names
+     the count and offers Save, Save onto a campaign, Discard, Stay. Only
+     a door out of the builder trips it — changing the criteria or the
+     supplier stays inside and is not a decision about the result. */
+  let LEAVE = null;
+  let LEAVE_OK = false;
+  function leavingResult(over) {
+    if (LEAVE_OK || S.build !== 'done' || !DRAFT || !(DRAFT.rows || []).length) return false;
+    const next = Object.assign(Object.create(null), S, over || {});
+    return !next.build;
+  }
+  function goFree(over, replace) { LEAVE_OK = true; try { go(over, replace); } finally { LEAVE_OK = false; } }
+
   function go(over, replace) {
+    if (leavingResult(over)) {
+      LEAVE = { over: over, replace: !!replace };
+      paint();
+      byId('pageScroll').scrollTop = 0;
+      return;
+    }
     const wasOn = S.con + '|' + S.camp;
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
@@ -2954,10 +2982,12 @@
      to see which step it is on and what that step found.
 
      So it is a pipeline: a progress track, four stage tiles joined by
-     connectors that fill as the next stage runs, a step list with the time
-     each took, and a log well where the step's lines type in with the
-     run's REAL numbers — the rows the chosen supplier returned, the share
-     with a number, how many were already in the book. One elapsed clock
+     connectors that fill as the next stage runs, and a step list with the
+     time each took and, once it is done, what it found — the rows the
+     chosen supplier returned, the share with a number, how many were
+     already in the book. The run's REAL numbers, once each, on the step
+     they belong to; a typed log stood here for one pass and said them four
+     lines at a time before scrolling them away. One elapsed clock
      drives all of it from requestAnimationFrame; every element on screen
      is a function of that clock, so nothing can drift out of step, and a
      tab that was in the background catches up rather than stalling.
@@ -2967,7 +2997,6 @@
      with a different supplier — so the footer holds both: the way to what
      came back, and the other suppliers. */
   let PIPE = null;
-  const PIPE_CPS = 90;
   const PIPE_ICON = {
     read: '<path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/><path d="M20.2 19.2 22 21"/>',
     ask: '<path d="M12 20v-8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 14.2a6 6 0 0 1 0-8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 17a10 10 0 0 1 0-14M19 3a10 10 0 0 1 0 14"/>',
@@ -3031,7 +3060,7 @@
     const starts = stages.reduce((acc, x) => acc.concat([acc[acc.length - 1] + x.duration]), [0]);
     if (PIPE && PIPE.raf) clearTimeout(PIPE.raf);
     PIPE = { stages: stages, starts: starts, total: starts[starts.length - 1], t0: null,
-      raf: null, elapsed: 0, lastLog: '' };
+      raf: null, elapsed: 0 };
     go({ build: 'run' });
     PIPE.raf = setTimeout(pipeFrame, 16);
   }
@@ -3114,35 +3143,13 @@
         if (rl) rl.classList.toggle('pending', state === 'pending');
         const rt = row.querySelector('.pipe-row-time');
         if (rt) { rt.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? '· · ·' : ''; rt.classList.toggle('done', state === 'done'); }
+        /* WHAT THE STEP FOUND, ONCE, WHEN IT IS DONE. The typed log said it
+           four lines at a time and then scrolled it away; the number that
+           matters is the one the step ends on, and it belongs on the step. */
+        const rs = row.querySelector('.pipe-row-sub');
+        if (rs) rs.textContent = state === 'done' ? x.logs[x.logs.length - 1].text.replace(/^✓\s*/, '') : '';
       }
     });
-
-    /* The log well: the active stage's lines, typed at PIPE_CPS. Rebuilt
-       only when the text changes, which is most frames while typing and no
-       frame while waiting for the next line. */
-    const lines = [];
-    active.logs.forEach((l) => {
-      if (local < l.at) return;
-      const chars = activeDone ? l.text.length : Math.ceil((local - l.at) * PIPE_CPS);
-      lines.push({ full: l.text, shown: l.text.slice(0, Math.max(1, chars)) });
-    });
-    const typing = !activeDone && lines.length && lines[lines.length - 1].shown.length < lines[lines.length - 1].full.length;
-    const key = active.id + '|' + lines.map((l) => l.shown).join('\n') + (finished ? '|end' : '');
-    if (key !== PIPE.lastLog) {
-      PIPE.lastLog = key;
-      const log = byId('pipeLog');
-      if (log) {
-        log.innerHTML = lines.map((l, idx) => {
-          const cls = l.full.charAt(0) === '✓' ? ' is-ok' : l.full.charAt(0) === '$' ? ' is-cmd' : '';
-          const body = l.full.charAt(0) === '→'
-            ? '<span class="pipe-arrow">→</span>' + esc(l.shown.slice(1))
-            : esc(l.shown);
-          const caret = !finished && idx === lines.length - 1
-            ? '<span class="pipe-caretbox' + (typing ? '' : ' pipe-caret') + '"></span>' : '';
-          return '<div class="pipe-log-line pipe-rise' + cls + '">' + body + caret + '</div>';
-        }).join('');
-      }
-    }
 
     const el = byId('pipeElapsed');
     if (el) el.textContent = pipeFmt(PIPE.elapsed) + ' / ' + pipeFmt(PIPE.total);
@@ -3164,7 +3171,19 @@
     if (!PIPE) return '<div class="s-home"><p class="b-vfoot s-block-wide">Nothing is running.</p></div>';
     const f = finderOf();
     const kind = buildKind() === 'acc' ? 'Companies' : 'People';
+    /* PLACED ON A PAGE, NOT FLOATED IN AN EMPTY ONE. The card sat alone
+       under a back link, centred at 640px, with nothing saying what was
+       being built. The page keeps the masthead the other builder steps
+       have — what this is, its name, the criteria — and the card takes the
+       column's full width under it, with its steps and its log side by
+       side where there is room. */
     return '<div class="s-home">' +
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">Looking · ' + esc(kind) + ' · via ' + esc(f.name) + '</span>' +
+        '<div class="s-rec-title"><h1 class="s-rec-name">' + esc(buildName()) + '</h1>' +
+          '<span class="s-meta-st tone-warn">not saved</span></div>' +
+        '<div class="s-rec-facts"><div><span>' + esc(describeTerms(terms())) + '</span></div></div>' +
+      '</section>' +
       '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
         '<header class="pipe-head">' +
           '<div class="pipe-head-row">' +
@@ -3199,18 +3218,22 @@
           PIPE.stages.map((x) =>
             '<div class="pipe-row" id="pipeRow-' + esc(x.id) + '">' +
               '<span class="pipe-row-mark" data-state="idle"><span class="pipe-row-idle"></span></span>' +
-              '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
+              '<span class="pipe-row-text">' +
+                '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
+                '<span class="pipe-row-sub"></span>' +
+              '</span>' +
               '<span class="pipe-row-time"></span>' +
             '</div>').join('') +
         '</section>' +
 
-        '<section class="pipe-log" id="pipeLog" aria-live="polite"></section>' +
 
         '<footer class="pipe-foot">' +
           '<span class="pipe-elapsed" id="pipeElapsed">0.0s / ' + pipeFmt(PIPE.total) + '</span>' +
           '<span class="pipe-foot-act" id="pipeFootAct" data-done=""></span>' +
         '</footer>' +
       '</div></div>' +
+      '<p class="b-vfoot s-block-wide">Nothing is saved until you say so. What comes back is shown first, ' +
+        'and you choose what to keep.</p>' +
     '</div>';
   }
 
@@ -3218,6 +3241,34 @@
   /* ── WHAT CAME BACK, BEFORE IT IS YOURS ──
      The set, what is missing from it, and the two ways out. Nothing is in the
      book until Save. */
+  const saveCampChips = () => {
+    const ks = myCampaigns().slice(0, 6);
+    if (!ks.length) return '';
+    return '<span class="b-camps-cap">and put it on</span>' + ks.map((k) =>
+      '<button class="filter-chip" type="button" data-savecamp="' + esc(k.id) + '">' +
+      esc(k.name) + '</button>').join('');
+  };
+  function leaveGate(n) {
+    if (!LEAVE) return '';
+    return '<section class="s-insight is-lead b-lead-slim b-gate s-block-wide" aria-label="Not saved">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-staged" data-work-state="staged">Awaiting you</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">This list is not saved. <b>' + esc(plural(n, 'person')) +
+        '</b> came back and nothing is working them.</p>' +
+      '<p class="b-gate-note">Leaving throws them away. Save it and it is yours; put it on a campaign ' +
+        'and they join your queue.</p>' +
+      '<div class="s-lead-acts">' +
+        '<button class="s-insight-lnk primary" type="button" data-save>Save ' + commas(n) + '</button>' +
+        saveCampChips() +
+        '<button class="s-insight-lnk" type="button" data-discard>Discard it</button>' +
+        '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
+      '</div>' +
+    '</section>';
+  }
+
   function buildDone() {
     const rows = DRAFT.rows || [];
     const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
@@ -3225,6 +3276,7 @@
     const kept = rows.filter((x) => DRAFT.drop.indexOf(x.id) < 0).length;
     const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
     return '<div class="s-home">' +
+      leaveGate(kept + mine2.length) +
       '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
         '<div class="s-sheet-kind">Found · not saved yet</div>' +
         '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
@@ -3245,11 +3297,15 @@
       '<div class="s-build-foot s-block-wide">' +
         '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
           commas(kept + mine2.length) + '</button>' +
+        /* ONE PRESS SAVES AND PUTS IT ON A CAMPAIGN. Saving and then finding
+           the campaign chips on the list's page was two decisions for one
+           intention, and a list that is on no campaign is a list nobody is
+           working. The chips are inline, where the decision is made. */
+        saveCampChips() +
         '<button class="s-inline-btn" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe' }))) +
           '">Change the criteria</button>' +
-        '<button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '">Discard</button>' +
+        '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
       '</div>' +
 
       '<section class="s-block s-block-wide" aria-label="What came back">' +
@@ -3366,7 +3422,8 @@
 
   /* Saving mints the people, so from here they are ordinary records: the
      queue, the ladder and the call panel cannot tell where they came from. */
-  function saveList() {
+  function saveList(campId) {
+    const camp = campId ? DB.byCamp[campId] : null;
     const t = terms();
     /* WHAT THE RUN ACTUALLY RETURNED, not the criteria run again. They are
        usually the same set and they are not always: pressing "Bring them in"
@@ -3393,7 +3450,7 @@
         email: n.seedEmail < f.email
           ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') + '@' + n.domain
           : null,
-        camps: [], owner: me().id, checkpoint: 'not-called', checkpointAt: null,
+        camps: camp ? [camp.id] : [], owner: me().id, checkpoint: 'not-called', checkpointAt: null,
         attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
         fate: SCENARIOS[i % SCENARIOS.length].k,
         enrichedAt: null,
@@ -3408,9 +3465,18 @@
     const has = madeCon.map((c) => c.id).concat(bring.filter((id2) => DB.byCon[id2]));
     const l = {
       id: id, name: buildName(), kind: 'con', terms: S.bt || '', crit: crit,
-      has: has, by: me().id, at: now, for: null, via: f.name,
+      has: has, by: me().id, at: now, for: camp ? camp.id : null, via: f.name,
       found: found.length + bring.length,
     };
+    /* The people brought in from your own book are real records; they
+       join the campaign by patch, and the undo takes them back off it. */
+    const joined = [];
+    if (camp) {
+      bring.forEach((id2) => {
+        const c = DB.byCon[id2];
+        if (c && c.camps.indexOf(camp.id) < 0) { patchCon(c, { camps: c.camps.concat([camp.id]) }); joined.push(id2); }
+      });
+    }
     DB.acc = DB.acc.concat(madeAcc);
     DB.con = DB.con.concat(madeCon);
     DB.list.push(l);
@@ -3418,10 +3484,18 @@
     DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
     reindex();
     save();
-    go(Object.assign(cleared(), { on: 'lists', list: id }));
-    toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"', () => {
+    const bt = S.bt;
+    LEAVE = null;
+    DRAFT = null;
+    goFree(Object.assign(cleared(), { on: 'lists', list: id }));
+    toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"' +
+      (camp ? ' · on ' + camp.name : ''), () => {
+      joined.forEach((id2) => {
+        const c = DB.byCon[id2];
+        if (c) patchCon(c, { camps: c.camps.filter((x) => x !== camp.id) });
+      });
       dropList(id);
-      go(Object.assign(cleared(), { on: 'lists', build: 'describe', bt: S.bt }));
+      goFree(Object.assign(cleared(), { on: 'lists', build: 'describe', bt: bt }));
     });
   }
 
@@ -6946,6 +7020,20 @@
     const rerun = t.closest('[data-rerun]');
     if (rerun) { S.bk = rerun.getAttribute('data-rerun'); buildRun(); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
+    const sc = t.closest('[data-savecamp]');
+    if (sc) { saveList(sc.getAttribute('data-savecamp')); return; }
+    if (t.closest('[data-discard]')) {
+      /* The explicit verb, and the gate's own. Nothing has been written, so
+         there is nothing to undo; the criteria stay in the URL. */
+      const to = LEAVE ? LEAVE.over : Object.assign(cleared(), { on: 'lists' });
+      const rep = LEAVE ? LEAVE.replace : false;
+      const n = ((DRAFT && DRAFT.rows) || []).length;
+      LEAVE = null; DRAFT = null;
+      goFree(to, rep);
+      if (n) toast('Threw away the ' + plural(n, 'person') + ' that came back. The criteria are still in the builder.');
+      return;
+    }
+    if (t.closest('[data-stay]')) { LEAVE = null; paint(); return; }
     const fl = t.closest('[data-filllist]');
     if (fl) { fillList(fl.getAttribute('data-filllist')); return; }
     const lst = t.closest('[data-list]');
