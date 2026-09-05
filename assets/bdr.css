@@ -1232,3 +1232,12 @@ button.pipe-chip:active { transform: scale(0.97); }
 .b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
 @keyframes b-tick { from { opacity: 0; transform: translateY(5px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
+
+/* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
+   The thread is rebuilt when it grows, and the turn that grew it appeared
+   already in place. It comes up 6px through 4px of blur now, 200ms, and
+   nothing already read moves. The read-back card is a turn, so it arrives
+   the same way. */
+.chat-msg.b-arrive { animation: b-arrive 200ms var(--ease-out) both; }
+@keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }

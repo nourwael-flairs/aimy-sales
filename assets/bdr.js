@@ -6087,6 +6087,7 @@
      opens for everything is a detail page wearing a chat's clothes. */
 
   const TURNS = [];
+  let THREAD_SEEN = 0;
 
   function openCanvas() { byId('aimyOverlay').classList.add('open'); }
   function closeCanvas() {
@@ -6153,6 +6154,7 @@
   function paintThread() {
     const host = byId('overlayThread');
     if (!TURNS.length) {
+      THREAD_SEEN = 0;
       host.innerHTML = ['How many are left to call?', 'Who is due today?',
         'What happened yesterday?', 'When do people actually answer?'].map((q) =>
         '<button class="overlay-sugg-chip" type="button" data-ask="' + esc(q) + '">' +
@@ -6160,6 +6162,10 @@
       return;
     }
     host.innerHTML = TURNS.map(turnHtml).join('');
+    /* THE TURN THAT JUST ARRIVED ARRIVES (bdr.css §33). Only the last one,
+       only when the thread grew — the ones already read stay put. */
+    if (TURNS.length > THREAD_SEEN && host.lastElementChild) host.lastElementChild.classList.add('b-arrive');
+    THREAD_SEEN = TURNS.length;
     host.scrollTop = host.scrollHeight;
   }
 
