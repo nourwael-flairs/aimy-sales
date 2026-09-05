@@ -1492,7 +1492,13 @@
       return S.find
         ? '<p class="b-vfoot">Nobody here matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
-        : '<p class="b-vfoot">Nobody on this rung.</p>';
+        : '<p class="b-vfoot">Nobody on this rung.' +
+          /* A cut with nobody in it is one press from the cut with
+             everybody. An empty state that only says it is empty leaves
+             the caller to work out that the chip row above is the way out. */
+          (S.q && S.q !== 'all'
+            ? ' <button class="s-inline-btn" type="button" data-q="all">Show everyone</button>'
+            : '') + '</p>';
     }
     return '<div class="b-grid">' + rows.map(qcard).join('') + '</div>';
   }
@@ -1712,7 +1718,10 @@
     '</article>';
   }
   function lgrid(rows) {
-    if (!rows.length) return '<p class="b-vfoot">You have not built one yet.</p>';
+    if (!rows.length) {
+      return '<p class="b-vfoot">You have not built one yet. ' +
+        '<button class="s-inline-btn" type="button" data-bopen>Find leads</button></p>';
+    }
     return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
   }
 
@@ -2342,7 +2351,9 @@
           ? lgrid(paged(found).rows) + pager(paged(found), 'list')
           : '<p class="b-vfoot">' + (S.find
             ? 'No list matches “' + esc(S.find) + '”.'
-            : 'You have not built one yet.') + '</p>') +
+            : 'You have not built one yet. ' +
+              '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>') +
+            '</p>') +
       '</section>' +
     '</div>';
   }

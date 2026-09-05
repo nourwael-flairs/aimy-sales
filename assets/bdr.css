@@ -158,7 +158,6 @@
   letter-spacing: var(--ls-tight); color: var(--d500);
   transition: color var(--t-fast);
 }
-.b-switch-btn:hover { color: var(--d200); }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
 .b-switch-btn.is-on { color: var(--d50); }
 .b-switch-n {
@@ -392,7 +391,6 @@
   font-size: var(--fs-sm); line-height: 1; color: var(--d500);
   transition: color var(--t-fast);
 }
-.b-find-x:hover { color: var(--d100); }
 .b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 
 
@@ -545,4 +543,124 @@
   /* Below this the label column costs more than the alignment is worth. */
   .b-say, .b-say.is-say { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .b-say-v { margin-bottom: 10px; }
+}
+
+/* ══ 22. THE POLISH PASS ═══════════════════════════════════════════════════
+   Everything below is the aggregate of details nobody will consciously
+   notice, which is the point: a press that answers, a hover that does not
+   fire under a thumb, a count that does not jitter, an edge that catches the
+   light. None of it changes what a surface says. All of it changes whether
+   the surface feels like it was made.
+
+   ONE CURVE, ONE SPEED. The library's transitions run on the default `ease`
+   at 150ms. Everything this build adds runs on a strong ease-out — starts
+   fast, settles clean — at 120–160ms, because a press seen two hundred times
+   a day has to answer instantly and get out of the way. */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+
+/* [1] EVERY PRESSABLE ANSWERS THE PRESS. Zero of these had an :active state.
+   scale(0.97) is the number Linear ships; it is felt rather than seen, which
+   is exactly the register a work tool wants. The transition list restates
+   the colour properties the shell already animates on these, because a
+   later `transition` replaces the earlier one rather than adding to it. */
+.s-insight-lnk, .s-inline-btn, .s-cb-opt, .call-end, .call-tool,
+.b-switch-btn, .ntf-row-cta, .s-back, .b-find-x, .filter-chip,
+.overlay-sugg-chip, .b-pager-go button, .ntf-clear, .ntf-foot-btn {
+  transition:
+    transform 160ms var(--ease-out),
+    color var(--t-fast), background-color var(--t-fast), border-color var(--t-fast);
+}
+.s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
+.call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+.b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
+.b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active {
+  transform: scale(0.97);
+}
+/* [8] The card door, barely. A card is two hundred pixels wide; 0.97 on it
+   is a lurch. 0.995 is the same answer at the size of the thing pressed. */
+.b-qcard[data-open] {
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.b-qcard[data-open]:active { transform: scale(0.995); }
+
+/* [2] HOVER ONLY WHERE THERE IS A HOVER. A touch fires :hover on tap and
+   leaves it lit until the next tap somewhere else — a switcher tab that
+   stays half-highlighted after you leave it. */
+@media (hover: hover) and (pointer: fine) {
+  .b-switch-btn:hover { color: var(--d200); }
+  .b-find-x:hover { color: var(--d100); }
+}
+
+/* [3] [7] NO STRIPES. The hint under a question and the Remember line both
+   wore a 2px accent stripe down the left as their only treatment — the one
+   decoration every UI kit of a certain vintage reached for. The hint is a
+   sentence and reads as one. Remember is the durable fact on a record, and a
+   raised surface behind it says "different from the call above" without
+   drawing a line to say so. */
+.s-cb-hint { border-left: 0; padding-left: 0; color: var(--d200); }
+.s-callsum-mem {
+  border-left: 0; padding: 8px 10px; border-radius: var(--r-md);
+  background: var(--card-bg-raised); color: var(--d100);
+}
+
+/* [4] AN EYEBROW IS A SECTION MARKER, NOT A ROW LABEL. Nine roles here were
+   uppercase-and-tracked, so a brief's "Who" and a card's campaign tag shouted
+   at the same pitch as the section they sat in. The section captions keep
+   it — .s-rec-kind, .b-sell-cap, .s-af-cap, .s-lead-mark — and the labels
+   inside rows drop to sentence case at semibold, where weight and position do
+   the work the tracking was doing badly. */
+.s-callsum-cap, .s-callp b, .b-aimy-from, .tc-type {
+  text-transform: none; letter-spacing: normal;
+  font-weight: var(--fw-semibold);
+}
+.s-callsum-cap { font-size: var(--fs-xs); }
+.s-callp b { font-size: var(--fs-xs); color: var(--d300); }
+.b-aimy-from { font-size: var(--fs-2xs); }
+.tc-type { font-size: var(--fs-2xs); color: var(--d300); }
+
+/* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
+   changes, so the switcher shifted sideways every time a search narrowed it.
+   Set once on the containers, so every count inside inherits it. */
+.b-switch-n, .b-vfoot, .b-pager, .b-tally-out, .b-qcard, .s-block-say {
+  font-variant-numeric: tabular-nums;
+}
+
+/* T1 — ELEVATION BY LIGHT. On a dark ground a shadow is invisible; what
+   separates a raised surface is the edge that catches light. One pixel of
+   white at 4% along the top, and cards, the lead block, the search box and
+   the read-back card read as material rather than as outlines. */
+.b-qcard, .s-insight.is-lead, .b-find, .s-callsum-in-turn, .s-call, .b-aimy {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* T4 — OPTICAL TEXT. Balanced headings so a two-line title does not leave
+   one word orphaned; pretty paragraphs so the last line is never a single
+   word. Both are free, and both are the difference between set and typed. */
+.s-block-h, .s-rec-name, .s-rec-cap { text-wrap: balance; }
+.s-block-sub, .b-aimy-say, .s-lead-say, .b-say-v, .s-callsum-val, .ntf-row-body { text-wrap: pretty; }
+
+/* T5 — THE CURRENT SURFACE IS UNDERLINED. Colour alone marked which of
+   Calls / Campaigns / Lists you were on, and on the calls surface all three
+   sat at nearly the same ink. A two-pixel rule under the current one, in ink
+   rather than accent, because it is a position and not an action. No
+   transition: it is a control pressed all day, and motion on it is delay. */
+.b-switch-btn { padding-bottom: 4px; }
+.b-switch-btn.is-on { box-shadow: inset 0 -2px 0 var(--d50); }
+
+/* T6 — THE SEARCH BOX SAYS IT HAS FOCUS. The border already turns accent;
+   a 3px ring at 18% is the standard input focus and reads at a glance from
+   across the page. Low alpha on purpose — a ring, not a glow. */
+.b-find:focus-within {
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+/* Reduced motion means fewer and gentler, not none. The colour transitions
+   stay because they aid comprehension; the transforms go. */
+@media (prefers-reduced-motion: reduce) {
+  .s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
+  .call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+  .b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
+  .b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active,
+  .b-qcard[data-open]:active { transform: none; }
 }
