@@ -3031,7 +3031,24 @@
   const pipeCheck = (size) =>
     '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" ' +
       'stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" ' +
-      'aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+      'aria-hidden="true"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  /* ══ TEXT THAT CHANGES STATE GOES THROUGH A BLUR ═══════════════════════
+     "Running · Asking Apollo" became "Found · 500" by swapping characters
+     in place, which the eye reads as a glitch. The old words leave through
+     4px of blur and the new ones arrive through it, 90ms each way (bdr.css
+     §29); a swap already under way is not restarted by the frame after it,
+     and a newer word overrides an older one still on its way. */
+  function swapText(el, text) {
+    if (!el || el.textContent === text || el._swapTo === text) return;
+    el.classList.add('b-swap', 'is-swapping');
+    el._swapTo = text;
+    setTimeout(() => {
+      if (el._swapTo !== text) return;
+      el.textContent = text;
+      el._swapTo = null;
+      el.classList.remove('is-swapping');
+    }, 90);
+  }
   const pipeFmt = (n) => n.toFixed(1) + 's';
 
   /* The four steps, with the run's own numbers in their lines. */
@@ -3114,12 +3131,16 @@
     const active = PIPE.stages[ai];
     const activeDone = pipeStateOf(ai) === 'done';
     const local = pipeLocalOf(ai);
+    /* One layout read, before any write: the connectors' widths, so the
+       dot can be placed by transform and nothing lays out per frame. */
+    const widths = Object.create(null);
+    PIPE.stages.forEach((x) => { const cn = byId('pipeConn-' + x.id); if (cn) widths[x.id] = cn.parentNode.clientWidth; });
 
     const fill = byId('pipeFill');
-    if (fill) { fill.style.width = (PIPE.elapsed / PIPE.total * 100) + '%'; fill.classList.toggle('done', finished); }
+    if (fill) { fill.style.clipPath = 'inset(0 ' + (100 - PIPE.elapsed / PIPE.total * 100) + '% 0 0 round 99px)'; fill.classList.toggle('done', finished); }
     const st = byId('pipeStatus');
     if (st) {
-      st.textContent = finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label;
+      swapText(st, finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label);
       st.classList.toggle('done', finished);
     }
     const dot = byId('pipeDot');
@@ -3144,9 +3165,9 @@
       if (i > 0) {
         const pct = (state === 'pending' ? 0 : pipeProgressOf(i)) * 100;
         const cf = byId('pipeConn-' + x.id);
-        if (cf) { cf.style.width = pct + '%'; cf.classList.toggle('done', state === 'done'); }
+        if (cf) { cf.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0 round 99px)'; cf.classList.toggle('done', state === 'done'); }
         const cd = byId('pipeConnDot-' + x.id);
-        if (cd) { cd.hidden = state === 'done' || pct <= 1; cd.style.left = pct + '%'; }
+        if (cd) { cd.hidden = state === 'done' || pct <= 1; cd.style.transform = 'translate(calc(' + ((widths[x.id] || 0) * pct / 100) + 'px - 50%), -50%)'; }
       }
       const row = byId('pipeRow-' + x.id);
       if (row) {
@@ -3168,7 +3189,7 @@
            four lines at a time and then scrolled it away; the number that
            matters is the one the step ends on, and it belongs on the step. */
         const rs = row.querySelector('.pipe-row-sub');
-        if (rs) rs.textContent = state === 'done' ? x.logs[x.logs.length - 1].text.replace(/^✓\s*/, '') : '';
+        if (rs) swapText(rs, state === 'done' ? x.logs[x.logs.length - 1].text.replace(/^✓\s*/, '') : '');
       }
     });
 
@@ -3213,18 +3234,18 @@
               '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
             '</div>' +
             '<div class="pipe-head-state">' +
-              '<span class="pipe-status" id="pipeStatus">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
-              '<span class="pipe-live-dot pipe-pulse" id="pipeDot" aria-hidden="true"></span>' +
+              '<span class="pipe-status b-swap" id="pipeStatus">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '<span class="pipe-live-dot" id="pipeDot" aria-hidden="true"></span>' +
             '</div>' +
           '</div>' +
-          '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="width:0%"></div></div>' +
+          '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="clip-path:inset(0 100% 0 0 round 99px)"></div></div>' +
         '</header>' +
 
         '<section class="pipe-panel pipe-rail" aria-label="Stages">' +
           PIPE.stages.map((x, i) =>
             (i > 0
               ? '<div class="pipe-conn-wrap"><div class="pipe-conn">' +
-                  '<div class="pipe-conn-fill" id="pipeConn-' + esc(x.id) + '" style="width:0%"></div>' +
+                  '<div class="pipe-conn-fill" id="pipeConn-' + esc(x.id) + '" style="clip-path:inset(0 100% 0 0 round 99px)"></div>' +
                   '<span class="pipe-dot" id="pipeConnDot-' + esc(x.id) + '" hidden></span>' +
                 '</div></div>'
               : '') +
@@ -3241,7 +3262,7 @@
               '<span class="pipe-row-mark" data-state="idle"><span class="pipe-row-idle"></span></span>' +
               '<span class="pipe-row-text">' +
                 '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
-                '<span class="pipe-row-sub"></span>' +
+                '<span class="pipe-row-sub b-swap"></span>' +
               '</span>' +
               '<span class="pipe-row-time"></span>' +
             '</div>').join('') +
