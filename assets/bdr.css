@@ -699,3 +699,87 @@
    and the name of who noted it sits inside the sentence rather than beside
    it as a second line. */
 .s-block .s-callsum-mem { margin-top: 4px; }
+
+/* ══ 24. THE CAMPAIGN, AS A JOURNEY ════════════════════════════════════════
+   ONE VERTICAL RHYTHM. The sections on this page arrived with three different
+   gaps between them — the masthead's 24, the lead block's 32, the figure
+   strip's 32 and whatever the block before it left. Set once here, on the
+   page's own children, so a reader's eye learns one interval and stops
+   measuring. The back link and the masthead are one unit and sit closer. */
+/* Measured: .s-home is a grid with a 32px gap, and .s-block then adds a 24px
+   margin AND a 24px padding above its hairline, so two blocks in a row sat
+   80px apart while the masthead and the lead block sat 32. One interval —
+   the grid gap — and the hairline block keeps only its own 24px above the
+   rule, which is what makes the rule read as belonging to the block below. */
+.s-home > .s-back { margin-bottom: 0; }
+.s-home > .s-rec-head { margin-bottom: 0; }
+.s-home > .s-block + .s-block { margin-top: 0; }
+.s-home > .s-insight.is-lead { margin: 0; }
+
+/* THE HEADER'S THREE ROWS STEP BY SIZE AND WEIGHT. The goal is the sentence
+   the campaign exists for and was set at the same size as the date range
+   under it. Now: the goal at the small step in medium, the counts under it a
+   step down, and the name above both at the masthead. */
+.s-rec-facts > div:first-child {
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
+  max-width: 62ch; text-wrap: pretty;
+}
+.s-rec-facts > div + div { font-size: var(--fs-xs); color: var(--d200); margin-top: 2px; }
+.s-rec-facts > div + div b { color: var(--d50); }
+
+/* Today's run, under the deck. A fact line, not a second deck. */
+.b-lead-today {
+  margin: -8px 0 16px; font-size: var(--fs-xs); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-lead-today b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* THE FIGURE STRIP, TIGHTER, WITH THE FUNNEL BREATHING UNDER IT. The four
+   figures had 24px between columns and 32 below, then the bars started 4px
+   later — the strip floated and the funnel was crowded. */
+.s-afs { gap: 12px 24px; margin-bottom: 20px; }
+.b-funnel { margin: 0 0 6px; }
+
+/* A tile that opens a cut. It keeps the strip's anatomy and adds only what
+   says it can be pressed: the arrow in its sub-line, the caption turning to
+   accent on hover, and a press that answers. */
+.b-af-door {
+  font: inherit; color: inherit; background: none; text-align: left;
+  border: 0; border-top: 1px solid var(--card-border); cursor: pointer;
+  padding: 16px 0 0; display: flex; flex-direction: column; gap: 4px;
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast);
+}
+.b-af-door .s-af-sub { color: var(--accent-text); font-weight: var(--fw-semibold); }
+.b-af-door:active { transform: scale(0.985); }
+.b-af-door:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .b-af-door:hover { border-top-color: var(--accent); }
+}
+
+/* The readings as a list on the quote surface: one mark, then lines, each
+   with its basis at the end in the small step. Full width under the funnel
+   rather than the quote's 62ch — the bars above it are full width and a
+   narrower block under them reads as a different column. */
+/* Two classes, because the shell's `.s-insight.is-quote` is two classes and
+   one would lose to it — measured as a 62ch block under full-width bars. */
+.s-insight.is-quote.b-readings { max-width: none; margin: 16px 0 0; }
+.b-readings .s-lead-mark { color: var(--d300); }
+.b-reading-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.b-reading {
+  font-size: var(--fs-base); line-height: var(--lh-base); color: var(--d100);
+  max-width: 70ch; text-wrap: pretty;
+}
+.b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-reading .b-aimy-from { display: block; margin-top: 2px; }
+
+/* The folded opener sits after the title and wraps under it on a narrow
+   row, at the small step so the title stays the loud thing. */
+.b-sell-opener { max-width: 64ch; font-weight: var(--fw-medium); color: var(--d100); }
+
+/* The feed as a plain column. The shell's row is a grid with no horizontal
+   padding, so it already shares the cards' left edge — nothing to correct. */
+.b-feed { display: flex; flex-direction: column; gap: 10px; }
+.b-feed-row { padding: 0; }
+.b-feed > .b-month { margin: 14px 0 6px; }
+.b-feed > .b-month:first-child { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .b-af-door:active { transform: none; } }

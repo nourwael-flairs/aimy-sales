@@ -1416,14 +1416,6 @@
         rowClass: 's-brow', key: (n) => n.id, row: netRow,
         empty: 'Nothing matches those criteria.' });
     }
-    const feed = byId('campFeed');
-    if (feed) {
-      vlist({
-        host: feed, items: peek(campFeedItems(S.camp)).rows, rowH: 64, rowClass: 's-qrow',
-        key: (t) => t.id, row: campTouchRow,
-        empty: 'Nothing has happened on this campaign yet.',
-      });
-    }
     const af = byId('accFeed');
     if (af) {
       vlist({
@@ -1758,7 +1750,35 @@
     return DB.touch.filter((t) => t.camp === campId).sort((a, b) => (a.at > b.at ? -1 : 1));
   }
 
-  function campTouchRow(t) {
+  /* ══ THE LAST EIGHT, UNDER THE DAY THEY HAPPENED ═══════════════════════
+     A windowed list for eight rows was machinery with nothing to window,
+     and it cost the one thing a caller back from a run wants: to see at a
+     glance what happened TODAY. A plain list, a heading where the day
+     changes, the count of what it is the last eight of. */
+  const dayLabel = (iso) => {
+    const n = daysBetween(iso.slice(0, 10), TODAY_ISO);
+    return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : sayDay(iso);
+  };
+  function feedBlock(items) {
+    if (!items.length) {
+      return '<p class="b-vfoot">Nothing has happened on this campaign yet.</p>';
+    }
+    const pg = peek(items);
+    let day = '';
+    return '<div class="b-feed">' + pg.rows.map((t) => {
+      const d = t.at.slice(0, 10);
+      const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(t.at)) + '</h3>' : '';
+      day = d;
+      return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
+    }).join('') + '</div>' + peekFoot(pg, 'call');
+  }
+
+  const timeOf = (iso) => {
+    const d = new Date(iso);
+    const p2 = (x) => String(x).padStart(2, '0');
+    return p2(d.getHours()) + ':' + p2(d.getMinutes());
+  };
+  function campTouchRow(t, underDay) {
     const c = DB.byCon[t.con];
     const o = OUTCOME[t.outcome];
     const head = kindLabel(t);
@@ -1766,7 +1786,7 @@
         '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
           esc(c ? c.name : 'Somebody') + '</button>' +
         '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(actor(t.by).name) +
-          ' · ' + esc(sayWhen(t.at)) + '</span>' +
+          ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
       '</div>' +
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
   }
@@ -2205,7 +2225,13 @@
          actions go underneath, where appearing and disappearing costs
          nothing above them. */
       '<div class="s-camp-list-head">' +
-        (S.camp ? '<h2 class="s-block-h">To call</h2>' : switcher('calls')) +
+        (S.camp
+          ? '<h2 class="s-block-h">To call</h2>' +
+            /* "Never rung 102" three sections down and "New 58" on the chip
+               are both right — the roster, and who is callable now — and the
+               page never said so. This is the number the chips add up to. */
+            '<span class="s-block-say"><b>' + commas(all.length) + '</b> you can ring now</span>'
+          : switcher('calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
@@ -3100,7 +3126,15 @@
       backBtn('data-home', 'Back to the briefing') +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Campaign · ' + esc(actor(k.owner).name) + '</span>' +
+        /* "Campaign · Lina Haddad" read as a person's name. The owner is
+           labelled, and the crew — who else is ringing these people — is on
+           the page for the first time. */
+        '<span class="s-rec-kind">Campaign · owned by ' + esc(actor(k.owner).name) +
+          (function () {
+            const crew = k.crew.filter((id) => id !== me().id && id !== k.owner)
+              .map((id) => actor(id).name);
+            return crew.length ? ' · with ' + esc(listSay(crew)) : '';
+          })() + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
@@ -3119,8 +3153,9 @@
         '<div class="s-rec-actions">' +
           (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
             esc(k.id) + '">Call the next one</button>' : '') +
-          (ring.length ? '<button class="s-inline-btn" type="button" data-callall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' : '') +
+          /* "Call these 15" is about the fifteen on the page of the queue, so
+             it sits with the queue and nowhere else — it was here too, and a
+             control repeated is a decision repeated. */
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
              the only door to the finder was on a surface two clicks away
              that does not know which campaign you were working. */
@@ -3150,8 +3185,7 @@
       '<section class="s-block s-block-wide" aria-label="What happened">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2>' +
           '<span class="s-block-say">newest first</span></div>' +
-        '<div class="b-vlist" id="campFeed"></div>' +
-        peekFoot(peek(campFeedItems(k.id)), 'call') +
+        feedBlock(campFeedItems(k.id)) +
       '</section>' +
     '</div>';
   }
@@ -3209,7 +3243,25 @@
     const fresh = queue(k.id, 'not-called').length;
     const back = queue(k.id, 'callback').length;
 
-    const deck = !st.target
+    /* ══ YOUR OWN FOOTPRINT, FIRST ═══════════════════════════════════════
+       The same "18 of 22, 1 a week" whether you had made two hundred calls
+       on this campaign or none. A caller opening it for the first time does
+       not need the rate; they need to know they have not started and where
+       the pitch is. And a caller back from a run needs to see the run. */
+    const meId = me().id;
+    const myCalls = DB.touch.filter((t) => t.camp === k.id && t.by === meId && OUTCOME[t.outcome]);
+    const today = myCalls.filter((t) => t.at.slice(0, 10) === TODAY_ISO);
+    const fresh0 = !myCalls.length;
+    const todayLine = today.length
+      ? '<p class="b-lead-today">Today: <b>' + plural(today.length, 'call') + '</b>' +
+        ' · <b>' + today.filter((t) => t.outcome === 'reached').length + '</b> got through' +
+        ' · <b>' + today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length +
+        '</b> meetings set.</p>'
+      : '';
+
+    const deck = fresh0
+      ? 'You have not rung anyone on this campaign yet. Read what to say, then call the next one.'
+      : !st.target
       ? 'This one has no number in its goal, so there is nothing to measure it against.'
       : !st.need
         ? 'It is past its goal. Everything from here is on top.'
@@ -3235,10 +3287,13 @@
             ' on it.') + '</span>' +
       '</div>' +
       '<p class="s-lead-deck">' + deck + '</p>' +
+      todayLine +
       '<div class="s-lead-acts">' +
-        (all.length
-          ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
-            esc(k.id) + '">Call the next one</button>' : '') +
+        /* Call the next one is sixty pixels up, in the header. Here the
+           doors are the cuts, and on a first visit the pitch. */
+        (fresh0
+          ? '<button class="s-insight-lnk primary" type="button" data-pitch>Read what to say</button>'
+          : '') +
         (back ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
@@ -3273,29 +3328,9 @@
     const left = daysBetween(TODAY_ISO, k.to);
     const out = [];
 
-    const target = Number((k.goal.match(/\b(\d{1,4})\b/) || [])[1]);
-    if (target) {
-      /* ══ IT HAS TO COUNT THE THING THE GOAL COUNTS ══════════════════════
-         The first cut counted everyone who had ever been got on the phone
-         against a goal that asks for MEETINGS, and reported "35 of the 22
-         this campaign is for" — a progress line claiming a hundred and sixty
-         per cent while a hundred and eleven people sat unrung under it. The
-         goal's own verb decides the rung: a campaign to book meetings is
-         measured at `meeting-set`, one to open conversations at `answered`.
-         Said in the ladder's words rather than the goal's, so the sentence
-         cannot claim to have parsed a goal it only skimmed. */
-      const wantsMeeting = !/\bconversation/i.test(k.goal);
-      const at = wantsMeeting ? 'meeting-set' : 'answered';
-      const done = members.filter((c) => rank(c.checkpoint) >= rank(at)).length;
-      out.push({
-        text: '<b>' + commas(done) + '</b> ' + (wantsMeeting
-          ? 'have a meeting in a diary' : 'have been got on the phone') +
-          ', against a goal of <b>' + commas(target) + '</b>.' +
-          (left > 0 ? ' ' + plural(left, 'day') + ' left.' : ' Past its end date.'),
-        from: 'the goal and where its people stand',
-      });
-    }
-
+    /* The goal is the lead block's figure and deck, sixty pixels under the
+       masthead. Saying it again here made the first reading under the bars a
+       copy of the first thing on the page. */
     /* What this audience says no about, counted, with the answer the
        campaign has already agreed to it. */
     const objs = Object.create(null);
@@ -3366,10 +3401,25 @@
 
   /* Each reading is a block, and one with somewhere to go carries the door
      rather than describing where you would find it. */
+  /* ══ ONE QUIET BLOCK, NOT THREE ANNOUNCEMENTS ══════════════════════════
+     Three full-width accent panels under the funnel, on a page that opens
+     with a fourth: the page said "this matters most" four times and meant
+     it once. The shell's quote register — a raised surface, one mark, no
+     accent — is built for exactly this: AiMY's reading OF the bars above,
+     not a second announcement competing with the first. */
   function campAimy(k) {
     const rs = campReadings(k);
     if (!rs.length) return '';
-    return rs.map(aimyBlock).join('');
+    return '<div class="s-insight is-quote b-readings">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>Read off the bars above' +
+      '</div>' +
+      '<ul class="b-reading-list">' + rs.map((r) =>
+        '<li class="b-reading">' + r.text +
+          '<span class="b-aimy-from">' + esc(r.from) + '</span></li>').join('') +
+      '</ul>' +
+    '</div>';
   }
 
   /* Where the campaign's people stand. Informational: these are rungs, and
@@ -3426,12 +3476,22 @@
   function campStands(k) {
     const st = campStand(k);
     const n = st.n;
-    const fig = (cap, val, sub, tone) =>
-      '<div class="s-af">' +
+    /* ══ THE TILE IS THE DOOR ═══════════════════════════════════════════
+       Two of the four figures map onto a cut of the queue. The tile shows
+       the roster count — the fact — and its sub-line says how many of them
+       you can ring now, which is the number on the other side of the door.
+       So the door is labelled with the room behind it. */
+    const fig = (cap, val, sub, tone, q) => {
+      const inner =
         '<span class="s-af-cap">' + esc(cap) + '</span>' +
         '<span class="s-af-val' + (tone ? ' tone-' + tone : '') + '">' + commas(val) + '</span>' +
-        '<span class="s-af-sub">' + esc(sub) + '</span>' +
-      '</div>';
+        '<span class="s-af-sub">' + esc(sub) + '</span>';
+      return q
+        ? '<button class="s-af b-af-door" type="button" data-q="' + esc(q) + '">' + inner + '</button>'
+        : '<div class="s-af">' + inner + '</div>';
+    };
+    const ringNew = queue(k.id, 'not-called').length;
+    const ringNo = queue(k.id, 'no-answer').length;
 
 
     return '<section class="s-block s-block-wide" aria-label="Where it stands">' +
@@ -3440,8 +3500,12 @@
         ' on this campaign</span></div>' +
 
       '<div class="s-afs">' +
-        fig('Never rung', n['not-called'] || 0, 'nobody has tried them yet') +
-        fig('Rung, no answer', n['no-answer'] || 0, 'tried and never picked up') +
+        fig('Never rung', n['not-called'] || 0,
+          ringNew ? commas(ringNew) + ' of them you can ring now →' : 'none of them callable now',
+          null, ringNew ? 'not-called' : null) +
+        fig('Rung, no answer', n['no-answer'] || 0,
+          ringNo ? commas(ringNo) + ' of them you can ring now →' : 'none of them callable now',
+          null, ringNo ? 'no-answer' : null) +
         fig('Reached', st.reached, 'you got them on the phone', 'ok') +
         fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
           (n.interested || 0) + (n['handed-over'] || 0), 'a time in a diary', 'ok') +
@@ -3469,6 +3533,12 @@
      STILL A DISCLOSURE, open the first time and however you left it after.
      A caller who has run this campaign for three weeks does not need the
      pitch on screen above the feed every time they come back. */
+  /* The first sentence of a pitch, cut at a word if it runs long. */
+  const firstSentence = (t) => {
+    const one = String(t || '').split(/(?<=[.!?])\s/)[0] || '';
+    return one.length > 96 ? one.slice(0, 92).replace(/\s+\S*$/, '') + '…' : one;
+  };
+
   function sellingBlock(k) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cap = (t) => '<h3 class="b-sell-cap">' + esc(t) + '</h3>';
@@ -3488,8 +3558,11 @@
         '<span class="b-say-v">' + esc(r[1]) + '</span>').join('') + '</div>';
     return '<details class="s-block s-block-wide b-sell" id="pitchBox"' +
       (UI.pitchSeen ? '' : ' open') + '>' +
+      /* THE FOLDED LINE IS THE OPENER. It listed the product names, which
+         are on the campaign card and in the header; the one thing a folded
+         block should hand you is the sentence you are about to say. */
       '<summary class="b-sell-sum"><span class="s-block-h">What to say</span>' +
-        '<span class="s-block-say">' + esc(sells.map((x) => x.name).join(' and ')) +
+        '<span class="s-block-say b-sell-opener">' + esc(firstSentence(k.pitch)) +
         '</span></summary>' +
       '<div class="b-sell-body">' +
 
@@ -6170,6 +6243,18 @@
     }
 
     if (t.closest('[data-findclear]')) { go({ find: '', p: '' }, true); return; }
+
+    /* The first-visit door: open the pitch and take you to it. Smooth only
+       when motion is welcome. */
+    if (t.closest('[data-pitch]')) {
+      const box = byId('pitchBox');
+      if (box) {
+        box.open = true;
+        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        box.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+      }
+      return;
+    }
 
     const cut = t.closest('[data-q]');
     if (cut) {
