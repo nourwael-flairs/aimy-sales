@@ -639,10 +639,10 @@
 /* T5 — THE CURRENT SURFACE IS UNDERLINED. Colour alone marked which of
    Calls / Campaigns / Lists you were on, and on the calls surface all three
    sat at nearly the same ink. A two-pixel rule under the current one, in ink
-   rather than accent, because it is a position and not an action. No
-   transition: it is a control pressed all day, and motion on it is delay. */
+   rather than accent, because it is a position and not an action. The rule
+   is one element that slides between positions (§32); the page itself
+   never waits for it. */
 .b-switch-btn { padding-bottom: 4px; }
-.b-switch-btn.is-on { box-shadow: inset 0 -2px 0 var(--d50); }
 
 /* T6 — THE SEARCH BOX SAYS IT HAS FOCUS. The border already turns accent;
    a 3px ring at 18% is the standard input focus and reads at a glance from
@@ -1213,3 +1213,22 @@ button.pipe-chip:active { transform: scale(0.97); }
   pointer-events: none; transition-duration: 160ms;
 }
 @media (prefers-reduced-motion: reduce) { .s-toast { transition: none; } }
+
+/* ══ 32. THE RULE SLIDES, AND A CHANGED FIGURE TICKS ═══════════════════════
+   The page is rebuilt from a string, so nothing on it knows where it was a
+   frame ago. Two things want to. The rule under Calls · Campaigns · Lists is
+   one bar placed by transform; before a repaint its place is read, after it
+   the bar is put back there and let go — 160ms, ease-in-out, because it is
+   movement on screen and not an entrance. And a figure a write just changed
+   — a chip's count, the roster figures on a campaign, the three counts in the
+   switcher — ticks once, the new number rising through 4px of blur. Never on
+   load, never on scroll, never for navigating: only for what you just did. */
+.b-switch { position: relative; }
+.b-switch-bar {
+  position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
+  transform-origin: left center; transition: transform 160ms cubic-bezier(0.77, 0, 0.175, 1);
+  pointer-events: none;
+}
+.b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
+@keyframes b-tick { from { opacity: 0; transform: translateY(5px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }

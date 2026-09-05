@@ -1162,7 +1162,10 @@
     dismissed: [], read: [], made: [] };
 
   let saveTimer = null;
+  /* A write flags the next paint, so the figures it changed can tick. */
+  let FIG_TICK = false;
   function save() {
+    FIG_TICK = true;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(saveNow, 250);
   }
@@ -1429,7 +1432,48 @@
      `#chipBar` belong to a workbench this build does not have — a filter row
      standing above a queue that reads no filters is a control that lies
      about what it does. */
+  /* ══ WHAT THE LAST PAINT LEFT BEHIND ═══════════════════════════════════
+     The page is rebuilt from a string, so nothing on it knows where it was
+     a frame ago. Two things want to: the rule under Calls · Campaigns ·
+     Lists, which slides from the surface you left to the one you chose, and
+     the figures a write just changed, which tick once. Both are read before
+     the rebuild and settled after it (bdr.css §32). */
+  function prePaint() {
+    const out = { bar: null, figs: null };
+    const on = document.querySelector('.b-switch-btn.is-on');
+    if (on) out.bar = { x: on.offsetLeft, w: on.offsetWidth };
+    if (FIG_TICK) {
+      out.figs = Object.create(null);
+      document.querySelectorAll('[data-fig]').forEach((el) => { out.figs[el.getAttribute('data-fig')] = el.textContent; });
+    }
+    FIG_TICK = false;
+    return out;
+  }
+  /* FLIP: put the bar where it was, let the browser see it there, then
+     send it where it goes. No previous place, no motion. */
+  function placeSwitchBar(from) {
+    const bar = document.querySelector('.b-switch-bar');
+    const on = document.querySelector('.b-switch-btn.is-on');
+    if (!bar || !on) return;
+    if (from && (from.x !== on.offsetLeft || from.w !== on.offsetWidth)) {
+      bar.style.transition = 'none';
+      bar.style.transform = 'translateX(' + from.x + 'px) scaleX(' + from.w + ')';
+      void bar.offsetWidth;
+      bar.style.transition = '';
+    }
+    bar.style.transform = 'translateX(' + on.offsetLeft + 'px) scaleX(' + on.offsetWidth + ')';
+  }
+  function postPaint(pre) {
+    placeSwitchBar(pre.bar);
+    if (!pre.figs) return;
+    document.querySelectorAll('[data-fig]').forEach((el) => {
+      const was = pre.figs[el.getAttribute('data-fig')];
+      if (was === undefined || was === el.textContent) return;
+      el.innerHTML = '<span class="b-tick">' + el.innerHTML + '</span>';
+    });
+  }
   function paint() {
+    const pre = prePaint();
     dropLists();
     GRID_AT = -1;
     byId('navBar').innerHTML = '';
@@ -1451,6 +1495,7 @@
     refreshTasks();
     paintProto();
     guardBack();
+    postPaint(pre);
   }
 
   /* The lists a surface declares, mounted after its markup exists. Kept apart
@@ -1974,11 +2019,12 @@
       '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
       'data-go="' + esc(JSON.stringify(over)) + '"' +
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
-      '<span class="b-switch-n">' + commas(n) + '</span></button>';
+      '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span></button>';
     return '<h2 class="b-switch">' +
       one('calls', 'Calls', queue().length, cleared()) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
+      '<span class="b-switch-bar" aria-hidden="true"></span>' +
     '</h2>';
   }
 
@@ -2194,7 +2240,7 @@
     const on = S.q || 'all';
     const chip = (k, label, n) =>
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
-      esc(k) + '">' + esc(label) + '<span class="b-cut-n">' + commas(n) + '</span></button>';
+      esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span></button>';
     return '<div class="b-cuts">' + chip('all', 'All', all.length) +
       BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') + '</div>';
   }
@@ -4043,7 +4089,7 @@
     const fig = (cap, val, sub, tone, q) => {
       const inner =
         '<span class="s-af-cap">' + esc(cap) + '</span>' +
-        '<span class="s-af-val' + (tone ? ' tone-' + tone : '') + '">' + commas(val) + '</span>' +
+        '<span class="s-af-val' + (tone ? ' tone-' + tone : '') + '" data-fig="stand:' + esc(cap) + '">' + commas(val) + '</span>' +
         '<span class="s-af-sub">' + esc(sub) + '</span>';
       return q
         ? '<button class="s-af b-af-door" type="button" data-q="' + esc(q) + '">' + inner + '</button>'
@@ -7558,6 +7604,10 @@
     if (DB.call) { skipCall(); }
   });
 
+  window.addEventListener('resize', () => placeSwitchBar(null));
+  /* The webfont lands after the first paint and the buttons narrow under
+     the bar; it is placed again when the fonts are in. */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSwitchBar(null));
   window.addEventListener('popstate', (e) => {
     if (BACK_GUARD && !(e.state && e.state.aimyGuard) && S.build === 'done' && DRAFT && (DRAFT.rows || []).length) {
       history.pushState({ aimyGuard: 1 }, '', location.href);
