@@ -664,3 +664,38 @@
   .b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active,
   .b-qcard[data-open]:active { transform: none; }
 }
+
+/* ══ 23. THE RECORD, AS A JOURNEY ══════════════════════════════════════════
+   The lead block on a person is the campaign's lead without the figure: one
+   reading at the deck step and a door. The campaign's 24px padding and 32px
+   margins are for a block that opens a page; this one sits between a masthead
+   and the ladder, and at that size read as a second header. */
+.s-insight.is-lead.b-lead-slim { padding: 16px 18px; margin: 4px 0 8px; }
+.b-lead-slim .s-lead-deck { margin-bottom: 12px; font-size: var(--ty-heading); }
+.b-lead-slim .s-lead-mark { margin-bottom: 8px; }
+
+/* What is owed and the ways to move it, on one line. The sentence leads and
+   the chips follow at baseline, so "Call them back due tomorrow" reads as a
+   fact with three answers beside it rather than as a label over a row. */
+.b-owed {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 10px 0 12px;
+}
+.b-owed-say { font-size: var(--fs-xs); color: var(--d200); margin-right: 6px; }
+.b-owed-say b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* The month over a run of touchpoints. Small, at full ink, with the space
+   above it doing the separating — a rule would compete with the cards. */
+.b-month {
+  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
+}
+.s-calls > .b-month:first-child { margin-top: 0; }
+
+/* The way out, at the end of the action row and pushed to its far side so it
+   reads as an exit and not as a fourth thing to do to this person. */
+.b-next { margin-left: auto; }
+/* Remember on the record wears the same raised tint the touchpoint cards use,
+   and the name of who noted it sits inside the sentence rather than beside
+   it as a second line. */
+.s-block .s-callsum-mem { margin-top: 4px; }

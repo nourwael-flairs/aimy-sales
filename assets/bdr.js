@@ -90,6 +90,13 @@
 
   /* "12 Mar" / "12 Mar 2026" — never numeric. A numeric date is ambiguous
      across regions and slower to read, and this corpus spans EMEA. */
+  /* "August 2026" — a heading over a run of days. */
+  const monthName = (iso) => {
+    const d = new Date(iso.slice(0, 10) + 'T00:00:00');
+    const full = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December'];
+    return full[d.getMonth()] + (d.getFullYear() === TODAY.getFullYear() ? '' : ' ' + d.getFullYear());
+  };
   const sayDay = (iso) => {
     if (!iso) return '';
     const d = new Date(iso.slice(0, 10) + 'T00:00:00');
@@ -1512,14 +1519,17 @@
      So each branch names the record it came from. Ranked by how much it
      changes the next sixty seconds — something a person wrote down beats
      something the pattern noticed. */
-  function aimySays(c) {
+  function aimySays(c, onRecord) {
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist[0];
     const a = accOf(c);
 
-    /* Somebody wrote this down about them, on purpose. */
-    if (c.remember) {
+    /* Somebody wrote this down about them, on purpose. On the record it
+       already has a home — the stand section prints it — so the reading
+       moves on to the next thing it knows rather than saying it twice on
+       one screen. */
+    if (c.remember && !onRecord) {
       return { text: esc(c.remember.text), from: actor(c.remember.by).name + ' noted it' };
     }
     /* They pushed back, and the campaign has an agreed answer to it. */
@@ -3665,6 +3675,19 @@
   /* ══ ONE PERSON ═════════════════════════════════════════════════════════
      Who they are, where they stand on the ladder, and what has been said.
      The brief and the post-meeting controls arrive with the call panel. */
+  /* ══ ONE PERSON, AS A JOURNEY ═══════════════════════════════════════════
+     You arrive from a card, the bell or a read-back with one question — who
+     is this and what do I do — and the old page answered it with the name in
+     a 132px caption slot over seven lines at one weight, the actions spread
+     across three of them, and where they stand said three separate ways.
+
+     Now it reads top to bottom in the order the question is asked: who (the
+     masthead, with the rung as a chip beside the name), what AiMY makes of
+     them with a door, what to do (one row, the primary decided by the rung),
+     where they stand (the ladder, what is owed, what to remember — once),
+     and what has been said, grouped by month. The last thing on the action
+     row is the next person in the queue, because a finished record is one
+     press from the next call and should not need the briefing in between. */
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
@@ -3677,48 +3700,63 @@
     }
     const a = accOf(c);
     const camps = campsOf(c);
+    const mineCamp = camps.filter(mine)[0] || camps[0];
+    const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
+    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
     const n = (DB.touchesOf[c.id] || []).length;
+
     return '<div class="s-home">' +
       backBtn('data-back', 'Back to the briefing') +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">' + esc(c.name) + '</h2>' +
-        '<div class="s-rec-body">' +
-          '<p class="s-block-sub">' + esc(c.title) + ' at ' +
-            (a
-              ? '<button class="s-inline-btn" type="button" data-acc="' + esc(a.id) + '">' +
-                  esc(a.name) + '</button>' +
-                ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' +
-                esc(a.country) + ' · ' + commas(a.size) + ' staff'
-              : 'an unknown account') + '</p>' +
-          '<p class="s-block-sub">' +
-            (c.phone
-              ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(c.id) +
-                '">Call ' + esc(c.name.split(' ')[0]) + '</button>' +
-                ' <a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' +
-                esc(c.phone) + '</a>'
-              : 'No number on file.') +
-            (camps.length ? ' · On ' + camps.map((k) => esc(k.name)).join(', ') : ' · On no campaign') +
-          '</p>' +
-          ladder(c) +
-          '<p class="s-block-sub">' + esc(whatNext(c)) + '</p>' +
-          movesBlock(c) +
-          (c.next ? '<p class="s-block-sub">Next: <b>' + esc(c.next.what) + '</b> ' +
-            esc(sayWhen(c.next.due)) + '.</p>' +
-            '<div class="b-cuts">' +
-              [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']].map((d) =>
-                '<button class="filter-chip" type="button" data-movenext="' + d[0] + '">' +
-                esc(d[1]) + '</button>').join('') +
-              '<button class="filter-chip" type="button" data-movenext="clear">Drop it</button>' +
-            '</div>'
-            : '') +
-          (c.remember ? '<p class="s-block-sub">Remember — ' + esc(c.remember.text) +
-            ' <i>' + esc(actor(c.remember.by).name) + '</i></p>' : '') +
-          /* The same line the card carries, on the surface you land on when
-             you press the card. A reading that only exists in a grid is a
-             reading you lose by opening the thing it is about. */
-          aimyBlock(aimySays(c)) +
+
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">Person' +
+          (mineCamp ? ' · on ' + esc(mineCamp.name) : ' · on no campaign') +
+          (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '') + '</span>' +
+        '<div class="s-rec-title">' +
+          '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
+          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
         '</div>' +
+        '<div class="s-rec-facts">' +
+          '<div>' +
+            '<span>' + esc(c.title) + '</span>' +
+            (a ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
+              '">' + esc(a.name) + '</button></span>' +
+              '<span>' + esc(INDUSTRY[a.industry].label) + '</span>' +
+              '<span>' + esc(a.city) + ', ' + esc(a.country) + '</span>' +
+              '<span>' + commas(a.size) + ' staff</span>' : '') +
+          '</div>' +
+          '<div>' +
+            (c.phone
+              ? '<span><a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
+                '">' + esc(c.phone) + '</a></span>'
+              : '<span>No number on file</span>') +
+            /* [7] A REASON TO OPEN THE COMPANY. A caller whose number rings
+               out needs a colleague, not a company profile — so the fact that
+               there are colleagues is on the record, with the door. */
+            (others.length
+              ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
+                '">' + plural(others.length, 'other') + ' at ' + esc(a.name) + '</button></span>'
+              : (a ? '<span>the only person here</span>' : '')) +
+          '</div>' +
+        '</div>' +
+        actionsRow(c) +
       '</section>' +
+
+      conLead(c) +
+
+      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
+          '<span class="s-block-say">' + esc(plural(c.attempts, 'attempt')) + '</span></div>' +
+        ladder(c) +
+        '<p class="s-block-sub">' + esc(whatNext(c)) + '</p>' +
+        owedLine(c) +
+        (c.remember
+          ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
+            esc(c.remember.text) + ' <span class="b-faint">— ' +
+            esc(actor(c.remember.by).name) + '</span></p>'
+          : '') +
+      '</section>' +
+
       '<section class="s-block s-block-wide" aria-label="What has been said">' +
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">What has been said</h2>' +
@@ -3729,6 +3767,97 @@
     '</div>';
   }
 
+  /* ══ ONE ROW, AND THE RUNG DECIDES WHICH IS FIRST ══════════════════════
+     Call was always the primary, even on a lead with a meeting in a diary
+     — where the one thing this page is waiting for is whether they turned
+     up. The rung says what the next press is; the row puts it first and
+     everything else after it in the order it is likely to be needed. */
+  function actionsRow(c) {
+    const first = c.name.split(' ')[0];
+    const call = c.phone
+      ? { html: 'Call ' + esc(first), attr: 'data-call="' + esc(c.id) + '"' } : null;
+    const moves = movesFor(c).map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
+    const send = (c.checkpoint === 'answered' || c.checkpoint === 'callback')
+      ? { html: 'Send the company profile', attr: 'data-sendprofile="' + esc(c.id) + '"' } : null;
+    /* Past a meeting the question is what happened at it; before one, the
+       question is the phone. */
+    const settling = rank(c.checkpoint) >= rank('meeting-set') && !isExit(c.checkpoint);
+    const list = (settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
+      .concat(send ? [send] : []);
+    /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
+       uses, so the name here is the card that would be first if you went
+       back — which is the whole point of not going back. */
+    const next = queue(null, 'all').filter((x) => x.id !== c.id)[0];
+    return '<div class="s-rec-actions">' +
+      list.map((b, i) =>
+        '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
+        b.attr + '>' + b.html + '</button>').join('') +
+      (!list.length
+        ? '<span class="s-block-sub">' + esc(isExit(c.checkpoint)
+            ? rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.'
+            : 'The director has it now.') + '</span>'
+        : '') +
+      (next
+        ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
+          'Next in the queue: ' + esc(next.name) + ' →</button>'
+        : '') +
+    '</div>';
+  }
+  const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
+
+  /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
+     The card's punchline was the last line of the record's header, under
+     Remember, with no door. It is the one reading on the page, so it gets
+     the lead block — compact, because the figure the campaign's lead opens
+     with has no equivalent for one person — and the door follows from what
+     the reading found: a number that never answers wants a colleague; a
+     screened call wants the hour; anything else wants the phone. */
+  function conLead(c) {
+    const said = aimySays(c, true);
+    /* A LEAD BLOCK EARNS ITS PLACE OR IS NOT DRAWN. The reader's last resort
+       is "Last was callback, 23 Aug" — a fact the ladder two sections down
+       already states with the date beside it. Announced at the deck step in
+       an accent panel, it promised a finding and delivered a timestamp. */
+    if (!said || said.from === 'the touchpoint before this one') return '';
+    const a = accOf(c);
+    const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const last = hist[0];
+    let door = '';
+    if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
+      door = '<button class="s-insight-lnk" type="button" data-acc="' + esc(a.id) + '">' +
+        'Try one of the ' + others.length + ' others at ' + esc(a.name) + '</button>';
+    } else if (last && last.outcome === 'gatekeeper' && c.phone) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
+        'Ring the mobile now</button>';
+    } else if (c.phone && callable(c)) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
+        'Call ' + esc(c.name.split(' ')[0]) + '</button>';
+    }
+    return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">' + esc(said.from) + '</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' + said.text + '</p>' +
+      (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
+    '</section>';
+  }
+
+  /* [4] What is owed, and the three ways to move it, on one line. */
+  function owedLine(c) {
+    if (!c.next) return '';
+    const late = daysBetween(TODAY_ISO, c.next.due) < 0;
+    return '<div class="b-owed">' +
+      '<span class="b-owed-say"><b>' + esc(c.next.what) + '</b> ' +
+        (late ? 'was due ' : 'due ') + esc(sayWhen(c.next.due)) + '</span>' +
+      [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']].map((d) =>
+        '<button class="filter-chip" type="button" data-movenext="' + d[0] + '">' +
+        esc(d[1]) + '</button>').join('') +
+      '<button class="filter-chip" type="button" data-movenext="clear">Drop it</button>' +
+    '</div>';
+  }
   /* ══ EVERY TOUCHPOINT, WITH THE WHOLE OF IT INSIDE ═════════════════════
      It was a one-line row: outcome, who, when, and the note squeezed beside
      them. Everything a call actually produced — what was asked for, what
@@ -3749,9 +3878,17 @@
         ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
     }
     const pg = peek(all);
+    /* GROUPED BY MONTH. Thirteen touchpoints over four months read as one
+       list; a month heading where the month changes is what every timeline
+       in the references does, and it costs nothing when there is one. */
+    let month = '';
     return '<div class="s-calls">' + pg.rows.map((t, i) => {
       const o = OUTCOME[t.outcome];
-      return '<details class="s-call"' + (i === 0 ? ' open' : '') + '>' +
+      const m = t.at.slice(0, 7);
+      const head = m !== month
+        ? '<h3 class="b-month">' + esc(monthName(t.at)) + '</h3>' : '';
+      month = m;
+      return head + '<details class="s-call"' + (i === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
           '<span class="s-call-by' + (t.by === 'aimy' ? ' is-ai' : '') + '">' +
@@ -3761,38 +3898,16 @@
           '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
         '</summary>' +
         '<div class="s-call-body">' +
-          callSummaryHtml(factsOfTouch(t), c, t.note, t.lines) +
+          /* The record's Remember is printed once, in the stand section. On
+             the read-back card it travels with the call because the canvas
+             is somewhere else; on the record's own history it was the same
+             sentence on every one of eight cards. */
+          callSummaryHtml(factsOfTouch(t), Object.assign({}, c, { remember: null }), t.note, t.lines) +
         '</div>' +
       '</details>';
     }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
   }
 
-  /* The rungs only a person can settle. Rendered only where they apply — a
-     lead nobody has met is offered nothing here, because the answer to "did
-     they show up" is not "no", it is "there was no meeting". */
-  function movesBlock(c) {
-    const ms = movesFor(c);
-    if (!ms.length) {
-      /* An exit says why nothing is on offer rather than showing an empty
-         row. A surface with no action has to say why there is none. */
-      return isExit(c.checkpoint)
-        ? '<p class="s-block-sub">' + esc(RUNG[c.checkpoint].say) +
-          ', so there is nothing to move. Undo on the toast is the way back.</p>'
-        : c.checkpoint === 'handed-over'
-          ? '<p class="s-block-sub">The director has it now. Past the handover it stops being a BDR lead.</p>'
-          : '';
-    }
-    return '<div class="b-cuts">' + ms.map((m, i) =>
-      '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
-      '" type="button" data-move="' + esc(m.k) + '">' + esc(m.label) + '</button>').join('') +
-      /* Offered wherever they have been reached and there is no meeting:
-         that is exactly the case the process calls "showed no interest". */
-      (c.checkpoint === 'answered' || c.checkpoint === 'callback'
-        ? '<button class="s-inline-btn" type="button" data-sendprofile="' + esc(c.id) +
-          '">Send the company profile</button>'
-        : '') +
-    '</div>';
-  }
 
   /* ══ WHAT HAPPENS NEXT, AND WHOSE JOB IT IS ════════════════════════════
      The ladder says where they stand. It does not say what standing there
