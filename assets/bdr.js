@@ -6119,6 +6119,12 @@
      its buttons on screen and loses their live-ness rather than losing the
      buttons: the thread is a record, and deleting what you chose between
      would hide the choice. */
+  /* A KEY IN A HINT IS DRAWN AS A KEY. The digits 1–7 have set the outcome
+     of a call since the first build and nothing on screen said so; the
+     read-back's hint says it now, and [1] in a hint becomes a keycap. */
+  function kbdify(text) {
+    return esc(text).replace(/\[(\w)\]/g, '<kbd class="b-kbd">$1</kbd>');
+  }
   function turnHtml(t) {
     if (t.who === 'you') {
       return '<div class="chat-msg user">' + msgAvatar('you') +
@@ -6126,7 +6132,7 @@
     }
     return '<div class="chat-msg aimy">' + msgAvatar('aimy') +
       '<div class="msg-bubble">' + t.html +
-        (t.hint ? '<p class="s-cb-hint">' + esc(t.hint) + '</p>' : '') +
+        (t.hint ? '<p class="s-cb-hint">' + kbdify(t.hint) + '</p>' : '') +
         /* A QUESTION MAY SHOW ITS WORKING. The read-back asks whether a set
            of values is right, and the values have to be on screen for the
            question to mean anything — so a turn may carry markup between its
@@ -6669,7 +6675,7 @@
     TURNS.push({
       who: 'aimy',
       html: esc(logSay(call)) + ' Is that right?',
-      hint: 'Or tell me what I got wrong.',
+      hint: 'Or tell me what I got wrong, or press [1] to [7] for the outcome.',
       /* THE NOTE COMES OFF THE PROPOSAL and stays on the record's card. Here
          it is either the sentence you typed one line above or the paraphrase
          AiMY said one line above, and a card that repeats the two things

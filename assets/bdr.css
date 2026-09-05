@@ -1241,3 +1241,73 @@ button.pipe-chip:active { transform: scale(0.97); }
 .chat-msg.b-arrive { animation: b-arrive 200ms var(--ease-out) both; }
 @keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
+
+/* ══ 34. A DISCLOSURE OPENS; IT DOES NOT SNAP ══════════════════════════════
+   The pitch box, a call on the timeline and a transcript are <details>, and
+   a <details> snaps open. ::details-content with interpolate-size lets the
+   height run 200ms out; a browser without it keeps the snap. The chevron
+   turns a quarter instead of being swapped for a different glyph, which is
+   the one place a glyph swap read as a flicker. transitions.dev's accordion,
+   on the platform's own element. */
+.b-sell, .s-call, .s-trace { interpolate-size: allow-keywords; }
+.b-sell::details-content, .s-call::details-content, .s-trace::details-content {
+  height: 0; overflow: clip;
+  transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
+}
+.b-sell[open]::details-content, .s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+.b-sell-sum::before, .s-call-sum::before, .s-trace-sum::before {
+  content: "▸"; display: inline-block; margin-right: 0.35em;
+  transition: transform 160ms var(--ease-out);
+}
+.b-sell[open] .b-sell-sum::before, .s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
+  content: "▸"; transform: rotate(90deg);
+}
+
+/* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════
+   The read-back's hint names the digits that set an outcome. A keycap: the
+   mono face, a hairline, the raised ground — coss's Kbd, at this scale. */
+.b-kbd {
+  display: inline-block; font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1;
+  padding: 2px 5px 3px; border-radius: 4px; color: var(--d100);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  box-shadow: inset 0 -1px 0 var(--card-border); vertical-align: 1px;
+}
+
+/* ══ 36. THREE SMALL SWAPS ═════════════════════════════════════════════════
+   The theme toggle showed the sun in both themes, by display. Both icons
+   sit in one cell now and the one that is not for this theme is scaled
+   down, turned and blurred out — an icon swap, 160ms, the way
+   transitions.dev draws it. The keep-tick on a found row is a native box
+   that flipped; it is drawn now, the check revealed left to right in 140ms
+   on the accent ground. And the leaving gate, which is an answer to a door
+   you pressed, arrives the way a turn arrives. */
+.ds-theme-toggle { display: inline-grid; place-items: center; }
+.ds-theme-toggle svg { grid-area: 1 / 1; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), filter 160ms var(--ease-out); }
+.ds-theme-toggle .icon-sun, .ds-theme-toggle .icon-moon { display: block; }
+.ds-theme-toggle .icon-moon { opacity: 0; transform: scale(0.6) rotate(-40deg); filter: blur(2px); }
+:root[data-theme="light"] .ds-theme-toggle .icon-sun { opacity: 0; transform: scale(0.6) rotate(40deg); filter: blur(2px); }
+:root[data-theme="light"] .ds-theme-toggle .icon-moon { opacity: 1; transform: none; filter: none; }
+
+.s-pick-tick .s-tick {
+  appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; border-radius: 5px;
+  border: 1.5px solid var(--d400); background: var(--card-bg); display: grid; place-items: center;
+  transition: opacity var(--t-fast), background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+.s-pick-tick .s-tick::after {
+  content: ""; width: 10px; height: 10px; background: #fff;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+  clip-path: inset(0 100% 0 0); transition: clip-path 140ms var(--ease-out);
+}
+.s-pick-tick .s-tick:checked { background: var(--accent); border-color: var(--accent); }
+.s-pick-tick .s-tick:checked::after { clip-path: inset(0 0 0 0); }
+.s-pick-tick .s-tick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.b-gate { animation: b-arrive 200ms var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .b-sell::details-content, .s-call::details-content, .s-trace::details-content,
+  .b-sell-sum::before, .s-call-sum::before, .s-trace-sum::before,
+  .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
+  .b-gate { animation: none; }
+}
