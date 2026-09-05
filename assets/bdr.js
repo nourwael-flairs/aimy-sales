@@ -4927,6 +4927,21 @@
      here, which is what makes a one-press control safe to offer. ── */
   let toastTimer = null;
   let UNDO = null;
+  /* ══ THE TOAST ARRIVES AND LEAVES THE SAME WAY ═════════════════════════
+     The library gives the toast a 220ms rise, and it never ran here: the
+     element was inserted already .visible, so there was no first frame to
+     rise from, and it left by innerHTML = '', which is no way to leave.
+     @starting-style (bdr.css §31) gives the insertion its first frame;
+     .is-leaving takes it out along the same axis; and a receipt arriving
+     while one is up changes the words in place rather than re-entering. */
+  function toastGone() {
+    const el = byId('toastHost').querySelector('.s-toast');
+    UNDO = null;
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    if (!el || el.classList.contains('is-leaving')) return;
+    el.classList.add('is-leaving');
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 200);
+  }
   function toast(msg, undo) {
     /* The library's toast, with its own clock: `.aimy-toast-progress` scales
        from 1 to 0 over the toast's life, so a receipt carrying an Undo says
@@ -4934,17 +4949,19 @@
     const life = undo ? 6000 : 4000;
     UNDO = undo || null;
     if (toastTimer) clearTimeout(toastTimer);
-    byId('toastHost').innerHTML =
-      '<div class="aimy-toast visible s-toast">' +
-        '<span class="aimy-toast-icon"><svg width="13" height="15" viewBox="0 0 18 20">' +
-          '<use href="#aimy-logo-small"/></svg></span>' +
-        '<span class="aimy-toast-body"><span class="aimy-toast-title">' + esc(msg) + '</span></span>' +
-        (undo ? '<span class="aimy-toast-divider"></span>' +
-          '<button class="aimy-toast-undo" type="button" data-undo>Undo</button>' : '') +
-        '<span class="aimy-toast-progress"><span class="aimy-toast-progress-fill" ' +
-          'style="animation-duration:' + life + 'ms"></span></span>' +
-      '</div>';
-    toastTimer = setTimeout(() => { byId('toastHost').innerHTML = ''; UNDO = null; }, life);
+    const inner =
+      '<span class="aimy-toast-icon"><svg width="13" height="15" viewBox="0 0 18 20">' +
+        '<use href="#aimy-logo-small"/></svg></span>' +
+      '<span class="aimy-toast-body"><span class="aimy-toast-title">' + esc(msg) + '</span></span>' +
+      (undo ? '<span class="aimy-toast-divider"></span>' +
+        '<button class="aimy-toast-undo" type="button" data-undo>Undo</button>' : '') +
+      '<span class="aimy-toast-progress"><span class="aimy-toast-progress-fill" ' +
+        'style="animation-duration:' + life + 'ms"></span></span>';
+    const host = byId('toastHost');
+    const up = host.querySelector('.s-toast:not(.is-leaving)');
+    if (up) up.innerHTML = inner;
+    else host.innerHTML = '<div class="aimy-toast visible s-toast">' + inner + '</div>';
+    toastTimer = setTimeout(toastGone, life);
   }
 
   /* ── The prototype panel. Not product UI: what the corpus holds, the way
@@ -7269,7 +7286,7 @@
     if (closeC) { closeCanvas(); return; }
 
     const undoEl = t.closest('[data-undo]');
-    if (undoEl) { const fn = UNDO; UNDO = null; byId('toastHost').innerHTML = ''; if (fn) fn(); return; }
+    if (undoEl) { const fn = UNDO; toastGone(); if (fn) fn(); return; }
 
     const cap = t.closest('[data-cap]');
     if (cap) { UI.cap = Number(cap.getAttribute('data-cap')) || 0; saveUI(); paint(); return; }

@@ -1186,3 +1186,23 @@ button.pipe-chip:active { transform: scale(0.97); }
 .b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
 .b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
 .b-gate .b-camps-cap { margin-left: 4px; }
+
+/* ══ 31. THE TOAST ARRIVES AND LEAVES THE SAME WAY ═════════════════════════
+   The library gives the toast a 220ms rise, and it never ran here: the toast
+   was inserted already .visible, so there was no first frame to rise from,
+   and it left by innerHTML = '', which is no way to leave. @starting-style
+   gives the insertion its first frame — 8px up, through 4px of blur, from
+   0.97 — and .is-leaving takes it out along the same axis, faster, because a
+   thing leaving is a thing you have stopped looking at. transitions.dev's
+   toast, on the library's toast. */
+.s-toast {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), filter 220ms var(--ease-out);
+}
+@starting-style {
+  .s-toast.visible { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); filter: blur(4px); }
+}
+.s-toast.visible.is-leaving {
+  opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); filter: blur(4px);
+  pointer-events: none; transition-duration: 160ms;
+}
+@media (prefers-reduced-motion: reduce) { .s-toast { transition: none; } }
