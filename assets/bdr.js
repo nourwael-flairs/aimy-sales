@@ -1382,6 +1382,20 @@
   }
   function goFree(over, replace) { LEAVE_OK = true; try { go(over, replace); } finally { LEAVE_OK = false; } }
 
+  /* ══ AND THE BROWSER'S BACK BUTTON ═══════════════════════════════════════
+     A door in the product can be intercepted; the browser's Back cannot be
+     refused, only answered. So while an unsaved result is on screen the
+     history carries one extra entry — the same URL, marked — and Back lands
+     on the entry beneath it, which is still the result. The popstate handler
+     sees the mark is gone, puts it back, and paints the gate. Stay leaves
+     the guard standing; Save and Discard move on through goFree. */
+  let BACK_GUARD = false;
+  function guardBack() {
+    const want = S.build === 'done' && DRAFT && (DRAFT.rows || []).length > 0;
+    if (want && !BACK_GUARD) { history.pushState({ aimyGuard: 1 }, '', location.href); BACK_GUARD = true; }
+    if (!want) BACK_GUARD = false;
+  }
+
   function go(over, replace) {
     if (leavingResult(over)) {
       LEAVE = { over: over, replace: !!replace };
@@ -1436,6 +1450,7 @@
     paintRail();
     refreshTasks();
     paintProto();
+    guardBack();
   }
 
   /* The lists a surface declares, mounted after its markup exists. Kept apart
@@ -2706,7 +2721,13 @@
 
   let DRAFT = null;
   const BSTEPS = ['kind', 'describe', 'run', 'done'];
-  const bstep = () => (BSTEPS.indexOf(S.build) >= 0 ? S.build : 'kind');
+  /* A done URL is only a result while something came back. The entry the
+     browser keeps under a discarded result says done and holds nothing; it
+     reads as the describe page, criteria intact, not as "0 came back". */
+  const bstep = () => {
+    const step = BSTEPS.indexOf(S.build) >= 0 ? S.build : 'kind';
+    return step === 'done' && !(DRAFT && (DRAFT.rows || []).length) ? 'describe' : step;
+  };
 
   function buildOpen(over) {
     DRAFT = { kind: 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
@@ -7499,7 +7520,16 @@
     if (DB.call) { skipCall(); }
   });
 
-  window.addEventListener('popstate', () => { parse(); paint(); });
+  window.addEventListener('popstate', (e) => {
+    if (BACK_GUARD && !(e.state && e.state.aimyGuard) && S.build === 'done' && DRAFT && (DRAFT.rows || []).length) {
+      history.pushState({ aimyGuard: 1 }, '', location.href);
+      LEAVE = { over: Object.assign(cleared(), { on: 'lists' }), replace: true, back: true };
+      paint();
+      byId('pageScroll').scrollTop = 0;
+      return;
+    }
+    parse(); paint();
+  });
   window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
 
   /* ══ 9. BOOT ════════════════════════════════════════════════════════════ */
