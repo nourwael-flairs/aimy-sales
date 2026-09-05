@@ -783,3 +783,18 @@
 .b-feed > .b-month { margin: 14px 0 6px; }
 .b-feed > .b-month:first-child { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { .b-af-door:active { transform: none; } }
+
+/* ══ 25. THE COMPANY, AS A JOURNEY ═════════════════════════════════════════
+   The campaign chips were a sentence over a row of chips in the header, above
+   the people they act on. They sit under the people now, as one labelled row:
+   a caption in sentence case at the small step — not another uppercase eyebrow
+   — and the chips after it on the same baseline, so the row reads as one
+   action with five answers rather than as a heading and a list. */
+.b-camps-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--card-border);
+}
+.b-camps-cap {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200);
+  margin-right: 6px;
+}

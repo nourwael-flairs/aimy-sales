@@ -1416,14 +1416,6 @@
         rowClass: 's-brow', key: (n) => n.id, row: netRow,
         empty: 'Nothing matches those criteria.' });
     }
-    const af = byId('accFeed');
-    if (af) {
-      vlist({
-        host: af, items: peek(touchesAt(S.acc)).rows, rowH: 64, rowClass: 's-qrow',
-        key: (t) => t.id, row: campTouchRow,
-        empty: 'Nobody has rung this company yet.',
-      });
-    }
   }
 
   /* ══ ONE PERSON, AS A CARD ══════════════════════════════════════════════
@@ -1486,8 +1478,9 @@
      is true of a cut with nobody in it and false of a search that found
      nothing — and the second is the one you reach by typing, where the
      answer you need is your own words back and a way out of them. */
-  function qgrid(rows) {
+  function qgrid(rows, emptyText) {
     if (!rows.length) {
+      if (emptyText) return '<p class="b-vfoot">' + esc(emptyText) + '</p>';
       return S.find
         ? '<p class="b-vfoot">Nobody here matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
@@ -1759,9 +1752,9 @@
     const n = daysBetween(iso.slice(0, 10), TODAY_ISO);
     return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : sayDay(iso);
   };
-  function feedBlock(items) {
+  function feedBlock(items, emptyHtml) {
     if (!items.length) {
-      return '<p class="b-vfoot">Nothing has happened on this campaign yet.</p>';
+      return '<p class="b-vfoot">' + (emptyHtml || 'Nothing has happened on this campaign yet.') + '</p>';
     }
     const pg = peek(items);
     let day = '';
@@ -3599,6 +3592,18 @@
      the next filter; how the record reached us is a fact about our book
      and not about the company, so it goes last and quietest. Six facts at
      one weight is a block you have to read word by word. */
+  /* ══ ONE COMPANY, AS A JOURNEY ══════════════════════════════════════════
+     You come here from a person's record — "2 others at Velvik Institute" —
+     or from AiMY's door when a number is dead, with one question: who else
+     here can I ring, and has anyone here already been reached. The page
+     answered it with the name in a 132px caption slot, the one thing it
+     knows that nothing else does at the bottom of the header, and a row of
+     campaign chips above the people they act on.
+
+     Now: who (the masthead, with the furthest anyone here has got as the
+     chip beside the name), what AiMY makes of the company with a door, the
+     people — the ones who have picked up first — then where they all stand,
+     then what has been said into the company by anyone, by day. */
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -3608,9 +3613,14 @@
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
-    const people = consAt(a.id).sort((x, y) => qRank(x) - qRank(y) || qTie(x, y));
+    /* WHO HAS PICKED UP, FIRST. The queue's ranking puts callbacks first,
+       which is right for a worklist and wrong for a company, where the one
+       question is who answers. Reached people lead; the rest follow in the
+       queue's own order, so the two pages cannot disagree about the rest. */
+    const reached = (c) => (!isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered')) ? 1 : 0;
+    const people = consAt(a.id).sort((x, y) =>
+      (reached(y) - reached(x)) || (qRank(x) - qRank(y)) || qTie(x, y));
     const ring = people.filter(callable);
-    const mineHere = people.filter((c) => campsOf(c).some(mine));
     const hist = touchesAt(a.id);
     const camps = [];
     people.forEach((c) => campsOf(c).forEach((k) => {
@@ -3618,82 +3628,146 @@
     }));
     const free = myCampaigns().filter((k) => camps.indexOf(k) < 0).slice(0, 5);
 
+    /* The furthest anyone here has got, as the chip beside the name. Below
+       `answered` nobody has been reached, and that is the chip's whole
+       message: a company where nobody has picked up is a different call. */
+    const top = people.filter((c) => !isExit(c.checkpoint))
+      .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
+    /* AND IT MUST AGREE WITH THE LEAD. The chip read the rung people stand
+       at NOW; the lead reads the calls. Somebody reached in July who has
+       since slipped back to callback made the chip say "Nobody reached yet"
+       under a reading that named who got through. The call is the fact. */
+    const everReached = hist.some((t) => t.outcome === 'reached');
+    const chip = top && rank(top.checkpoint) >= rank('answered')
+      ? { label: rungLabel(top.checkpoint) + ' here', tone: (RUNG[top.checkpoint] || {}).tone || 'ok' }
+      : everReached
+        ? { label: 'Reached before', tone: 'ok' }
+        : { label: 'Nobody reached yet', tone: 'neutral' };
+
+    const chips = free.length
+      ? '<div class="b-camps-row" id="accCamps">' +
+          '<span class="b-camps-cap">Put everybody here on a campaign</span>' +
+          free.map((k) =>
+            '<button class="filter-chip" type="button" data-addacc="' + esc(a.id) +
+            '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
+        '</div>'
+      : '';
+    const callFirst = ring.length
+      ? '<button class="s-inline-btn" type="button" data-call="' + esc(ring[0].id) + '">Call ' +
+        esc(ring[0].name.split(' ')[0]) + '</button>'
+      : '';
+
     return '<div class="s-home">' +
       backBtn('data-back', 'Back') +
-      '<section class="s-rec-block s-block-wide">' +
-        '<h2 class="s-rec-cap">' + esc(a.name) + '</h2>' +
-        '<div class="s-rec-body">' +
-          /* Rank one: the size. */
-          '<p class="s-block-sub"><b>' + commas(a.size) + ' staff</b> · ' +
-            esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) + ', ' + esc(a.country) + '</p>' +
-          /* Rank two: our record of them. Quieter, because none of it
-             changes who you ring next. */
-          '<p class="s-block-sub b-faint">' + esc(a.domain) +
-            (REGION[a.region] ? ' · ' + esc(REGION[a.region].label) : '') +
-            /* THREE, AND THEN A COUNT. A company on seven campaigns printed
-               seven names into a line that is meant to be the quiet one, and
-               the whole header wrapped to four rows to hold them. */
-            (camps.length
-              ? ' · on ' + camps.slice(0, 3).map((k) =>
+
+      '<section class="s-rec-head s-block-wide">' +
+        '<span class="s-rec-kind">Company · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
+          esc(a.city) + ', ' + esc(a.country) + '</span>' +
+        '<div class="s-rec-title">' +
+          '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+        '</div>' +
+        '<div class="s-rec-facts">' +
+          /* Rank one: the size, then how many are here and how many you can
+             ring — the numbers that decide whether this company is worth
+             the afternoon. */
+          '<div>' +
+            '<span><b>' + commas(a.size) + ' staff</b></span>' +
+            '<span>' + esc(plural(people.length, 'person')) + ' here</span>' +
+            '<span>' + (ring.length
+              ? '<b>' + commas(ring.length) + '</b> you can ring now'
+              : 'nobody with a number you can ring now') + '</span>' +
+          '</div>' +
+          /* Rank two: our record of them. */
+          '<div>' +
+            '<span>' + esc(a.domain) + '</span>' +
+            (REGION[a.region] ? '<span>' + esc(REGION[a.region].label) + '</span>' : '') +
+            '<span>' + (camps.length
+              ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
                   '">' + esc(k.name) + '</button>').join(', ') +
                 (camps.length > 3 ? ' and ' + (camps.length - 3) + ' more of yours' : '')
-              : ' · on none of your campaigns') +
-          '</p>' +
-
-          '<p class="s-block-sub"><b>' + plural(people.length, 'person') + '</b> here' +
-            (mineHere.length ? ', <b>' + mineHere.length + '</b> on a campaign of yours' : '') +
-            (ring.length ? ', <b>' + ring.length + '</b> you can ring now' : '') +
-            '. ' + (hist.length
-              ? plural(hist.length, 'call') + ' into this company so far.'
-              : 'Nobody has rung it.') + '</p>' +
-
-          '<div class="b-cuts">' +
-            (ring.length
-              ? '<button class="s-insight-lnk primary" type="button" data-call="' +
-                  esc(ring[0].id) + '">Call ' + esc(ring[0].name.split(' ')[0]) + '</button>' +
-                (ring.length > 1
-                  ? '<button class="s-inline-btn" type="button" data-callall="' +
-                    esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
-                    ' here</button>'
-                  : '')
-              : '') +
+              : 'on none of your campaigns') + '</span>' +
           '</div>' +
-
-          /* ONE PRESS PUTS THE WHOLE COMPANY ON A CAMPAIGN. Adding four
-             people one record at a time is the same decision made four
-             times, and the decision is about the company. */
-          (free.length
-            ? '<p class="s-block-sub">Put everybody here on a campaign:</p>' +
-              '<div class="b-cuts">' + free.map((k) =>
-                '<button class="filter-chip" type="button" data-addacc="' + esc(a.id) +
-                '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
-              '</div>'
-            : '') +
-
-          funnelOf(people) +
-          aimyBlock(accSays(a, people, hist)) +
+        '</div>' +
+        '<div class="s-rec-actions">' +
+          (ring.length
+            ? '<button class="s-insight-lnk primary" type="button" data-call="' +
+                esc(ring[0].id) + '">Call ' + esc(ring[0].name.split(' ')[0]) + '</button>' +
+              (ring.length > 1
+                ? '<button class="s-inline-btn" type="button" data-callall="' +
+                  esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
+                  ' here</button>'
+                : '')
+            : '<span class="s-block-sub">Nobody here has a number you can ring. ' +
+              (free.length ? 'Putting them on a campaign is the next thing.' : '') + '</span>') +
         '</div>' +
       '</section>' +
 
+      accLead(a, people, hist, ring, free) +
+
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
-          '<span class="s-block-say">' + plural(people.length, 'person') + '</span></div>' +
-        qgrid(paged(people).rows) +
+          '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
+          ' · who has picked up first, then by rung</span></div>' +
+        qgrid(paged(people).rows, 'Nobody on the record at this company.') +
         pager(paged(people), 'person') +
+        chips +
+      '</section>' +
+
+      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
+          '<span class="s-block-say">' + esc(plural(hist.length, 'call')) +
+          ' into this company</span></div>' +
+        funnelOf(people) +
       '</section>' +
 
       /* Every call into the company, whoever made it and whoever they
          rang. On an account the person is the thing that tells two calls
-         apart, so the row leads with the name. */
+         apart, so the row leads with the name — and it is the same feed
+         the campaign uses, under the day it happened. */
       '<section class="s-block s-block-wide" aria-label="What has been said here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2>' +
           '<span class="s-block-say">newest first</span></div>' +
-        '<div class="b-vlist" id="accFeed"></div>' +
-        peekFoot(peek(hist), 'call') +
+        feedBlock(hist, 'Nobody has rung this company yet. ' + callFirst) +
       '</section>' +
     '</div>';
   }
+
+  /* ══ WHAT AiMY MAKES OF THE COMPANY, WITH SOMEWHERE TO GO ══════════════
+     The one sentence this page knows that nothing else in the product
+     does — somebody already got through here, and to whom — was the last
+     item in the header stack, under the funnel, with no door. It leads now,
+     and the door follows the finding: the person who picked up, if they can
+     be rung; otherwise the best of the rest; otherwise a campaign. The
+     reader's fallback — size and place, which the masthead now states — is
+     not worth a panel, so on that reading the block is not drawn. */
+  function accLead(a, people, hist, ring, free) {
+    const said = accSays(a, people, hist);
+    if (!said || said.from === 'the account itself') return '';
+    const got = hist.filter((t) => t.outcome === 'reached')[0];
+    const who = got && DB.byCon[got.con];
+    const target = (who && callable(who)) ? who : ring[0];
+    let door = '';
+    if (target) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(target.id) + '">' +
+        'Call ' + esc(target.name.split(' ')[0]) +
+        (who && target.id === who.id ? ' — they picked up before' : '') + '</button>';
+    } else if (free.length) {
+      door = '<button class="s-insight-lnk" type="button" data-goto="accCamps">' +
+        'Put them on a campaign</button>';
+    }
+    return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this company">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">' + esc(said.from) + '</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' + said.text + '</p>' +
+      (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
+    '</section>';
+  }
+
 
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
@@ -6246,6 +6320,16 @@
 
     /* The first-visit door: open the pitch and take you to it. Smooth only
        when motion is welcome. */
+    const gt = t.closest('[data-goto]');
+    if (gt) {
+      const el = byId(gt.getAttribute('data-goto'));
+      if (el) {
+        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     if (t.closest('[data-pitch]')) {
       const box = byId('pitchBox');
       if (box) {
