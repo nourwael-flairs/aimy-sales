@@ -798,3 +798,71 @@
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200);
   margin-right: 6px;
 }
+
+/* ══ 26. ONE SCALE, EVERYWHERE ═════════════════════════════════════════════
+   Measured before this pass: a record's name at 20px and everything under it
+   at 13, with 0px between the kind line and the name, 0px between the name
+   and the goal, and 0px between the counts and the actions. The kind line
+   was 13px bold — the same size as the facts it labels. The lead figure (24)
+   outranked the page title (20), and the lead deck, the section headings, the
+   switcher and every card title were all 16/800: one size for four jobs.
+
+   Seven steps, each with one job, set here once and applied to every surface.
+   Nothing changes position; only sizes, weights and the gaps between rows. */
+:root {
+  --t-title: 26px;   /* the name of the thing you have open; the Today heading */
+  --t-figure: 24px;  /* the lead block's number — below the title, above all else */
+  --t-deck: 17px;    /* the consequence sentence; the pitch opener */
+  --t-lead: 15px;    /* the goal under a title; the sentence beside a figure */
+  --t-body: 14px;    /* readings, brief lines, feed notes */
+  --t-ui: 13px;      /* buttons, chips, facts rows, row text */
+  --t-small: 12px;   /* section sub-lines, foot lines */
+  --t-micro: 11px;   /* kind lines, section captions, tags — the one uppercase role */
+}
+
+/* [1] THE STEPS. `.s-home .x` outranks the shell's single-class media rules
+   that were setting the masthead to 20 and the figure to 24 at this width. */
+.s-home .s-rec-name { font-size: var(--t-title); line-height: 1.1; letter-spacing: -0.02em; }
+.slv-head .slv-title, .slv-title { font-size: var(--t-title); }
+.s-home .s-lead-n { font-size: var(--t-figure); line-height: 1; }
+.s-home .s-lead-deck, .b-lead-slim .s-lead-deck {
+  font-size: var(--t-deck); font-weight: var(--fw-bold); line-height: 1.3;
+  margin-bottom: 16px;
+}
+.s-home .s-lead-say { font-size: var(--t-lead); }
+.b-sell-pitch { font-size: var(--t-deck); }
+.s-home .s-rec-kind { font-size: var(--t-micro); }
+.b-qcard .s-card-title { font-size: var(--t-lead); }
+.b-reading { font-size: var(--t-body); }
+.s-block-say { font-size: var(--t-small); font-weight: var(--fw-medium); }
+.b-vfoot { font-size: var(--t-small); }
+
+/* [2] THE HEADER'S ROWS HAVE ROOM. A flex column so every gap is stated
+   rather than inherited from line boxes: kind → name 6, name → goal 10,
+   goal → counts 6, counts → actions 16. The goal moves to the Lead step —
+   it is the sentence the campaign exists for, and it was 13px grey. */
+.s-home > .s-rec-head { display: flex; flex-direction: column; }
+.s-home .s-rec-kind { margin-bottom: 6px; }
+.s-home .s-rec-title { margin-bottom: 10px; }
+.s-home .s-rec-facts { gap: 0; }
+.s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
+.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 6px; }
+.s-home .s-rec-actions { margin-top: 16px; }
+
+/* [3] INSIDE A SECTION. Heading → first row 12, action row → chips 12, chips
+   → grid 16, grid → foot 12. The action row had been pulled up into the
+   heading's margin by 8px; the chips sat 10 from the grid. */
+.s-camp-list-head { margin-bottom: 12px; }
+.b-acts { margin: 0 0 12px; }
+.b-cuts + .b-grid { margin-top: 4px; }
+
+/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
+.b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--d300); font-weight: var(--fw-semibold); }
+.s-starts-cap { color: var(--d300); }
+.rail-scope-cap { color: var(--d300); font-weight: var(--fw-semibold); }
+
+/* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
+   today-line at UI size, and 16 to the actions — measured at 56 before with
+   the today-line stacked inside two margins. */
+.s-home .s-lead-line { margin-bottom: 12px; }
+.b-lead-today { margin: -6px 0 14px; font-size: var(--t-ui); }
