@@ -1397,7 +1397,11 @@
     byId('wbStage').innerHTML = S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
-      : S.on === 'lists' ? listsPage()
+      /* A LIST URL IS A LIST, WHICHEVER DOOR IT CAME THROUGH. Save and the old
+         row door navigated to ?list=<id> without on=lists, and the dispatch only
+         reached the lists surface through on — so saving a list landed on the
+         queue with the new list nowhere in sight. */
+      : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
     mountLists();
@@ -1726,7 +1730,10 @@
       return { text: 'Nobody on this list is in your queue until it is on a campaign.',
         from: 'the list having no campaign' };
     }
-    const gap = people.length - ring;
+    /* WHAT IT SAYS IS WHAT IT COUNTS. This was people minus the callable,
+       which folds in parked callbacks and exits — a list of 38 with 7 missing
+       numbers read "13 came back without a number". */
+    const gap = people.filter((c) => !c.phone).length;
     if (gap) {
       return { text: '<b>' + commas(gap) + '</b> of them came back without a number, so they ' +
         'cannot be rung.', from: l.via + ' filled the rest' };
@@ -2442,19 +2449,42 @@
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">List · found by ' + esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
+        '<span class="s-rec-kind">List · ' + esc(plural(people.length, 'person')) + ' · found by ' +
+          esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div><span>' + esc(l.crit) + '</span></div>' +
+          /* [4] HOW MANY OF IT EACH CAMPAIGN HOLDS — V3's fact — and [2] the
+             gap, with its door. */
           '<div>' +
-            '<span><b>' + commas(people.length) + '</b> people</span>' +
             '<span>' + (ring.length
               ? '<b>' + commas(ring.length) + '</b> you can ring now'
               : 'nobody you can ring now') + '</span>' +
-            '<span>' + commas(l.found || people.length) + ' found</span>' +
+            (function () {
+              const by = Object.create(null);
+              let none = 0;
+              people.forEach((c) => {
+                const ks = campsOf(c).filter(mine);
+                if (!ks.length) { none++; return; }
+                ks.forEach((k) => (by[k.id] = (by[k.id] || 0) + 1));
+              });
+              const tops = Object.keys(by).sort((x, y) => by[y] - by[x]).slice(0, 2);
+              return tops.map((kid) => '<span><b>' + commas(by[kid]) + '</b> on ' +
+                '<button class="s-inline-btn" type="button" data-camp="' + esc(kid) + '">' +
+                esc(DB.byCamp[kid].name) + '</button></span>').join('') +
+                (none ? '<span><b>' + commas(none) + '</b> on none</span>' : '');
+            })() +
+            (function () {
+              const gap = listGap(l);
+              if (!gap) return '';
+              return '<span><b>' + commas(gap) + '</b> more matched its criteria · ' +
+                '<button class="s-inline-btn" type="button" data-go="' +
+                esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe', bk: l.kind, bt: l.terms }))) +
+                '">Bring them in</button></span>';
+            })() +
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' + actions + '</div>' +
@@ -2466,7 +2496,7 @@
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
           '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
           ' · never rung first, then by rung</span></div>' +
-        qgrid(paged(people).rows, 'Nobody is on this list.') +
+        rosterBlock(paged(people).rows) +
         pager(paged(people), 'person') +
       '</section>' +
 
@@ -2484,6 +2514,115 @@
     '</div>';
   }
 
+  /* ══ THE PEOPLE AS A ROSTER ═════════════════════════════════════════════
+     A list is a roster you check, not a worklist you work, and V3 drew it as
+     rows. The shell's own row — name, a line, the facts, one verb — at the
+     scale this build uses, fifteen a page. The cards stay on the queue. */
+  /* ══ THE ROW CARRIES WHAT V3'S ROW CARRIED ═════════════════════════════
+     V3's list row said, left: who, what they do and where, the city and the
+     sector, the two ways to reach them, the LinkedIn address, and under it
+     AiMY's one line about this person; right: the company's size at the
+     largest step because it is the figure you compare DOWN the page, what
+     they would be bought for, and the status tag. Mine had the name, a
+     line, the rung and a number. The whole right column was missing, and
+     the right column is the reason a roster beats a grid: figures align.
+
+     AiMY's line is drawn only where AiMY has something specific — a note
+     somebody left, what they pushed back on, an opening, a screened call, a
+     dead number. Fifteen rows each wearing the mark to say "software, 260
+     staff" is the one-block-per-row defect V3's own note spends a paragraph
+     on. The verb sits at the foot of the right column, where the eye ends. */
+  const ROSTER_QUIET = ['the account and the campaign', 'the touchpoint before this one'];
+  function rosterRow(c) {
+    const a = accOf(c);
+    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const camp = campsOf(c).filter(mine)[0] || campsOf(c)[0];
+    const sell = camp && SELL[camp.sells[0]];
+    const slug = String(c.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const li = 'linkedin.com/in/' + slug;
+    const said = aimySays(c, true);
+    const specific = said && ROSTER_QUIET.indexOf(said.from) < 0;
+    const facts = [
+      a ? esc(a.city) : null,
+      a ? esc(INDUSTRY[a.industry].label) : null,
+      c.email ? esc(c.email) : null,
+      c.phone ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>' : null,
+    ].filter(Boolean);
+    return '<div class="s-brow">' +
+      '<span class="s-brow-nopick"></span>' +
+      '<span class="s-brow-main">' +
+        '<button class="s-brow-name" type="button" data-con="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
+        '<span class="s-brow-desc">' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + '</span>' +
+        '<span class="s-brow-facts">' + (facts.length ? facts.join(' · ')
+          : '<i>no email and no phone number</i>') + '</span>' +
+        '<span class="s-brow-links">' +
+          '<a class="s-brow-link" href="https://www.' + esc(li) + '" target="_blank" rel="noopener">' + esc(li) + '</a>' +
+          (a ? '<a class="s-brow-link" href="https://' + esc(a.domain) + '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>' : '') +
+        '</span>' +
+        (specific
+          ? '<span class="s-brow-ops b-roster-ai">' +
+              '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+              '<span>' + said.text + '</span></span>'
+          : '') +
+      '</span>' +
+      '<span class="s-brow-side">' +
+        '<span class="s-brow-fig">' + (a ? commas(a.size) + ' staff' : '—') + '</span>' +
+        '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
+        '<span class="s-brow-tag"><span class="tag tag-' + esc(rg.tone) + '">' + esc(rg.label) + '</span></span>' +
+        (c.phone && callable(c)
+          ? '<button class="s-insight-lnk b-roster-call" type="button" data-call="' + esc(c.id) + '">Call</button>'
+          : '') +
+      '</span>' +
+    '</div>';
+  }
+  function rosterBlock(rows) {
+    if (!rows.length) return '<p class="b-vfoot">Nobody is on this list.</p>';
+    return '<div class="s-brows b-roster">' + rows.map(rosterRow).join('') + '</div>';
+  }
+
+  /* The criteria a saved list carries, parsed the way the builder parses
+     the URL's — one reader, so a list re-run matches what it matched. */
+  function termsOfCsv(csv) {
+    const out = Object.create(null);
+    String(csv || '').split(',').filter(Boolean).forEach((x) => {
+      const at = x.indexOf(':');
+      if (at < 0) return;
+      (out[x.slice(0, at)] || (out[x.slice(0, at)] = [])).push(x.slice(at + 1));
+    });
+    return out;
+  }
+  /* [2] How many more matched the criteria and were never brought in —
+     V3's listGap. Only for a list that still carries its criteria. */
+  function listGap(l) {
+    if (!l.terms) return 0;
+    const matched = buildMatched(termsOfCsv(l.terms)).length;
+    return Math.max(0, matched - (l.found || l.has.length));
+  }
+
+  /* [3] FILL IN WHAT IS MISSING — V3's data-enrichlist, over the people on
+     this list without a number. The supplier's own hit rate decides who
+     gets one, deterministically off the record's id so a re-run says the
+     same thing. One write, one toast, one undo. */
+  function fillList(id) {
+    const l = DB.byList[id];
+    if (!l) return;
+    const f = finderOf();
+    const done = [];
+    l.has.map((cid) => DB.byCon[cid]).filter((c) => c && !c.phone).forEach((c) => {
+      const h = Math.abs(hash(c.id));
+      if ((h % 1000) / 1000 < f.phone) {
+        patchCon(c, { phone: '+31 6 ' + String(1000000 + (h % 8999999)), enrichedAt: TODAY_ISO });
+        done.push(c.id);
+      }
+    });
+    paint();
+    if (!done.length) { toast(f.name + ' had no number for anyone here.'); return; }
+    toast(f.name + ' found a number for ' + plural(done.length, 'person') + ' on ' + l.name, () => {
+      done.forEach((cid) => patchCon(DB.byCon[cid], { phone: null, enrichedAt: null }));
+      paint();
+    });
+  }
+
   /* [3] What AiMY makes of the list, with a door. The card's two readings
      that mean something — it is on no campaign, or people came back without
      a number — get the block. The fallback, how many have been rung, is what
@@ -2492,10 +2631,15 @@
     const said = listSays(l, people, ring.length, camp);
     if (!said || said.from === 'their own records') return '';
     const first = ring[0];
-    const door = first
-      ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
-        esc(first.name.split(' ')[0]) + (camp ? '' : ' anyway') + '</button>'
-      : '';
+    /* The missing-number reading gets V3's verb; the no-campaign reading
+       gets the phone anyway. */
+    const door = /without a number/.test(said.text)
+      ? '<button class="s-insight-lnk" type="button" data-filllist="' + esc(l.id) + '">' +
+        'Fill in what is missing</button>'
+      : first
+        ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
+          esc(first.name.split(' ')[0]) + (camp ? '' : ' anyway') + '</button>'
+        : '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this list">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
@@ -2801,10 +2945,81 @@
         '</div>').join('') + '</div>';
   }
 
-  /* ── THE LOOKING IS VISIBLE ──
-     Rows arrive one at a time under the names of the suppliers that were
-     asked. A spinner says nothing about whether a search is working or stuck. */
-  let BUILD_TICK = null;
+  /* ══ THE LOOKING IS A PIPELINE ═════════════════════════════════════════
+     It was a caption and a stream of the last eight names ticking every
+     ninety milliseconds: it said something was happening and nothing about
+     what. A search that takes six seconds is four steps — read the
+     criteria, ask the suppliers, fill in the ways to reach people, take
+     out who you already have — and a caller waiting on it should be able
+     to see which step it is on and what that step found.
+
+     So it is a pipeline: a progress track, four stage tiles joined by
+     connectors that fill as the next stage runs, a step list with the time
+     each took, and a log well where the step's lines type in with the
+     run's REAL numbers — the rows the chosen supplier returned, the share
+     with a number, how many were already in the book. One elapsed clock
+     drives all of it from requestAnimationFrame; every element on screen
+     is a function of that clock, so nothing can drift out of step, and a
+     tab that was in the background catches up rather than stalling.
+
+     It stays on screen when it finishes. Auto-navigating to the result
+     would take away the one control a finished run offers — run it again
+     with a different supplier — so the footer holds both: the way to what
+     came back, and the other suppliers. */
+  let PIPE = null;
+  const PIPE_CPS = 90;
+  const PIPE_ICON = {
+    read: '<path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/><path d="M20.2 19.2 22 21"/>',
+    ask: '<path d="M12 20v-8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 14.2a6 6 0 0 1 0-8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 17a10 10 0 0 1 0-14M19 3a10 10 0 0 1 0 14"/>',
+    fill: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+    known: '<path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/><path d="M4 4v19M18 20H7a3 3 0 0 0-3 3"/>',
+  };
+  const pipeIcon = (k) =>
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      PIPE_ICON[k] + '</svg>';
+  const pipeCheck = (size) =>
+    '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" ' +
+      'stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  const pipeFmt = (n) => n.toFixed(1) + 's';
+
+  /* The four steps, with the run's own numbers in their lines. */
+  function pipeStages() {
+    const f = finderOf();
+    const rows = DRAFT.rows || [];
+    const mine2 = DRAFT.take.map((id) => DB.byCon[id]).filter(Boolean);
+    const known = rows.filter((x) => x.known).length;
+    const t = terms();
+    const nCrit = Object.keys(t).reduce((n, k) => n + (t[k] || []).length, 0);
+    const withNum = rows.filter((x) => x.seedPhone < f.phone).length;
+    const withMail = rows.filter((x) => x.seedEmail < f.email).length;
+    const kind = buildKind() === 'acc' ? 'companies' : 'people';
+    const others = FINDERS.filter((x) => x.k !== f.k);
+    const share = Math.round(rows.length * 0.62);
+    return [
+      { id: 'read', label: 'Read the criteria', icon: 'read', duration: 1.4, logs: [
+        { at: 0.05, text: '$ find ' + kind + ' · ' + describeTerms(t) },
+        { at: 0.6, text: '→ ' + plural(nCrit, 'criterion', 'criteria') + ' understood' },
+        { at: 1.0, text: '✓ ready' } ] },
+      { id: 'ask', label: 'Ask the suppliers', icon: 'ask', duration: 2.4, logs: [
+        { at: 0.05, text: '$ ask ' + FINDERS.map((x) => x.name).join(' · ') },
+        { at: 0.7, text: '→ ' + f.name + ': ' + commas(share) + ' rows' },
+        { at: 1.4, text: '→ ' + others[0].name + ': ' + commas(rows.length - share) + ' rows' },
+        { at: 2.0, text: '✓ ' + commas(rows.length) + ' candidates after de-duplication' } ] },
+      { id: 'fill', label: 'Fill in the ways in', icon: 'fill', duration: 1.8, logs: [
+        { at: 0.05, text: '$ ' + f.name.toLowerCase().replace(/\s.*$/, '') + ' fill --phone --email' },
+        { at: 0.6, text: '→ numbers for ' + Math.round(f.phone * 100) + '%' },
+        { at: 1.1, text: '→ emails for ' + Math.round(f.email * 100) + '%' },
+        { at: 1.5, text: '✓ ' + commas(withNum) + ' with a number, ' + commas(withMail) + ' with an address' } ] },
+      { id: 'known', label: 'Take out who you have', icon: 'known', duration: 1.4, logs: [
+        { at: 0.05, text: '$ diff against your book' },
+        { at: 0.5, text: '→ ' + commas(known) + ' already in your book' },
+        { at: 0.9, text: '→ ' + commas(mine2.length) + ' brought in from yours' },
+        { at: 1.2, text: '✓ ' + commas(rows.length + mine2.length) + ' ready to save' } ] },
+    ];
+  }
+
   function buildRun() {
     const t = terms();
     const found = buildMatched(t);
@@ -2812,44 +3027,193 @@
     const rows = found.slice(0, Math.max(0, 500 - mine2.length));
     DRAFT.rows = rows;
     DRAFT.run = { total: rows.length + mine2.length, at: 0 };
+    const stages = pipeStages();
+    const starts = stages.reduce((acc, x) => acc.concat([acc[acc.length - 1] + x.duration]), [0]);
+    if (PIPE && PIPE.raf) clearTimeout(PIPE.raf);
+    PIPE = { stages: stages, starts: starts, total: starts[starts.length - 1], t0: null,
+      raf: null, elapsed: 0, lastLog: '' };
     go({ build: 'run' });
-    if (BUILD_TICK) clearInterval(BUILD_TICK);
-    BUILD_TICK = setInterval(buildTick, 90);
+    PIPE.raf = setTimeout(pipeFrame, 16);
   }
-  function buildTick() {
-    if (!DRAFT || !DRAFT.run || S.build !== 'run') {
-      clearInterval(BUILD_TICK); BUILD_TICK = null; return;
+  /* A TIMER, NOT requestAnimationFrame. rAF stops dead in a background tab,
+     so a run started and then tabbed away from never finished. A timer is
+     throttled there but still fires, and because every frame is a function
+     of wall time the run simply catches up when it does. Sixteen
+     milliseconds in a visible tab is the same sixty frames a second. */
+  const pipeFrame = () => pipeTick(performance.now());
+
+  /* One clock; everything is a function of it. */
+  const pipeStateOf = (i) => (PIPE.elapsed >= PIPE.starts[i] + PIPE.stages[i].duration ? 'done'
+    : PIPE.elapsed >= PIPE.starts[i] ? 'running' : 'pending');
+  const pipeLocalOf = (i) => Math.max(0, Math.min(PIPE.elapsed - PIPE.starts[i], PIPE.stages[i].duration));
+  const pipeProgressOf = (i) => Math.max(0, Math.min(1, pipeLocalOf(i) / PIPE.stages[i].duration));
+
+  function pipeTick(now) {
+    if (!PIPE || S.build !== 'run' || !byId('pipeCard')) { if (PIPE) PIPE.raf = null; return; }
+    if (PIPE.t0 === null) PIPE.t0 = now;
+    PIPE.elapsed = Math.min((now - PIPE.t0) / 1000, PIPE.total);
+    pipePaint();
+    if (PIPE.elapsed >= PIPE.total) { PIPE.raf = null; if (DRAFT && DRAFT.run) DRAFT.run.at = DRAFT.run.total; return; }
+    PIPE.raf = setTimeout(pipeFrame, 16);
+  }
+
+  function pipePaint() {
+    const finished = PIPE.elapsed >= PIPE.total;
+    const firstOpen = PIPE.stages.findIndex((x, i) => pipeStateOf(i) !== 'done');
+    const ai = firstOpen === -1 ? PIPE.stages.length - 1 : firstOpen;
+    const active = PIPE.stages[ai];
+    const activeDone = pipeStateOf(ai) === 'done';
+    const local = pipeLocalOf(ai);
+
+    const fill = byId('pipeFill');
+    if (fill) { fill.style.width = (PIPE.elapsed / PIPE.total * 100) + '%'; fill.classList.toggle('done', finished); }
+    const st = byId('pipeStatus');
+    if (st) {
+      st.textContent = finished ? 'Found · ' + commas(DRAFT.run.total) : 'Running · ' + active.label;
+      st.classList.toggle('done', finished);
     }
-    const r = DRAFT.run;
-    r.at = Math.min(r.total, r.at + Math.max(1, Math.round(r.total / 40)));
-    const host = $('.s-stream');
-    const n = $('.s-stream-n');
-    if (n) n.textContent = commas(r.at);
-    if (host) {
-      host.innerHTML = DRAFT.rows.slice(Math.max(0, r.at - 8), r.at)
-        .map((x) => '<div class="s-stream-row">' +
-          '<span class="s-stream-name">' + esc(buildKind() === 'acc' ? x.co : x.name) + '</span>' +
-          '<span class="s-stream-facts">' + esc(x.co) + ' · ' +
-          esc(INDUSTRY[x.industry].label) + ' · ' + esc(x.city) + '</span></div>').join('');
+    const dot = byId('pipeDot');
+    if (dot) dot.classList.toggle('done', finished);
+
+    PIPE.stages.forEach((x, i) => {
+      const state = pipeStateOf(i);
+      const tile = byId('pipeTile-' + x.id);
+      if (tile) {
+        tile.className = 'pipe-tile ' + (state === 'running' ? 'live' : state);
+        const chk = tile.querySelector('.pipe-check');
+        if (state === 'done' && !chk) tile.insertAdjacentHTML('beforeend', '<span class="pipe-check pipe-pop">' + pipeCheck(11) + '</span>');
+        if (state !== 'done' && chk) chk.remove();
+      }
+      const lab = byId('pipeLabel-' + x.id);
+      if (lab) lab.classList.toggle('pending', state === 'pending');
+      const tm = byId('pipeTime-' + x.id);
+      if (tm) {
+        tm.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? pipeFmt(pipeLocalOf(i)) : pipeFmt(0);
+        tm.className = 'pipe-stage-time ' + state;
+      }
+      if (i > 0) {
+        const pct = (state === 'pending' ? 0 : pipeProgressOf(i)) * 100;
+        const cf = byId('pipeConn-' + x.id);
+        if (cf) { cf.style.width = pct + '%'; cf.classList.toggle('done', state === 'done'); }
+        const cd = byId('pipeConnDot-' + x.id);
+        if (cd) { cd.hidden = state === 'done' || pct <= 1; cd.style.left = pct + '%'; }
+      }
+      const row = byId('pipeRow-' + x.id);
+      if (row) {
+        row.className = 'pipe-row' + (state === 'running' ? ' live' : '');
+        const mark = row.querySelector('.pipe-row-mark');
+        const want = state === 'done' ? 'done' : state === 'running' ? 'live' : 'idle';
+        if (mark && mark.getAttribute('data-state') !== want) {
+          mark.setAttribute('data-state', want);
+          mark.innerHTML = want === 'done' ? '<span class="pipe-row-check pipe-pop">' + pipeCheck(12) + '</span>'
+            : want === 'live' ? '<span class="pipe-spinbox"><svg viewBox="0 0 24 24" width="20" height="20" class="pipe-spin" aria-hidden="true">' +
+              '<path d="M12 2.7a9.3 9.3 0 1 0 9.3 9.3" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></span>'
+            : '<span class="pipe-row-idle"></span>';
+        }
+        const rl = row.querySelector('.pipe-row-label');
+        if (rl) rl.classList.toggle('pending', state === 'pending');
+        const rt = row.querySelector('.pipe-row-time');
+        if (rt) { rt.textContent = state === 'done' ? pipeFmt(x.duration) : state === 'running' ? '· · ·' : ''; rt.classList.toggle('done', state === 'done'); }
+      }
+    });
+
+    /* The log well: the active stage's lines, typed at PIPE_CPS. Rebuilt
+       only when the text changes, which is most frames while typing and no
+       frame while waiting for the next line. */
+    const lines = [];
+    active.logs.forEach((l) => {
+      if (local < l.at) return;
+      const chars = activeDone ? l.text.length : Math.ceil((local - l.at) * PIPE_CPS);
+      lines.push({ full: l.text, shown: l.text.slice(0, Math.max(1, chars)) });
+    });
+    const typing = !activeDone && lines.length && lines[lines.length - 1].shown.length < lines[lines.length - 1].full.length;
+    const key = active.id + '|' + lines.map((l) => l.shown).join('\n') + (finished ? '|end' : '');
+    if (key !== PIPE.lastLog) {
+      PIPE.lastLog = key;
+      const log = byId('pipeLog');
+      if (log) {
+        log.innerHTML = lines.map((l, idx) => {
+          const cls = l.full.charAt(0) === '✓' ? ' is-ok' : l.full.charAt(0) === '$' ? ' is-cmd' : '';
+          const body = l.full.charAt(0) === '→'
+            ? '<span class="pipe-arrow">→</span>' + esc(l.shown.slice(1))
+            : esc(l.shown);
+          const caret = !finished && idx === lines.length - 1
+            ? '<span class="pipe-caretbox' + (typing ? '' : ' pipe-caret') + '"></span>' : '';
+          return '<div class="pipe-log-line pipe-rise' + cls + '">' + body + caret + '</div>';
+        }).join('');
+      }
     }
-    if (r.at >= r.total) {
-      clearInterval(BUILD_TICK); BUILD_TICK = null;
-      go({ build: 'done' }, true);
+
+    const el = byId('pipeElapsed');
+    if (el) el.textContent = pipeFmt(PIPE.elapsed) + ' / ' + pipeFmt(PIPE.total);
+    const foot = byId('pipeFootAct');
+    if (foot && foot.getAttribute('data-done') !== String(finished)) {
+      foot.setAttribute('data-done', String(finished));
+      const f = finderOf();
+      foot.innerHTML = finished
+        ? '<button class="pipe-btn pipe-rise" type="button" data-pipe-open>' + pipeCheck(14) +
+            'Open what came back</button>' +
+          FINDERS.filter((x) => x.k !== f.k).map((x) =>
+            '<button class="pipe-chip pipe-rise" type="button" data-rerun="' + esc(x.k) + '">' +
+            'Run again with ' + esc(x.name) + '</button>').join('')
+        : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
     }
   }
 
   function buildRunning() {
-    const r = DRAFT.run || { total: 0, at: 0 };
+    if (!PIPE) return '<div class="s-home"><p class="b-vfoot s-block-wide">Nothing is running.</p></div>';
+    const f = finderOf();
+    const kind = buildKind() === 'acc' ? 'Companies' : 'People';
     return '<div class="s-home">' +
-      '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
-        '<div class="s-sheet-kind">Looking</div>' +
-        '<h1 class="s-sheet-name">' + esc(buildName()) + '</h1>' +
+      '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
+        '<header class="pipe-head">' +
+          '<div class="pipe-head-row">' +
+            '<div class="pipe-head-main">' +
+              '<h1 class="pipe-title">' + esc(buildName()) + '</h1>' +
+              '<span class="pipe-badge">' + esc(kind) + '<span class="pipe-badge-dot">·</span>' + esc(f.name) + '</span>' +
+            '</div>' +
+            '<div class="pipe-head-state">' +
+              '<span class="pipe-status" id="pipeStatus">Running · ' + esc(PIPE.stages[0].label) + '</span>' +
+              '<span class="pipe-live-dot pipe-pulse" id="pipeDot" aria-hidden="true"></span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="pipe-track"><div class="pipe-fill" id="pipeFill" style="width:0%"></div></div>' +
+        '</header>' +
+
+        '<section class="pipe-panel pipe-rail" aria-label="Stages">' +
+          PIPE.stages.map((x, i) =>
+            (i > 0
+              ? '<div class="pipe-conn-wrap"><div class="pipe-conn">' +
+                  '<div class="pipe-conn-fill" id="pipeConn-' + esc(x.id) + '" style="width:0%"></div>' +
+                  '<span class="pipe-dot" id="pipeConnDot-' + esc(x.id) + '" hidden></span>' +
+                '</div></div>'
+              : '') +
+            '<div class="pipe-stage">' +
+              '<div class="pipe-tile pending" id="pipeTile-' + esc(x.id) + '">' + pipeIcon(x.icon) + '</div>' +
+              '<div class="pipe-stage-label pending" id="pipeLabel-' + esc(x.id) + '">' + esc(x.label) + '</div>' +
+              '<div class="pipe-stage-time pending" id="pipeTime-' + esc(x.id) + '">0.0s</div>' +
+            '</div>').join('') +
+        '</section>' +
+
+        '<section class="pipe-panel pipe-rows" aria-label="Steps">' +
+          PIPE.stages.map((x) =>
+            '<div class="pipe-row" id="pipeRow-' + esc(x.id) + '">' +
+              '<span class="pipe-row-mark" data-state="idle"><span class="pipe-row-idle"></span></span>' +
+              '<span class="pipe-row-label pending">' + esc(x.label) + '</span>' +
+              '<span class="pipe-row-time"></span>' +
+            '</div>').join('') +
+        '</section>' +
+
+        '<section class="pipe-log" id="pipeLog" aria-live="polite"></section>' +
+
+        '<footer class="pipe-foot">' +
+          '<span class="pipe-elapsed" id="pipeElapsed">0.0s / ' + pipeFmt(PIPE.total) + '</span>' +
+          '<span class="pipe-foot-act" id="pipeFootAct" data-done=""></span>' +
+        '</footer>' +
       '</div></div>' +
-      '<p class="s-stream-cap s-block-wide"><span class="s-stream-n">0</span> of ' + commas(r.total) +
-        ' · asked ' + FINDERS.map((f) => esc(f.name)).join(' · ') + '</p>' +
-      '<div class="s-stream s-block-wide"></div>' +
     '</div>';
   }
+
 
   /* ── WHAT CAME BACK, BEFORE IT IS YOURS ──
      The set, what is missing from it, and the two ways out. Nothing is in the
@@ -2875,12 +3239,8 @@
 
       fillBlock(rows) +
 
-      '<div class="b-cuts s-block-wide">' + FINDERS.map((x) =>
-        '<button class="filter-chip' + (f.k === x.k ? ' active' : '') +
-        '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
-        '<span class="b-cut-n">' + Math.round(x.phone * 100) + '% with a number</span>' +
-        '</button>').join('') +
-      '</div>' +
+      /* The finder chips moved to the run's finished footer, where "Run
+         again with ZoomInfo" is what switching supplier actually means. */
 
       '<div class="s-build-foot s-block-wide">' +
         '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
@@ -3058,7 +3418,7 @@
     DELTA.made = (DELTA.made || []).concat([{ list: id, acc: madeAcc, con: madeCon }]);
     reindex();
     save();
-    go(Object.assign(cleared(), { list: id }));
+    go(Object.assign(cleared(), { on: 'lists', list: id }));
     toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"', () => {
       dropList(id);
       go(Object.assign(cleared(), { on: 'lists', build: 'describe', bt: S.bt }));
@@ -6582,9 +6942,14 @@
     }
     const finder = t.closest('[data-finder]');
     if (finder) { go({ bk: finder.getAttribute('data-finder') }); return; }
+    if (t.closest('[data-pipe-open]')) { go({ build: 'done' }, true); return; }
+    const rerun = t.closest('[data-rerun]');
+    if (rerun) { S.bk = rerun.getAttribute('data-rerun'); buildRun(); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
+    const fl = t.closest('[data-filllist]');
+    if (fl) { fillList(fl.getAttribute('data-filllist')); return; }
     const lst = t.closest('[data-list]');
-    if (lst) { go(Object.assign(cleared(), { list: lst.getAttribute('data-list') })); return; }
+    if (lst) { go(Object.assign(cleared(), { on: 'lists', list: lst.getAttribute('data-list') })); return; }
     const acc = t.closest('[data-acc]');
     if (acc) { go(Object.assign(cleared(), { acc: acc.getAttribute('data-acc') })); return; }
 

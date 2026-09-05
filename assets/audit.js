@@ -56,6 +56,8 @@ const MARKERS = {
   'card': 'which person a queue card is about, read by the keyboard cursor, not by a click',
   'auto': 'the derived list name, compared against by the name field so it knows when you disagreed',
   'ntf-id': 'the task id AiMY QA\'s panel writes on each row for its own bookkeeping',
+  'state': 'the pipeline row mark remembers which glyph it holds, so a frame that changes nothing redraws nothing',
+  'done': 'the pipeline footer remembers whether it has flipped to its finished verbs',
 };
 
 /* ── 1 & 2. CONTROLS AND HANDLERS, BOTH DIRECTIONS ───────────────────────── */
