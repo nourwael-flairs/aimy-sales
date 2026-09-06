@@ -7777,7 +7777,8 @@
         (t.card || '') +
         (t.opts && t.opts.length
           ? '<div class="s-cb-opts">' + t.opts.map((o) =>
-              '<button class="s-cb-opt' + (t.spent ? ' is-spent' : '') + '" type="button" ' +
+              '<button class="s-cb-opt' + (o.quiet ? ' is-quiet' : '') +
+              (t.spent ? ' is-spent' : '') + '" type="button" ' +
               /* Written out per step rather than composed at runtime: an
                  attribute whose name only exists while the page is running
                  is one the audit cannot pair with its handler. */
@@ -7874,6 +7875,9 @@
          name was asked for, and criteria to read anywhere else. */
       if (LBUILD.step === 'name') { lbuildConfirm(t); return; }
       if (/^(go|that is enough|enough|look now|show me)$/i.test(t)) { lbuildName(); return; }
+      /* The way out, said rather than pressed. It is a button on the first
+         turn only, and a sentence under the second says this works. */
+      if (/^\s*open (the )?builder\s*$/i.test(t)) { lbuildOpt('open'); return; }
       lbuildRead(t);
       return;
     }
@@ -8617,7 +8621,17 @@
 
   let LBUILD = null;
 
-  const LB_OUT = { k: 'open', label: 'Open the builder instead' };
+  /* ══ THE WAY OUT IS NOT ONE OF THE ANSWERS ════════════════════════════
+     It sat beside Companies and People in the same bordered chip, so a
+     question with two answers looked like a question with three — and the
+     one that was not an answer carried the same weight as the two that
+     were. Quiet: no border, no ground, the weight of a word.
+
+     And once. It rode every turn after the first as well, which is a
+     conversation asking whether you would rather not be having it, over and
+     over. On the second turn it becomes a sentence instead — the bar is
+     right there, and saying "open builder" into it works from then on. */
+  const LB_OUT = { k: 'open', label: 'Open the builder instead', quiet: true };
   const LB_GO = { k: 'go', label: 'That is enough — look now' };
 
   /* Options belong to the turn that offered them, and only the newest turn's
@@ -8628,7 +8642,15 @@
   }
   function lbuildPush(text, opts, hint) {
     lbuildSpend();
-    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '' });
+    let h = hint || '';
+    if (LBUILD) {
+      LBUILD.turns = (LBUILD.turns || 0) + 1;
+      /* On the turn the button stops appearing, and only that turn. */
+      if (LBUILD.turns === 2) {
+        h = (h ? h + ' ' : '') + 'Say “open builder” any time if you would rather fill it in yourself.';
+      }
+    }
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: h });
     paintThread();
   }
 
@@ -8683,7 +8705,7 @@
     lbuildPush('<b>' + (kind === 'con' ? 'People' : 'Companies') + '</b>. ' +
       'Who are you after? Say it however you like — a sector, a country, a size, ' +
       'a job title.',
-      [LB_OUT], 'Something like “QA managers at software companies in the Netherlands”.');
+      [], 'Something like “QA managers at software companies in the Netherlands”.');
   }
 
   /* Read a sentence into criteria, then say what was understood and what it
@@ -8694,7 +8716,7 @@
     TURNS.push({ who: 'you', html: esc(text) });
     if (!read.length) {
       lbuildPush('I could not pick a sector, a country, a size or a job title out of that.',
-        [LB_GO, LB_OUT], 'Try naming one of those.');
+        [LB_GO], 'Try naming one of those.');
       return;
     }
     const added = [];
@@ -8720,18 +8742,18 @@
     if (!hit) {
       lbuildPush(head + ' Nothing in the index matches all of that. Take something ' +
         'back off it and I will look again.',
-        [{ k: 'reset', label: 'Start the criteria again' }, LB_OUT],
+        [{ k: 'reset', label: 'Start the criteria again' }],
         'Or say it differently.');
       return;
     }
-    lbuildPush(head + ' ' + lbuildSay() + lbuildNudge(), [LB_GO, LB_OUT],
+    lbuildPush(head + ' ' + lbuildSay() + lbuildNudge(), [LB_GO],
       'Say anything else that narrows it, or say go.');
   }
 
   function lbuildName() {
     LBUILD.step = 'name';
     lbuildPush(lbuildSay() + ' What should the list be called?',
-      [{ k: 'name-auto', label: 'Call it “' + lbuildAutoName() + '”' }, LB_OUT],
+      [{ k: 'name-auto', label: 'Call it “' + lbuildAutoName() + '”' }],
       lbuildAutoName());
   }
 
@@ -8770,7 +8792,7 @@
     if (k === 'name-auto') { lbuildConfirm(lbuildAutoName()); return; }
     if (k === 'reset') {
       LBUILD.terms = [];
-      lbuildPush('Cleared. Who are you after?', [LB_OUT], 'Name a sector, a country or a size.');
+      lbuildPush('Cleared. Who are you after?', [], 'Name a sector, a country or a size.');
     }
   }
 
