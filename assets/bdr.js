@@ -2693,7 +2693,12 @@
 
   function mgrMenu(conId, label) {
     return '<span class="b-menu-wrap">' +
-      '<button class="s-inline-btn b-menu-open" type="button" data-pickopen="mgrMenu" ' +
+      /* THE SHAPE OF THE WAY OUT, WITHOUT ITS TONE. Handing somebody over
+         is the other thing on this row that ends a caller's part in a lead,
+         and it read as a text link beside four other verbs. It takes the
+         ghost's shape — a bordered pill on no ground — and none of its
+         colour, because handing over is a good outcome. */
+      '<button class="b-ghost b-menu-open" type="button" data-pickopen="mgrMenu" ' +
         'aria-haspopup="menu">' + esc(label) + '</button>' +
       '<div class="b-menu" id="mgrMenu" role="menu" hidden>' +
         '<span class="b-menu-cap">Hand over to</span>' +
@@ -5943,7 +5948,7 @@
       rank(c.checkpoint) >= rank('callback');
     if (!endable) return '';
     return '<span class="b-menu-wrap b-end">' +
-      '<button class="b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
+      '<button class="b-ghost b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
         '<svg class="b-end-mark" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
           'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
           '<circle cx="12" cy="12" r="8.75"/><path d="M5.8 18.2 18.2 5.8"/></svg>' +
@@ -5953,7 +5958,7 @@
         '<p class="b-end-say">They leave your queue and nothing is owed. ' +
           'Undo on the toast is the way back.</p>' +
         '<div class="b-end-acts">' +
-          '<button class="b-end-go" type="button" role="menuitem" data-move="declined">' +
+          '<button class="b-ghost b-end-go" type="button" role="menuitem" data-move="declined">' +
             'Yes, they said no</button>' +
           '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
         '</div>' +

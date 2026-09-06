@@ -1305,24 +1305,36 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    at rest: it is read far more often than it is used, and a red word sitting
    in the masthead all day is an alarm nobody hears by the afternoon. */
 .b-end { margin-left: auto; flex: none; }
-.b-end-open, .b-end-go {
-  display: inline-flex; align-items: center; gap: 7px;
+/* ══ THE GHOST ═════════════════════════════════════════════════════════════
+   No fill at rest, so it sits on the page rather than on top of it; the
+   border is what is left saying 'press me', and the colour arrives with the
+   cursor. The shape is written once — three buttons wear it and only one of
+   them is destructive, which is a difference of tone and nothing else.
+
+   The leading is taken off deliberately: the line box is fifteen pixels of
+   font metrics around thirteen of type, and centring a mark against that is
+   centring it against air. */
+.b-ghost {
+  display: inline-flex; align-items: center; gap: 7px; line-height: 1;
   font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
   cursor: pointer; padding: 6px 13px; border-radius: var(--r-pill);
+  /* One height with a mark or without: the mark is a pixel taller than the
+     type beside it, so a shape shared by both would otherwise be two shapes. */
+  min-height: 28px;
+  color: var(--d200); background: none; border: 1px solid var(--card-border);
   transition: color var(--t-fast), background-color var(--t-fast),
     border-color var(--t-fast), transform 160ms var(--ease-out);
 }
-/* Ghost: no fill at rest, so it sits on the page rather than on top of
-   it. The border is what is left saying 'press me', and the tone arrives
-   with the cursor. */
-.b-end-open {
-  color: var(--d200); background: none; border: 1px solid var(--card-border);
-}
+.b-ghost:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.b-ghost:active { transform: scale(0.97); }
+.b-ghost:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Ending a lead is the one that gets the tone, and it gets it on the cursor
+   rather than at rest: it is read far more often than it is used, and a red
+   word sitting in the masthead all day is an alarm nobody hears by the
+   afternoon. */
 .b-end-open:hover {
   color: var(--err-text); background: var(--err-bg); border-color: rgba(240, 68, 56, 0.45);
 }
-.b-end-open:active, .b-end-go:active { transform: scale(0.97); }
-.b-end-open:focus-visible, .b-end-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .b-end-mark { flex: none; opacity: 0.7; }
 .b-end-open:hover .b-end-mark { opacity: 1; }
 /* The question, on the menus' own machinery: a click anywhere else or Escape
@@ -1336,12 +1348,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The confirm wears the tone at rest; the way back stays a quiet word,
    because the quiet one should be the easy one. */
 .b-end-go {
-  color: var(--err-text); background: var(--err-bg); border: 1px solid rgba(240, 68, 56, 0.45);
+  color: var(--err-text); background: var(--err-bg); border-color: rgba(240, 68, 56, 0.45);
 }
-.b-end-go:hover { border-color: var(--err-text); background: rgba(240, 68, 56, 0.18); }
+.b-end-go:hover { color: var(--err-text); border-color: var(--err-text); background: rgba(240, 68, 56, 0.18); }
 @media (prefers-reduced-motion: reduce) {
-  .b-end-open, .b-end-go { transition: none; }
-  .b-end-open:active, .b-end-go:active { transform: none; }
+  .b-ghost { transition: none; }
+  .b-ghost:active { transform: none; }
 }
 
 /* Who has it now — a fact about the record, not a thing to press. */
@@ -2115,5 +2127,4 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    does need is its leading taken away — the line box is fifteen pixels of
    font metrics around thirteen of type, and centring the mark against that
    is centring it against air. */
-.b-end-open { line-height: 1; }
 .b-end-word { display: inline-block; line-height: 1; }
