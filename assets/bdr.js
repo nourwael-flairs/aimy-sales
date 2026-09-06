@@ -5187,7 +5187,8 @@
           '<div class="b-ways">' + b.spoken.map(row).join('') + '</div>'
         : b.thin
           ? '<h3 class="b-sell-cap">What they say, and how often</h3>' +
-            '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here has given a ' +
+            '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
+            esc(verbFor(b.thin, 'has')) + ' given a ' +
             'reason so far. Too few to call it a pattern — the answers this campaign ' +
             'agreed are in What to say below.</p>'
           : '') +
