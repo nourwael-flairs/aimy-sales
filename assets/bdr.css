@@ -674,12 +674,6 @@
 /* What is owed and the ways to move it, on one line. The sentence leads and
    the chips follow at baseline, so "Call them back due tomorrow" reads as a
    fact with three answers beside it rather than as a label over a row. */
-.b-owed {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
-  margin: 10px 0 12px;
-}
-.b-owed-say { font-size: var(--fs-xs); color: var(--d200); margin-right: 6px; }
-.b-owed-say b { color: var(--d50); font-weight: var(--fw-bold); }
 
 /* The month over a run of touchpoints. Small, at full ink, with the space
    above it doing the separating — a rule would compete with the cards. */
@@ -1337,3 +1331,69 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    Prose at the deck step, one measure wide. */
 .b-story-text { font-size: var(--t-deck); line-height: var(--lh-base); color: var(--d100); max-width: 68ch; text-wrap: pretty; margin: 0; }
 .b-story { padding-top: 4px; }
+
+/* ══ 40. THE CHOOSER ═══════════════════════════════════════════════════════
+   A row of every campaign was the whole answer laid out before the question
+   was asked. The button asks; this is where the answer is given — a filter
+   box, the options as chips that hold their state, and one confirm that
+   says how many are chosen. It opens where it stands, inside the actions
+   row it belongs to, so nothing covers the record you are deciding about. */
+.b-pick {
+  flex-basis: 100%; margin-top: 12px; padding: 14px; max-width: 620px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border); border-radius: 14px;
+}
+.b-pick-head { display: flex; }
+.b-pick-find {
+  width: 100%; font-family: inherit; font-size: var(--t-ui); color: var(--d50);
+  padding: 8px 12px; border-radius: 10px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-pick-find::placeholder { color: var(--d300); }
+.b-pick-find:focus-visible {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+.b-pick-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 210px; overflow-y: auto; }
+.b-pick-opt {
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
+  padding: 7px 13px; border-radius: 99px; cursor: pointer;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-pick-opt:hover { border-color: var(--card-border-hover); color: var(--d50); }
+.b-pick-opt:active { transform: scale(0.97); }
+.b-pick-opt[aria-pressed="true"] {
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.14); border-color: rgba(var(--accent-rgb), 0.4);
+}
+.b-pick-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-pick-foot { display: flex; align-items: center; gap: 8px; }
+.b-pick-foot [disabled] { opacity: 0.45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .b-pick-opt { transition: none; } .b-pick-opt:active { transform: none; } }
+
+/* ══ 41. THE RUN SITS WITH THE CUTS IT RUNS ════════════════════════════════
+   "Call these 15" had a row of its own above the cuts, which read as a
+   second heading over the list. It ends the row of cuts instead: the chips
+   say which fifteen, and the verb is at the far end of the same line. */
+.b-cuts-row { align-items: center; }
+.b-cuts-go { margin-left: auto; }
+
+/* ══ 42. THE WAY OUT IS ITS OWN DECISION ═══════════════════════════════════
+   Ending a lead sat in the row of ordinary verbs at the same weight as
+   "Call". It is under a rule of its own now, quiet until pressed, and it
+   says what it does before it does it. */
+.b-end { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-end-open { color: var(--d300); }
+.b-end-open:hover { border-color: rgba(240, 68, 56, 0.5); color: var(--err-text); }
+.b-end-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-end-say { font-size: var(--t-small); color: var(--d200); }
+.b-end-go { color: var(--err-text); border-color: rgba(240, 68, 56, 0.4); }
+.b-end-go:hover { border-color: var(--err-text); }
+
+/* Who has it now — a fact about the record, not a thing to press. */
+.b-managed b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* `display` on a class beats the browser's own `[hidden]`, so a panel that
+   said it was hidden was drawn open. Every panel that sets display says
+   what hidden means for it. */
+.b-pick[hidden], .b-end-strip[hidden] { display: none; }

@@ -328,6 +328,9 @@
     { id: 'sara',   name: 'Sara Nabil',    initials: 'SN', fn: 'bdr' },
     { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
     { id: 'ahmed',  name: 'Ahmed Mohamed', initials: 'AM', fn: 'sales-manager' },
+    { id: 'nadia',  name: 'Nadia Rahman',  initials: 'NR', fn: 'sales-manager' },
+    { id: 'karim',  name: 'Karim Fouad',   initials: 'KF', fn: 'sales-manager' },
+    { id: 'yasmin', name: 'Yasmin Adel',   initials: 'YA', fn: 'sales-manager' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -890,6 +893,7 @@
         dnc: false,
         fate: null,
         enrichedAt: null,
+        manager: null,
       });
       const c = con[con.length - 1];
       c.email = chance(r, 0.74)
@@ -2374,6 +2378,117 @@
   /* WHERE BACK ACTUALLY GOES. A person opened from a company goes back to
      the company; the button said "Back to the briefing" on the way to
      somewhere else. The label reads the state, so it cannot lie. */
+  /* ══ A CHOOSER, NOT A ROW OF EVERY ANSWER ══════════════════════════════
+     Six campaign chips across the head of a list is the whole answer laid
+     out before the question is asked, and it only fits because six is all
+     there is. A button opens the list where it stands — searchable, and
+     more than one can be chosen — and the page never leaves the page.
+
+     It filters and selects in the DOM, without a repaint: a repaint takes
+     the focus out of the box you are typing in. Only the confirm writes. */
+  function pickPanel(o) {
+    return '<div class="b-pick" id="' + esc(o.id) + '" hidden>' +
+      '<div class="b-pick-head">' +
+        '<input class="b-pick-find" type="text" data-picksearch placeholder="' + esc(o.find) + '" ' +
+          'aria-label="' + esc(o.find) + '" spellcheck="false" />' +
+      '</div>' +
+      '<div class="b-pick-list">' + o.opts.map((x) =>
+        '<button class="b-pick-opt" type="button" data-picktoggle="' + esc(x.id) + '" ' +
+        (o.single ? 'data-one ' : '') + 'aria-pressed="false">' + esc(x.name) + '</button>').join('') +
+      '</div>' +
+      '<div class="b-pick-foot">' +
+        '<button class="s-insight-lnk primary" type="button" data-pickgo="' + esc(o.go) + '" ' +
+          'data-verb="' + esc(o.verb) + '" disabled>' + esc(o.verb) + '</button>' +
+        '<button class="s-inline-btn" type="button" data-pickopen="' + esc(o.id) + '">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }
+  const campOpts = () => myCampaigns().filter(campOpen).map((k) => ({ id: k.id, name: k.name }));
+  const mgrOpts = () => MANAGERS.map((r) => ({ id: r.id, name: r.name }));
+  /* What the panel is holding, read off the DOM when the confirm is pressed. */
+  function pickChosen(panel) {
+    return [...panel.querySelectorAll('.b-pick-opt[aria-pressed="true"]')]
+      .map((b) => b.getAttribute('data-picktoggle'));
+  }
+  function pickSettle(panel) {
+    const go = panel.querySelector('[data-pickgo]');
+    const n = pickChosen(panel).length;
+    go.disabled = !n;
+    const verb = go.getAttribute('data-verb');
+    go.textContent = n > 1 ? verb + ' · ' + n : verb;
+  }
+  function pickFilter(box) {
+    const q = box.value.trim().toLowerCase();
+    box.closest('.b-pick').querySelectorAll('.b-pick-opt').forEach((b) => {
+      b.hidden = !!q && b.textContent.toLowerCase().indexOf(q) < 0;
+    });
+  }
+
+  /* ══ ONTO A CAMPAIGN, ONE OR SEVERAL ═══════════════════════════════════
+     A list belongs to the first campaign it is put on; its people join all
+     of them. One toast, one undo, whatever was chosen. */
+  function putOn(kind, id, campIds) {
+    const ks = campIds.map((x) => DB.byCamp[x]).filter(Boolean);
+    if (!ks.length) return;
+    const l = kind === 'list' ? DB.byList[id] : null;
+    const a = kind === 'acc' ? DB.byAcc[id] : null;
+    if (kind === 'list' && !l) return;
+    if (kind === 'acc' && !a) return;
+    const people = kind === 'list' ? l.has.map((x) => DB.byCon[x]).filter(Boolean) : consAt(id);
+    const before = l ? l.for : null;
+    const touched = [];
+    people.forEach((c) => {
+      const add = ks.map((k) => k.id).filter((x) => c.camps.indexOf(x) < 0);
+      if (!add.length) return;
+      patchCon(c, { camps: c.camps.concat(add) });
+      touched.push({ id: c.id, add: add });
+    });
+    const dl = l ? DELTA.list.filter((x) => x.id === id)[0] : null;
+    if (l && !l.for) { l.for = ks[0].id; if (dl) dl.for = ks[0].id; }
+    if (!touched.length) {
+      toast('They are all on ' + listSay(ks.map((k) => k.name)) + ' already.');
+      return;
+    }
+    reindex();
+    save();
+    paint();
+    toast(plural(touched.length, 'person') + ' joined ' + listSay(ks.map((k) => k.name)), () => {
+      touched.forEach((x) => {
+        const c = DB.byCon[x.id];
+        patchCon(c, { camps: c.camps.filter((y) => x.add.indexOf(y) < 0) });
+      });
+      if (l) { l.for = before; if (dl) dl.for = before; }
+      reindex(); save(); paint();
+    });
+  }
+
+  /* ══ THE HAND-OVER NAMES ITS MANAGER ═══════════════════════════════════
+     Not "the director" as a role read off the campaign, but the person
+     chosen at the moment of handing over. From then on the record says who
+     is managing it, and the BDR has nothing left to press. */
+  function handover(conId, mgrId) {
+    const c = DB.byCon[conId];
+    const m = REP[mgrId];
+    if (!c || !m) return;
+    const before = { checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, next: c.next, manager: c.manager || null };
+    const now = new Date().toISOString();
+    const t = {
+      id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
+      outcome: 'checkpoint', proposals: [], objections: [], openings: [],
+      note: 'Handed to ' + m.name + '.',
+      lines: [], next: null, moved: [c.checkpoint, 'handed-over'], rung: 'handed-over',
+    };
+    patchCon(c, { checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id });
+    addTouch(t);
+    paint();
+    toast(c.name.split(' ')[0] + ' → ' + m.name + ' is managing them now', () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+  }
+
   function backHere() {
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
     const a = S.con && S.acc && DB.byAcc[S.acc];
@@ -2670,13 +2785,19 @@
 
   /* The queue, cut by state. The cuts are always visible and their counts sum
      to All, so the row of chips is also the shape of the day. */
-  function cuts(counts, all) {
+  function cuts(counts, all, ring) {
     const on = S.q || 'all';
     const chip = (k, label, n) =>
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
       esc(k) + '">' + esc(label) + '<span class="b-cut-n" data-fig="cut:' + esc(k) + '">' + commas(n) + '</span></button>';
-    return '<div class="b-cuts">' + chip('all', 'All', all.length) +
-      BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') + '</div>';
+    /* The run sits at the end of the row it acts on: these cuts, this page.
+       It had a row of its own above them, which read as a second heading. */
+    return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
+      BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
+      ((ring && ring.length)
+        ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
+          esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
+        : '') + '</div>';
   }
 
   /* ══ A PAGE OF THE QUEUE, NOT THE QUEUE ════════════════════════════════
@@ -2763,15 +2884,7 @@
            below already narrows whatever set it is handed. */
         findBox(S.camp ? 'Find someone on this campaign' : 'Find a name, a company, a campaign') +
       '</div>' +
-      (ring.length
-        ? '<div class="b-acts">' +
-          '<button class="s-inline-btn" type="button" data-callall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>' +
-          '<button class="s-inline-btn s-ai-btn" type="button" data-autocall="' +
-            esc(ring.map((c) => c.id).join(',')) + '">Let AiMY call ' + ring.length + '</button>' +
-        '</div>'
-        : '') +
-      cuts(counts, all) +
+      cuts(counts, all, ring) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
@@ -2965,10 +3078,10 @@
           : '<span class="s-block-sub">Nobody on it has a number you can ring now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
           'Open ' + esc(camp.name) + '</button>'
-      : '<span class="b-camps-cap">Put it on a campaign</span>' +
-        myCampaigns().slice(0, 6).map((k) =>
-          '<button class="filter-chip" type="button" data-addlist="' + esc(l.id) +
-          '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('');
+      : '<button class="s-insight-lnk primary" type="button" data-pickopen="campPick">' +
+          'Put it on a campaign</button>' +
+        pickPanel({ id: 'campPick', opts: campOpts(), find: 'Find a campaign',
+          go: 'list:' + l.id, verb: 'Put it on' });
 
     return '<div class="s-home">' +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
@@ -4054,59 +4167,6 @@
 
   /* The company decision, made once. Mirrors `addListTo` exactly, including
      the undo: a write that cannot be taken back is a write nobody presses. */
-  function addAccTo(accId, campId) {
-    const a = DB.byAcc[accId];
-    const k = DB.byCamp[campId];
-    if (!a || !k) return;
-    const touched = [];
-    consAt(accId).forEach((c) => {
-      if (c.camps.indexOf(campId) < 0) {
-        patchCon(c, { camps: c.camps.concat([campId]) });
-        touched.push(c.id);
-      }
-    });
-    if (!touched.length) { toast('Everybody here is already on ' + k.name + '.'); return; }
-    reindex();
-    paint();
-    toast(plural(touched.length, 'person') + ' at ' + a.name + ' joined ' + k.name, () => {
-      touched.forEach((id) => {
-        const c = DB.byCon[id];
-        patchCon(c, { camps: c.camps.filter((x) => x !== campId) });
-      });
-      reindex();
-      paint();
-    });
-  }
-
-  function addListTo(listId, campId) {
-    const l = DB.byList[listId];
-    const k = DB.byCamp[campId];
-    if (!l || !k) return;
-    const before = l.for;
-    l.for = campId;
-    const touched = [];
-    l.has.forEach((id) => {
-      const c = DB.byCon[id];
-      if (c && c.camps.indexOf(campId) < 0) { c.camps.push(campId); touched.push(id); }
-    });
-    const dl = DELTA.list.filter((x) => x.id === listId)[0];
-    if (dl) dl.for = campId;
-    (DELTA.made || []).filter((m) => m.list === listId).forEach((m) =>
-      m.con.forEach((c) => { if (touched.indexOf(c.id) >= 0) c.camps = DB.byCon[c.id].camps.slice(); }));
-    reindex();
-    save();
-    go(Object.assign(cleared(), { camp: campId }));
-    toast(plural(touched.length, 'person') + ' joined ' + k.name, () => {
-      l.for = before;
-      if (dl) dl.for = before;
-      touched.forEach((id) => {
-        const c = DB.byCon[id];
-        c.camps = c.camps.filter((x) => x !== campId);
-      });
-      reindex(); save(); go(Object.assign(cleared(), { list: listId }));
-    });
-  }
-
   function describeTerms(t) {
     const bits = [];
     BUILD_AXES.forEach((ax) => {
@@ -4764,10 +4824,10 @@
 
     const chips = free.length
       ? '<div class="b-camps-row" id="accCamps">' +
-          '<span class="b-camps-cap">Put everybody here on a campaign</span>' +
-          free.map((k) =>
-            '<button class="filter-chip" type="button" data-addacc="' + esc(a.id) +
-            '" data-tocamp="' + esc(k.id) + '">' + esc(k.name) + '</button>').join('') +
+          '<button class="s-inline-btn" type="button" data-pickopen="campPick">' +
+            'Put everybody here on a campaign</button>' +
+          pickPanel({ id: 'campPick', opts: free.map((k) => ({ id: k.id, name: k.name })),
+            find: 'Find a campaign', go: 'acc:' + a.id, verb: 'Put them on' }) +
         '</div>'
       : '';
     const callFirst = ring.length
@@ -5037,6 +5097,11 @@
               ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
                 '">' + plural(others.length, 'other') + ' at ' + esc(a.name) + '</button></span>'
               : (a ? '<span>the only person here</span>' : '')) +
+            /* WHO IS MANAGING THEM NOW. The one fact about this record that
+               is not the BDR's to act on, so it sits with the facts. */
+            (c.manager && REP[c.manager]
+              ? '<span class="b-managed">Managed by <b>' + esc(REP[c.manager].name) + '</b></span>'
+              : '') +
           '</div>' +
         '</div>' +
         actionsRow(c) +
@@ -5052,7 +5117,6 @@
         ladder(c) +
         '<p class="s-block-sub">' + esc(whatNext(c) +
           (quietUnderFour(c) ? ' ' + quietSay(quietUnderFour(c), c) : '')) + '</p>' +
-        owedLine(c) +
         (c.remember
           ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
             esc(c.remember.text) + ' <span class="b-faint">— ' +
@@ -5090,19 +5154,17 @@
       ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
        nobody in particular; the campaign's owner is who gets them. */
-    const moves = movesFor(c).map((m) => ({
-      html: esc(m.k === 'handed-over' ? 'Hand to ' + directorOf(c).name : m.label),
-      attr: 'data-move="' + esc(m.k) + '"',
-    }));
-    /* ══ NOT INTERESTED ENDS WITH THE PROFILE ═════════════════════════════
-       The flowchart ends "showed no interest" with the company profile
-       going out, and the verb was only on Answered and Callback. It is on
-       every rung from Answered up, and on Declined it is the thing to press
-       — once; after it has gone, nothing is. */
-    const sentSince = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
-      .filter((t) => t && t.outcome === 'sent' && t.at >= (c.checkpointAt || ''))[0];
-    const send = ['answered', 'callback', 'meeting-set', 'showed-up', 'interested', 'declined'].indexOf(c.checkpoint) >= 0
-      ? { html: 'Send the company profile', attr: 'data-sendprofile="' + esc(c.id) + '"' } : null;
+    /* "They said no" is not one of these: it ends the lead, so it is out
+       of the row of ordinary verbs and behind a gate of its own. */
+    const moves = movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
+      .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
+    /* ══ THE HAND-OVER IS A CHOICE OF MANAGER ════════════════════════════
+       Once somebody is warm the sales manager takes them, and which
+       manager is a decision — so the verb opens the list rather than
+       naming whoever happens to own the campaign. */
+    const warm = rank(c.checkpoint) >= rank('answered') && !isExit(c.checkpoint) &&
+      c.checkpoint !== 'handed-over';
+    const send = warm ? { html: 'Handover', attr: 'data-pickopen="mgrPick"' } : null;
     /* Past a meeting the question is what happened at it; before one, the
        question is the phone. */
     /* a meeting still ahead is not yet a question; the phone leads until it has happened */
@@ -5120,10 +5182,6 @@
       say = fin && fin.decision
         ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
         : directorOf(c).name + ' has it now.';
-    } else if (c.checkpoint === 'declined') {
-      list = send && !sentSince ? [send] : [];
-      quiet = call ? [call] : [];
-      say = sentSince ? 'They said no, and the profile went out ' + sayWhen(sentSince.at.slice(0, 10)) + '.' : '';
     } else if (c.checkpoint === 'wrong-number') {
       /* the ladder says nothing is owed until somebody finds a number that
          is theirs; that is the one thing to press, and Call is not */
@@ -5139,6 +5197,20 @@
         .concat(settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
         .concat(send ? [send] : []);
     }
+    /* THE WAY OUT, ON ITS OWN, BEHIND A PRESS. Ending a lead sat between
+       ordinary verbs at the same weight as "Call"; it is one press away
+       from the row, and it says what it does before it does it. */
+    const endable = !isExit(c.checkpoint) && c.checkpoint !== 'handed-over' && rank(c.checkpoint) >= rank('callback');
+    const gate = endable
+      ? '<div class="b-end">' +
+          '<button class="s-inline-btn b-end-open" type="button" data-pickopen="noGate">They said no</button>' +
+          '<span class="b-end-strip" id="noGate" hidden>' +
+            '<span class="b-end-say">That ends it — they leave your queue and nothing is owed.</span>' +
+            '<button class="s-inline-btn b-end-go" type="button" data-move="declined">Yes, they said no</button>' +
+            '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
+          '</span>' +
+        '</div>'
+      : '';
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
        uses, so the name here is the card that would be first if you went
        back — which is the whole point of not going back. */
@@ -5153,7 +5225,9 @@
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
         : '') +
-    '</div>';
+      (warm ? pickPanel({ id: 'mgrPick', single: true, opts: mgrOpts(),
+        find: 'Find a sales manager', go: 'mgr:' + c.id, verb: 'Hand over' }) : '') +
+    '</div>' + gate;
   }
   const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
 
@@ -5206,19 +5280,6 @@
     '</section>';
   }
 
-  /* [4] What is owed, and the three ways to move it, on one line. */
-  function owedLine(c) {
-    if (!c.next) return '';
-    const late = daysBetween(TODAY_ISO, c.next.due) < 0;
-    return '<div class="b-owed">' +
-      '<span class="b-owed-say"><b>' + esc(c.next.what) + '</b> ' +
-        (late ? 'was due ' : 'due ') + esc(sayWhen(c.next.due)) + '</span>' +
-      [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'Next week']].map((d) =>
-        '<button class="filter-chip" type="button" data-movenext="' + d[0] + '">' +
-        esc(d[1]) + '</button>').join('') +
-      '<button class="filter-chip" type="button" data-movenext="clear">Drop it</button>' +
-    '</div>';
-  }
   /* ══ EVERY TOUCHPOINT, WITH THE WHOLE OF IT INSIDE ═════════════════════
      It was a one-line row: outcome, who, when, and the note squeezed beside
      them. Everything a call actually produced — what was asked for, what
@@ -5400,8 +5461,10 @@
     const warm = people.filter((c) => !isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered') && c.checkpoint !== 'handed-over')
       .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
     if (!warm) return '';
-    return '<button class="s-inline-btn" type="button" data-decide="handed-over" data-for="' + esc(warm.id) + '">' +
-      'Hand ' + esc(warm.name.split(' ')[0]) + ' to ' + esc(directorOf(warm).name) + '</button>';
+    return '<button class="s-inline-btn" type="button" data-pickopen="mgrPick">' +
+      'Hand ' + esc(warm.name.split(' ')[0]) + ' over</button>' +
+      pickPanel({ id: 'mgrPick', single: true, opts: mgrOpts(), find: 'Find a sales manager',
+        go: 'mgr:' + warm.id, verb: 'Hand over' });
   }
 
   function whatNext(c) {
@@ -6084,6 +6147,8 @@
 
   /* The director a lead is handed to: the owner of the campaign it is on. */
   function directorOf(c) {
+    /* whoever it was handed to, else whoever owns the campaign it is on */
+    if (c && c.manager && REP[c.manager]) return REP[c.manager];
     const k = DB.byCamp[campFor(c)];
     return actor(k && k.owner ? k.owner : MANAGERS[0].id);
   }
@@ -6545,31 +6610,6 @@
      the company profile and ring again later. It was a step in the flow
      with nowhere to press, so it was either not done or done outside the
      product and never written down. It is a touchpoint like any other. */
-  function sendProfile(id) {
-    const c = DB.byCon[id];
-    if (!c) return;
-    const camp = DB.byCamp[campFor(c)];
-    const before = { next: c.next };
-    const now = new Date().toISOString();
-    const t = {
-      id: 'e' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
-      con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
-      outcome: 'sent',
-      proposals: ['info'], objections: [], openings: [],
-      note: 'Sent the company profile' + (camp ? ' for ' + camp.name : '') + '.',
-      lines: [], next: null, moved: null, rung: c.checkpoint,
-    };
-    /* It buys a reason to ring again, so it sets one. */
-    patchCon(c, { next: { what: 'Call them back', due: dayAdd(3) } });
-    addTouch(t);
-    paint();
-    toast('Company profile sent to ' + c.name.split(' ')[0] + ' · ring back in 3 days', () => {
-      dropTouch(t.id);
-      patchCon(c, before);
-      paint();
-    });
-  }
-
   /* ══ A BETTER NUMBER FOR ONE PERSON ════════════════════════════════════
      The list has "Fill in what is missing"; a person whose number rang out
      six times had nothing. The supplier's own hit rate decides, off the id,
@@ -6653,21 +6693,6 @@
       dropTouch(t.id);
       patchCon(c, before);
       paint();
-    });
-    paint();
-  }
-
-  /* Moving a date without a picker. Three chips and a way to drop it — the
-     three answers that cover almost every follow-up a caller sets, and the
-     fourth case is a sentence to AiMY. */
-  function moveNext(id, days) {
-    const c = DB.byCon[id];
-    if (!c || !c.next) return;
-    const before = { next: c.next };
-    patchCon(c, { next: days == null ? null : { what: c.next.what, due: dayAdd(days) } });
-    toast(days == null ? 'Dropped the follow-up on ' + c.name.split(' ')[0]
-      : c.next.what + ' moved to ' + sayWhen(c.next.due), () => {
-      patchCon(c, before); paint();
     });
     paint();
   }
@@ -7765,80 +7790,6 @@
      `by` is who pressed the button; `auto` is who is holding the phone. The
      V3 build got this wrong for a while and attributed every AiMY call to
      whoever started the run. */
-  /* Two in ten get through, which is what cold calling actually returns —
-     but front-loaded, because a five-call demo off a rotation that starts
-     with three misses shows a run where nothing happened. */
-  const AUTO_DEAL = ['reached', 'no-answer', 'gatekeeper', 'no-answer', 'callback',
-    'no-answer', 'reached', 'no-answer', 'not-interested', 'no-answer'];
-  let AUTO_TICK = null;
-
-  function autoCall(ids) {
-    const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
-    if (!live.length) { toast('Nobody in this set has a number to ring.'); return; }
-    if (AUTO_TICK) { toast('AiMY is already working through a set.'); return; }
-    const sess = {
-      id: 'a' + Date.now().toString(36), ids: live, done: [], skipped: [],
-      at: new Date().toISOString(), auto: true, dealt: 0,
-    };
-    DB.session.push(sess);
-    openCanvas();
-    say('aimy', answerBlock('Calling ' + plural(live.length, 'person'),
-      '<p class="s-callsum-note">I will work through them and write up each one as I go. ' +
-      'Everything I log is attributed to me, and every line of it can be undone.</p>' +
-      '<div class="b-cuts"><button class="s-inline-btn" type="button" data-autostop>' +
-      'Stop it</button></div>', 'you started this run'));
-    AUTO_TICK = setInterval(() => autoTick(sess), 1400);
-    autoTick(sess);
-  }
-
-  function autoTick(sess) {
-    const nextId = sess.ids.filter((id) =>
-      sess.done.indexOf(id) < 0 && sess.skipped.indexOf(id) < 0)[0];
-    if (!nextId) { autoStop(sess); return; }
-    const c = DB.byCon[nextId];
-    if (!c) { sess.skipped.push(nextId); return; }
-    const outcome = AUTO_DEAL[sess.dealt++ % AUTO_DEAL.length];
-    const props = outcome === 'reached' ? [sess.dealt % 2 ? 'meeting' : 'info'] : [];
-    const before = {
-      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt, attempts: c.attempts,
-      lastCallAt: c.lastCallAt, next: c.next, dnc: c.dnc,
-    };
-    const mv = moveFor(c, outcome, props, 7);
-    const now = new Date().toISOString();
-    const t = {
-      id: 'u' + Date.now().toString(36) + sess.dealt,
-      con: c.id, camp: campFor(c), by: me().id, auto: true, at: now,
-      secs: outcome === 'reached' ? between(rng(sess.dealt * 7), 90, 420) : 20,
-      outcome: outcome, proposals: props, objections: [], openings: [],
-      note: 'AiMY called them.', lines: [], next: mv.next || null,
-      moved: mv.to ? [c.checkpoint, mv.to] : null,
-      rung: mv.to || c.checkpoint,
-    };
-    const fields = { attempts: c.attempts + 1, lastCallAt: now };
-    if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
-    if (mv.next) fields.next = mv.next;
-    if (mv.dnc) fields.dnc = true;
-    if (mv.to && isExit(mv.to)) fields.next = null;
-    patchCon(c, fields);
-    addTouch(t);
-    sess.done.push(c.id);
-    say('aimy', '<b>' + esc(c.name) + '</b> — ' +
-      esc((OUTCOME[outcome] || {}).label || outcome) +
-      /* "No answer, now No answer" stuttered; the first ring says where from */
-      (mv.to ? (rungLabel(mv.to) === ((OUTCOME[outcome] || {}).label || '')
-        ? ', up from ' + esc(rungLabel(t.moved[0]).toLowerCase())
-        : ', now ' + esc(rungLabel(mv.to))) : '') +
-      ' <span class="s-callp-who">' + sess.done.length + ' of ' + sess.ids.length + '</span>');
-    paint();
-  }
-
-  function autoStop(sess) {
-    if (AUTO_TICK) { clearInterval(AUTO_TICK); AUTO_TICK = null; }
-    sess.finished = new Date().toISOString();
-    sessionSummary(sess);
-    paint();
-  }
-
   /* ── WHAT AN HOUR ON THE PHONE WAS WORTH ──
      Three questions, not one: what happened, what it produced, and what got
      in the way. A run that reports only its counts reports the least useful
@@ -8213,11 +8164,6 @@
     const acc = t.closest('[data-acc]');
     if (acc) { go(Object.assign(cleared(), { acc: acc.getAttribute('data-acc') })); return; }
 
-    const adda = t.closest('[data-addacc]');
-    if (adda) { addAccTo(adda.getAttribute('data-addacc'), adda.getAttribute('data-tocamp')); return; }
-
-    const addl = t.closest('[data-addlist]');
-    if (addl) { addListTo(addl.getAttribute('data-addlist'), addl.getAttribute('data-tocamp')); return; }
 
     const nextin = t.closest('[data-callnextin]');
     if (nextin) {
@@ -8355,17 +8301,6 @@
       paint();
       return;
     }
-    if (t.closest('[data-autostop]')) {
-      const live = DB.session.filter((x) => x.auto && !x.finished)[0];
-      if (live) autoStop(live);
-      return;
-    }
-    const auto = t.closest('[data-autocall]');
-    if (auto) {
-      const ids = auto.getAttribute('data-autocall');
-      autoCall(ids ? ids.split(',') : []);
-      return;
-    }
 
     const out = t.closest('[data-out]');
     if (out && DB.call) {
@@ -8380,21 +8315,47 @@
     const en = t.closest('[data-enrichcon]');
     if (en) { enrichCon(en.getAttribute('data-enrichcon')); return; }
 
-    const sp = t.closest('[data-sendprofile]');
-    if (sp) { sendProfile(sp.getAttribute('data-sendprofile')); return; }
+    /* ══ THE CHOOSER ═══════════════════════════════════════════════════════
+       Opening, choosing and filtering all happen in the DOM: a repaint
+       between two presses would close the panel under the hand using it.
+       Only the confirm writes, and the write repaints. */
+    const po = t.closest('[data-pickopen]');
+    if (po) {
+      const panel = byId(po.getAttribute('data-pickopen'));
+      if (!panel) return;
+      panel.hidden = !panel.hidden;
+      const find = panel.querySelector('[data-picksearch]');
+      if (!panel.hidden && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
+      return;
+    }
+    const ptg = t.closest('[data-picktoggle]');
+    if (ptg) {
+      const panel = ptg.closest('.b-pick');
+      const was = ptg.getAttribute('aria-pressed') === 'true';
+      if (ptg.hasAttribute('data-one')) {
+        panel.querySelectorAll('.b-pick-opt').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      }
+      ptg.setAttribute('aria-pressed', was ? 'false' : 'true');
+      pickSettle(panel);
+      return;
+    }
+    const pgo = t.closest('[data-pickgo]');
+    if (pgo) {
+      const chosen = pickChosen(pgo.closest('.b-pick'));
+      if (!chosen.length) return;
+      const v = pgo.getAttribute('data-pickgo');
+      const kind = v.slice(0, v.indexOf(':'));
+      const id = v.slice(v.indexOf(':') + 1);
+      if (kind === 'mgr') handover(id, chosen[0]);
+      else putOn(kind, id, chosen);
+      return;
+    }
 
     const dc = t.closest('[data-decide]');
     if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
 
     const mv = t.closest('[data-move]');
     if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
-
-    const mn = t.closest('[data-movenext]');
-    if (mn) {
-      const v = mn.getAttribute('data-movenext');
-      moveNext(S.con, v === 'clear' ? null : Number(v));
-      return;
-    }
 
     const when = t.closest('[data-when]');
     if (when && DB.call) {
@@ -8491,6 +8452,10 @@
      found again and the caret put back where it was. Without it the field
      lost focus on the first letter and the search was unusable. */
   document.addEventListener('input', (e) => {
+    /* The chooser filters its own list where it stands. A repaint would
+       take the focus out of the box being typed in. */
+    const ps = e.target.closest && e.target.closest('[data-picksearch]');
+    if (ps) { pickFilter(ps); return; }
     const box = e.target.closest && e.target.closest('[data-find]');
     if (!box) return;
     const at = box.selectionStart;
