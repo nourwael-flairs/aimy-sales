@@ -1525,11 +1525,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-menu-item:hover { background: rgba(var(--accent-rgb), 0.14); color: var(--d50); }
 .b-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.b-menu-who {
-  display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 50%;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.02em;
-  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.16);
-}
 @media (prefers-reduced-motion: reduce) { .b-menu { animation: none; } }
 .b-menu-open[aria-expanded] { color: var(--d50); }
 .b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }
@@ -1554,11 +1549,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
 }
 .b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: rgba(23,178,106,0.18); }
-.b-nm-av {
-  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; margin-top: 1px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.02em;
-  color: var(--d50); background: var(--grad-avatar);
-}
 .b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .b-nm-say {
   font-size: var(--t-lead); font-weight: var(--fw-semibold); line-height: var(--lh-base);
@@ -1717,3 +1707,17 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-node { transition: none; }
   .b-node:active { transform: none; }
 }
+
+/* ══ 52. A FACE ════════════════════════════════════════════════════════════
+   Drawn, not fetched — see the argument in bdr.js. The ring is what stops a
+   pale ground from cutting a hole in a dark surface, and it is the same ring
+   whichever surface the face lands on. */
+.b-face {
+  display: block; flex: none; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16), 0 0 0 1px var(--card-border);
+}
+/* The masthead and the canvas both held a monogram in a tinted circle; the
+   face brings its own ground, so theirs would only show as a rim. */
+.topnav-avatar { background: none; padding: 0; overflow: hidden; }
+.msg-avatar.user-av { background: none; border: 0; border-radius: 50%; }
+.b-nm-note .b-face { margin-top: 1px; }

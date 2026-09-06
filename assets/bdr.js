@@ -364,6 +364,64 @@
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
+
+  /* ══ A FACE, NOT A MONOGRAM ═════════════════════════════════════════════
+     Four surfaces drew a person as two letters in a coloured circle — the
+     masthead, the hand-over menu, the note somebody left, and your own turn
+     in the canvas. Nobody's colleague is "LH". Two letters are what a
+     product draws when it has no picture and has not decided to get one.
+
+     Drawn rather than fetched: a ground, shoulders, a head and a hair shape,
+     every part picked off the person's own id, so the same person wears the
+     same face on every surface and the set needs no network to render. A
+     photograph would be one request per avatar for a build that runs from a
+     folder, and a broken image is worse than a drawn one. */
+  /* Skin and hair are picked as a PAIR, never independently: two of the
+     thirty-six free combinations put ash hair on the palest skin, and that
+     face had no hair at all on screen. */
+  const AV_LOOK = [
+    { skin: '#f2cdaa', hair: '#4a3520' }, { skin: '#e8b68f', hair: '#191512' },
+    { skin: '#cd8d60', hair: '#2e2419' }, { skin: '#aa6e47', hair: '#191512' },
+    { skin: '#8d5a3b', hair: '#2e2419' }, { skin: '#6b4229', hair: '#120f0d' },
+    { skin: '#f2cdaa', hair: '#a35f27' }, { skin: '#e8b68f', hair: '#9c938b' },
+  ];
+  const AV_WEAR = ['#41608e', '#4b6b55', '#7c4a58', '#4b4a60', '#8a6b3c', '#31606c'];
+  const AV_LAND = ['#c6d8ec', '#cfe0d3', '#eed7db', '#dcdbe6', '#ecdfca', '#cbe0e6'];
+  /* Seven heads of hair. The silhouette is the whole of it — anything finer
+     than a millimetre is mush at twenty-four pixels — so the set varies where
+     the outline goes rather than what is inside it: a crop, a dome, hair past
+     the shoulders, a bun that breaks the circle, a bob, a parting, a cap. */
+  const AV_TOP = [
+    'M7.3 10.4a4.7 4.7 0 0 1 9.4 0c.1-2-1.9-3.1-4.7-3.1s-4.8 1.1-4.7 3.1z',
+    'M6.2 10.9a5.8 5.8 0 0 1 11.6 0c0-2.1-2.6-3.3-5.8-3.3s-5.8 1.2-5.8 3.3z',
+    'M6.8 19.2V10a5.2 5.2 0 0 1 10.4 0v9.2h-2.1V9.9c0-1.4-1.4-2.3-3.1-2.3S8.9 8.5 8.9 9.9v9.3z',
+    'M7.3 10.4a4.7 4.7 0 0 1 9.4 0c.1-2-1.9-3.1-4.7-3.1s-4.8 1.1-4.7 3.1zM16.7 7.4a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8z',
+    'M7 14.1V10a5 5 0 0 1 10 0v4.1h-1.9V9.9c0-1.3-1.4-2.2-3.1-2.2S8.9 8.6 8.9 9.9v4.2z',
+    'M7.3 10.7c0-3.1 2.1-4.9 4.7-4.9 2.3 0 4.2 1.3 4.7 3.5-1.5-1.3-3.6-1.8-5.7-1.5-1.8.3-3.1 1.2-3.7 2.9z',
+    'M7.3 10.4a4.7 4.7 0 0 1 9.4 0c0-2.8-2.1-4.3-4.7-4.3s-4.7 1.5-4.7 4.3z',
+  ];
+  function faceOf(id, px) {
+    const h = Math.abs(hash(String(id) + ':face'));
+    const look = AV_LOOK[h % AV_LOOK.length];
+    const wear = AV_WEAR[(h >> 3) % AV_WEAR.length];
+    const land = AV_LAND[(h >> 6) % AV_LAND.length];
+    const top = AV_TOP[(h >> 9) % AV_TOP.length];
+    return '<svg class="b-face" viewBox="0 0 24 24" width="' + px + '" height="' + px + '" ' +
+      'aria-hidden="true" focusable="false">' +
+      '<circle cx="12" cy="12" r="12" fill="' + land + '"/>' +
+      '<path d="M10.4 12.4h3.2v3.6h-3.2z" fill="' + look.skin + '"/>' +
+      '<path d="M4.4 21.3a12 12 0 0 0 15.2 0c-.7-3.7-3.9-6.5-7.6-6.5s-6.9 2.8-7.6 6.5z" ' +
+        'fill="' + wear + '"/>' +
+      /* The collar is what makes the mound below the head read as a shirt
+         rather than as the shoulders of a stock user glyph. */
+      '<path d="M12 18.1l-2.1-2.9 2.1-.5 2.1.5z" fill="#fff" opacity="0.22"/>' +
+      '<circle cx="12" cy="10.2" r="4.6" fill="' + look.skin + '"/>' +
+      '<circle cx="10.3" cy="10.3" r="0.62" fill="#241a13" opacity="0.72"/>' +
+      '<circle cx="13.7" cy="10.3" r="0.62" fill="#241a13" opacity="0.72"/>' +
+      '<path d="' + top + '" fill="' + look.hair + '"/>' +
+    '</svg>';
+  }
+
   /* WHO DID IT. `by` is who pressed the button; a call AiMY placed is
      AiMY's, as the run says it will be, and the record reads that way. */
   const whoDid = (t) => (t.auto ? AIMY : actor(t.by));
@@ -2491,7 +2549,7 @@
         MANAGERS.map((r) =>
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-handto="' + esc(conId + ':' + r.id) + '">' +
-            '<span class="b-menu-who">' + esc(r.initials) + '</span>' + esc(r.name) +
+            faceOf(r.id, 24) + esc(r.name) +
           '</button>').join('') +
       '</div>' +
     '</span>';
@@ -2657,7 +2715,7 @@
 
   function paintWho() {
     const p = me();
-    byId('userAvatar').textContent = p.initials;
+    byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
     byId('userRole').textContent = 'BDR';
   }
@@ -5726,7 +5784,7 @@
               : '') +
             (o.mem
               ? '<div class="b-nm-note">' +
-                  '<span class="b-nm-av">' + esc(o.mem.initials) + '</span>' +
+                  faceOf(o.mem.id, 28) +
                   '<span class="b-nm-text">' +
                     '<span class="b-nm-said">' + esc(o.mem.text) + '</span>' +
                     '<span class="b-nm-by">' + esc(o.mem.by) + ' wrote this down</span>' +
@@ -5790,7 +5848,7 @@
       next: next, hand: hand, due: done ? null : due, done: done,
       bars: ladder(c, true),
       mem: c.remember
-        ? { text: c.remember.text, by: actor(c.remember.by).name, initials: actor(c.remember.by).initials || '·' }
+        ? { text: c.remember.text, by: actor(c.remember.by).name, id: c.remember.by }
         : null,
       cite: (camps.length ? listSay(camps.map((k) => k.name)) + ' · ' : '') +
         (all.length ? plural(all.length, 'touchpoint') + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') : 'nothing on the record'),
@@ -7408,11 +7466,11 @@
     '<svg viewBox="0 0 18 20" width="13" height="14" aria-hidden="true">' +
       '<use href="#aimy-logo-small"/></svg>';
 
-  /* EVERY TURN HAS A FACE. Your initials on yours, the mark on AiMY's —
-     which is the thing that makes a bubble AiMY speaking rather than the
-     product printing. Mine had none at all. */
+  /* EVERY TURN HAS A FACE. Yours on yours, the mark on AiMY's — which is
+     the thing that makes a bubble AiMY speaking rather than the product
+     printing. Mine had none at all. */
   const msgAvatar = (who) => (who === 'you'
-    ? '<div class="msg-avatar user-av">' + esc(me().initials) + '</div>'
+    ? '<div class="msg-avatar user-av">' + faceOf(me().id, 28) + '</div>'
     : '<div class="msg-avatar aimy-av">' + aiMark() + '</div>');
 
   /* A turn is a face and a bubble. A turn that ASKS something carries its
