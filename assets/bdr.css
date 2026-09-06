@@ -1494,30 +1494,87 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-sell { padding: 0; }
 .b-sell-body { display: flex; flex-direction: column; }
 
-/* ══ 46. WHAT TO DO, AND WHAT TO HOLD IN MIND ══════════════════════════════
-   They were the fourth and fifth paragraphs of the story, and the durable
-   line — the one thing on a record somebody wrote down on purpose — was a
-   sentence with a stripe beside it. One block holds both, captioned down a
-   shared left edge, so each line says what KIND of thing it is before it
-   says the thing. The block is the story's footing: it is what you act on. */
-.b-nm {
-  margin-top: 18px; padding: 16px 18px; display: grid; gap: 14px;
-  background: var(--card-bg-raised); border: 1px solid var(--card-border); border-radius: 14px;
+
+/* ══ 47. A MENU ON ITS BUTTON ══════════════════════════════════════════════
+   Five managers under a search box, a multiple choice and a confirm was a
+   form for a question with one answer. The verb opens a menu under itself:
+   it scales up from the button's own corner rather than out of nothing —
+   140ms, no overshoot — and a name is the whole interaction. */
+.b-menu-wrap { position: relative; display: inline-flex; }
+.b-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; min-width: 216px;
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.03);
+  transform-origin: top left;
+  animation: b-menu-in 140ms var(--ease-out) both;
 }
-.b-nm-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 16px; align-items: baseline; }
-.b-nm-cap {
+@keyframes b-menu-in { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+.b-menu[hidden] { display: none; }
+.b-menu-cap {
+  padding: 4px 10px 6px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--d300); padding-top: 2px;
+  text-transform: uppercase; color: var(--d300);
 }
-.b-nm-val {
-  margin: 0; max-width: 62ch; text-wrap: pretty;
-  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
+.b-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
+  text-align: left; padding: 8px 10px; border: 0; border-radius: 8px;
+  background: transparent; cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
 }
-.b-nm-val.is-quiet { font-weight: var(--fw-regular); color: var(--d100); }
-.b-nm-val b { font-weight: var(--fw-bold); color: var(--d50); }
-.b-nm-sub {
-  display: block; margin-top: 6px;
-  font-size: var(--t-ui); font-weight: var(--fw-regular); color: var(--d200);
+.b-menu-item:hover { background: rgba(var(--accent-rgb), 0.14); color: var(--d50); }
+.b-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-menu-who {
+  display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 50%;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.02em;
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.16);
 }
-.b-nm-by { margin-left: 6px; font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
-@media (max-width: 560px) { .b-nm-row { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .b-menu { animation: none; } }
+.b-menu-open[aria-expanded] { color: var(--d50); }
+.b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }
+.b-menu.is-right { left: auto; right: 0; transform-origin: top right; }
+
+/* ══ 46. THE THING TO DO, AND THE NOTE SOMEBODY LEFT ═══════════════════════
+   Two captioned rows of prose was a wireframe of this. They are different
+   kinds of thing: one is a task — a mark, the sentence, and the date it is
+   owed as a chip that turns amber once it has passed — and the other is a
+   note, which reads the way a note from a colleague reads anywhere else:
+   their initials, their sentence, their name. */
+.b-nm { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.b-nm-do, .b-nm-note {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 14px 16px; border-radius: 14px;
+}
+.b-nm-do { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
+.b-nm-do.is-done { background: var(--ok-bg); border-color: rgba(23,178,106,0.28); }
+.b-nm-note { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+.b-nm-mark {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; margin-top: 1px;
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
+}
+.b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: rgba(23,178,106,0.18); }
+.b-nm-av {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; margin-top: 1px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.02em;
+  color: var(--d50); background: var(--grad-avatar);
+}
+.b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.b-nm-say {
+  font-size: var(--t-lead); font-weight: var(--fw-semibold); line-height: var(--lh-base);
+  color: var(--d50); max-width: 60ch; text-wrap: pretty;
+}
+.b-nm-due {
+  display: inline-block; margin-left: 8px; vertical-align: 2px; white-space: nowrap;
+  padding: 2px 9px; border-radius: 99px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.01em;
+  color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+.b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
+.b-nm-then b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-nm-said {
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base);
+  color: var(--d50); max-width: 62ch; text-wrap: pretty;
+}
+.b-nm-by { font-size: var(--t-small); color: var(--d300); }

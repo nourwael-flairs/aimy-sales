@@ -2394,7 +2394,7 @@
       '</div>' +
       '<div class="b-pick-list">' + o.opts.map((x) =>
         '<button class="b-pick-opt" type="button" data-picktoggle="' + esc(x.id) + '" ' +
-        (o.single ? 'data-one ' : '') + 'aria-pressed="false">' + esc(x.name) + '</button>').join('') +
+        'aria-pressed="false">' + esc(x.name) + '</button>').join('') +
       '</div>' +
       '<div class="b-pick-foot">' +
         '<button class="s-insight-lnk primary" type="button" data-pickgo="' + esc(o.go) + '" ' +
@@ -2404,7 +2404,26 @@
     '</div>';
   }
   const campOpts = () => myCampaigns().filter(campOpen).map((k) => ({ id: k.id, name: k.name }));
-  const mgrOpts = () => MANAGERS.map((r) => ({ id: r.id, name: r.name }));
+
+  /* ══ A MENU ON ITS BUTTON ══════════════════════════════════════════════
+     Five managers do not need a search box, a multiple choice and a
+     confirm — that is a form for a question with one answer. The verb
+     opens a menu under itself, a name hands them over, and the toast's
+     Undo is the way back. Escape and a click outside close it. */
+  function mgrMenu(conId, label) {
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open" type="button" data-pickopen="mgrMenu" ' +
+        'aria-haspopup="menu">' + esc(label) + '</button>' +
+      '<div class="b-menu" id="mgrMenu" role="menu" hidden>' +
+        '<span class="b-menu-cap">Hand over to</span>' +
+        MANAGERS.map((r) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-handto="' + esc(conId + ':' + r.id) + '">' +
+            '<span class="b-menu-who">' + esc(r.initials) + '</span>' + esc(r.name) +
+          '</button>').join('') +
+      '</div>' +
+    '</span>';
+  }
   /* What the panel is holding, read off the DOM when the confirm is pressed. */
   function pickChosen(panel) {
     return [...panel.querySelectorAll('.b-pick-opt[aria-pressed="true"]')]
@@ -5204,7 +5223,7 @@
        spoken to them, and there is nothing to hand over. */
     const warm = rank(c.checkpoint) >= rank('callback') && !isExit(c.checkpoint) &&
       c.checkpoint !== 'handed-over';
-    const send = warm ? { html: 'Handover', attr: 'data-pickopen="mgrPick"' } : null;
+    const send = null;
     /* Past a meeting the question is what happened at it; before one, the
        question is the phone. */
     /* a meeting still ahead is not yet a question; the phone leads until it has happened */
@@ -5261,12 +5280,12 @@
         b.attr + '>' + b.html + '</button>').join('') +
       (say ? '<span class="s-block-sub">' + esc(say) + '</span>' : '') +
       quiet.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' + b.html + '</button>').join('') +
+      /* the hand-over belongs with the verbs, not after the way out */
+      (warm ? mgrMenu(c.id, 'Handover') : '') +
       (next
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
         : '') +
-      (warm ? pickPanel({ id: 'mgrPick', single: true, opts: mgrOpts(),
-        find: 'Find a sales manager', go: 'mgr:' + c.id, verb: 'Hand over' }) : '') +
     '</div>' + gate;
   }
   const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
@@ -5449,6 +5468,14 @@
      that got them there as a chain you read left to right, and one quiet
      line about how it ends. Nothing here is a control; the verbs are
      sixty pixels up. */
+  /* A thing still owed, and a thing already settled. */
+  const nmClock = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
+  const nmTick = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
   function storyBlock(o) {
     return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
       '<div class="s-camp-list-head"><h2 class="s-block-h">The story so far</h2>' +
@@ -5467,27 +5494,35 @@
               '<span class="b-story-t">' + esc(x.t) + '</span>' +
             '</li>').join('') + '</ol>'
         : '') +
-      /* ══ WHAT TO DO, AND WHAT TO HOLD IN MIND ═══════════════════════
-         Two paragraphs of prose under a chain of dots, and the durable
-         line — the one thing on the record somebody wrote down on
-         purpose — was a sentence with a stripe beside it. One block,
-         two labelled lines on a shared left edge: the caption says which
-         kind of thing it is, and the eye lands on the panel rather than
-         on the fourth paragraph in a row. */
+      /* ══ THE THING TO DO, AND THE NOTE SOMEBODY LEFT ═══════════════════
+         Two captioned rows of prose was a wireframe of this: they are two
+         different kinds of thing and they look it now. What to do is a task
+         — a mark, the sentence at the lead step, and the date it is owed as
+         a chip that turns amber when it has passed. What to remember is a
+         note — the initials of whoever wrote it, their sentence, and their
+         name under it, which is how a note left by a colleague reads
+         everywhere else. HubSpot and Outseta both draw the second one this
+         way; Twenty draws the first. */
       ((o.next || o.mem)
         ? '<div class="b-nm">' +
             (o.next
-              ? '<div class="b-nm-row">' +
-                  '<span class="b-nm-cap">' + esc(o.nextCap || 'Next') + '</span>' +
-                  '<p class="b-nm-val">' + o.next +
-                    (o.hand ? '<span class="b-nm-sub">' + o.hand + '</span>' : '') + '</p>' +
+              ? '<div class="b-nm-do' + (o.done ? ' is-done' : '') + '">' +
+                  '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>' +
+                  '<span class="b-nm-text">' +
+                    '<span class="b-nm-say">' + o.next +
+                      (o.due ? '<span class="b-nm-due' + (o.due.late ? ' is-late' : '') + '">' +
+                        esc(o.due.what) + ' · ' + esc(o.due.when) + '</span>' : '') + '</span>' +
+                    (o.hand ? '<span class="b-nm-then">' + o.hand + '</span>' : '') +
+                  '</span>' +
                 '</div>'
               : '') +
             (o.mem
-              ? '<div class="b-nm-row">' +
-                  '<span class="b-nm-cap">Remember</span>' +
-                  '<p class="b-nm-val is-quiet">' + esc(o.mem.text) +
-                    '<span class="b-nm-by">' + esc(o.mem.by) + '</span></p>' +
+              ? '<div class="b-nm-note">' +
+                  '<span class="b-nm-av">' + esc(o.mem.initials) + '</span>' +
+                  '<span class="b-nm-text">' +
+                    '<span class="b-nm-said">' + esc(o.mem.text) + '</span>' +
+                    '<span class="b-nm-by">' + esc(o.mem.by) + ' wrote this down</span>' +
+                  '</span>' +
                 '</div>'
               : '') +
           '</div>'
@@ -5526,12 +5561,13 @@
       tone: t.decision === 'lost' ? 'warn' : 'ok',
     }));
     /* where they stand, and what that costs you today */
-    const owed = c.next
-      ? ' ' + esc(c.next.what) + ' ' + (daysBetween(TODAY_ISO, c.next.due) < 0
-        ? '<b class="tone-warn">was due ' + esc(sayWhen(c.next.due)) + '</b>' : 'is due ' + esc(sayWhen(c.next.due))) + '.'
-      : '';
+    /* the owed thing is the chip on the task below, not a second sentence */
+    const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
+    const due = c.next
+      ? { what: c.next.what, when: (late ? 'was due ' : 'due ') + sayWhen(c.next.due), late: late }
+      : null;
     const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rg.say) +
-      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.' + owed;
+      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.';
     const quiet = quietUnderFour(c);
     /* the caption says "Next", so the sentence does not have to */
     const plainNext = whatNext(c).replace(/^Next:\s*/, '').replace(/^./, (x) => x.toUpperCase());
@@ -5543,9 +5579,11 @@
       'Your part ends at <b>Interested</b> — ' + esc(d.name) + ' takes it from there.';
     return {
       now: now, steps: storyTrim(steps),
-      next: next, hand: hand, nextCap: done ? 'Where it went' : 'Next',
+      next: next, hand: hand, due: done ? null : due, done: done,
       bars: ladder(c, true),
-      mem: c.remember ? { text: c.remember.text, by: '— ' + actor(c.remember.by).name } : null,
+      mem: c.remember
+        ? { text: c.remember.text, by: actor(c.remember.by).name, initials: actor(c.remember.by).initials || '·' }
+        : null,
       cite: (camps.length ? listSay(camps.map((k) => k.name)) + ' · ' : '') +
         (all.length ? plural(all.length, 'touchpoint') + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') : 'nothing on the record'),
     };
@@ -5580,7 +5618,7 @@
         : '';
     return {
       now: now, steps: storyTrim(steps),
-      next: next, nextCap: handed ? 'Where it went' : 'Next',
+      next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
         ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
       cite: a.city + ' · ' + INDUSTRY[a.industry].label,
@@ -5591,10 +5629,7 @@
     const warm = people.filter((c) => !isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered') && c.checkpoint !== 'handed-over')
       .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
     if (!warm) return '';
-    return '<button class="s-inline-btn" type="button" data-pickopen="mgrPick">' +
-      'Hand ' + esc(warm.name.split(' ')[0]) + ' over</button>' +
-      pickPanel({ id: 'mgrPick', single: true, opts: mgrOpts(), find: 'Find a sales manager',
-        go: 'mgr:' + warm.id, verb: 'Hand over' });
+    return mgrMenu(warm.id, 'Hand ' + warm.name.split(' ')[0] + ' over');
   }
 
   function whatNext(c) {
@@ -8456,15 +8491,25 @@
       panel.hidden = !panel.hidden;
       const find = panel.querySelector('[data-picksearch]');
       if (!panel.hidden && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }
+      /* A MENU THAT WOULD RUN OFF THE EDGE HANGS THE OTHER WAY. Measured
+         after it is shown, because a hidden element has no width. */
+      if (!panel.hidden && panel.classList.contains('b-menu')) {
+        panel.classList.remove('is-right');
+        if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
+      }
       return;
     }
+    const hto = t.closest('[data-handto]');
+    if (hto) {
+      const v = hto.getAttribute('data-handto');
+      handover(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
+      return;
+    }
+
     const ptg = t.closest('[data-picktoggle]');
     if (ptg) {
       const panel = ptg.closest('.b-pick');
       const was = ptg.getAttribute('aria-pressed') === 'true';
-      if (ptg.hasAttribute('data-one')) {
-        panel.querySelectorAll('.b-pick-opt').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-      }
       ptg.setAttribute('aria-pressed', was ? 'false' : 'true');
       pickSettle(panel);
       return;
@@ -8476,8 +8521,7 @@
       const v = pgo.getAttribute('data-pickgo');
       const kind = v.slice(0, v.indexOf(':'));
       const id = v.slice(v.indexOf(':') + 1);
-      if (kind === 'mgr') handover(id, chosen[0]);
-      else putOn(kind, id, chosen);
+      putOn(kind, id, chosen);
       return;
     }
 
@@ -8772,6 +8816,16 @@
     /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
   });
+
+  /* A MENU CLOSES ON THE NEXT THING YOU DO. Anything outside it, or Esc. */
+  function shutMenus(keep) {
+    document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) m.hidden = true; });
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && (e.target.closest('.b-menu') || e.target.closest('[data-pickopen]'))) return;
+    shutMenus(null);
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') shutMenus(null); });
 
   window.addEventListener('resize', () => placeSwitchBar(null));
   /* The webfont lands after the first paint and the buttons narrow under
