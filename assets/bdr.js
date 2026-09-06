@@ -2158,7 +2158,8 @@
       const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(t.at)) + '</h3>' : '';
       day = d;
       return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
-    }).join('') + '</div>' + peekFoot(pg, 'call');
+    /* the feed carries hand-moves, profiles and the director's meetings */
+    }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
   }
 
   const timeOf = (iso) => {
@@ -2370,6 +2371,20 @@
      the briefing you start from — and neither carried an arrow, so the one
      control on the page whose whole meaning is a direction was drawn as a
      line of text. The chevron is V3's, at V3's weight. */
+  /* WHERE BACK ACTUALLY GOES. A person opened from a company goes back to
+     the company; the button said "Back to the briefing" on the way to
+     somewhere else. The label reads the state, so it cannot lie. */
+  function backHere() {
+    const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
+    const a = S.con && S.acc && DB.byAcc[S.acc];
+    if (a) return backBtn('data-back', 'Back to ' + cap(a.name));
+    const k = S.camp && DB.byCamp[S.camp];
+    if (k) return backBtn('data-back', 'Back to ' + cap(k.name));
+    const l = S.list && DB.byList[S.list];
+    if (l) return backBtn('data-back', 'Back to ' + cap(l.name));
+    return backBtn('data-back', 'Back to the briefing');
+  }
+
   const backBtn = (attr, label) =>
     '<button class="s-back" type="button" ' + attr + '>' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
@@ -4761,7 +4776,7 @@
       : '';
 
     return '<div class="s-home">' +
-      backBtn('data-back', 'Back') +
+      backHere() +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Company · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
@@ -4822,7 +4837,7 @@
 
       '<section class="s-block s-block-wide" aria-label="Where they stand">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
-          '<span class="s-block-say">' + esc(plural(hist.length, 'call')) +
+          '<span class="s-block-say">' + esc(plural(callsIn(hist).length, 'call')) +
           ' into this company</span></div>' +
         funnelOf(people) +
       '</section>' +
@@ -4901,6 +4916,11 @@
     return 'Nobody here can be rung now: ' + bits.join(', ') + '.';
   }
 
+  /* The calls among a set of touchpoints. A hand-move, a profile going out
+     and the director's meetings are on the record and are not calls, and
+     four places counted them as calls. */
+  const callsIn = (ts) => ts.filter((t) => OUTCOME[t.outcome]);
+
   function accSays(a, people, hist) {
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
@@ -4932,11 +4952,11 @@
     if (top && n[top] > 1) {
       return { text: esc(OBJECTION[top].label) + ' has come up ' + times(n[top]) +
         ' here. ' + esc(OBJECTION[top].blurb),
-        from: plural(hist.length, 'call') + ' into this company' };
+        from: plural(callsIn(hist).length, 'call') + ' into this company' };
     }
     /* Rung and rung and nothing, across the whole company. */
-    if (hist.length >= 3 && !got) {
-      return { text: plural(hist.length, 'call') + ' in and nobody here has picked up. ' +
+    if (callsIn(hist).length >= 3 && !got) {
+      return { text: plural(callsIn(hist).length, 'call') + ' in and nobody here has picked up. ' +
         'It may be a switchboard rather than the people.',
         from: 'this company’s own history' };
     }
@@ -4986,7 +5006,7 @@
     const n = (DB.touchesOf[c.id] || []).length;
 
     return '<div class="s-home">' +
-      backBtn('data-back', 'Back to the briefing') +
+      backHere() +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Person' +
@@ -5230,7 +5250,12 @@
       return '<p class="b-vfoot">' + (untouched(c)
         ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
     }
-    const pg = peek(all);
+    /* ══ THE RECORD IS THE RECORD ══════════════════════════════════════
+       The heading said "18 touchpoints on the record" and the rail showed
+       eight of them, with the foot saying so and no way to the other ten.
+       A digest is right for a feed about other people; a person's own
+       history is the thing the page is for, so it pages like the roster. */
+    const pg = paged(all);
     const climbed = all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).length;
     const oldest = all[all.length - 1];
     let month = '';
@@ -5246,7 +5271,7 @@
       const ph = t.outcome === 'phase';
       const phTone = ph ? (t.decision === 'lost' ? 'warn' : 'ok') : null;
       return head + '<details class="s-call b-tl-item' + (up || out || ph ? ' is-milestone' : '') + '"' +
-        (i === 0 ? ' open' : '') + '>' +
+        (i === 0 && pg.p === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
           '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
             '" aria-hidden="true"></span>' +
@@ -5274,13 +5299,15 @@
         '</div>' +
       '</details>';
     }).join('') +
-      /* Where it began. Read off the whole history, not the eight shown, so
-         the end of the rail is the true start of the journey. */
-      '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
-        'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
-        (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
-      '</div>' +
-    '</div>' + peekFoot(pg, 'touchpoint');
+      /* Where it began, on the page where it began: the cap is the end of
+         the rail, and on page one of three the rail has not ended. */
+      (pg.p === pg.pages - 1
+        ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
+          'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
+          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
+        '</div>'
+        : '') +
+    '</div>' + pager(pg, 'touchpoint');
   }
 
 
@@ -5359,7 +5386,7 @@
     const bits = [];
     bits.push(calls.length ? 'First rung ' + sayDay(calls[0].at) + ' by ' + whoDid(calls[0]).name + '.' : 'Nobody here has been rung.');
     bits.push(plural(people.length, 'person') + ' on the record' + (calls.length ? ', ' + plural(calls.length, 'call') + ' in' : '') +
-      (reached.length ? ', ' + commas(reached.length) + ' reached' : '') + '.');
+      (reached.length ? ', ' + commas(reached.length) + ' of them reached' : '') + '.');
     if (top && rank(top.checkpoint) >= rank('answered')) {
       bits.push('The furthest along is ' + top.name + ', at ' + rungLabel(top.checkpoint) +
         (top.checkpointAt ? ' since ' + sayDay(top.checkpointAt) : '') + '.');
@@ -7422,6 +7449,7 @@
     const a = accOf(c);
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
     const line = (k, v) => '<p class="s-callp"><b>' + esc(k) + '</b> ' + v + '</p>';
@@ -7487,7 +7515,7 @@
     }
     openCanvas();
     say('aimy', answerBlock('Before you speak to ' + c.name, body,
-      hist.length ? plural(hist.length, 'call') + ' on the record' : 'nothing on the record yet'));
+      calls.length ? plural(calls.length, 'call') + ' on the record' : 'nothing on the record yet'));
   }
 
   /* What this audience says no about, counted, and only where the count is
@@ -7615,9 +7643,11 @@
        row says where it stays when the answer is nowhere. */
     if (f.to) {
       rows.push(['Checkpoint', (f.from ? rungLabel(f.from) + ' → ' : '') + rungLabel(f.to), 'ok']);
-    } else if (c) {
+    } else if (c && f.outcome !== 'phase') {
       /* the rung they were on when it happened, not the rung today: a
-         callback from July does not "stay at" a meeting set in August */
+         callback from July does not "stay at" a meeting set in August.
+         A phase is the director's ladder, not this one, so it says
+         nothing about a rung it was never going to move. */
       rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.rung || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
@@ -8061,14 +8091,21 @@
     }
 
     const con = t.closest('[data-con]');
-    if (con) { hideCanvas(); go({ con: con.getAttribute('data-con') }); return; }
+    /* THE PAGE NUMBER BELONGS TO THE LIST YOU LEFT. Opening somebody from
+       page three of the queue opened their history at page three. */
+    if (con) { hideCanvas(); go({ con: con.getAttribute('data-con'), p: '' }); return; }
 
     /* Back to where you were, not to the front page. `data-home` clears every
        key, which from row eleven of page four of the Due cut means losing the
        cut, the page and the row — three deliberate choices, undone by the
        control that was supposed to return you to them. */
+    /* ══ THE WAY BACK IS OUT OF THE RECORD YOU ARE IN ══════════════════
+       It cleared `con` wherever it was pressed, so on a company page —
+       where `con` is already empty — it did nothing at all. It clears the
+       record this page IS, which lands on the company, then the campaign,
+       then the briefing. */
     const back = t.closest('[data-back]');
-    if (back) { go({ con: '' }); return; }
+    if (back) { go(S.con ? { con: '' } : S.acc ? { acc: '' } : cleared()); return; }
 
     const camp = t.closest('[data-camp]');
     if (camp) { go(Object.assign(cleared(), { camp: camp.getAttribute('data-camp') })); return; }
