@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* ═══════════════════════════════════════════════════════════════════════════
    AiMY SALES — THE BDR BUILD, WHAT IT ADDS TO THE SHEET
 
@@ -341,7 +342,6 @@
    ships. Barely muted, on purpose: quiet enough to rank below the size and
    the industry, loud enough that the domain is still readable, because a
    fact nobody can read is a fact that may as well not be drawn. */
-.b-faint { color: var(--d600); }
 
 /* ══ 16. A CARD THAT OPENS SOMETHING LOOKS LIKE IT ═════════════════════════
    The library already gives `.type-card` a hover state — the border lifts and
@@ -475,7 +475,6 @@
 .s-block-sub { color: var(--d200); }
 .b-vfoot { color: var(--d200); }
 .s-rec-kind { color: var(--d300); }
-.b-faint { color: var(--d300); }
 .b-aimy-from { color: var(--d300); }
 .s-callsum-cap { color: var(--d300); }
 .s-callsum-val { color: var(--d50); }
@@ -1399,18 +1398,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-story-t { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
 .b-story-step.is-now .b-story-k { color: var(--d50); }
 .b-story-step.is-now .b-story-dot { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16); }
-.b-story-end {
-  margin: 0; max-width: 68ch; text-wrap: pretty;
-  font-size: var(--t-ui); color: var(--d200); line-height: var(--lh-base);
-}
-.b-story-end b { color: var(--d50); font-weight: var(--fw-bold); }
 
 /* The ladder opens the story, so it sits above the deck line rather than in
    a section of its own; a gap in the chain is a gap, not a moment. */
 .b-story .b-ladder { margin-bottom: 14px; }
 .b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
 .b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
-.b-story-mem { margin-top: 14px; }
 
 /* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
    Four columns on one grid: the rung, the bar, how many ever got that far,
@@ -1500,3 +1493,31 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* What to say is a section like the others: no drawer, no padding of its own. */
 .b-sell { padding: 0; }
 .b-sell-body { display: flex; flex-direction: column; }
+
+/* ══ 46. WHAT TO DO, AND WHAT TO HOLD IN MIND ══════════════════════════════
+   They were the fourth and fifth paragraphs of the story, and the durable
+   line — the one thing on a record somebody wrote down on purpose — was a
+   sentence with a stripe beside it. One block holds both, captioned down a
+   shared left edge, so each line says what KIND of thing it is before it
+   says the thing. The block is the story's footing: it is what you act on. */
+.b-nm {
+  margin-top: 18px; padding: 16px 18px; display: grid; gap: 14px;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border); border-radius: 14px;
+}
+.b-nm-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 16px; align-items: baseline; }
+.b-nm-cap {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300); padding-top: 2px;
+}
+.b-nm-val {
+  margin: 0; max-width: 62ch; text-wrap: pretty;
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
+}
+.b-nm-val.is-quiet { font-weight: var(--fw-regular); color: var(--d100); }
+.b-nm-val b { font-weight: var(--fw-bold); color: var(--d50); }
+.b-nm-sub {
+  display: block; margin-top: 6px;
+  font-size: var(--t-ui); font-weight: var(--fw-regular); color: var(--d200);
+}
+.b-nm-by { margin-left: 6px; font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
+@media (max-width: 560px) { .b-nm-row { grid-template-columns: minmax(0, 1fr); } }

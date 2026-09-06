@@ -5199,7 +5199,10 @@
        Once somebody is warm the sales manager takes them, and which
        manager is a decision — so the verb opens the list rather than
        naming whoever happens to own the campaign. */
-    const warm = rank(c.checkpoint) >= rank('answered') && !isExit(c.checkpoint) &&
+    /* From a callback up: a callback is a live thread — somebody asked to
+       be rung back — and a BDR can pass one across. Below that nobody has
+       spoken to them, and there is nothing to hand over. */
+    const warm = rank(c.checkpoint) >= rank('callback') && !isExit(c.checkpoint) &&
       c.checkpoint !== 'handed-over';
     const send = warm ? { html: 'Handover', attr: 'data-pickopen="mgrPick"' } : null;
     /* Past a meeting the question is what happened at it; before one, the
@@ -5464,8 +5467,31 @@
               '<span class="b-story-t">' + esc(x.t) + '</span>' +
             '</li>').join('') + '</ol>'
         : '') +
-      (o.end ? '<p class="b-story-end">' + o.end + '</p>' : '') +
-      (o.mem || '') +
+      /* ══ WHAT TO DO, AND WHAT TO HOLD IN MIND ═══════════════════════
+         Two paragraphs of prose under a chain of dots, and the durable
+         line — the one thing on the record somebody wrote down on
+         purpose — was a sentence with a stripe beside it. One block,
+         two labelled lines on a shared left edge: the caption says which
+         kind of thing it is, and the eye lands on the panel rather than
+         on the fourth paragraph in a row. */
+      ((o.next || o.mem)
+        ? '<div class="b-nm">' +
+            (o.next
+              ? '<div class="b-nm-row">' +
+                  '<span class="b-nm-cap">' + esc(o.nextCap || 'Next') + '</span>' +
+                  '<p class="b-nm-val">' + o.next +
+                    (o.hand ? '<span class="b-nm-sub">' + o.hand + '</span>' : '') + '</p>' +
+                '</div>'
+              : '') +
+            (o.mem
+              ? '<div class="b-nm-row">' +
+                  '<span class="b-nm-cap">Remember</span>' +
+                  '<p class="b-nm-val is-quiet">' + esc(o.mem.text) +
+                    '<span class="b-nm-by">' + esc(o.mem.by) + '</span></p>' +
+                '</div>'
+              : '') +
+          '</div>'
+        : '') +
     '</section>';
   }
   /* Six steps at most: the first two and the last four. A chain longer than
@@ -5507,17 +5533,19 @@
     const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rg.say) +
       (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.' + owed;
     const quiet = quietUnderFour(c);
-    const end = c.checkpoint === 'handed-over' ? esc(dealLine(c))
+    /* the caption says "Next", so the sentence does not have to */
+    const plainNext = whatNext(c).replace(/^Next:\s*/, '').replace(/^./, (x) => x.toUpperCase());
+    const done = c.checkpoint === 'handed-over' || isExit(c.checkpoint);
+    const next = c.checkpoint === 'handed-over' ? esc(dealLine(c))
       : isExit(c.checkpoint) ? esc('That is where it ended. Nothing is owed.')
-      : esc(whatNext(c) + (quiet ? ' ' + quietSay(quiet, c) : '')) +
-        ' Your part ends at <b>Interested</b>: ' + esc(d.name) + ' takes it from there.';
+      : esc(plainNext + (quiet ? ' ' + quietSay(quiet, c) : ''));
+    const hand = done ? '' :
+      'Your part ends at <b>Interested</b> — ' + esc(d.name) + ' takes it from there.';
     return {
-      now: now, steps: storyTrim(steps), end: end,
+      now: now, steps: storyTrim(steps),
+      next: next, hand: hand, nextCap: done ? 'Where it went' : 'Next',
       bars: ladder(c, true),
-      mem: c.remember
-        ? '<p class="s-callsum-mem b-story-mem"><span class="s-plan-cap">Remember</span>' +
-          esc(c.remember.text) + ' <span class="b-faint">— ' + esc(actor(c.remember.by).name) + '</span></p>'
-        : '',
+      mem: c.remember ? { text: c.remember.text, by: '— ' + actor(c.remember.by).name } : null,
       cite: (camps.length ? listSay(camps.map((k) => k.name)) + ' · ' : '') +
         (all.length ? plural(all.length, 'touchpoint') + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') : 'nothing on the record'),
     };
@@ -5545,11 +5573,18 @@
       ? '<b>' + commas(people.length) + '</b> on the record here, <b>' + commas(calls.length) + '</b> ' +
         verbFor(calls.length, 'call') + ' in, <b>' + commas(reached.length) + '</b> of them reached.'
       : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been rung.';
-    const end = top && top.checkpoint === 'handed-over' ? esc(dealLine(top))
+    const handed = top && top.checkpoint === 'handed-over';
+    const next = handed ? esc(dealLine(top))
       : top && rank(top.checkpoint) >= rank('answered')
-        ? 'Your part ends at <b>Interested</b>. ' + esc(directorOf(top).name) + ' takes it from there.'
+        ? esc(whatNext(top).replace(/^Next:\s*/, '').replace(/^./, (x) => x.toUpperCase()) + ' (' + top.name.split(' ')[0] + ')')
         : '';
-    return { now: now, steps: storyTrim(steps), end: end, cite: a.city + ' · ' + INDUSTRY[a.industry].label };
+    return {
+      now: now, steps: storyTrim(steps),
+      next: next, nextCap: handed ? 'Where it went' : 'Next',
+      hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
+        ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
+      cite: a.city + ' · ' + INDUSTRY[a.industry].label,
+    };
   }
   /* The hand-over from the company page: the furthest person, once warm. */
   function accHandBtn(people) {
