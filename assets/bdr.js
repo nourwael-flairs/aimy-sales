@@ -3701,12 +3701,24 @@
       backBtn('data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'kind' }))) + '"',
         'Companies or people') +
+      /* ══ THE VERB IS WHERE THE PAGE STARTS ═════════════════════════════
+         It sat at the bottom, past the criteria, the suggestions and the
+         expectation — so the one thing this page is for was the last thing
+         on it, and it was pressable before anybody had said who they were
+         after. Top right, beside the name, and dark until there is a
+         criterion to run: an empty search asks five hundred strangers for
+         nothing in particular. */
       '<div class="s-sheet-head s-block-wide"><div class="s-sheet-head-main">' +
         '<div class="s-sheet-kind">New list · ' + (kind === 'con' ? 'People' : 'Companies') + '</div>' +
         '<h1 class="s-sheet-name"><input class="s-build-name" type="text" spellcheck="false" ' +
           'value="' + esc(buildName()) + '" data-auto="' + esc(buildAutoName()) + '" ' +
           'data-bname aria-label="Name this list" /></h1>' +
-      '</div></div>' +
+      '</div>' +
+      '<span class="b-sheet-act">' +
+        '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
+          (anyCrit(t) && (found.length + take) ? '' : ' disabled aria-disabled="true"') +
+          '>Generate the list</button>' +
+      '</span></div>' +
 
       /* ══ A SENTENCE POINTING AT THE BAR IS NOT A WAY INTO IT ═══════════
          "Say who you are after in the bar below" was the whole of the empty
@@ -3756,25 +3768,17 @@
             '<span class="b-src' + (x.down ? ' is-off' : '') + '">' +
               '<span class="b-rstate-dot ' + (x.down ? 'tone-warn' : 'tone-ok') + '"></span>' +
               '<span class="b-src-n">' + esc(x.name) + '</span>' +
-              /* A percentage stated flat is a promise, and none of these
-                 three can make one. What they did over seven days is a
-                 measurement, and it is the only ground the guess stands on.
-                 The one that is not answering IS a fact, and stays one. */
+              /* A phrase, not a sentence: it is a row in a list and the
+                 caption above already says whose week these are. "About 7 in
+                 10 came back with a number" says what "7 in 10 with a number"
+                 says, at three times the length, on every row. */
               '<span class="b-src-v">' + (x.down
-                ? 'not answering since ' + esc(sayDay(dayAdd(-2))) + ' — their end, not ours'
-                : 'about ' + Math.round(x.phone * 10) + ' in 10 came back with a number') +
+                ? 'not answering since ' + esc(sayDay(dayAdd(-2)))
+                : Math.round(x.phone * 10) + ' in 10 with a number') +
               '</span>' +
             '</span>').join('') +
         '</div>' +
         '</div>' +
-
-        /* IT ASKS; IT DOES NOT PROMISE. "Generate 11" put an exact count on
-           the one control whose whole job is to go and find out what the
-           count is — the same claim the sentence above it just stopped
-           making. What comes back is on the run and on the list after it. */
-        '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
-          (found.length + take ? '' : ' disabled aria-disabled="true"') + '>' +
-          'Generate the list</button>' +
       '</div>' +
     '</div>';
   }
@@ -3874,35 +3878,27 @@
     if (!anyCrit(t)) return '';
     const f = finderOf();
     const share = found.length / Math.max(1, DB.net.length);
+    /* Half a clause each, because they are read inside one sentence. */
     const wide = !found.length
-      ? ['Nothing like this', 'Nothing in my sketch of the market matches. The suppliers ' +
-        'hold more than I can see, but expect very little back.']
+      ? ['Nothing like this', 'nothing in my sketch matches, so expect very little back']
       : share >= 0.45
-        ? ['Very wide', 'Nearly everything I can see matches. Name a sector or a country, ' +
-          'or you will get whoever the suppliers hand over first.']
+        ? ['Very wide', 'nearly everything matches, so name a sector or a country']
         : share >= 0.15
-          ? ['Wide', 'It will fill the run easily, and it will be a broad list.']
+          ? ['Wide', 'it will fill the run easily and be a broad list']
           : share >= 0.03
-            ? ['About right', 'Narrow enough to be a list, wide enough to fill a run.']
-            : ['Narrow', 'You may get fewer than 500 back.'];
-    /* ONE SENTENCE, ONE INK. The verdict was set apart in its own column and
-       the reason that followed it in a paler grey, with a second, paler line
-       under that — three weights of the same thought, and the part you have
-       to read set faintest of the three. The verdict leads the sentence in
-       bold and the rest of it is read at the same step. */
-    const row = (k, v, why) =>
-      '<span class="b-exp">' +
-        '<span class="b-exp-k">' + esc(k) + '</span>' +
-        '<span class="b-exp-v"><b>' + esc(v) + '.</b> ' + why + '</span>' +
-      '</span>';
+            ? ['About right', 'narrow enough to be a list, wide enough to fill a run']
+            : ['Narrow', 'you may get fewer than 500 back'];
+    /* ══ A SUMMARY, NOT A TABLE ════════════════════════════════════════
+       Two labelled rows, each a paragraph, to say the two things a caller
+       reads in a second: is this too wide, and will they have numbers. One
+       sentence with the two figures in it. Everything the guess is read off
+       arrives on the run twelve seconds later and does not need saying
+       twice before it. */
     return '<div class="b-expect">' +
-      '<span class="b-srcs-cap">What to expect, before anybody is asked</span>' +
-      row('How wide', wide[0], esc(wide[1]) +
-        (found.length ? ' My sketch holds about ' + roughly(found.length) +
-          ' like this, and the suppliers hold more.' : '')) +
-      row('With a number', 'Maybe ' + Math.round(f.phone * 10) + ' in 10',
-        esc(f.name) + ' fills the most of the sources answering, and that is what it ' +
-        'managed last week. What comes back on this one is on the run.') +
+      '<span class="b-srcs-cap">What to expect</span>' +
+      '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '. Maybe <b>' +
+        Math.round(f.phone * 10) + ' in 10</b> with a number, going on what ' +
+        esc(f.name) + ' managed last week.</p>' +
       /* What you already hold is said by the suggestion above, which also
          offers to drop them. Saying it twice, once without the fix, is the
          duplication this rebuild keeps taking out. */
@@ -4306,41 +4302,49 @@
      so the menu toggles and stays open until you look away from it. */
   const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
     ? DRAFT.assign : [me().id]);
+  /* ══ A LIST ON NO CAMPAIGN IS A LIST NOBODY IS WORKING ═════════════════
+     Save led and the campaign hung off it as a second thought, so the easy
+     press produced a set of five hundred people sitting in a drawer. Putting
+     them on a campaign is the point of having found them: it is the primary,
+     it opens the menu, and a name in that menu saves and attaches in the one
+     press. Saving without one is still there, named for what it leaves you
+     with — a draft. */
   const campPickMenu = () => {
     const ks = myCampaigns().filter(campOpen);
     if (!ks.length) return '';
-    const on = DRAFT && DRAFT.camp ? DB.byCamp[DRAFT.camp] : null;
     return '<span class="b-menu-wrap">' +
-      '<button class="s-inline-btn b-menu-open' + (on ? ' is-set' : '') + '" type="button" ' +
-        'data-pickopen="campPick" aria-haspopup="menu">' +
-        (on ? 'On ' + esc(on.name) : 'Add to campaign') + '</button>' +
+      '<button class="entry-action em-direct s-build-go b-menu-open" type="button" ' +
+        'data-pickopen="campPick" aria-haspopup="menu">Add to campaign</button>' +
       '<div class="b-menu" id="campPick" role="menu" hidden>' +
         '<span class="b-menu-cap">Put them on</span>' +
         ks.map((k) =>
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-pickcamp="' + esc(k.id) + '">' +
-            '<span class="b-menu-tick' + (on && on.id === k.id ? ' is-on' : '') + '"></span>' +
             '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
             '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
-            ' on it</span></span>' +
+            ' on it · ' + esc(plural(daysBetween(TODAY_ISO, k.to), 'day')) + ' left</span></span>' +
           '</button>').join('') +
-        (on ? '<button class="b-menu-item is-foot" type="button" role="menuitem" ' +
-          'data-pickcamp="">On no campaign</button>' : '') +
       '</div>' +
     '</span>';
   };
   const assignPickMenu = () => {
     const who = assignedTo();
+    /* Untouched, it is the verb; touched, it is the answer. The campaign
+       button beside it works the same way, and "You are calling them" read
+       as a fact somebody was telling you rather than a control. */
+    const set = !!(DRAFT && DRAFT.assign);
     /* Names, while there are few enough to name. "Split between 2" makes
        you open the menu to find out which two. */
     const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
-    const say = who.length === 1
-      ? (who[0] === me().id ? 'You are calling them' : actor(who[0]).name + ' is calling them')
-      : who.length <= 3
-        ? 'Split between ' + listSay(who.map(first))
-        : 'Split between ' + commas(who.length) + ' of you';
+    const say = !set
+      ? 'Assign people'
+      : who.length === 1
+        ? (who[0] === me().id ? 'You are calling them' : actor(who[0]).name + ' is calling them')
+        : who.length <= 3
+          ? 'Split between ' + listSay(who.map(first))
+          : 'Split between ' + commas(who.length) + ' of you';
     return '<span class="b-menu-wrap">' +
-      '<button class="s-inline-btn b-menu-open' + (who.length > 1 ? ' is-set' : '') + '" ' +
+      '<button class="s-inline-btn b-menu-open' + (set ? ' is-set' : '') + '" ' +
         'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
         esc(say) + '</button>' +
       '<div class="b-menu" id="assignPick" role="menu" hidden>' +
@@ -4357,15 +4361,6 @@
       '</div>' +
     '</span>';
   };
-  /* Re-running with another supplier lost its home when the run stopped
-     being a screen you wait on. It belongs here, beside the other two things
-     you can do about what came back rather than keep it. */
-  const rerunChips = () => {
-    const f = finderOf();
-    return finderUp().filter((x) => x.k !== f.k).map((x) =>
-      '<button class="s-inline-btn" type="button" data-rerun="' + esc(x.k) + '">' +
-      'Run again with ' + esc(x.name) + '</button>').join('');
-  };
   function leaveGate(n) {
     if (!LEAVE) return '';
     return '<section class="s-insight is-lead b-lead-slim b-gate s-block-wide" aria-label="Not saved">' +
@@ -4379,7 +4374,7 @@
       '<p class="b-gate-note">Leaving throws them away. Save it and it is yours; put it on a campaign ' +
         'and they join your queue.</p>' +
       '<div class="s-lead-acts">' +
-        '<button class="s-insight-lnk primary" type="button" data-save>Save ' + commas(n) + '</button>' +
+        '<button class="s-insight-lnk primary" type="button" data-save>Save as draft</button>' +
         '<button class="s-insight-lnk" type="button" data-discard>Discard it</button>' +
         '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
       '</div>' +
@@ -4411,15 +4406,15 @@
       /* The finder chips moved to the run's finished footer, where "Run
          again with ZoomInfo" is what switching supplier actually means. */
 
+      /* THE FOOT IS KEEP IT OR DO NOT. "Run again with ZoomInfo" and "Change
+         the criteria" were two ways to abandon this set for a different one,
+         sat between Save and Discard — three of the five controls under a
+         list were about not having it. Discard puts you back where the
+         criteria are. */
       '<div class="s-build-foot s-block-wide">' +
-        '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
-          commas(kept + mine2.length) + '</button>' +
         campPickMenu() +
+        '<button class="s-inline-btn" type="button" data-save>Save as draft</button>' +
         assignPickMenu() +
-        rerunChips() +
-        '<button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe' }))) +
-          '">Change the criteria</button>' +
         '<button class="s-inline-btn" type="button" data-discard>Discard</button>' +
       '</div>' +
 
@@ -4543,7 +4538,7 @@
   /* Saving mints the people, so from here they are ordinary records: the
      queue, the ladder and the call panel cannot tell where they came from. */
   function saveList(campId) {
-    const camp = (campId || (DRAFT && DRAFT.camp)) ? DB.byCamp[campId || DRAFT.camp] : null;
+    const camp = campId ? DB.byCamp[campId] : null;
     const crew = assignedTo();
     const t = terms();
     /* WHAT THE RUN ACTUALLY RETURNED, not the criteria run again. They are
@@ -8981,13 +8976,25 @@
   function lbuildOpt(k) {
     if (!LBUILD) return;
     if (k === 'open') {
+      /* ══ THE WAY OUT DOES NOT ANSWER THE QUESTION IT IS LEAVING ════════
+          defaulted the unanswered question to People,
+         and the line under it — build: kind ? 'describe' : 'kind' — could
+         never take its second branch, because the default had just made kind
+         truthy. So the one control offered before the question was answered
+         answered it, silently, always the same way, and walked past the
+         builder's own companies-or-people step to prove it.
+
+         Null until somebody says otherwise: the builder opens on the step
+         that asks. */
       const flat = LBUILD.terms.map((p) => p[0] + ':' + p[1]);
-      const kind = LBUILD.kind || 'con';
+      const kind = LBUILD.kind;
       LBUILD = null;
       hideCanvas();
-      DRAFT = { kind: kind, said: '', name: null, take: [], drop: [], rows: [], run: null };
+      DRAFT = kind
+        ? { kind: kind, said: '', name: null, take: [], drop: [], rows: [], run: null }
+        : null;
       go(Object.assign(cleared(), { on: 'lists', build: kind ? 'describe' : 'kind',
-        bk: kind, bt: flat.join(',') }));
+        bk: kind || '', bt: flat.join(',') }));
       return;
     }
     if (k === 'kind-acc') { lbuildKind('acc'); return; }
@@ -9117,13 +9124,13 @@
     }
     const finder = t.closest('[data-finder]');
     if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
-    const rerun = t.closest('[data-rerun]');
-    if (rerun) { FINDER = rerun.getAttribute('data-rerun'); buildRun(); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
     /* Staged on the draft, not committed: Save is still the one press that
        writes anything, and both menus say what they have staged. */
+    /* A name in the campaign menu is the commit, not a staged choice: it is
+       the primary on the page and the page ends when it is pressed. */
     const pc = t.closest('[data-pickcamp]');
-    if (pc) { DRAFT.camp = pc.getAttribute('data-pickcamp') || null; shutMenus(null); paint(); return; }
+    if (pc) { shutMenus(null); saveList(pc.getAttribute('data-pickcamp')); return; }
     const pr = t.closest('[data-pickrep]');
     if (pr) {
       const id = pr.getAttribute('data-pickrep');
@@ -9305,6 +9312,11 @@
     if (po) {
       const panel = byId(po.getAttribute('data-pickopen'));
       if (!panel) return;
+      /* ONE AT A TIME. The listener that closes menus stands down for a
+         click on any opener, which is right for the one being opened and
+         wrong for every other menu on the page — two could sit over each
+         other, and the one underneath was still live. */
+      shutMenus(panel);
       panel.hidden = !panel.hidden;
       const find = panel.querySelector('[data-picksearch]');
       if (!panel.hidden && find) { try { find.focus({ preventScroll: true }); } catch (x) { find.focus(); } }

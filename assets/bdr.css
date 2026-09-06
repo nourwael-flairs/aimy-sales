@@ -1918,26 +1918,14 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    middle column without reading the reasons. The reason is at the small step
    because it is why the estimate is a guess, and a guess whose working is
    hidden is a count wearing a hedge. */
-/* Two columns, one gap, one ink. It was three columns at three weights with
-   a different gap between the rows and the words inside them, and the words
-   you had to read were the faintest thing on the block. */
-.b-expect { display: flex; flex-direction: column; gap: 8px; }
-.b-exp {
-  display: grid; grid-template-columns: 104px minmax(0, 1fr);
-  gap: 10px; align-items: baseline;
+/* One sentence under one caption. It was a two-row grid of labels and
+   paragraphs to say the two things a caller reads in a second. */
+.b-expect { display: flex; flex-direction: column; }
+.b-exp-say {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 68ch; text-wrap: pretty;
 }
-.b-exp-k {
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--d200);
-}
-.b-exp-v {
-  font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
-}
-.b-exp-v b { color: var(--d50); font-weight: var(--fw-bold); }
-@media (max-width: 860px) {
-  .b-exp { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-}
+.b-exp-say b { color: var(--d50); font-weight: var(--fw-bold); }
 
 /* A rule above the foot is the section separator this build took out
    everywhere else; the space under the block above it says the same thing. */
@@ -1973,3 +1961,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
   border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(42deg);
 }
+
+/* The run is started from the top of the page it is the point of, so the
+   masthead carries it on the right the way every other masthead here does. */
+.b-sheet-act { margin-left: auto; flex: none; align-self: center; }
+.b-sheet-act .s-build-go[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* The primary opens a menu, so the menu hangs off a filled button rather
+   than a quiet one; it is the same wrapper either way. */
+.b-menu-wrap .s-build-go { white-space: nowrap; }
