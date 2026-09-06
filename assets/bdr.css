@@ -1195,8 +1195,8 @@ button.pipe-chip:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
 
 /* ══ 34. A DISCLOSURE OPENS; IT DOES NOT SNAP ══════════════════════════════
-   The pitch box, a call on the timeline and a transcript are <details>, and
-   a <details> snaps open. ::details-content with interpolate-size lets the
+   A call on the timeline and a transcript are <details>, and a <details>
+   snaps open. ::details-content with interpolate-size lets the
    height run 200ms out; a browser without it keeps the snap. The chevron
    turns a quarter instead of being swapped for a different glyph, which is
    the one place a glyph swap read as a flicker. transitions.dev's accordion,
