@@ -338,6 +338,9 @@
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
+  /* WHO DID IT. `by` is who pressed the button; a call AiMY placed is
+     AiMY's, as the run says it will be, and the record reads that way. */
+  const whoDid = (t) => (t.auto ? AIMY : actor(t.by));
 
   /* ── Two names the ported reader expects ──
      The V3 build calls these `shift` and `iso`; this one calls them `dayOf`
@@ -1485,6 +1488,12 @@
   const campsOf = (c) => c.camps.map((k) => DB.byCamp[k]).filter(Boolean);
   const mine = (c) => c.crew.indexOf(me().id) >= 0;
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
+  /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
+     Whatever its state says — the seed's dates drift as real days pass. A
+     closed campaign stays yours to read, and stops feeding your queue: the
+     surface said "past its end date" over a card that said "Work it" and
+     84 people to ring. */
+  const campOpen = (k) => k.state !== 'done' && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
   /* A follow-up that has come due. `overdue` and `dueToday` were separate and
@@ -1988,21 +1997,24 @@
     return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
-          (left > 0 ? esc(plural(left, 'day')) + ' left' : 'past its end') + '</span>' +
+          (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
         '<span class="tc-type">' + esc(SELL[k.sells[0]].name) + '</span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
       '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
-      '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
-        plural(members.length, 'person') + ' to ring' +
-        (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
-        (fresh ? ', <b>' + commas(fresh) + '</b> never rung' : '') + '</div>' +
+      (campOpen(k)
+        ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
+          plural(members.length, 'person') + ' to ring' +
+          (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
+          (fresh ? ', <b>' + commas(fresh) + '</b> never rung' : '') + '</div>'
+        : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
+          '</b> of its ' + plural(members.length, 'person') + ' never rung when it closed</div>') +
       aimyBlock(campSays(k, q, back, fresh, left)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num">' + esc(actor(k.owner).name) + '</span>' +
-        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
-          '" type="button" data-camp="' + esc(k.id) + '">Work it</button>' +
+        '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
+          '" type="button" data-camp="' + esc(k.id) + '">' + (campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
   }
@@ -2015,6 +2027,13 @@
      change what you do with it this morning. */
   function campSays(k, q, back, fresh, left) {
     const mine2 = DB.touch.filter((t) => t.camp === k.id);
+    /* closed: the one fact is how it closed */
+    if (left <= 0) {
+      const st = campStand(k);
+      return { text: 'It closed ' + esc(sayWhen(k.to)) +
+        (st.target ? (st.need ? ', <b>' + commas(st.need) + '</b> short of its goal.' : ', past its goal.') : '.'),
+        from: 'the window and the goal' };
+    }
     /* ══ IT MUST NOT REPEAT THE LINE ABOVE IT ═══════════════════════════
        This led with the callback count, and the callback count is already
        on the numbers line six pixels up — so every card said the same thing
@@ -2154,7 +2173,7 @@
     return '<div class="s-qrow-id">' +
         '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
           esc(c ? c.name : 'Somebody') + '</button>' +
-        '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(actor(t.by).name) +
+        '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(whoDid(t).name) +
           ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
       '</div>' +
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
@@ -2198,6 +2217,19 @@
       };
     }
     const k = S.camp && DB.byCamp[S.camp];
+    if (k && mine(k) && !campOpen(k)) {
+      const members = membersOf(k.id);
+      return {
+        eyebrow: 'This campaign', subject: k.name,
+        card: {
+          state: 'completed',
+          text: 'It closed <b>' + esc(sayWhen(k.to)) + '</b>. Nothing on it is dialled now.',
+          evidence: [{ val: commas(members.length), cap: 'on it' },
+            { val: commas(members.filter((c) => c.checkpoint === 'not-called').length), cap: 'never rung' }],
+          act: null, q: null,
+        },
+      };
+    }
     if (k && mine(k)) {
       const cq = queue(k.id);
       const cback = cq.filter((x) => x.checkpoint === 'callback').length;
@@ -2414,7 +2446,10 @@
      Its own surface, not a block under a thousand people. Paged like every
      other worklist, because fourteen today is forty next quarter. */
   function campsPage() {
-    const camps = myCampaigns().filter((k) => matches(campHay(k)));
+    /* "soonest to close first", which the caption promised and the list
+       did not do; closed ones last */
+    const camps = myCampaigns().filter((k) => matches(campHay(k)))
+      .sort((a, b) => (campOpen(b) - campOpen(a)) || (a.to < b.to ? -1 : 1));
     const pg = paged(camps);
     return '<div class="s-home">' +
       topBrief('camps') +
@@ -2469,7 +2504,7 @@
      days" — that is an arithmetic clamp wearing a sentence. */
   function closesIn(k) {
     const d = daysBetween(TODAY_ISO, k.to);
-    return d > 0 ? 'closes first, in ' + plural(d, 'day') : 'is already past its end date';
+    return d > 0 ? 'closes first, in ' + plural(d, 'day') : 'closed ' + sayWhen(k.to);
   }
 
   /* On lists with no campaign: how many people are on none of yours. */
@@ -4165,7 +4200,7 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
-            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'past its end date') + '</span>' +
+            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
         /* The dots between these come from the stylesheet, so a fact that is
            not there does not leave a separator behind it. */
@@ -4186,8 +4221,10 @@
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
              the only door to the finder was on a surface two clicks away
              that does not know which campaign you were working. */
-          '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
-            '">Find more for this campaign</button>' +
+          (campOpen(k)
+            ? '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
+              '">Find more for this campaign</button>'
+            : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
         '</div>' +
       '</section>' +
 
@@ -4196,8 +4233,14 @@
          doing, because nobody scrolls past their own queue to find out. */
       campLead(k) +
 
-      /* THE WORK. */
-      queueBlock(all, counts) +
+      /* THE WORK — or, on a closed campaign, what it left. */
+      (campOpen(k) ? queueBlock(all, counts) :
+        '<section class="s-block s-block-wide" aria-label="To call">' +
+          '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2>' +
+            '<span class="s-block-say">nothing — it closed ' + esc(sayWhen(k.to)) + '</span></div>' +
+          '<p class="b-vfoot"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) + '</b> of its ' +
+            esc(plural(members.length, 'person')) + ' were never rung. Where they stand is below.</p>' +
+        '</section>') +
 
       /* The detail behind the headline, under the doing of it. */
       campStands(k) +
@@ -4321,11 +4364,11 @@
         (fresh0
           ? '<button class="s-insight-lnk primary" type="button" data-pitch>Read what to say</button>'
           : '') +
-        (back ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
+        (back && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
-        (fresh ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
+        (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
           'Show the ' + commas(fresh) + ' never rung</button>' : '') +
-        (all.length ? '' :
+        (all.length || !campOpen(k) ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
           '">Nobody left to ring — find more</button>') +
       '</div>' +
@@ -5204,8 +5247,8 @@
           '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
             '" aria-hidden="true"></span>' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
-          '<span class="s-call-by' + (t.by === 'aimy' ? ' is-ai' : '') + '">' +
-            esc(actor(t.by).name) + '</span>' +
+          '<span class="s-call-by' + (whoDid(t).id === 'aimy' ? ' is-ai' : '') + '">' +
+            esc(whoDid(t).name) + '</span>' +
           '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
           /* the chip names the rung reached; when the outcome already says it
@@ -5403,7 +5446,8 @@
   function queue(campId, bucket) {
     const meId = me().id;
     const mineCamps = Object.create(null);
-    myCampaigns().forEach((c) => (mineCamps[c.id] = 1));
+    myCampaigns().filter(campOpen).forEach((c) => (mineCamps[c.id] = 1));
+    if (campId && DB.byCamp[campId] && !campOpen(DB.byCamp[campId])) return [];
     const pool = campId ? membersOf(campId) : DB.con;
     const out = [];
     for (let i = 0; i < pool.length; i++) {
@@ -6846,6 +6890,10 @@
   }
   function openCanvas() { byId('aimyOverlay').classList.add('open'); paintBasis(); paintChats(); }
   function closeCanvas() {
+    /* X on a live call is hanging up, and hanging up is a call that
+       happened: it ends into the read-back rather than vanishing unlogged.
+       A call not yet started is simply put down. */
+    if (DB.call && DB.call.state !== 'ready') { endCall(); return; }
     byId('aimyOverlay').classList.remove('open');
     /* THE RAIL GOES WITH IT. The canvas is where a run lives — the brief,
        the read-back, the summary — so dismissing it dismisses the run. A
@@ -7563,7 +7611,8 @@
       opts: sess
         ? [{ k: 'go', label: nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish' }]
         : (function () {
-            const nx = queue(null, 'all').filter((x) => x.id !== call.con)[0];
+            /* the scope you are working: on a campaign page, its queue */
+            const nx = queue(S.camp || null, 'all').filter((x) => x.id !== call.con)[0];
             return nx
               ? [{ k: 'gonext', label: 'Log it and call ' + nx.name.split(' ')[0] }, { k: 'go', label: 'Log it' }]
               : [{ k: 'go', label: 'Log it' }];
@@ -7673,7 +7722,10 @@
     sess.done.push(c.id);
     say('aimy', '<b>' + esc(c.name) + '</b> — ' +
       esc((OUTCOME[outcome] || {}).label || outcome) +
-      (mv.to ? ', now ' + esc(rungLabel(mv.to)) : '') +
+      /* "No answer, now No answer" stuttered; the first ring says where from */
+      (mv.to ? (rungLabel(mv.to) === ((OUTCOME[outcome] || {}).label || '')
+        ? ', up from ' + esc(rungLabel(t.moved[0]).toLowerCase())
+        : ', now ' + esc(rungLabel(mv.to))) : '') +
       ' <span class="s-callp-who">' + sess.done.length + ' of ' + sess.ids.length + '</span>');
     paint();
   }
@@ -8183,7 +8235,7 @@
       const how = cl.getAttribute('data-calllog');
       logCall();
       /* the queue has re-ranked by now; its first is the one to ring */
-      if (how === 'gonext') { const nx = queue(null, 'all')[0]; if (nx) startCall(nx.id); }
+      if (how === 'gonext') { const nx = queue(S.camp || null, 'all')[0]; if (nx) startCall(nx.id); }
       return;
     }
     if (t.closest('[data-callskip]')) { skipCall(); return; }
