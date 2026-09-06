@@ -271,7 +271,7 @@
       use: 'Send it when the objection was a question wearing an objection’s clothes.' },
   };
   const docOut = () => '<svg class="b-doc-out" viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
-    'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4.5"/></svg>';
   /* One chip, wherever a document is offered. */
   function docChip(campId, i, r) {
@@ -1822,11 +1822,22 @@
       return;
     }
     const wasOn = S.con + '|' + S.camp;
+    const wasSurface = [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|');
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
     parse();
     paint();
+    /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
+       The page is rebuilt from a string, so opening a person from the queue
+       was a hard cut: one frame the queue, the next frame their record, with
+       nothing between to say one became the other — while a toast, a menu
+       and a turn in the canvas all arrive. The surface arrives now, 200ms up
+       through six pixels, and ONLY when the surface changed. A write repaints
+       the page it is on, and a page of the queue turning is the same list
+       under your hands; animating either would charge attention on the two
+       things a caller does most. */
+    if (wasSurface !== [S.on, S.con, S.acc, S.camp, S.list, S.build].join('|')) arrive();
     /* A NEW SURFACE STARTS AT ITS TOP; A NEW PAGE OF ONE DOES NOT.
        Opening a person from row eleven of the queue landed on their record
        eleven rows down it — the header, the ladder and the whole reason you
@@ -1835,6 +1846,19 @@
        and being thrown to the top of the document each time is what makes a
        pager worse than a scroll. */
     if (wasOn !== S.con + '|' + S.camp) byId('pageScroll').scrollTop = 0;
+  }
+
+  function arrive() {
+    const host = byId('wbStage');
+    if (!host) return;
+    host.classList.remove('is-arriving');
+    void host.offsetWidth;
+    host.classList.add('is-arriving');
+    /* Taken off again once it has run. Left on, the next repaint's fresh
+       surface would match the rule and arrive too — which is every write and
+       every page of the queue, the two things this must never animate. */
+    clearTimeout(arrive.t);
+    arrive.t = setTimeout(() => host.classList.remove('is-arriving'), 260);
   }
 
   /* ══ 7. PAINTING ════════════════════════════════════════════════════════ */
@@ -2579,7 +2603,7 @@
   function findBox(placeholder) {
     return '<label class="b-find">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
-        'stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+        'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
         '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
       '<input type="text" data-find value="' + esc(S.find) + '" ' +
         'placeholder="' + esc(placeholder) + '" spellcheck="false" ' +
@@ -2783,7 +2807,7 @@
   const backBtn = (attr, label) =>
     '<button class="s-back" type="button" ' + attr + '>' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
-        'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M15 18l-6-6 6-6"/></svg>' + esc(label) + '</button>';
 
   function switcher(here) {
@@ -6161,10 +6185,10 @@
      sixty pixels up. */
   /* A thing still owed, and a thing already settled. */
   const nmClock = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+    'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
     '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
   const nmTick = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 
   /* ══ THE MAP ═══════════════════════════════════════════════════════════
@@ -9765,6 +9789,31 @@
     shutMenus(null);
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') shutMenus(null); });
+
+  /* ══ A THEME FLIPS; IT DOES NOT CROSSFADE ══════════════════════════════
+     Nearly every element here transitions its colour, its border or its
+     ground, and a theme switch changes all three on all of them at once —
+     so the whole page smeared from dark to light over a hundred and fifty
+     milliseconds, each part on its own clock. Every transition is switched
+     off for the frame the flip happens on and switched back on the frame
+     after. Registered on the capture phase so it runs before the library's
+     own handler makes the change. */
+  const themeBtn = byId('ds-theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const still = document.createElement('style');
+      still.textContent = '*,*::before,*::after{transition:none!important}';
+      document.head.appendChild(still);
+      void document.documentElement.offsetWidth;
+      /* Two frames, or forty milliseconds — whichever comes first. A frame
+         never comes in a tab that is not painting, and a page that has
+         stopped transitioning until somebody looks at it is a page that
+         will not transition when they do. */
+      const back = () => still.remove();
+      requestAnimationFrame(() => requestAnimationFrame(back));
+      setTimeout(back, 40);
+    }, true);
+  }
 
   window.addEventListener('resize', () => placeSwitchBar(null));
   /* The webfont lands after the first paint and the buttons narrow under

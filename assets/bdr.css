@@ -1960,3 +1960,81 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-menu > .b-menu-cap:first-child { top: 0; }
 .b-menu > .b-menu-find { top: 22px; }
+
+/* ══ 62. EVERY PRESSABLE ANSWERS THE HAND ══════════════════════════════════
+   Twenty kinds of control here pressed down under the cursor and seven did
+   not: the two ways into a list, a suggestion's door, a chat's opener, a
+   criterion chip, a filter chip's ring. A button that does not move under a
+   press is a button that might not have heard you, and the second press is
+   the one that runs twice. Same 160ms and the same curve as the rest; 0.97
+   for a button, 0.985 for a card, because a card is a bigger thing to move. */
+.s-way, .s-start, .s-finding-go, .b-chat-item, .chip {
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast),
+    background-color var(--t-fast), color var(--t-fast);
+}
+.s-finding-go:active, .b-chat-item:active, .chip:active { transform: scale(0.97); }
+.s-way:active, .s-start:active { transform: scale(0.985); }
+.chip:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The find box focuses the way the menus' search does — a ring, not only a
+   changed border — so the two boxes that do the same job look the same lit. */
+.b-find:focus-within { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); }
+.b-find { transition: border-color var(--t-fast), box-shadow var(--t-fast); }
+/* A row that opens says so to the cursor, like everything else that opens. */
+.s-call { transition: border-color var(--t-fast); }
+.s-call:hover { border-color: var(--card-border-hover); }
+@media (prefers-reduced-motion: reduce) {
+  .s-way, .s-start, .s-finding-go, .b-chat-item, .chip { transition: none; }
+  .s-finding-go:active, .b-chat-item:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
+}
+
+/* ══ 63. ONE SHADOW FOR WHAT FLOATS ════════════════════════════════════════
+   Four surfaces sit above the page — a menu, a toast, the bell's panel, the
+   run's card — and each carried its own recipe: 12/32 at .42, 18/40 at .5,
+   the library's xl, the library's lg. One token, layered the way a lifted
+   surface actually shades: a hairline where it meets the air, a short close
+   shadow and a long soft one, and on a light ground the same shape in the
+   page's own ink. Flat cards stay flat; on a dark ground a border says
+   structure and a shadow says lift, and the queue is structure. */
+:root {
+  --float-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 2px 6px -2px rgba(0, 0, 0, 0.5), 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+}
+:root[data-theme="light"] {
+  --float-shadow: 0 0 0 1px rgba(16, 24, 40, 0.06), 0 2px 6px -2px rgba(16, 24, 40, 0.12),
+    0 16px 40px -12px rgba(16, 24, 40, 0.2);
+}
+.b-menu, .aimy-toast, .ntf-panel, .pipe-card { box-shadow: var(--float-shadow); }
+
+/* CONCENTRIC. Outer radius is inner radius plus the padding between them,
+   or the corners of a nested surface visibly disagree with the corners of
+   the one holding it — the most common thing that makes a surface feel
+   slightly wrong without saying why. The menu is 8px rows inside 6px of
+   padding, so 14. The run's panels sit 14px inside a 20px card, so 8. A
+   card's reading sits 14px inside a 12px card, so it is the smallest step. */
+.b-menu { border-radius: 14px; }
+.pipe-panel { border-radius: 8px; }
+.b-aimy { border-radius: var(--r-sm); }
+
+/* A photograph's edge takes its ring from the ground it sits on: white at a
+   tenth on a dark page, black at a tenth on a light one. A white ring on a
+   light page is a ring that is not there. */
+:root[data-theme="light"] .b-face::after { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
+
+/* ══ 64. FIGURES LINE UP ═══════════════════════════════════════════════════
+   Every number a caller compares by eye — a lead figure, a tile, a count
+   after a bold — is set in tabular figures, so a 1 takes the room of a 7
+   and two of them stacked read as a column. */
+.s-lead-n, .s-lead-of, .s-af-val, .b-way-n, .b-exp-say b, .b-tocall b, .b-way-lead b,
+.s-block-say b, .b-vfoot b, .b-branch-n, .b-src-v, .pipe-elapsed, .b-menu-sub {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ 65. A NEW SURFACE ARRIVES ═════════════════════════════════════════════
+   Opacity and six pixels of rise, 200ms on the ease-out everything else here
+   enters on. No blur: the toast blurs in because it is small; a whole surface
+   through a filter is a repaint of everything on it on every frame. The class
+   is put on the stage by go() when the surface changed and by nothing else,
+   so a write's repaint and a page of the queue turning stay still. */
+@keyframes b-surface-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#wbStage.is-arriving > .s-home { animation: b-surface-in 200ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { #wbStage.is-arriving > .s-home { animation: none; } }
