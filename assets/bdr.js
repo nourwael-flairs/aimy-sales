@@ -4765,11 +4765,13 @@
        they say, tagged in the warning tone, and what you say to it, in
        full ink underneath. What you sell and what you can send are the
        quiet ends of the block, because neither is spoken. */
-    return '<details class="s-block s-block-wide b-sell" id="pitchBox"' +
-      (UI.pitchSeen ? '' : ' open') + '>' +
-      '<summary class="b-sell-sum"><span class="s-block-h">What to say</span>' +
-        '<span class="s-block-say b-sell-opener">' + esc(firstSentence(k.pitch)) +
-        '</span></summary>' +
+    /* IT IS NOT A DRAWER. Everything in it is preparation for the next
+       call, which is the reason the page is open; a section you have to
+       ask for is a section nobody reads. The folded line quoted the
+       opener, which is the first line of the panel underneath it. */
+    return '<section class="s-block s-block-wide b-sell" id="pitchBox" aria-label="What to say">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">What to say</h2>' +
+        '<span class="s-block-say">' + esc(listSay(k.sells.map((x) => SELL[x].name))) + '</span></div>' +
       '<div class="b-sell-body">' +
 
         '<blockquote class="b-open">' +
@@ -4800,7 +4802,7 @@
             : '') +
         '</div>' +
       '</div>' +
-    '</details>';
+    '</section>';
   }
 
   /* ══ ONE COMPANY ════════════════════════════════════════════════════════
@@ -8285,7 +8287,6 @@
     if (t.closest('[data-pitch]')) {
       const box = byId('pitchBox');
       if (box) {
-        box.open = true;
         const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         box.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
       }
@@ -8598,12 +8599,6 @@
       const el = byId('overlayInput'); const v = el.value; el.value = ''; runInput(v);
     }
   });
-
-  document.addEventListener('toggle', (e) => {
-    if (!e.target || e.target.id !== 'pitchBox') return;
-    UI.pitchSeen = !e.target.open;
-    saveUI();
-  }, true);
 
   /* THE NAME TRACKS THE CRITERIA UNTIL YOU DISAGREE WITH IT. While the field
      still holds the derived name, `DRAFT.name` stays null and the heading

@@ -451,15 +451,6 @@
 
    Now each part is captioned and the opener is the loudest thing in it,
    because the opener is the only line here you say out loud. */
-.b-sell { padding: 0; }
-.b-sell-sum {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px;
-  cursor: pointer; list-style: none; margin-bottom: var(--sp-4);
-}
-.b-sell-sum::-webkit-details-marker { display: none; }
-.b-sell-sum::before { content: "▸ "; color: var(--d300); font-size: var(--fs-xs); }
-.b-sell[open] .b-sell-sum::before { content: "▾ "; }
-.b-sell-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
 .b-sell-body { display: flex; flex-direction: column; gap: 8px; }
 /* The caption steps, which is what makes four groups read as four groups.
    Not muted: a label you cannot read is a group with no name on it. */
@@ -736,7 +727,6 @@
 
 /* The folded opener sits after the title and wraps under it on a narrow
    row, at the small step so the title stays the loud thing. */
-.b-sell-opener { max-width: 64ch; font-weight: var(--fw-medium); color: var(--d100); }
 
 /* The feed as a plain column. The shell's row is a grid with no horizontal
    padding, so it already shares the cards' left edge — nothing to correct. */
@@ -1213,17 +1203,17 @@ button.pipe-chip:active { transform: scale(0.97); }
    turns a quarter instead of being swapped for a different glyph, which is
    the one place a glyph swap read as a flicker. transitions.dev's accordion,
    on the platform's own element. */
-.b-sell, .s-call, .s-trace { interpolate-size: allow-keywords; }
-.b-sell::details-content, .s-call::details-content, .s-trace::details-content {
+.s-call, .s-trace { interpolate-size: allow-keywords; }
+.s-call::details-content, .s-trace::details-content {
   height: 0; overflow: clip;
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
-.b-sell[open]::details-content, .s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
-.b-sell-sum::before, .s-call-sum::before, .s-trace-sum::before {
+.s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+.s-call-sum::before, .s-trace-sum::before {
   content: "▸"; display: inline-block; margin-right: 0.35em;
   transition: transform 160ms var(--ease-out);
 }
-.b-sell[open] .b-sell-sum::before, .s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
+.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
   content: "▸"; transform: rotate(90deg);
 }
 
@@ -1271,7 +1261,7 @@ button.pipe-chip:active { transform: scale(0.97); }
 
 @media (prefers-reduced-motion: reduce) {
   .b-sell::details-content, .s-call::details-content, .s-trace::details-content,
-  .b-sell-sum::before, .s-call-sum::before, .s-trace-sum::before,
+  .s-call-sum::before, .s-trace-sum::before,
   .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
   .b-gate { animation: none; }
 }
@@ -1506,3 +1496,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The briefing's own rule, above the ways to start: inside one card, and
    still a rule doing what the gap under a caption already does. */
 .s-home .s-starts-wrap { margin-top: 28px; padding-top: 0; border-top: 0; }
+
+/* What to say is a section like the others: no drawer, no padding of its own. */
+.b-sell { padding: 0; }
+.b-sell-body { display: flex; flex-direction: column; }
