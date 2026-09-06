@@ -542,6 +542,13 @@
        separately from which day it was. */
     const when = m && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(m[1])
       ? readWhen(m[1].toLowerCase()) : null;
+    /* THE DAY CAN ALSO RIDE ON THE REQUEST. "Call back next week" names the
+       follow-up and its day in one clause, and the read-back was putting it
+       down for tomorrow. Only the clause that asks — a call back, a
+       meeting, a demo — is read for a day, never a fact about her diary. */
+    const ask = when == null && raw.match(/\b(?:call(?:ing)?|ring|phone)\s+(?:her|him|them|me)?\s*back\b[^.,;—–]*|\bcallback\b[^.,;—–]*|\b(?:meeting|demo)\b[^.,;—–]*/i);
+    const whenAsk = ask && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(ask[0])
+      ? readWhen(ask[0].toLowerCase()) : null;
     let next = null;
     if (m) {
       const what = m[1].trim();
@@ -619,7 +626,7 @@
       : disp ? callToOutcome(disp)
       : sour ? 'negative' : 'neutral';
 
-    return { disp, props, objs, opps, next, when, remember, outcome, said };
+    return { disp, props, objs, opps, next, when: when == null ? whenAsk : when, remember, outcome, said };
   }
 
   function readWhen(s) {
