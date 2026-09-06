@@ -1442,18 +1442,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 
 /* ══ 44. WHAT TO SAY, AS SPEECH ════════════════════════════════════════════
    The opener is the one thing in the block you say out loud, so it is set
-   as speech: the accent ground, a rule down its left edge, and the deck
-   step. What comes back is a pair — their words tagged in the warning
+   as speech: the accent ground and the deck step. It had a 3px accent bar
+   down its left edge too — a tint and a stripe saying one thing twice, and
+   the stripe is the oldest tell in the book. What comes back is a pair — their words tagged in the warning
    tone, your answer in full ink under it. What we sell and what you can
    send are the quiet ends. */
 .b-open {
-  margin: 0 0 22px; padding: 16px 18px 16px 20px; position: relative;
+  margin: 0 0 22px; padding: 16px 18px;
   background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
   border-radius: 14px;
-}
-.b-open::before {
-  content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
-  border-radius: 99px; background: var(--accent);
 }
 .b-open-cap {
   display: block; margin-bottom: 8px;
