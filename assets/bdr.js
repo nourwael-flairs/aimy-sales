@@ -179,7 +179,7 @@
     { k: 'meeting-set', label: 'Meeting set',  tone: 'ok',      say: 'time in a diary' },
     { k: 'showed-up',   label: 'Showed up',    tone: 'ok',      say: 'they came to the meeting' },
     { k: 'interested',  label: 'Interested',   tone: 'ok',      say: 'they want to go further' },
-    { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'the director has it now' },
+    { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
   /* The ways out. Not rungs: a lead does not climb to "declined", it leaves. */
   const EXITS = [
@@ -1163,7 +1163,7 @@
       'hiring':       ['posted three QA engineer roles', 'is hiring a Head of Support', 'put up five support desk roles', 'is hiring test automation engineers'],
       'new-hire':     ['has a new CTO', 'has a new Head of Operations', 'appointed a new COO', 'has a new Head of Customer Experience'],
       'renewal-near': ['renews its current supplier next quarter', 'has a contract renewal due in October'],
-      'visited-site': ['visited our pricing page twice this week', 'downloaded the case study from our site'],
+      'visited-site': ['visited the pricing page twice this week', 'downloaded the case study'],
     };
     const SIGNAL_SRC = { 'funded': 'the news', 'hiring': 'LinkedIn', 'new-hire': 'LinkedIn', 'renewal-near': 'their filings', 'visited-site': 'our site' };
     const SIGNAL_KINDS = Object.keys(SIGNAL_TEXT);
@@ -2128,12 +2128,19 @@
         eyebrow: 'This person', subject: c.name,
         card: {
           state: 'reading',
-          text: n
-            ? 'Rung <b>' + plural(n, 'time') + '</b> and standing at <b>' + esc(r.label) +
+          /* CALLS ARE CALLS. A hand-over settled by hand and the director's
+             meetings are touchpoints, not rings; "Rung 19 times" over a
+             ladder that said 12 attempts was the same record disagreeing
+             with itself. */
+          text: c.attempts
+            ? 'Rung <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
               '</b> — ' + esc(r.say) + '.'
-            : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
-          evidence: [{ val: n, cap: n === 1 ? 'call' : 'calls' },
-            { val: c.attempts, cap: 'attempts' }].filter((e) => e.val),
+            : n
+              ? '<b>' + plural(n, 'touchpoint') + '</b> and no call yet, standing at <b>' + esc(r.label) +
+                '</b> — ' + esc(r.say) + '.'
+              : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
+          evidence: [{ val: c.attempts, cap: c.attempts === 1 ? 'call' : 'calls' },
+            { val: n !== c.attempts ? n : 0, cap: n === 1 ? 'touchpoint' : 'touchpoints' }].filter((e) => e.val),
           act: c.next ? esc(c.next.what) + ' ' + esc(sayWhen(c.next.due)) : null,
         },
       };
@@ -2579,11 +2586,13 @@
          nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp
-          ? '<h2 class="s-block-h">To call</h2>' +
+          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting' : 'To call') + '</h2>' +
             /* "Never rung 102" three sections down and "New 58" on the chip
                are both right — the roster, and who is callable now — and the
                page never said so. This is the number the chips add up to. */
-            '<span class="s-block-say"><b>' + commas(all.length) + '</b> you can ring now</span>'
+            (S.q === 'after'
+              ? '<span class="s-block-say"><b>' + commas(counts.after || 0) + '</b> meetings passed without a word</span>'
+              : '<span class="s-block-say"><b>' + commas(all.length) + '</b> you can ring now</span>')
           : switcher('calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
@@ -4401,7 +4410,7 @@
           null, ringNo ? 'no-answer' : null) +
         fig('Reached', st.reached, 'you got them on the phone', 'ok') +
         fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
-          (n.interested || 0) + (n['handed-over'] || 0), 'a time in a diary', 'ok') +
+          (n.interested || 0) + (n['handed-over'] || 0), 'got to a meeting, or past it', 'ok') +
       '</div>' +
 
       funnelOf(st.members) +
@@ -4808,7 +4817,8 @@
         '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
           '<span class="s-block-say">' + esc(plural(c.attempts, 'attempt')) + '</span></div>' +
         ladder(c) +
-        '<p class="s-block-sub">' + esc(whatNext(c)) + '</p>' +
+        '<p class="s-block-sub">' + esc(whatNext(c) +
+          (quietUnderFour(c) ? ' ' + quietSay(quietUnderFour(c), c) : '')) + '</p>' +
         owedLine(c) +
         (c.remember
           ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
@@ -4862,7 +4872,12 @@
     if (c.checkpoint === 'handed-over') {
       list = [];
       quiet = call ? [call] : [];
-      say = directorOf(c).name + ' has it now.';
+      /* the same tense as the ladder line: decided is past */
+      const ph = phasesOf(c);
+      const fin = ph.length ? ph[ph.length - 1] : null;
+      say = fin && fin.decision
+        ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
+        : directorOf(c).name + ' has it now.';
     } else if (c.checkpoint === 'declined') {
       list = send && !sentSince ? [send] : [];
       quiet = call ? [call] : [];
@@ -5008,7 +5023,9 @@
             esc(actor(t.by).name) + '</span>' +
           '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
-          (t.moved
+          /* the chip names the rung reached; when the outcome already says it
+             ("Callback → Callback") the ring on the dot is the milestone */
+          (t.moved && rungLabel(t.moved[1]) !== kindLabel(t)
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
             : ph && t.decision
               ? '<span class="b-tl-move' + (t.decision === 'lost' ? ' is-out' : '') + '">→ ' +
@@ -5051,16 +5068,16 @@
   function dealLine(c) {
     const d = directorOf(c);
     const ph = phasesOf(c);
-    const since = c.checkpointAt ? ' since ' + sayDay(c.checkpointAt) : '';
-    if (!ph.length) return d.name + ' has had it' + since + '. Discovery is the first of four meetings, and none of them are yours.';
+    /* the ladder line above already carries the date */
+    if (!ph.length) return d.name + ' has it. Discovery is the first of four meetings, and none of them are yours.';
     const done = ph.map((t) => (PHASE[t.phase] || {}).label + ' ' + sayDay(t.at)).join(' · ');
     const last = ph[ph.length - 1];
     if (last.decision) {
-      return d.name + ' has had it' + since + '. ' + done + '. ' +
+      return d.name + ' had it. ' + done + '. ' +
         (last.decision === 'won' ? 'They signed ' : 'They said no ') + sayWhen(last.at.slice(0, 10)) + '. Done.';
     }
     const nextPh = PHASES[ph.length];
-    return d.name + ' has had it' + since + '. ' + done + '. Next: ' +
+    return d.name + ' has it. ' + done + '. Next: ' +
       (nextPh ? nextPh.label.toLowerCase() : 'resolution') + ', and it is not yours.';
   }
 
@@ -5157,7 +5174,11 @@
           ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
           : c.next ? esc(c.next.what) + ' <b>' + esc(sayWhen(c.next.due)) + '</b>' : 'Meeting set';
       default:
-        return 'Spoke to them <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, no meeting yet';
+        /* what is owed, if anything is — the same line the record shows */
+        return c.next
+          ? esc(c.next.what) + ' <b>' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') +
+            esc(sayWhen(c.next.due)) + '</b>'
+          : 'Spoke to them <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, no meeting yet';
     }
   }
 
@@ -6766,8 +6787,12 @@
     }
     if (/\b(signal|news|changed|funding|hiring|moved)\b/.test(q)) {
       const hits = signalHits();
+      const week = signalHits(7);
       if (!hits.length) return 'Nothing has changed at the companies in your queue these three weeks.';
-      return '<b>' + plural(hits.length, 'company', 'companies') + '</b> in your queue moved. Each door is the company; the first person to ring is on it.' +
+      /* the bell's number first, then the wider window it opens onto */
+      return '<b>' + plural(week.length, 'company', 'companies') + '</b> in your queue moved this week' +
+        (hits.length > week.length ? ', ' + commas(hits.length) + ' in the last three weeks' : '') +
+        '. Each door is the company; the first person to ring is on it.' +
         '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
           door(h.a.name + ' · ' + h.sig.text + ' · ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
         '</div>';
