@@ -744,10 +744,6 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
   margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--card-border);
 }
-.b-camps-cap {
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200);
-  margin-right: 6px;
-}
 
 /* ══ 26. ONE SCALE, EVERYWHERE ═════════════════════════════════════════════
    Measured before this pass: a record's name at 20px and everything under it
@@ -1064,33 +1060,23 @@
 button.pipe-chip { cursor: pointer; transition: transform 160ms var(--ease-out), border-color var(--t-fast), color var(--t-fast); }
 button.pipe-chip:hover { border-color: var(--accent); color: var(--d50); }
 button.pipe-chip:active { transform: scale(0.97); }
-.pipe-btn {
-  display: inline-flex; align-items: center; gap: 8px; font-family: inherit; cursor: pointer;
-  padding: 9px 16px; border-radius: 99px; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: #fff;
-  background: var(--brand); border: 1px solid transparent;
-  transition: transform 160ms var(--ease-out), filter var(--t-fast);
-}
-.pipe-btn:hover { filter: brightness(1.1); }
-.pipe-btn:active { transform: scale(0.97); }
-.pipe-btn:focus-visible, button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* motion — a thing arriving is already most of its size; nothing overshoots;
    nothing runs on its own (the ring on the live tile stands still, the dot in
    the masthead stands still — the spinner is the one thing that moves, and
    it moves because you pressed Find); the check is drawn, not dropped. */
 @keyframes pipe-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes pipe-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes pipe-spin { to { transform: rotate(360deg); } }
 @keyframes pipe-draw { to { stroke-dashoffset: 0; } }
 .pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
 .pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) 60ms forwards; }
-.pipe-rise { animation: pipe-rise 240ms var(--ease-out) both; }
 .pipe-spin { animation: pipe-spin 850ms linear infinite; }
 /* text that changes state goes through a blur — swapText() */
 .b-swap { transition: opacity 90ms var(--ease-out), filter 90ms var(--ease-out); }
 .b-swap.is-swapping { opacity: 0; filter: blur(4px); }
 @media (prefers-reduced-motion: reduce) {
-  .pipe-pop, .pipe-pop path, .pipe-rise, .pipe-spin { animation: none !important; }
+  .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
   .pipe-pop path { stroke-dashoffset: 0; }
   .b-swap { transition: none; }
 }
@@ -1144,7 +1130,6 @@ button.pipe-chip:active { transform: scale(0.97); }
 }
 .b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
 .b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
-.b-gate .b-camps-cap { margin-left: 4px; }
 
 /* ══ 31. THE TOAST ARRIVES AND LEAVES THE SAME WAY ═════════════════════════
    The library gives the toast a 220ms rise, and it never ran here: the toast
@@ -1900,21 +1885,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    listing now: what each of them fills, and which of them has stopped
    answering. Under the sentence it explains, left of the button, because it
    is that sentence's working and not another thing to press. */
-.b-src-side { flex: 1 1 26ch; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.b-src-side { flex: 1 1 26ch; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
 .b-src-side > .s-build-total { flex: none; }
-.b-srcs { display: flex; flex-direction: column; gap: 5px; }
+/* ONE RHYTHM DOWN THE BLOCK. The caption sat 2px off its list while the
+   rows sat 5px apart, and what each supplier actually did was the palest
+   thing in it. Every row is one step apart, and the sentence is read at the
+   ink everything else on this page is read at. */
+.b-srcs { display: flex; flex-direction: column; gap: 8px; }
 .b-srcs-cap {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--d300);
+  text-transform: uppercase; color: var(--d200);
 }
-.b-src { display: flex; align-items: center; gap: 9px; font-size: var(--t-small); }
-.b-src-n { font-weight: var(--fw-bold); color: var(--d100); min-width: 88px; }
-.b-src-v { color: var(--d300); }
+.b-src { display: flex; align-items: baseline; gap: 10px; font-size: var(--t-body); }
+.b-src .b-rstate-dot { align-self: center; }
+.b-src-n { font-weight: var(--fw-bold); color: var(--d50); min-width: 104px; }
+.b-src-v { color: var(--d100); }
 /* A supplier that is not answering is a fact about today, not a fault of
    yours — stated in the warning tone and left in the list, because a source
    removed from the list is a source you stop expecting back. */
-.b-src.is-off .b-src-n { color: var(--d300); }
 .b-src.is-off .b-src-v { color: var(--warn-text); }
 
 /* ══ 58. THE WAY INTO THE BAR ══════════════════════════════════════════════
@@ -1929,26 +1918,58 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    middle column without reading the reasons. The reason is at the small step
    because it is why the estimate is a guess, and a guess whose working is
    hidden is a count wearing a hedge. */
-.b-expect { display: grid; gap: 10px 18px; }
+/* Two columns, one gap, one ink. It was three columns at three weights with
+   a different gap between the rows and the words inside them, and the words
+   you had to read were the faintest thing on the block. */
+.b-expect { display: flex; flex-direction: column; gap: 8px; }
 .b-exp {
-  display: grid; grid-template-columns: 110px minmax(96px, max-content) minmax(0, 1fr);
-  gap: 2px 18px; align-items: baseline;
+  display: grid; grid-template-columns: 104px minmax(0, 1fr);
+  gap: 10px; align-items: baseline;
 }
 .b-exp-k {
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--d300);
+  text-transform: uppercase; color: var(--d200);
 }
-.b-exp-v { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
-.b-exp-why {
-  font-size: var(--t-small); color: var(--d300);
-  line-height: var(--lh-base); max-width: 58ch; text-wrap: pretty;
+.b-exp-v {
+  font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
 }
-.b-exp-off { display: block; color: var(--d400); }
+.b-exp-v b { color: var(--d50); font-weight: var(--fw-bold); }
 @media (max-width: 860px) {
-  .b-exp { grid-template-columns: minmax(0, 1fr); }
-  .b-exp-why { grid-column: 1; }
+  .b-exp { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 
 /* A rule above the foot is the section separator this build took out
    everywhere else; the space under the block above it says the same thing. */
 .s-build-foot { border-top: 0; padding-top: 0; margin-top: 26px; }
+
+/* ══ 60. THE RUN FITS THE SCREEN ═══════════════════════════════════════════
+   Four stage tiles, four log rows and a foot, on a card that grew past the
+   bottom of a short viewport — and a loading state you have to scroll is a
+   loading state that has stopped telling you anything. The card is capped at
+   the height it has, and the log scrolls inside it, which is the part that
+   grows. svh rather than vh, so a mobile browser's own bar is counted. */
+.pipe-card { max-height: calc(100svh - 190px); display: flex; flex-direction: column; }
+.pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* Nothing is pressed here any more, so the foot is one line of elapsed. */
+.pipe-foot { padding: 12px 8px 2px; }
+@media (max-height: 720px) {
+  .pipe-rail { padding: 14px 20px; }
+  .pipe-card { max-height: calc(100svh - 150px); }
+}
+
+/* A button that carries a staged choice says so by holding full ink; the
+   verb it replaced is still the same button underneath. */
+.b-menu-open.is-set { color: var(--d50); }
+/* A tick in a menu row: on for what is chosen, a held place for what is not,
+   so the rows do not shift as you pick. */
+.b-menu-tick {
+  width: 14px; height: 14px; flex: none; border-radius: 5px;
+  border: 1px solid var(--card-border-hover); background: var(--card-bg);
+  position: relative;
+}
+.b-menu-tick.is-on { background: var(--accent); border-color: var(--accent); }
+.b-menu-tick.is-on::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(42deg);
+}

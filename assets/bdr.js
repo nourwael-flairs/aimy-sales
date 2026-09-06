@@ -3751,14 +3751,18 @@
         (take ? '<p class="s-build-total s-block-wide"><b>' + commas(take) +
           '</b> of your own are going in with them.</p>' : '') +
         '<div class="b-srcs">' +
-          '<span class="b-srcs-cap">Where the numbers come from</span>' +
+          '<span class="b-srcs-cap">Where the numbers come from, and how they did last week</span>' +
           FINDERS.map((x) =>
             '<span class="b-src' + (x.down ? ' is-off' : '') + '">' +
               '<span class="b-rstate-dot ' + (x.down ? 'tone-warn' : 'tone-ok') + '"></span>' +
               '<span class="b-src-n">' + esc(x.name) + '</span>' +
+              /* A percentage stated flat is a promise, and none of these
+                 three can make one. What they did over seven days is a
+                 measurement, and it is the only ground the guess stands on.
+                 The one that is not answering IS a fact, and stays one. */
               '<span class="b-src-v">' + (x.down
                 ? 'not answering since ' + esc(sayDay(dayAdd(-2))) + ' — their end, not ours'
-                : Math.round(x.phone * 100) + '% of them come back with a number') +
+                : 'about ' + Math.round(x.phone * 10) + ' in 10 came back with a number') +
               '</span>' +
             '</span>').join('') +
         '</div>' +
@@ -3881,20 +3885,24 @@
           : share >= 0.03
             ? ['About right', 'Narrow enough to be a list, wide enough to fill a run.']
             : ['Narrow', 'You may get fewer than 500 back.'];
+    /* ONE SENTENCE, ONE INK. The verdict was set apart in its own column and
+       the reason that followed it in a paler grey, with a second, paler line
+       under that — three weights of the same thought, and the part you have
+       to read set faintest of the three. The verdict leads the sentence in
+       bold and the rest of it is read at the same step. */
     const row = (k, v, why) =>
       '<span class="b-exp">' +
         '<span class="b-exp-k">' + esc(k) + '</span>' +
-        '<span class="b-exp-v">' + esc(v) + '</span>' +
-        '<span class="b-exp-why">' + why + '</span>' +
+        '<span class="b-exp-v"><b>' + esc(v) + '.</b> ' + why + '</span>' +
       '</span>';
     return '<div class="b-expect">' +
-      '<span class="b-srcs-cap">What to expect · read off the criteria, before anybody is asked</span>' +
+      '<span class="b-srcs-cap">What to expect, before anybody is asked</span>' +
       row('How wide', wide[0], esc(wide[1]) +
-        (found.length ? ' <span class="b-exp-off">My sketch holds about ' +
-          roughly(found.length) + ' like this; the suppliers hold more.</span>' : '')) +
-      row('With a number', 'About ' + Math.round(f.phone * 10) + ' in 10',
-        esc(f.name) + ' fills the most numbers of the sources answering. ' +
-        'What actually comes back is on the run.') +
+        (found.length ? ' My sketch holds about ' + roughly(found.length) +
+          ' like this, and the suppliers hold more.' : '')) +
+      row('With a number', 'Maybe ' + Math.round(f.phone * 10) + ' in 10',
+        esc(f.name) + ' fills the most of the sources answering, and that is what it ' +
+        'managed last week. What comes back on this one is on the run.') +
       /* What you already hold is said by the suggestion above, which also
          offers to drop them. Saying it twice, once without the fix, is the
          duplication this rebuild keeps taking out. */
@@ -4192,17 +4200,20 @@
 
     const el = byId('pipeElapsed');
     if (el) el.textContent = pipeFmt(PIPE.elapsed) + ' / ' + pipeFmt(PIPE.total);
+    /* ══ A LOADING STATE IS NOT A DESTINATION ══════════════════════════════
+       It finished and then waited to be told to show what it had found, with
+       "Run again with ZoomInfo" beside the way out — two decisions on a
+       screen whose whole purpose was to be over. It ends by opening the list,
+       which is where every one of those decisions is available anyway. */
     const foot = byId('pipeFootAct');
     if (foot && foot.getAttribute('data-done') !== String(finished)) {
       foot.setAttribute('data-done', String(finished));
-      const f = finderOf();
-      foot.innerHTML = finished
-        ? '<button class="pipe-btn pipe-rise" type="button" data-pipe-open>' + pipeCheck(14) +
-            'Open what came back</button>' +
-          finderUp().filter((x) => x.k !== f.k).map((x) =>
-            '<button class="pipe-chip pipe-rise" type="button" data-rerun="' + esc(x.k) + '">' +
-            'Run again with ' + esc(x.name) + '</button>').join('')
-        : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
+      foot.innerHTML = finished ? '' : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
+    }
+    if (finished && PIPE && !PIPE.left) {
+      PIPE.left = true;
+      /* One beat on the finished state so the last tick is seen, then out. */
+      setTimeout(() => { if (S.build === 'run') go({ build: 'done' }); }, 420);
     }
   }
 
@@ -4280,12 +4291,80 @@
   /* ── WHAT CAME BACK, BEFORE IT IS YOURS ──
      The set, what is missing from it, and the two ways out. Nothing is in the
      book until Save. */
-  const saveCampChips = () => {
-    const ks = myCampaigns().slice(0, 6);
+  /* ══ WHAT SAVING IT ALSO DECIDES ═══════════════════════════════════════
+     Six campaign chips in a row, each of which saved the list AND put it on
+     that campaign in one press — a decision made by a control that did not
+     look like it was making it, and six of them across the foot with no way
+     to see which you had chosen because choosing one ended the page.
+
+     Two menus on two buttons, the shape this build uses everywhere a choice
+     is attached to a verb. They stage the decision on the draft, the button
+     says what has been staged, and Save is still the one press that commits.
+
+     ASSIGN TAKES SEVERAL. Five hundred leads and one caller is a queue
+     nobody finishes; a list is split between the people who will ring it,
+     so the menu toggles and stays open until you look away from it. */
+  const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
+    ? DRAFT.assign : [me().id]);
+  const campPickMenu = () => {
+    const ks = myCampaigns().filter(campOpen);
     if (!ks.length) return '';
-    return '<span class="b-camps-cap">and put it on</span>' + ks.map((k) =>
-      '<button class="filter-chip" type="button" data-savecamp="' + esc(k.id) + '">' +
-      esc(k.name) + '</button>').join('');
+    const on = DRAFT && DRAFT.camp ? DB.byCamp[DRAFT.camp] : null;
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open' + (on ? ' is-set' : '') + '" type="button" ' +
+        'data-pickopen="campPick" aria-haspopup="menu">' +
+        (on ? 'On ' + esc(on.name) : 'Add to campaign') + '</button>' +
+      '<div class="b-menu" id="campPick" role="menu" hidden>' +
+        '<span class="b-menu-cap">Put them on</span>' +
+        ks.map((k) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-pickcamp="' + esc(k.id) + '">' +
+            '<span class="b-menu-tick' + (on && on.id === k.id ? ' is-on' : '') + '"></span>' +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
+            ' on it</span></span>' +
+          '</button>').join('') +
+        (on ? '<button class="b-menu-item is-foot" type="button" role="menuitem" ' +
+          'data-pickcamp="">On no campaign</button>' : '') +
+      '</div>' +
+    '</span>';
+  };
+  const assignPickMenu = () => {
+    const who = assignedTo();
+    /* Names, while there are few enough to name. "Split between 2" makes
+       you open the menu to find out which two. */
+    const first = (id) => (id === me().id ? 'you' : actor(id).name.split(' ')[0]);
+    const say = who.length === 1
+      ? (who[0] === me().id ? 'You are calling them' : actor(who[0]).name + ' is calling them')
+      : who.length <= 3
+        ? 'Split between ' + listSay(who.map(first))
+        : 'Split between ' + commas(who.length) + ' of you';
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open' + (who.length > 1 ? ' is-set' : '') + '" ' +
+        'type="button" data-pickopen="assignPick" aria-haspopup="menu">' +
+        esc(say) + '</button>' +
+      '<div class="b-menu" id="assignPick" role="menu" hidden>' +
+        '<span class="b-menu-cap">Who is calling them</span>' +
+        BDRS.map((r) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-pickrep="' + esc(r.id) + '" aria-pressed="' + (who.indexOf(r.id) >= 0) + '">' +
+            '<span class="b-menu-tick' + (who.indexOf(r.id) >= 0 ? ' is-on' : '') + '"></span>' +
+            faceOf(r.id, 24) +
+            '<span class="b-menu-name">' + esc(r.id === me().id ? 'You' : r.name) + '</span>' +
+          '</button>').join('') +
+        '<span class="b-menu-cap b-menu-more">Pick several and the list is dealt out ' +
+          'between them, in order.</span>' +
+      '</div>' +
+    '</span>';
+  };
+  /* Re-running with another supplier lost its home when the run stopped
+     being a screen you wait on. It belongs here, beside the other two things
+     you can do about what came back rather than keep it. */
+  const rerunChips = () => {
+    const f = finderOf();
+    return finderUp().filter((x) => x.k !== f.k).map((x) =>
+      '<button class="s-inline-btn" type="button" data-rerun="' + esc(x.k) + '">' +
+      'Run again with ' + esc(x.name) + '</button>').join('');
   };
   function leaveGate(n) {
     if (!LEAVE) return '';
@@ -4301,7 +4380,6 @@
         'and they join your queue.</p>' +
       '<div class="s-lead-acts">' +
         '<button class="s-insight-lnk primary" type="button" data-save>Save ' + commas(n) + '</button>' +
-        saveCampChips() +
         '<button class="s-insight-lnk" type="button" data-discard>Discard it</button>' +
         '<button class="s-inline-btn" type="button" data-stay>Stay</button>' +
       '</div>' +
@@ -4336,11 +4414,9 @@
       '<div class="s-build-foot s-block-wide">' +
         '<button class="entry-action em-direct s-build-go" type="button" data-save>Save ' +
           commas(kept + mine2.length) + '</button>' +
-        /* ONE PRESS SAVES AND PUTS IT ON A CAMPAIGN. Saving and then finding
-           the campaign chips on the list's page was two decisions for one
-           intention, and a list that is on no campaign is a list nobody is
-           working. The chips are inline, where the decision is made. */
-        saveCampChips() +
+        campPickMenu() +
+        assignPickMenu() +
+        rerunChips() +
         '<button class="s-inline-btn" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'lists', build: 'describe' }))) +
           '">Change the criteria</button>' +
@@ -4467,7 +4543,8 @@
   /* Saving mints the people, so from here they are ordinary records: the
      queue, the ladder and the call panel cannot tell where they came from. */
   function saveList(campId) {
-    const camp = campId ? DB.byCamp[campId] : null;
+    const camp = (campId || (DRAFT && DRAFT.camp)) ? DB.byCamp[campId || DRAFT.camp] : null;
+    const crew = assignedTo();
     const t = terms();
     /* WHAT THE RUN ACTUALLY RETURNED, not the criteria run again. They are
        usually the same set and they are not always: pressing "Bring them in"
@@ -4494,7 +4571,10 @@
         email: n.seedEmail < f.email
           ? n.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 2).join('.') + '@' + n.domain
           : null,
-        camps: camp ? [camp.id] : [], owner: me().id, checkpoint: 'not-called', checkpointAt: null,
+        /* Dealt out in order, so three callers get a third each rather than
+           one of them getting five hundred. */
+        camps: camp ? [camp.id] : [], owner: crew[i % crew.length],
+        checkpoint: 'not-called', checkpointAt: null,
         attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
         fate: SCENARIOS[i % SCENARIOS.length].k,
         enrichedAt: null,
@@ -4533,7 +4613,8 @@
     DRAFT = null;
     goFree(Object.assign(cleared(), { on: 'lists', list: id }));
     toast('Saved ' + plural(has.length, 'person') + ' as "' + l.name + '"' +
-      (camp ? ' · on ' + camp.name : ''), () => {
+      (camp ? ' · on ' + camp.name : '') +
+      (crew.length > 1 ? ' · split between ' + commas(crew.length) + ' of you' : ''), () => {
       joined.forEach((id2) => {
         const c = DB.byCon[id2];
         if (c) patchCon(c, { camps: c.camps.filter((x) => x !== camp.id) });
@@ -6021,8 +6102,8 @@
      is the one join no other block on that page can draw. Every node is a
      door and carries the fact that decides whether to open it. */
   function mapShell(o) {
-    return '<section class="s-block s-block-wide" aria-label="The map">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">The map</h2>' +
+    return '<section class="s-block s-block-wide" aria-label="Lead map">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">Lead map</h2>' +
         '<span class="s-block-say">' + esc(o.say) + '</span></div>' +
       '<div class="b-map">' +
         '<button class="b-node is-root" type="button" ' + o.root.attr + '>' +
@@ -8803,7 +8884,16 @@
     return open.length ? say[open[0]] : '';
   }
 
+  /* ══ FIND LEADS STARTS OVER ════════════════════════════════════════════
+     A draft left from an earlier visit to the builder outlives the page it
+     was made on, and `buildKind()` prefers its kind over the URL's — so the
+     builder waiting behind the question was already collecting people
+     before anybody had answered which of the two it was. Ask the question
+     on a clean surface: the draft goes, and a half-built list is left
+     rather than reopened underneath. */
   function lbuildStart(campId) {
+    DRAFT = null;
+    if (S.build || S.list) goFree(Object.assign(cleared(), { on: 'lists' }), true);
     LBUILD = { kind: null, terms: [], step: 'kind', name: null,
       camp: (campId && DB.byCamp[campId] && mine(DB.byCamp[campId])) ? campId : null };
     TURNS.length = 0;
@@ -9027,12 +9117,26 @@
     }
     const finder = t.closest('[data-finder]');
     if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
-    if (t.closest('[data-pipe-open]')) { go({ build: 'done' }, true); return; }
     const rerun = t.closest('[data-rerun]');
     if (rerun) { FINDER = rerun.getAttribute('data-rerun'); buildRun(); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
-    const sc = t.closest('[data-savecamp]');
-    if (sc) { saveList(sc.getAttribute('data-savecamp')); return; }
+    /* Staged on the draft, not committed: Save is still the one press that
+       writes anything, and both menus say what they have staged. */
+    const pc = t.closest('[data-pickcamp]');
+    if (pc) { DRAFT.camp = pc.getAttribute('data-pickcamp') || null; shutMenus(null); paint(); return; }
+    const pr = t.closest('[data-pickrep]');
+    if (pr) {
+      const id = pr.getAttribute('data-pickrep');
+      const now = assignedTo().slice();
+      const at = now.indexOf(id);
+      if (at >= 0) { if (now.length > 1) now.splice(at, 1); } else now.push(id);
+      DRAFT.assign = now;
+      paint();
+      /* The menu is a multiple choice, so it stays where it was. */
+      const m = byId('assignPick');
+      if (m) m.hidden = false;
+      return;
+    }
     if (t.closest('[data-discard]')) {
       /* The explicit verb, and the gate's own. Nothing has been written, so
          there is nothing to undo; the criteria stay in the URL. */
