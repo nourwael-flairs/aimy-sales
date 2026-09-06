@@ -1311,3 +1311,7 @@ button.pipe-chip:active { transform: scale(0.97); }
   .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
   .b-gate { animation: none; }
 }
+
+/* ══ 37. THE DECISION ON THE CARD ══════════════════════════════════════════
+   On the After-meeting cut a card ends in two answers instead of one verb. */
+.b-qcard-decide { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }

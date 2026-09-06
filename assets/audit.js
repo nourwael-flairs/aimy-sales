@@ -52,6 +52,7 @@ const MARKERS = {
   'submit-on-enter': 'read by a keydown listener, not by a click',
   'i': 'the row index a windowed list writes for its own bookkeeping',
   'fig': 'the key a figure is known by between two paints, so the one that changed can tick',
+  'for': 'the person a decision on a card is about; the verb beside it is data-decide',
   'work-state': 'the canonical value the design system reads off a work-state chip',
   'tocamp': 'the second half of data-addlist, read off the same element by its handler',
   'card': 'which person a queue card is about, read by the keyboard cursor, not by a click',

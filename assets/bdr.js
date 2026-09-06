@@ -1455,6 +1455,12 @@
     !!c.phone && !c.dnc && !isExit(c.checkpoint) && rank(c.checkpoint) <= 3 &&
     !(c.next && c.next.due > TODAY_ISO);
 
+  /* ══ A MEETING THAT HAS PASSED IS A QUESTION ═══════════════════════════
+     Once a meeting is booked they leave the queue; once its day has gone
+     by, the flowchart asks whether they turned up, and nothing in the
+     product did but the bell. This is that cut. */
+  const afterMeeting = (c) => c.checkpoint === 'meeting-set' && !!c.next && c.next.due < TODAY_ISO;
+
   /* ══ 6. THE URL IS THE STATE ════════════════════════════════════════════
      One object mirrors the query string, one function writes it, one function
      repaints. A surface that is not in the URL is a surface you cannot send
@@ -1684,8 +1690,15 @@
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
-        '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
-          '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>' +
+        (afterMeeting(c)
+          /* the decision, inline, on the card: the meeting is the fact, the
+             two answers are the whole of the job on this cut */
+          ? '<span class="b-qcard-decide">' +
+              '<button class="s-insight-lnk" type="button" data-decide="showed-up" data-for="' + esc(c.id) + '">They showed up</button>' +
+              '<button class="s-inline-btn" type="button" data-decide="no-show" data-for="' + esc(c.id) + '">Did not show</button>' +
+            '</span>'
+          : '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+            '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>') +
       '</div>' +
     '</article>';
   }
@@ -2199,6 +2212,7 @@
     const camps = myCampaigns();
     const counts = Object.create(null);
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    counts.after = queue(null, 'after').length;
 
     return '<div class="s-home">' +
       topBrief('calls') +
@@ -2241,6 +2255,7 @@
     const all = queue(null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    counts.after = queue(null, 'after').length;
     const camps = myCampaigns();
     return '<section class="slv s-block-wide" aria-label="Today">' +
       '<div class="slv-head">' +
@@ -2299,6 +2314,8 @@
       '</b> have never been rung');
     if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
       '</b> did not pick up last time');
+    if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
+      (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
     if (!bits.length) bits.push('there is nobody left to ring');
     const decided = decidedLately();
     return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
@@ -2374,9 +2391,14 @@
         { k: 'callback', label: 'Work the callbacks',
           why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
             : 'nobody asked for one' },
-        { k: 'not-called', label: 'Ring somebody new',
-          why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
-            : 'everyone has been tried' },
+        /* A meeting that passed outranks a stranger: the door to say what
+           happened takes the third slot while there is anything to say. */
+        counts.after
+          ? { k: 'after', label: 'Say what happened',
+              why: plural(counts.after, 'meeting') + ' passed without a word' }
+          : { k: 'not-called', label: 'Ring somebody new',
+              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
+                : 'everyone has been tried' },
         findLeads,
       ];
     }
@@ -2454,7 +2476,7 @@
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
-    const ring = pg.rows.filter((c) => rowVerb(c) === 'Call');
+    const ring = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -3861,6 +3883,7 @@
     const all = queue(k.id, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    counts.after = queue(k.id, 'after').length;
     const members = membersOf(k.id);
     const left = daysBetween(TODAY_ISO, k.to);
     const ring = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
@@ -5014,8 +5037,11 @@
     { k: 'not-called', label: 'New' },
     { k: 'no-answer',  label: 'No answer' },
     { k: 'answered',   label: 'Answered' },
+    /* Not a rung: the meeting-set people whose day has passed. They are
+       not dialled from here, they are answered for. */
+    { k: 'after',      label: 'After meeting' },
   ];
-  const bucketOf = (c) => c.checkpoint;
+  const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
 
@@ -5034,6 +5060,10 @@
         return 'Never rung';
       case 'no-answer':
         return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
+      case 'meeting-set':
+        return afterMeeting(c)
+          ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
+          : c.next ? esc(c.next.what) + ' <b>' + esc(sayWhen(c.next.due)) + '</b>' : 'Meeting set';
       default:
         return 'Spoke to them <b>' + esc(sayWhen(c.lastCallAt)) + '</b>, no meeting yet';
     }
@@ -5056,7 +5086,9 @@
     const out = [];
     for (let i = 0; i < pool.length; i++) {
       const c = pool[i];
-      if (!c || !callable(c)) continue;
+      if (!c) continue;
+      /* the after-meeting cut is the one place a non-callable person is listed */
+      if (!callable(c) && !(bucket === 'after' && afterMeeting(c))) continue;
       if (campId) { if (c.camps.indexOf(campId) < 0) continue; }
       else {
         if (!c.camps.some((k) => mineCamps[k])) continue;
@@ -6589,6 +6621,7 @@
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
     all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    counts.after = queue(S.camp || null, 'after').length;
     const door = (label, over) =>
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
       '">' + esc(label) + '</button>';
@@ -6608,7 +6641,8 @@
       if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
       return '<b>' + plural(met.length, 'meeting') + '</b> ' + (met.length === 1 ? 'has' : 'have') +
         ' passed and nobody has said whether they turned up.' +
-        '<div class="b-cuts">' + met.slice(0, 6).map((c) =>
+        '<div class="b-cuts">' + door('See all ' + met.length, Object.assign(cleared(), { q: 'after' })) +
+          met.slice(0, 6).map((c) =>
           door(c.name + ' · ' + sayWhen(c.next.due), Object.assign(cleared(), { con: c.id }))).join('') +
         '</div>';
     }
@@ -7557,7 +7591,7 @@
       }
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'callnext') {
-        const first = queue(null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
+        const first = queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
         else toast('Nobody in this cut has a number to ring.');
       } else if (k === 'lists') {
@@ -7654,6 +7688,9 @@
 
     const sp = t.closest('[data-sendprofile]');
     if (sp) { sendProfile(sp.getAttribute('data-sendprofile')); return; }
+
+    const dc = t.closest('[data-decide]');
+    if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
 
     const mv = t.closest('[data-move]');
     if (mv) { setCheckpoint(S.con, mv.getAttribute('data-move')); return; }
