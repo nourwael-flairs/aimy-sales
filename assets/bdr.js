@@ -1799,7 +1799,7 @@
   }
   function signalReading(a, sig, hist) {
     return {
-      text: esc(a.name) + ' ' + esc(sig.text) + ' ' + esc(sayWhen(sig.at)) + '. ' + signalMeans(sig, hist),
+      text: esc(a.name) + ' ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '. ' + signalMeans(sig, hist),
       from: 'a signal from ' + sig.src,
     };
   }
@@ -1829,6 +1829,14 @@
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist[0];
     const a = accOf(c);
+
+    /* A WAY OUT READS AS WHAT IT IS. The hour reading and "ring the mobile"
+       were being offered on a number that is not theirs. */
+    if (c.checkpoint === 'wrong-number') {
+      return { text: 'The number is not theirs. Nothing on it counts until somebody finds one that is.',
+        from: 'the last call' };
+    }
+    if (c.dnc || c.checkpoint === 'do-not-call') return null;
 
     /* ══ SOMETHING CHANGED AT THE COMPANY ═══════════════════════════════
        Fresh news outranks the last call: it is the one thing that can
@@ -2194,7 +2202,7 @@
         card: {
           state: sig ? 'detected' : 'reading',
           text: sig
-            ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' ' + esc(sayWhen(sig.at)) + '.'
+            ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '.'
             : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
               (ring.length ? '<b>' + commas(ring.length) + '</b> you can ring now.' : 'nobody you can ring now.'),
           evidence: [{ val: people.length, cap: 'here' }, { val: ring.length, cap: 'to call' }].filter((e) => e.val),
@@ -4652,7 +4660,7 @@
           '<div>' +
             '<span>' + esc(a.domain) + '</span>' +
             (REGION[a.region] ? '<span>' + esc(REGION[a.region].label) + '</span>' : '') +
-            (signalOf(a) ? '<span><b>' + esc(a.signal.text) + '</b> · ' + esc(sayWhen(a.signal.at)) + '</span>' : '') +
+            (signalOf(a) ? '<span><b>' + esc(a.signal.text) + '</b> · seen ' + esc(sayWhen(a.signal.at)) + '</span>' : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
@@ -4923,7 +4931,14 @@
     /* No call on somebody who opted out: the number is on the page, the
        verb is not. */
     const call = c.phone && !c.dnc
-      ? { html: 'Call ' + esc(first), attr: 'data-call="' + esc(c.id) + '"' } : null;
+      ? { html: 'Call ' + esc(first) +
+          /* a parked callback or a meeting still ahead: the call is early, and says so */
+          (c.checkpoint === 'callback' && c.next && c.next.due > TODAY_ISO ? ' early'
+            : c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO ? ' to confirm' : ''),
+        attr: 'data-call="' + esc(c.id) + '"' } : null;
+    /* no number, or a number that is not theirs: the verb is the supplier */
+    const find = (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint))))
+      ? { html: 'Find a number', attr: 'data-enrichcon="' + esc(c.id) + '"' } : null;
     /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
        nobody in particular; the campaign's owner is who gets them. */
     const moves = movesFor(c).map((m) => ({
@@ -4941,7 +4956,9 @@
       ? { html: 'Send the company profile', attr: 'data-sendprofile="' + esc(c.id) + '"' } : null;
     /* Past a meeting the question is what happened at it; before one, the
        question is the phone. */
-    const settling = rank(c.checkpoint) >= rank('meeting-set') && !isExit(c.checkpoint);
+    /* a meeting still ahead is not yet a question; the phone leads until it has happened */
+    const settling = rank(c.checkpoint) >= rank('meeting-set') && !isExit(c.checkpoint) &&
+      !(c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO);
     let list;
     let quiet = [];
     let say = '';
@@ -4958,12 +4975,19 @@
       list = send && !sentSince ? [send] : [];
       quiet = call ? [call] : [];
       say = sentSince ? 'They said no, and the profile went out ' + sayWhen(sentSince.at.slice(0, 10)) + '.' : '';
+    } else if (c.checkpoint === 'wrong-number') {
+      /* the ladder says nothing is owed until somebody finds a number that
+         is theirs; that is the one thing to press, and Call is not */
+      list = find ? [find] : [];
+      quiet = [];
+      say = find ? '' : rg2(c) + ', so there is nothing to press.';
     } else if (isExit(c.checkpoint)) {
       list = [];
       quiet = call ? [call] : [];
       say = rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.';
     } else {
-      list = (settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
+      list = (find ? [find] : [])
+        .concat(settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
         .concat(send ? [send] : []);
     }
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
@@ -5003,7 +5027,10 @@
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist[0];
     let door = '';
-    if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
+    if (!c.dnc && (c.checkpoint === 'wrong-number' || (!c.phone && !isExit(c.checkpoint)))) {
+      door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
+        'Ask ' + esc(finderOf().name) + ' for a number</button>';
+    } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
       door = '<button class="s-insight-lnk" type="button" data-acc="' + esc(a.id) + '">' +
         'Try one of the ' + others.length + ' others at ' + esc(a.name) + '</button>';
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
@@ -5012,7 +5039,7 @@
          again. */
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
         'Ask ' + esc(finderOf().name) + ' for a better number</button>';
-    } else if (last && last.outcome === 'gatekeeper' && c.phone) {
+    } else if (last && last.outcome === 'gatekeeper' && c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Ring the mobile now</button>';
     } else if (c.phone && callable(c)) {
@@ -5873,7 +5900,7 @@
         if (!DB.call) return;
         DB.call.secs++;
         const el = byId('callTimer');
-        if (el) el.textContent = fmtClock(DB.call.secs);
+        if (el) el.textContent = (DB.call.held ? 'On hold · ' : '') + fmtClock(DB.call.secs);
       }, 1000);
       CALL_LINE = setInterval(growTranscript, LINE_MS);
       growTranscript();
@@ -5922,16 +5949,35 @@
 
      What the call leaves behind is `PENDING`: everything the write needs,
      held outside `DB.call` because `DB.call` means a call is happening. */
+  /* ══ AN OBSTACLE IMPLIES SOMEBODY SAID IT ══════════════════════════════
+     "Pricing is the obstacle, you asked for another call" cannot sit under
+     "I read that as no answer": nobody objected, nobody was asked. When the
+     transcript could not tell and the note names an objection or a request,
+     the disposition follows the note — a callback if that is all that was
+     asked, connected otherwise. */
+  function impliedDisp(disp, props, objs) {
+    if (disp && disp !== 'no-answer' && disp !== 'gatekeeper') return disp;
+    const ps = props || [], os = objs || [];
+    if (!ps.length && !os.length) return disp;
+    if (ps.length === 1 && ps[0] === 'callback' && !os.length) return 'callback';
+    return 'reached';
+  }
+
   function endCall() {
     const c = DB.call;
     if (!c || c.state === 'ready') return;
     clearCallTimers();
     const heard = readCall(transcriptText(c));
+    /* the note typed during the call speaks per axis, and can imply contact */
+    const noted = c.note ? readCall(c.note) : null;
+    const disp = impliedDisp((noted && noted.disp) || heard.disp,
+      noted && noted.props.length ? noted.props : heard.props,
+      noted && noted.objs.length ? noted.objs : heard.objs);
     PENDING = {
       con: c.con, camp: c.camp, secs: c.secs, sess: c.sess, auto: c.auto,
       lines: c.script.slice(0, c.shown).map((l) => ({ who: l[0], text: l[1] })),
-      note: c.note, read: heard, outcome: heard.disp || 'no-answer',
-      guessed: !heard.disp, when: heard.when || 1,
+      note: c.note, read: heard, outcome: disp || 'no-answer',
+      guessed: !disp, when: (noted && noted.when) || heard.when || 1,
     };
     DB.call = null;
     document.body.classList.remove('is-calling');
@@ -6175,7 +6221,7 @@
            reading 0:00 next to "Connecting" is two things saying one thing,
            and one of them is a number that has not started. */
         '<span class="call-timer" id="callTimer">' +
-          (ready ? 'Ready to call' : dialing ? 'Connecting…' : fmtClock(call.secs)) + '</span>' +
+          (ready ? 'Ready to call' : dialing ? 'Connecting…' : (call.held ? 'On hold · ' : '') + fmtClock(call.secs)) + '</span>' +
         (call.auto
           ? '<span class="work-state ws-drafted" data-work-state="drafted">AiMY placed it</span>'
           : '') +
@@ -6314,11 +6360,17 @@
     const first = c.name.split(' ')[0];
     const h = Math.abs(hash(c.id + ':again'));
     if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return; }
-    const before = { phone: c.phone, enrichedAt: c.enrichedAt, attempts: c.attempts };
+    const wrong = c.checkpoint === 'wrong-number';
+    const before = { phone: c.phone, enrichedAt: c.enrichedAt, attempts: c.attempts,
+      checkpoint: c.checkpoint, checkpointAt: c.checkpointAt };
     const phone = '+31 6 ' + String(1000000 + (h % 8999999));
-    patchCon(c, { phone: phone, enrichedAt: TODAY_ISO, attempts: 0 });
+    const fields = { phone: phone, enrichedAt: TODAY_ISO, attempts: 0 };
+    /* a wrong number with a right one found is a fresh start on the ladder */
+    if (wrong) { fields.checkpoint = 'not-called'; fields.checkpointAt = new Date().toISOString(); }
+    patchCon(c, fields);
     paint();
-    toast(f.name + (before.phone ? ' found another number for ' : ' found a number for ') + first + ' · ' + phone, () => {
+    toast(f.name + (before.phone ? ' found another number for ' : ' found a number for ') + first + ' · ' + phone +
+      (wrong ? ' · back to Not called' : ''), () => {
       patchCon(c, before);
       paint();
     });
@@ -6467,7 +6519,7 @@
     if (sigs.length) {
       tasks.push({ id: 'signals', sev: 'p2', type: 'Signals',
         when: plural(sigs.length, 'company', 'companies') + ' moved this week',
-        body: sigs.slice(0, 2).map((h) => h.a.name + ' ' + h.sig.text + ' ' + sayWhen(h.sig.at)).join('; ') +
+        body: sigs.slice(0, 2).map((h) => h.a.name + ' ' + h.sig.text + ', seen ' + sayWhen(h.sig.at)).join('; ') +
           (sigs.length > 2 ? '; and ' + plural(sigs.length - 2, 'more') : '') + '. Each has somebody in your queue.',
         cta: 'See the signals', ask: 'What changed at the companies I am calling?' });
     }
@@ -6893,7 +6945,7 @@
         (hits.length > week.length ? ', ' + commas(hits.length) + ' in the last three weeks' : '') +
         '. Each door is the company; the first person to ring is on it.' +
         '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
-          door(h.a.name + ' · ' + h.sig.text + ' · ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
+          door(h.a.name + ' · ' + h.sig.text + ' · seen ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
         '</div>';
     }
     if (/\b(quiet|fourth|four touch|touchpoints?)\b/.test(q)) {
@@ -7086,7 +7138,7 @@
        said, and the opener below should lean on it. */
     const sig = signalOf(a);
     if (sig) {
-      body += line('What changed', esc(a.name + ' ' + sig.text + ' ' + sayWhen(sig.at)) + ' — ' +
+      body += line('What changed', esc(a.name + ' ' + sig.text + ' · seen ' + sayWhen(sig.at)) + ' — ' +
         signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>');
     }
     if (c.remember) {
@@ -7348,7 +7400,13 @@
       remember: read.remember || heard.remember,
       when: read.when || heard.when,
     };
-    if (read.disp) call.outcome = read.disp;
+    if (read.disp) {
+      call.outcome = read.disp;
+      /* "no answer" said outright leaves no room for an obstacle */
+      if (read.disp === 'no-answer' || read.disp === 'gatekeeper') { call.read.props = []; call.read.objs = []; }
+    } else {
+      call.outcome = impliedDisp(call.outcome, call.read.props, call.read.objs) || call.outcome;
+    }
     if (read.when) call.when = read.when;
     say('you', esc(text));
     callLogPropose();
@@ -7473,7 +7531,9 @@
                 ? ', and ' + (meetings === 1 ? '<b>a meeting</b>' :
                   '<b>' + plural(meetings, 'meeting') + '</b>') + ' came out of it'
                 : ', and nothing was asked for')
-            : 'Nobody picked up.') + '</span></div>' +
+            : made.length ? 'Nobody picked up.'
+              : 'Nobody was rung' + (sess.skipped.length ? ' — ' + plural(sess.skipped.length, 'person') + ' skipped.' : '.')) +
+          '</span></div>' +
         (topObj
           ? '<div class="s-callsum-row"><span class="s-callsum-mem">What got in the way</span>' +
             '<span class="s-callsum-val"><b>' + esc(OBJECTION[topObj].label) + '</b> came up ' +
