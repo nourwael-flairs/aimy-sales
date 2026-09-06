@@ -806,8 +806,7 @@
           'Find ' + between(r, 6, 18) + ' teams carrying the work ' + sells[0].name + ' takes off them',
           'Replace ' + between(r, 5, 15) + ' manual support desks in ' + reg.label,
         ]),
-        pitch: 'They are ' + ind.label.toLowerCase() + ' in ' + reg.label +
-          ', and they are running this with people rather than with a system. ' +
+        pitch: 'They are in ' + reg.label + ', and they are running this with people rather than with a system. ' +
           sells[0].name + ' is ' + sells[0].blurb + '. Open on what it costs them today, not on what we do.',
         sells: sells.map((s) => s.k),
         objections: objs,
@@ -897,10 +896,29 @@
 
     /* ── Membership ── every campaign gets a slice of the book. A contact can
        be on two campaigns; the queue de-duplicates by person, not by row. */
+    /* ══ MEMBERSHIP HONOURS THE NAME ═══════════════════════════════════
+       "Ireland logistics" had eleven people in Ireland out of 229, and its
+       pitch said "they are logistics in Ireland" over a roster from Ghent
+       and Utrecht. A campaign draws from its own region: the cell of people
+       at companies in its sector and region first, then the rest of the
+       region. The draw count is unchanged, so nothing before or after it in
+       the corpus moves. */
+    const byRegion = Object.create(null);
+    const byCell = Object.create(null);
+    con.forEach((p) => {
+      const a = acc[Number(p.acc.slice(1))];
+      (byRegion[a.region] || (byRegion[a.region] = [])).push(p);
+      const cell = a.region + '|' + a.industry;
+      (byCell[cell] || (byCell[cell] = [])).push(p);
+    });
     camp.forEach((c) => {
       const want = between(r, 120, 400);
+      const cell = byCell[c.region + '|' + c.industry] || [];
+      const region = byRegion[c.region] || con;
       for (let j = 0; j < want; j++) {
-        const p = con[Math.floor(r() * CON_N)];
+        const idx = Math.floor(r() * CON_N);
+        const pool = j < cell.length ? cell : region;
+        const p = pool[idx % pool.length];
         if (p.camps.indexOf(c.id) < 0) {
           p.camps.push(c.id);
           if (!p.owner) p.owner = pick(r, c.crew);
@@ -953,13 +971,13 @@
 
     let tId = 0;
     const NOTE = {
-      reached: ['Good conversation, they want a demo.', 'Spoke to her, keen but the price came up.',
+      reached: ['Good conversation, they want a demo.', 'Spoke to them, keen but the price came up.',
         'Talked it through. They asked me to send the case study.', 'Got through. Timing is the problem, not the fit.'],
-      callback: ['Asked me to call back next week.', 'Bad moment, ring back Thursday.', 'Call her back after the board meeting.'],
-      gatekeeper: ['Reception would not put me through.', 'Screened. Assistant took a message.', 'Front desk again, she is in workshops all week.'],
+      callback: ['Asked me to call back next week.', 'Bad moment, ring back Thursday.', 'Call them back after the board meeting.'],
+      gatekeeper: ['Reception would not put me through.', 'Screened. Assistant took a message.', 'Front desk again, they are in workshops all week.'],
       'no-answer': ['No answer.', 'Rang out.', 'Left a voicemail.', 'Straight to answerphone.'],
       'not-interested': ['Not interested, they have just signed with someone.', 'No appetite this year.', 'Brushed me off.'],
-      'wrong-number': ['Wrong number, she left last year.', 'Number is not in service.'],
+      'wrong-number': ['Wrong number, they left last year.', 'Number is not in service.'],
       'do-not-call': ['Asked to be taken off the list.', 'Do not call again.'],
     };
 
@@ -5331,9 +5349,10 @@
       case 'callback': {
         /* "28 Aug" on 6 Sep is nine days late, and the card should say so. */
         const late = c.next ? -daysBetween(TODAY_ISO, c.next.due) : 0;
-        return 'Asked to be rung back <b>' +
-          esc(c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)) + '</b>' +
-          (late > 0 ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
+        const when = c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt);
+        /* "4 days ago · 4 days late" said it twice; the suffix is for a date */
+        return 'Asked to be rung back <b>' + esc(when) + '</b>' +
+          (late > 0 && !/ago|yesterday|today/.test(when) ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
       }
       case 'not-called':
         return 'Never rung';
@@ -5802,7 +5821,7 @@
       ['you', 'Morning {first} — have you got two minutes?'],
       ['them', 'Positive, yes, go on.'],
       ['you', 'We take the support desk work off teams your size.'],
-      ['them', 'Our new head of support starts Monday. Worth half an hour with her.'],
+      ['them', 'Our new head of support starts Monday. Worth half an hour with them.'],
     ],
     'reached-promoted': [
       ['you', 'Morning {first} — and congratulations on the promotion.'],
@@ -5837,14 +5856,14 @@
     'gatekeeper-msg': [
       ['you', 'Morning, could I speak to {first}?'],
       ['them', 'Can I take a message? She is in workshops all week.'],
-      ['you', 'When is the best time to try her?'],
+      ['you', 'When is the best time to try them?'],
       ['them', 'I could not say. I will pass it on.'],
     ],
     'gatekeeper-mobile': [
       ['you', 'Morning, is {first} about?'],
       ['them', 'This is the front desk. Who is calling?'],
-      ['you', 'It is Engy. Is there a better way to reach her?'],
-      ['them', 'For next time, she takes calls on the mobile, not through me.'],
+      ['you', 'It is Engy. Is there a better way to reach them?'],
+      ['them', 'For next time, they take calls on the mobile, not through me.'],
     ],
     'no-answer-vm': [
       ['you', 'Dialling…'],
@@ -8226,10 +8245,10 @@
     /* The tray's quick chips are the shell's, and they name queue cuts. */
     const quick = t.closest('[data-quick]');
     if (quick) {
+      /* the chips are the cuts, in the cuts' own words; "Going cold" and
+         "Mine" were another build's */
       const v = quick.getAttribute('data-quick');
-      const map = { 'due=overdue': 'callback', 'status=going-cold': 'no-answer',
-        'status=untouched': 'not-called', 'owner=mine': 'all' };
-      go(Object.assign(cleared(), { q: map[v] || 'all' }));
+      go(Object.assign(cleared(), { q: BUCKETS.some((b) => b.k === v) ? v : 'all' }));
       return;
     }
 
