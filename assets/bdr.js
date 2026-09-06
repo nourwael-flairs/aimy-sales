@@ -2597,30 +2597,35 @@
   /* WHERE BACK ACTUALLY GOES. A person opened from a company goes back to
      the company; the button said "Back to the briefing" on the way to
      somewhere else. The label reads the state, so it cannot lie. */
-  /* ══ A CHOOSER, NOT A ROW OF EVERY ANSWER ══════════════════════════════
-     Six campaign chips across the head of a list is the whole answer laid
-     out before the question is asked, and it only fits because six is all
-     there is. A button opens the list where it stands — searchable, and
-     more than one can be chosen — and the page never leaves the page.
+  /* ══ ONE WAY TO PUT SOMETHING ON A CAMPAIGN ════════════════════════════
+     There were two. A found list used a menu hanging off its button; a saved
+     list and a company used a panel that opened in the page with a search, a
+     multiple choice and a confirm — three steps for a question with one
+     answer, and the second thing a caller had to learn for the job they had
+     just done a different way.
 
-     It filters and selects in the DOM, without a repaint: a repaint takes
-     the focus out of the box you are typing in. Only the confirm writes. */
-  function pickPanel(o) {
-    return '<div class="b-pick" id="' + esc(o.id) + '" hidden>' +
-      '<div class="b-pick-head">' +
-        '<input class="b-pick-find" type="text" data-picksearch placeholder="' + esc(o.find) + '" ' +
-          'aria-label="' + esc(o.find) + '" spellcheck="false" />' +
+     The menu wins. It is the shape everything else here uses when a choice
+     hangs off a verb, a name in it is the whole interaction, and a second
+     campaign is a second press rather than a checkbox and a button. */
+  function campMenu(o) {
+    const ks = o.opts;
+    if (!ks.length) return '';
+    return '<span class="b-menu-wrap">' +
+      '<button class="' + esc(o.cls || 's-inline-btn') + ' b-menu-open" type="button" ' +
+        'data-pickopen="' + esc(o.id) + '" aria-haspopup="menu">' + esc(o.label) + '</button>' +
+      '<div class="b-menu" id="' + esc(o.id) + '" role="menu" hidden>' +
+        '<span class="b-menu-cap">' + esc(o.cap) + '</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a campaign" aria-label="Find a campaign" spellcheck="false" />' +
+        ks.map((k) =>
+          '<button class="b-menu-item" type="button" role="menuitem" ' +
+          'data-puton="' + esc(o.go + '|' + k.id) + '">' +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(k.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(plural(membersOf(k.id).length, 'person')) +
+            ' on it</span></span>' +
+          '</button>').join('') +
       '</div>' +
-      '<div class="b-pick-list">' + o.opts.map((x) =>
-        '<button class="b-pick-opt" type="button" data-picktoggle="' + esc(x.id) + '" ' +
-        'aria-pressed="false">' + esc(x.name) + '</button>').join('') +
-      '</div>' +
-      '<div class="b-pick-foot">' +
-        '<button class="s-insight-lnk primary" type="button" data-pickgo="' + esc(o.go) + '" ' +
-          'data-verb="' + esc(o.verb) + '" disabled>' + esc(o.verb) + '</button>' +
-        '<button class="s-inline-btn" type="button" data-pickopen="' + esc(o.id) + '">Cancel</button>' +
-      '</div>' +
-    '</div>';
+    '</span>';
   }
   const campOpts = () => myCampaigns().filter(campOpen).map((k) => ({ id: k.id, name: k.name }));
 
@@ -2670,21 +2675,13 @@
       '</div>' +
     '</span>';
   }
-  /* What the panel is holding, read off the DOM when the confirm is pressed. */
-  function pickChosen(panel) {
-    return [...panel.querySelectorAll('.b-pick-opt[aria-pressed="true"]')]
-      .map((b) => b.getAttribute('data-picktoggle'));
-  }
-  function pickSettle(panel) {
-    const go = panel.querySelector('[data-pickgo]');
-    const n = pickChosen(panel).length;
-    go.disabled = !n;
-    const verb = go.getAttribute('data-verb');
-    go.textContent = n > 1 ? verb + ' · ' + n : verb;
-  }
+  /* Hide what does not match, without a repaint: a repaint takes the focus
+     out of the box being typed in. */
   function pickFilter(box) {
+    const host = box.closest('.b-menu');
+    if (!host) return;
     const q = box.value.trim().toLowerCase();
-    box.closest('.b-pick').querySelectorAll('.b-pick-opt').forEach((b) => {
+    host.querySelectorAll('.b-menu-item').forEach((b) => {
       b.hidden = !!q && b.textContent.toLowerCase().indexOf(q) < 0;
     });
   }
@@ -2869,10 +2866,10 @@
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
         '<div class="s-camp-list-head">' + switcher('camps') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
-        '<p class="s-block-sub">' + (S.find
-          ? plural(camps.length, 'campaign') + ' matching “' + esc(S.find) + '”.'
-          : plural(camps.length, 'campaign') + ' you are on, soonest to close first. ' +
-            'Each says how many of its people are yours to ring.') + '</p>' +
+        /* The count is on the switcher, the order is visible in the order,
+           and what each card says is said by the card. */
+        (S.find ? '<p class="s-block-sub">' + plural(camps.length, 'campaign') +
+          ' matching “' + esc(S.find) + '”.</p>' : '') +
         cgrid(pg.rows) +
         pager(pg, 'campaign') +
       '</section>' +
@@ -3283,8 +3280,14 @@
   function buildMatched(over) {
     const t = over || terms();
     const only = (t.only || []).indexOf('new') >= 0;
+    /* THE ONE NARROWING A CALLER ACTUALLY WANTS. Every other axis makes the
+       set smaller; this one makes it callable, which is the only property
+       that decides whether a row is worth having at all. */
+    const onlyPhone = (t.only || []).indexOf('phone') >= 0;
+    const fill = finderOf().phone;
     return DB.net.filter((n) => {
       if (only && n.known) return false;
+      if (onlyPhone && n.seedPhone >= fill) return false;
       for (let i = 0; i < BUILD_AXES.length; i++) {
         const ax = BUILD_AXES[i];
         const want = t[ax.k];
@@ -3319,7 +3322,9 @@
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
           findBox('Find a list, a criterion, a source') + '</div>' +
-        '<div class="b-acts">' +
+        /* The one action on this surface, at the end of the row the actions
+           are at the end of everywhere else. */
+        '<div class="b-acts b-acts-end">' +
           '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
         '</div>' +
         (found.length
@@ -3381,10 +3386,8 @@
           : '<span class="s-block-sub">Nobody on it has a number you can ring now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
           'Open ' + esc(camp.name) + '</button>'
-      : '<button class="s-insight-lnk primary" type="button" data-pickopen="campPick">' +
-          'Put it on a campaign</button>' +
-        pickPanel({ id: 'campPick', opts: campOpts(), find: 'Find a campaign',
-          go: 'list:' + l.id, verb: 'Put it on' });
+      : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
+          label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
 
     return '<div class="s-home">' +
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
@@ -3696,6 +3699,9 @@
     if ((t.only || []).indexOf('new') >= 0) {
       chips.push({ axis: 'only', val: 'new', label: 'Not already in the book' });
     }
+    if ((t.only || []).indexOf('phone') >= 0) {
+      chips.push({ axis: 'only', val: 'phone', label: 'Has a number' });
+    }
 
     return '<div class="s-home">' +
       backBtn('data-go="' +
@@ -3768,13 +3774,13 @@
             '<span class="b-src' + (x.down ? ' is-off' : '') + '">' +
               '<span class="b-rstate-dot ' + (x.down ? 'tone-warn' : 'tone-ok') + '"></span>' +
               '<span class="b-src-n">' + esc(x.name) + '</span>' +
-              /* A phrase, not a sentence: it is a row in a list and the
-                 caption above already says whose week these are. "About 7 in
-                 10 came back with a number" says what "7 in 10 with a number"
-                 says, at three times the length, on every row. */
+              /* A percentage, because that is the unit a fill rate is quoted
+                 in everywhere else a caller meets one. "7 in 10 with a
+                 number" made you work out both what the ratio was and what
+                 it was a ratio OF. */
               '<span class="b-src-v">' + (x.down
                 ? 'not answering since ' + esc(sayDay(dayAdd(-2)))
-                : Math.round(x.phone * 10) + ' in 10 with a number') +
+                : Math.round(x.phone * 100) + '% came with a phone number') +
               '</span>' +
             '</span>').join('') +
         '</div>' +
@@ -3897,8 +3903,8 @@
     return '<div class="b-expect">' +
       '<span class="b-srcs-cap">What to expect</span>' +
       '<p class="b-exp-say"><b>' + esc(wide[0]) + '</b> — ' + esc(wide[1]) + '. Maybe <b>' +
-        Math.round(f.phone * 10) + ' in 10</b> with a number, going on what ' +
-        esc(f.name) + ' managed last week.</p>' +
+        Math.round(f.phone * 100) + '%</b> of them with a phone number, going on what ' +
+        esc(f.name) + ' did last week.</p>' +
       /* What you already hold is said by the suggestion above, which also
          offers to drop them. Saying it twice, once without the fix, is the
          duplication this rebuild keeps taking out. */
@@ -3958,6 +3964,32 @@
           say: '<b>' + commas(n[top]) + ' of the ' + commas(found.length) + '</b> are in ' +
             esc(label) + '.',
           act: 'Only ' + esc(label) });
+      }
+    }
+    /* A size band holding most of the matches. Same rule as the country
+       below it: a third or better, or it is a fact rather than a finding. */
+    if (found.length > 3 && !has('size') && anyCrit(t)) {
+      const n = Object.create(null);
+      found.forEach((r) => (n[sizeBand(r.size)] = (n[sizeBand(r.size)] || 0) + 1));
+      const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+      if (top && n[top] / found.length >= 0.35) {
+        const band = SIZE_BANDS.filter((b) => b.k === top)[0];
+        out.push({ k: 'size', terms: [['size', top]],
+          say: '<b>' + commas(n[top]) + ' of the ' + commas(found.length) +
+            '</b> have ' + esc((band ? band.label : top).toLowerCase()) + ' staff.',
+          act: 'Only those' });
+      }
+    }
+    /* Where the callable ones are. A criterion that narrows to people you can
+       actually ring is worth more than one that narrows to more people. */
+    if (buildKind() === 'con' && found.length > 3 && anyCrit(t)) {
+      const f2 = finderOf();
+      const dead = found.filter((r) => r.seedPhone >= f2.phone).length;
+      if (dead && dead / found.length >= 0.25) {
+        out.push({ k: 'phone', terms: [['only', 'phone']],
+          say: '<b>' + commas(dead) + ' of the ' + commas(found.length) +
+            '</b> will come back without a number, so they cannot be rung.',
+          act: 'Only ones with a number' });
       }
     }
     /* The overlap between the index and your own book. */
@@ -4317,6 +4349,8 @@
         'data-pickopen="campPick" aria-haspopup="menu">Add to campaign</button>' +
       '<div class="b-menu" id="campPick" role="menu" hidden>' +
         '<span class="b-menu-cap">Put them on</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a campaign" aria-label="Find a campaign" spellcheck="false" />' +
         ks.map((k) =>
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-pickcamp="' + esc(k.id) + '">' +
@@ -4349,6 +4383,8 @@
         esc(say) + '</button>' +
       '<div class="b-menu" id="assignPick" role="menu" hidden>' +
         '<span class="b-menu-cap">Who is calling them</span>' +
+        '<input class="b-pick-find b-menu-find" type="text" data-picksearch ' +
+          'placeholder="Find a caller" aria-label="Find a caller" spellcheck="false" />' +
         BDRS.map((r) =>
           '<button class="b-menu-item" type="button" role="menuitem" ' +
           'data-pickrep="' + esc(r.id) + '" aria-pressed="' + (who.indexOf(r.id) >= 0) + '">' +
@@ -4356,8 +4392,6 @@
             faceOf(r.id, 24) +
             '<span class="b-menu-name">' + esc(r.id === me().id ? 'You' : r.name) + '</span>' +
           '</button>').join('') +
-        '<span class="b-menu-cap b-menu-more">Pick several and the list is dealt out ' +
-          'between them, in order.</span>' +
       '</div>' +
     '</span>';
   };
@@ -5504,10 +5538,8 @@
 
     const chips = free.length
       ? '<div class="b-camps-row" id="accCamps">' +
-          '<button class="s-inline-btn" type="button" data-pickopen="campPick">' +
-            'Put everybody here on a campaign</button>' +
-          pickPanel({ id: 'campPick', opts: free.map((k) => ({ id: k.id, name: k.name })),
-            find: 'Find a campaign', go: 'acc:' + a.id, verb: 'Put them on' }) +
+          campMenu({ id: 'accCampPick', opts: free.map((k) => ({ id: k.id, name: k.name })),
+            label: 'Put everybody here on a campaign', cap: 'Put them on', go: 'acc:' + a.id }) +
         '</div>'
       : '';
     const callFirst = ring.length
@@ -6216,7 +6248,6 @@
       /* THE LADDER OPENS IT. It had a section of its own, under a heading
          that asked the same question this one answers, and the two said the
          same sentence one above the other. */
-      (o.bars || '') +
       '<p class="b-story-now">' + o.now + '</p>' +
       (o.steps.length
         ? '<ol class="b-story-line">' + o.steps.map((x, i) =>
@@ -6313,7 +6344,6 @@
     return {
       now: now, steps: storyTrim(steps),
       next: next, hand: hand, due: done ? null : due, done: done,
-      bars: ladder(c, true),
       mem: c.remember
         ? { text: c.remember.text, by: actor(c.remember.by).name, id: c.remember.by }
         : null,
@@ -6386,19 +6416,14 @@
      sentence carries the meaning. An exit is not a rung — it lights the whole
      track in the exit's colour, because a lead that said no is not standing
      partway up anything. */
-  function ladder(c, bare) {
-    const out = isExit(c.checkpoint);
-    const at = rank(c.checkpoint);
-    const bars = LADDER.map((x, i) => {
-      const cls = out ? 'is-exit' : i < at ? 'is-done' : i === at ? 'is-now' : '';
-      return '<span class="b-rung ' + cls + '"></span>';
-    }).join('');
-    const r = RUNG[c.checkpoint];
-    /* `bare` where the sentence under it is said by whatever drew it. */
-    return '<div class="b-ladder">' + bars + '</div>' +
-      (bare ? '' : '<p class="b-ladder-say"><b>' + esc(r.label) + '</b> — ' + esc(r.say) +
-      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt)) : '') + '.</p>');
-  }
+  /* ══ ONE DRAWING OF ONE CLIMB ══════════════════════════════════════════
+     Eight coloured bars sat above the chain that names the same eight rungs,
+     dates three of them and says who did it — two drawings of one climb, and
+     the one on top could only say how far along it was. It said that with
+     colour alone, so a reader had to know the ladder by heart before the
+     bars meant anything, and then read the chain underneath to find out
+     which rung was which anyway. The chain stays; the bars go with the
+     function that drew them. */
 
   function rungCounts(list) {
     const out = Object.create(null);
@@ -8077,7 +8102,13 @@
        a fixed composer asking the same thing in different words makes the
        first question of the interaction "which box?". There is one box, and
        it is the one that was already there — the page shows what it HEARD. */
-    if (S.build === 'describe' && DRAFT) {
+    /* NOT `&& DRAFT`. The draft is made by the first paint of this page, and
+       on every path where it is not — a reload straight onto the URL, a way
+       in that skipped the paint — the sentence fell past this branch and out
+       the far end of the router, where anything unrecognised opens the
+       canvas. The page is the condition; the draft is made if it is missing. */
+    if (S.build === 'describe') {
+      if (!DRAFT) DRAFT = { kind: S.bk || 'con', said: '', name: null, take: [], drop: [], rows: [], run: null };
       DRAFT.said = t;
       const read = readSaid(t, buildKind());
       if (!read.length) {
@@ -9226,7 +9257,10 @@
       } else if (k === 'lists') {
         go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
-        byId('campList').scrollIntoView({ block: 'start' });
+        /* IT SCROLLED TO A BLOCK THAT IS NOT ON THIS PAGE. Campaigns became
+           their own surface and this stayed pointed at the id of the strip
+           they used to live in, so the card did nothing at all. */
+        go(Object.assign(cleared(), { on: 'camps' }));
       } else {
         go(Object.assign(cleared(), { q: k }));
       }
@@ -9342,24 +9376,17 @@
       return;
     }
 
-    const ptg = t.closest('[data-picktoggle]');
-    if (ptg) {
-      const panel = ptg.closest('.b-pick');
-      const was = ptg.getAttribute('aria-pressed') === 'true';
-      ptg.setAttribute('aria-pressed', was ? 'false' : 'true');
-      pickSettle(panel);
+    /* A name in a campaign menu is the whole interaction. */
+    const pon = t.closest('[data-puton]');
+    if (pon) {
+      const v = pon.getAttribute('data-puton');
+      const at = v.indexOf('|');
+      const go2 = v.slice(0, at);
+      shutMenus(null);
+      putOn(go2.slice(0, go2.indexOf(':')), go2.slice(go2.indexOf(':') + 1), [v.slice(at + 1)]);
       return;
     }
-    const pgo = t.closest('[data-pickgo]');
-    if (pgo) {
-      const chosen = pickChosen(pgo.closest('.b-pick'));
-      if (!chosen.length) return;
-      const v = pgo.getAttribute('data-pickgo');
-      const kind = v.slice(0, v.indexOf(':'));
-      const id = v.slice(v.indexOf(':') + 1);
-      putOn(kind, id, chosen);
-      return;
-    }
+
 
     const dc = t.closest('[data-decide]');
     if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
@@ -9391,13 +9418,24 @@
     /* ══ FILL THE BAR, DO NOT RUN IT ══════════════════════════════════════
        `data-ask` submits what it carries, which is right for a question with
        one answer. This one hands you a sentence to change: the caret goes to
-       the end so typing continues it, and nothing happens until you say so. */
+       the end so typing continues it, and nothing happens until you say so.
+
+       WHICHEVER BAR THE PAGE IS USING. There are two composers and only one
+       of them is live at a time — the float bar on a page, the overlay's own
+       while the canvas is up. Writing into the wrong one puts your sentence
+       somewhere you cannot see and leaves the cursor in a box that is not
+       there. */
     const fill = t.closest('[data-fill]');
     if (fill) {
-      const el = byId('floatInput');
+      /* The canvas is open when it carries the class that opens it. It is
+         never marked hidden, so testing for that put the sentence into the
+         composer nobody was looking at. */
+      const over = byId('aimyOverlay');
+      const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
+      if (!el) return;
       el.value = fill.getAttribute('data-fill');
       el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
+      try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
       return;
     }
 

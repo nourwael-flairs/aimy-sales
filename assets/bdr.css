@@ -68,13 +68,6 @@
    ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per rung would
    be eight colours to learn, and the product already spends its semantic
    colours on status. */
-.b-ladder { display: flex; gap: 4px; align-items: stretch; }
-.b-rung { flex: 1 1 0; height: 6px; border-radius: var(--r-pill); background: var(--d700); }
-.b-rung.is-done { background: var(--ok); }
-.b-rung.is-now { background: var(--accent); }
-.b-rung.is-exit { background: var(--err); }
-.b-ladder-say { margin-top: 8px; font-size: var(--fs-xs); color: var(--d200); }
-.b-ladder-say b { color: var(--d50); font-weight: var(--fw-bold); }
 
 /* ══ 3. THE CHIP ROW OVER A QUEUE ══════════════════════════════════════════
    Which part of the queue you are looking at. `.filter-chip` is the library's
@@ -1277,12 +1270,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    box, the options as chips that hold their state, and one confirm that
    says how many are chosen. It opens where it stands, inside the actions
    row it belongs to, so nothing covers the record you are deciding about. */
-.b-pick {
-  flex-basis: 100%; margin-top: 12px; padding: 14px; max-width: 620px;
-  display: flex; flex-direction: column; gap: 12px;
-  background: var(--card-bg-raised); border: 1px solid var(--card-border); border-radius: 14px;
-}
-.b-pick-head { display: flex; }
+/* The chooser panel is gone — one menu puts things on a campaign now. Its
+   search box is the part worth keeping, because the menus use it. */
 .b-pick-find {
   width: 100%; font-family: inherit; font-size: var(--t-ui); color: var(--d50);
   padding: 8px 12px; border-radius: 10px;
@@ -1293,22 +1282,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
-.b-pick-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 210px; overflow-y: auto; }
-.b-pick-opt {
-  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
-  padding: 7px 13px; border-radius: 99px; cursor: pointer;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
-}
-.b-pick-opt:hover { border-color: var(--card-border-hover); color: var(--d50); }
-.b-pick-opt:active { transform: scale(0.97); }
-.b-pick-opt[aria-pressed="true"] {
-  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.14); border-color: rgba(var(--accent-rgb), 0.4);
-}
-.b-pick-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-pick-foot { display: flex; align-items: center; gap: 8px; }
-.b-pick-foot [disabled] { opacity: 0.45; cursor: default; }
-@media (prefers-reduced-motion: reduce) { .b-pick-opt { transition: none; } .b-pick-opt:active { transform: none; } }
 
 /* ══ 41. THE RUN SITS WITH THE CUTS IT RUNS ════════════════════════════════
    "Call these 15" had a row of its own above the cuts, which read as a
@@ -1335,7 +1308,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* `display` on a class beats the browser's own `[hidden]`, so a panel that
    said it was hidden was drawn open. Every panel that sets display says
    what hidden means for it. */
-.b-pick[hidden], .b-end-strip[hidden] { display: none; }
+.b-end-strip[hidden] { display: none; }
 
 /* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
    Five sentences of prose is a paragraph to read. Where they stand now is
@@ -1416,9 +1389,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   box-shadow: 0 0 0 2px var(--err-text), 0 0 0 6px rgba(240, 68, 56, 0.18);
 }
 
-/* The ladder opens the story, so it sits above the deck line rather than in
-   a section of its own; a gap in the chain is a gap, not a moment. */
-.b-story .b-ladder { margin-bottom: 14px; }
 .b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
 .b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
 
@@ -1970,3 +1940,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The primary opens a menu, so the menu hangs off a filled button rather
    than a quiet one; it is the same wrapper either way. */
 .b-menu-wrap .s-build-go { white-space: nowrap; }
+
+/* A menu that searches. The box is the chooser's own, narrowed to the menu's
+   width and set between the caption and the rows it filters. */
+.b-menu-find { margin: 2px 0 6px; padding: 7px 10px; font-size: var(--t-ui); }
+.b-menu-item[hidden] { display: none !important; }
+/* The one action on a surface goes at the end of its row, where "Call these
+   15" is on the queue and every other surface's action is. */
+.b-acts-end { justify-content: flex-end; }
