@@ -451,15 +451,14 @@
 
    Now each part is captioned and the opener is the loudest thing in it,
    because the opener is the only line here you say out loud. */
-.b-sell-body { display: flex; flex-direction: column; gap: 8px; }
-/* The caption steps, which is what makes four groups read as four groups.
-   Not muted: a label you cannot read is a group with no name on it. */
-.b-sell-cap {
-  margin: 12px 0 2px;
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
+/* What comes back at you and the answer agreed to it. It was a section on
+   the campaign page and it is a part of the brief now — the caption is the
+   brief's, the pair underneath is the one this build already drew. */
+.b-brief-cap {
+  margin: 18px 0 10px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d300);
 }
-.b-sell-cap:first-child { margin-top: 0; }
 /* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
    `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
    for chrome — a placeholder, a disabled control — and the shell spends them
@@ -1259,7 +1258,7 @@ button.pipe-chip:active { transform: scale(0.97); }
 .b-gate { animation: b-arrive 200ms var(--ease-out) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .b-sell::details-content, .s-call::details-content, .s-trace::details-content,
+  .s-call::details-content, .s-trace::details-content,
   .s-call-sum::before, .s-trace-sum::before,
   .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
   .b-gate { animation: none; }
@@ -1430,21 +1429,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    the stripe is the oldest tell in the book. What comes back is a pair — their words tagged in the warning
    tone, your answer in full ink under it. What we sell and what you can
    send are the quiet ends. */
-.b-open {
-  margin: 0 0 22px; padding: 16px 18px;
-  background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
-  border-radius: 14px;
-}
-.b-open-cap {
-  display: block; margin-bottom: 8px;
-  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent-text);
-}
-.b-open-say {
-  margin: 0; max-width: 64ch; text-wrap: pretty;
-  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
-}
 .b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.b-back:last-child { margin-bottom: 0; }
 .b-back-row {
   display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 4px 16px; align-items: baseline;
 }
@@ -1453,10 +1439,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin: 0; max-width: 62ch; text-wrap: pretty;
   font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
 }
-.b-sell-ends { display: flex; flex-wrap: wrap; gap: 12px 48px; }
-.b-sell-end { min-width: 240px; flex: 1; }
-.b-sell-item { margin: 0 0 6px; font-size: var(--t-ui); color: var(--d200); max-width: 52ch; }
-.b-sell-item b { color: var(--d50); font-weight: var(--fw-bold); }
 @media (max-width: 720px) {
   .b-back-row { grid-template-columns: 1fr; }
   .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
@@ -1489,10 +1471,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The briefing's own rule, above the ways to start: inside one card, and
    still a rule doing what the gap under a caption already does. */
 .s-home .s-starts-wrap { margin-top: 28px; padding-top: 0; border-top: 0; }
-
-/* What to say is a section like the others: no drawer, no padding of its own. */
-.b-sell { padding: 0; }
-.b-sell-body { display: flex; flex-direction: column; }
 
 
 /* ══ 47. A MENU ON ITS BUTTON ══════════════════════════════════════════════
@@ -1592,18 +1570,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-doc:hover .b-doc-out { color: var(--accent-text); }
 @media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
 
-/* ══ 49. THE TWO QUIET ENDS, WITH ROOM ═════════════════════════════════════
-   Two columns whose captions did not start at the same height and whose
-   content ran into the block under them. One grid, one row of captions, and
-   a line of air under the pair. */
-.b-sell-ends {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  column-gap: 56px; row-gap: 28px; margin-top: 4px;
-}
-.b-sell-end > .b-sell-cap { margin: 0 0 12px; }
-.b-sell-item { margin: 0 0 8px; line-height: var(--lh-base); }
-.b-sell-item:last-child { margin-bottom: 0; }
-
 /* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
    The rung sat in the roster's right column as a bordered pill, directly
    above the Call pill, and the two read as a pair of buttons. A dot in the
@@ -1638,8 +1604,17 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    makes a set of cards read as branches of one thing instead of another
    grid. The last limb's line stops at its own elbow, so the rail ends where
    the map ends rather than running into the white space below it. */
-.b-map { margin-top: 4px; }
-.b-map-body { margin-left: 22px; }
+.b-map { margin-top: 8px; }
+/* THE ROOT AND THE FIRST BRANCH WERE TOUCHING. The limb draws its own
+   elbow from its own top edge, so with the body flush against the card the
+   corner was drawn across the first node and the stem had nowhere to be.
+   The body steps down and the stem is drawn into that step, which is the
+   only place a rail can start. */
+.b-map-body { position: relative; margin-left: 22px; margin-top: 16px; }
+.b-map-body::before {
+  content: ""; position: absolute; left: 0; top: -16px; width: 1px; height: 16px;
+  background: var(--card-border-hover);
+}
 .b-limb { position: relative; padding: 0 0 10px 26px; }
 .b-limb:last-child { padding-bottom: 0; }
 /* The elbow is one rounded corner, not a vertical meeting a horizontal at a

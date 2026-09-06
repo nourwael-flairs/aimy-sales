@@ -4594,8 +4594,6 @@
          call. */
       blockersBlock(k) +
 
-      sellingBlock(k) +
-
       /* Context, not a worklist: the last few things that happened here and
          the count of what they are the last few of. A second pager on this
          page would share a page number with the queue above it or need one
@@ -4747,7 +4745,7 @@
       : '';
 
     const deck = fresh0
-      ? 'You have not rung anyone on this campaign yet. Read what to say, then call the next one.'
+      ? 'You have not rung anyone on this campaign yet. Call the next one — what to say comes up with it.'
       : !st.target
       ? 'This one has no number in its goal, so there is nothing to measure it against.'
       : !st.need
@@ -4778,9 +4776,7 @@
       '<div class="s-lead-acts">' +
         /* Call the next one is sixty pixels up, in the header. Here the
            doors are the cuts, and on a first visit the pitch. */
-        (fresh0
-          ? '<button class="s-insight-lnk primary" type="button" data-pitch>Read what to say</button>'
-          : '') +
+
         (back && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
@@ -5239,77 +5235,16 @@
     '</section>';
   }
 
-  /* ══ WHAT TO SAY, IN THE ORDER YOU SAY IT ══════════════════════════════
-     It was one paragraph of product names run together, a second paragraph
-     of pitch, a set of objections drawn with `.s-callsum-mem` — the Remember
-     style, an accent stripe meant for a durable fact about one person — and
-     a row of grey tags. Four kinds of preparation at one weight, in a block
-     whose whole job is to be scanned in the ten seconds before a call
-     connects.
+  /* ══ WHAT TO SAY MOVED TO WHERE IT IS SAID ═════════════════════════════
+     A block on the campaign page held the opener, what comes back at you
+     with the agreed answer, what we sell and what you can send. All of it is
+     true and none of it was where it is used: it is preparation for one
+     call, read in the ten seconds before that call connects, and it sat on a
+     page you leave to make the call.
 
-     Now it runs in the order the call does: what we sell, the sentence you
-     open with, what comes back at you and the agreed answer to it, and what
-     you can send afterwards. The opener gets the deck step because it is the
-     one thing here you actually say out loud.
-
-     STILL A DISCLOSURE, open the first time and however you left it after.
-     A caller who has run this campaign for three weeks does not need the
-     pitch on screen above the feed every time they come back. */
-  /* The first sentence of a pitch, cut at a word if it runs long. */
-  const firstSentence = (t) => {
-    const one = String(t || '').split(/(?<=[.!?])\s/)[0] || '';
-    return one.length > 96 ? one.slice(0, 92).replace(/\s+\S*$/, '') + '…' : one;
-  };
-
-  function sellingBlock(k) {
-    const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
-    /* ══ THE SENTENCE YOU SAY IS THE THING ON THE PAGE ═════════════════
-       Four captions, a paragraph and a two-column grid, all at one weight:
-       a block whose whole job is to be read in the ten seconds before a
-       call connects, and nothing in it caught the eye. The opener is the
-       one thing here you say OUT LOUD, so it is set as speech — big,
-       quoted, in the accent ground. What comes back at you is a pair: what
-       they say, tagged in the warning tone, and what you say to it, in
-       full ink underneath. What you sell and what you can send are the
-       quiet ends of the block, because neither is spoken. */
-    /* IT IS NOT A DRAWER. Everything in it is preparation for the next
-       call, which is the reason the page is open; a section you have to
-       ask for is a section nobody reads. The folded line quoted the
-       opener, which is the first line of the panel underneath it. */
-    return '<section class="s-block s-block-wide b-sell" id="pitchBox" aria-label="What to say">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">What to say</h2></div>' +
-      '<div class="b-sell-body">' +
-
-        '<blockquote class="b-open">' +
-          '<span class="b-open-cap">Open with</span>' +
-          '<p class="b-open-say">' + esc(k.pitch) + '</p>' +
-        '</blockquote>' +
-
-        (k.objections.length
-          ? '<h3 class="b-sell-cap">What comes back, and what you say to it</h3>' +
-            '<div class="b-back">' + k.objections.map((o) =>
-              '<div class="b-back-row">' +
-                '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
-                '<p class="b-back-v">' + esc(o.say) + '</p>' +
-              '</div>').join('') + '</div>'
-          : '') +
-
-        '<div class="b-sell-ends">' +
-          '<div class="b-sell-end">' +
-            '<h3 class="b-sell-cap">What we sell them</h3>' +
-            sells.map((x) => '<p class="b-sell-item"><b>' + esc(x.name) + '</b> ' + esc(x.blurb) + '</p>').join('') +
-          '</div>' +
-          (k.resources.length
-            ? '<div class="b-sell-end">' +
-              '<h3 class="b-sell-cap">What you can send</h3>' +
-              '<div class="b-docs">' + k.resources.map((r, i) => docChip(k.id, i, r)).join('') + '</div>' +
-            '</div>'
-            : '') +
-        '</div>' +
-      '</div>' +
-    '</section>';
-  }
-
+     It is in the brief now — `callPrep`, the thing that opens as the phone
+     starts ringing — and the campaign page keeps what a campaign page is
+     for, which is how this one is going and what is stopping it. */
   /* ══ ONE COMPANY ════════════════════════════════════════════════════════
      The surface this build did not have. An account was a phrase on
      somebody's record — `QA Manager at Zenport Engineering · Manufacturing
@@ -8285,20 +8220,39 @@
         esc(actor(c.remember.by).name) + '</span>');
     }
     if (camp) {
-      body += line('Selling', esc(camp.sells.map((k) => SELL[k].name).join(' and ')));
+      /* What it is, not just what it is called. The campaign page carried
+         the blurb and this carried the name, so a caller had the sentence
+         they say out loud on the page they had left. */
+      body += line('Selling', esc(camp.sells.map((x) =>
+        SELL[x].name + ' — ' + SELL[x].blurb).join('; ')));
       body += line('The goal', esc(camp.goal));
     }
     body += line('Open with', esc(stageOpen(c, camp, last)));
-    /* ON A FIRST CALL THERE IS NOTHING TO PICK UP FROM, so the campaign's
-       own material stands in for the history — which is the only thing a
-       caller can actually offer somebody they have never spoken to. */
-    if (camp && c.checkpoint === 'not-called' && camp.resources.length) {
+    /* ON EVERY CALL, NOT ONLY THE FIRST. It was held back until there was
+       no history to offer instead, which is the one call where the least is
+       known about what they would want. Something to send is the fallback
+       of every call that goes well and stops short of a meeting. */
+    if (camp && camp.resources.length) {
       body += line('What you can send', '<span class="b-docs">' +
         camp.resources.map((r, i) => docChip(camp.id, i, r)).join('') + '</span>');
     }
     const obj = objectionLikely(c, camp);
     if (obj) body += line('They will push back on', obj);
     body += '</div>';
+
+    /* ══ WHAT COMES BACK, AND WHAT YOU SAY TO IT ═══════════════════════════
+       The answers this campaign agreed, in the brief rather than on the
+       campaign page, because the ten seconds before a call connects is when
+       a caller reads them. The line above is the measurement — which one
+       they actually raise most — and this is the script for all of them. */
+    if (camp && camp.objections.length) {
+      body += '<h3 class="b-brief-cap">What comes back, and what you say to it</h3>' +
+        '<div class="b-back">' + camp.objections.map((o) =>
+          '<div class="b-back-row">' +
+            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<p class="b-back-v">' + esc(o.say) + '</p>' +
+          '</div>').join('') + '</div>';
+    }
 
     /* THE RUN'S CONTROLS LIVE ON THE BRIEF, under a sentence naming what they
        act on. In the panel they read as pausing or stopping THIS call, which
@@ -8958,15 +8912,6 @@
       if (el) {
         const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
-      }
-      return;
-    }
-
-    if (t.closest('[data-pitch]')) {
-      const box = byId('pitchBox');
-      if (box) {
-        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        box.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
       }
       return;
     }
