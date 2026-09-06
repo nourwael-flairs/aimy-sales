@@ -5111,19 +5111,6 @@
 
       conLead(c) +
 
-      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
-          '<span class="s-block-say">' + esc(plural(c.attempts, 'attempt')) + '</span></div>' +
-        ladder(c) +
-        '<p class="s-block-sub">' + esc(whatNext(c) +
-          (quietUnderFour(c) ? ' ' + quietSay(quietUnderFour(c), c) : '')) + '</p>' +
-        (c.remember
-          ? '<p class="s-callsum-mem"><span class="s-plan-cap">Remember</span>' +
-            esc(c.remember.text) + ' <span class="b-faint">— ' +
-            esc(actor(c.remember.by).name) + '</span></p>'
-          : '') +
-      '</section>' +
-
       '<section class="s-block s-block-wide" aria-label="What has been said">' +
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">What has been said</h2>' +
@@ -5403,58 +5390,116 @@
 
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
      A record read top to bottom is a profile; a profile read as prose is a
-     story: where they came from, who rang first, what each call moved, how
-     many touches, where they stand and what is owed, and how it ends — the
-     manager takes it from Interested, which is where the BDR's loop closes. */
+     story. It was five sentences of prose, which is a paragraph to read
+     rather than a story to take in — so it is told the way a story is
+     told: where they stand NOW in one line at the deck step, the moments
+     that got them there as a chain you read left to right, and one quiet
+     line about how it ends. Nothing here is a control; the verbs are
+     sixty pixels up. */
+  function storyBlock(o) {
+    return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">The story so far</h2>' +
+        (o.cite ? '<span class="s-block-say">' + esc(o.cite) + '</span>' : '') + '</div>' +
+      /* THE LADDER OPENS IT. It had a section of its own, under a heading
+         that asked the same question this one answers, and the two said the
+         same sentence one above the other. */
+      (o.bars || '') +
+      '<p class="b-story-now">' + o.now + '</p>' +
+      (o.steps.length
+        ? '<ol class="b-story-line">' + o.steps.map((x, i) =>
+            '<li class="b-story-step' + (i === o.steps.length - 1 ? ' is-now' : '') +
+              (x.gap ? ' is-gap' : '') + '">' +
+              '<span class="b-story-dot ' + (TL_TONE[x.tone] || 'tone-neutral') + '"></span>' +
+              '<span class="b-story-k">' + esc(x.k) + '</span>' +
+              '<span class="b-story-t">' + esc(x.t) + '</span>' +
+            '</li>').join('') + '</ol>'
+        : '') +
+      (o.end ? '<p class="b-story-end">' + o.end + '</p>' : '') +
+      (o.mem || '') +
+    '</section>';
+  }
+  /* Six steps at most: the first two and the last four. A chain longer than
+     the eye can hold is a list again. */
+  function storyTrim(steps) {
+    if (steps.length <= 6) return steps;
+    return steps.slice(0, 1).concat([{ k: '⋯', t: plural(steps.length - 5, 'step') + ' more', tone: 'neutral', gap: true }])
+      .concat(steps.slice(-4));
+  }
   function storyOf(c) {
     const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)
       .sort((x, y) => (x.at < y.at ? -1 : 1));
-    const calls = all.filter((t) => OUTCOME[t.outcome]);
+    const calls = callsIn(all);
     const list = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
     const camps = campsOf(c).filter(mine);
     const d = directorOf(c);
-    const bits = [];
-    /* a list that took somebody already rung did not find them */
-    const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
-    bits.push((foundBy ? 'Found by ' + list.via + ' on the ' + list.name + ' list, ' + sayDay(list.at)
-      : 'In the book from the start' + (list ? ', put on the ' + list.name + ' list ' + sayDay(list.at) : '')) +
-      (camps.length ? ', on ' + listSay(camps.map((k) => k.name)) : ', on no campaign of yours') + '.');
-    if (calls.length) bits.push('First rung ' + sayDay(calls[0].at) + ' by ' + whoDid(calls[0]).name + '.');
-    const moves = all.filter((t) => t.moved && !isExit(t.moved[1]) && rank(t.moved[1]) > rank(t.moved[0]));
-    if (moves.length) bits.push(moves.map((t) => rungLabel(t.moved[1]) + ' ' + sayDay(t.at)).join(', then ') + '.');
-    if (all.length) bits.push(plural(all.length, 'touchpoint') + ' so far' + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') + '.');
     const rg = RUNG[c.checkpoint] || RUNG['not-called'];
-    bits.push('Now: ' + rg.label + ' — ' + rg.say + (c.next
-      ? '; ' + c.next.what.toLowerCase() + ' ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') + sayWhen(c.next.due) : '') + '.');
-    if (c.checkpoint === 'handed-over') bits.push(dealLine(c));
-    else if (isExit(c.checkpoint)) bits.push('That is where it ended, ' + sayDay(c.checkpointAt || c.lastCallAt || TODAY_ISO) + '.');
-    else bits.push('Your part ends at Interested: then ' + d.name + ' takes it, and discovery, proof, commercial and resolution are ' + d.name.split(' ')[0] + '’s.');
-    return bits.map(esc).join(' ');
+    const steps = [];
+    /* where they came from */
+    const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
+    steps.push(foundBy
+      ? { k: 'Found by ' + list.via, t: sayDay(list.at), tone: 'neutral' }
+      : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
+    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
+      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (RUNG[t.moved[1]] || {}).tone || 'ok' }));
+    const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
+    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (RUNG[out.moved[1]] || {}).tone || 'warn' });
+    phasesOf(c).forEach((t) => steps.push({
+      k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
+      t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
+      tone: t.decision === 'lost' ? 'warn' : 'ok',
+    }));
+    /* where they stand, and what that costs you today */
+    const owed = c.next
+      ? ' ' + esc(c.next.what) + ' ' + (daysBetween(TODAY_ISO, c.next.due) < 0
+        ? '<b class="tone-warn">was due ' + esc(sayWhen(c.next.due)) + '</b>' : 'is due ' + esc(sayWhen(c.next.due))) + '.'
+      : '';
+    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rg.say) +
+      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.' + owed;
+    const quiet = quietUnderFour(c);
+    const end = c.checkpoint === 'handed-over' ? esc(dealLine(c))
+      : isExit(c.checkpoint) ? esc('That is where it ended. Nothing is owed.')
+      : esc(whatNext(c) + (quiet ? ' ' + quietSay(quiet, c) : '')) +
+        ' Your part ends at <b>Interested</b>: ' + esc(d.name) + ' takes it from there.';
+    return {
+      now: now, steps: storyTrim(steps), end: end,
+      bars: ladder(c, true),
+      mem: c.remember
+        ? '<p class="s-callsum-mem b-story-mem"><span class="s-plan-cap">Remember</span>' +
+          esc(c.remember.text) + ' <span class="b-faint">— ' + esc(actor(c.remember.by).name) + '</span></p>'
+        : '',
+      cite: (camps.length ? listSay(camps.map((k) => k.name)) + ' · ' : '') +
+        (all.length ? plural(all.length, 'touchpoint') + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') : 'nothing on the record'),
+    };
   }
-  function storyBlock(text) {
-    return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">The story so far</h2></div>' +
-      '<p class="b-story-text">' + text + '</p>' +
-    '</section>';
-  }
-  /* The company's story: who rang first, how many are in, who is furthest,
-     and where the BDR's part ends. */
+  /* The company's story: the same shape, read across its people. */
   function accStory(a, people, hist) {
-    const calls = hist.filter((t) => OUTCOME[t.outcome]).slice().sort((x, y) => (x.at < y.at ? -1 : 1));
+    const calls = callsIn(hist).slice().sort((x, y) => (x.at < y.at ? -1 : 1));
     const live = people.filter((c) => !isExit(c.checkpoint));
     const reached = live.filter((c) => rank(c.checkpoint) >= rank('answered'));
     const top = live.slice().sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
-    const bits = [];
-    bits.push(calls.length ? 'First rung ' + sayDay(calls[0].at) + ' by ' + whoDid(calls[0]).name + '.' : 'Nobody here has been rung.');
-    bits.push(plural(people.length, 'person') + ' on the record' + (calls.length ? ', ' + plural(calls.length, 'call') + ' in' : '') +
-      (reached.length ? ', ' + commas(reached.length) + ' of them reached' : '') + '.');
+    const steps = [];
+    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    const got = calls.filter((t) => t.outcome === 'reached')[0];
+    if (got) steps.push({ k: 'Got through', t: sayDay(got.at) + ' · ' + esc((DB.byCon[got.con] || {}).name || '').split(' ')[0], tone: 'ok' });
     if (top && rank(top.checkpoint) >= rank('answered')) {
-      bits.push('The furthest along is ' + top.name + ', at ' + rungLabel(top.checkpoint) +
-        (top.checkpointAt ? ' since ' + sayDay(top.checkpointAt) : '') + '.');
-      bits.push(top.checkpoint === 'handed-over' ? dealLine(top)
-        : 'Your part ends at Interested: then ' + directorOf(top).name + ' takes it.');
+      steps.push({ k: rungLabel(top.checkpoint), t: top.name.split(' ')[0] +
+        (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (RUNG[top.checkpoint] || {}).tone || 'ok' });
+      phasesOf(top).slice(-1).forEach((t) => steps.push({
+        k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
+        t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
+        tone: t.decision === 'lost' ? 'warn' : 'ok',
+      }));
     }
-    return bits.map(esc).join(' ');
+    const now = calls.length
+      ? '<b>' + commas(people.length) + '</b> on the record here, <b>' + commas(calls.length) + '</b> ' +
+        verbFor(calls.length, 'call') + ' in, <b>' + commas(reached.length) + '</b> of them reached.'
+      : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been rung.';
+    const end = top && top.checkpoint === 'handed-over' ? esc(dealLine(top))
+      : top && rank(top.checkpoint) >= rank('answered')
+        ? 'Your part ends at <b>Interested</b>. ' + esc(directorOf(top).name) + ' takes it from there.'
+        : '';
+    return { now: now, steps: storyTrim(steps), end: end, cite: a.city + ' · ' + INDUSTRY[a.industry].label };
   }
   /* The hand-over from the company page: the furthest person, once warm. */
   function accHandBtn(people) {
@@ -5488,7 +5533,7 @@
      sentence carries the meaning. An exit is not a rung — it lights the whole
      track in the exit's colour, because a lead that said no is not standing
      partway up anything. */
-  function ladder(c) {
+  function ladder(c, bare) {
     const out = isExit(c.checkpoint);
     const at = rank(c.checkpoint);
     const bars = LADDER.map((x, i) => {
@@ -5496,9 +5541,10 @@
       return '<span class="b-rung ' + cls + '"></span>';
     }).join('');
     const r = RUNG[c.checkpoint];
+    /* `bare` where the sentence under it is said by whatever drew it. */
     return '<div class="b-ladder">' + bars + '</div>' +
-      '<p class="b-ladder-say"><b>' + esc(r.label) + '</b> — ' + esc(r.say) +
-      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt)) : '') + '.</p>';
+      (bare ? '' : '<p class="b-ladder-say"><b>' + esc(r.label) + '</b> — ' + esc(r.say) +
+      (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt)) : '') + '.</p>');
   }
 
   function rungCounts(list) {

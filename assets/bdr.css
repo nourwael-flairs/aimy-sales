@@ -1327,10 +1327,6 @@ button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), co
 button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
 button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-/* ══ 39. THE STORY SO FAR ══════════════════════════════════════════════════
-   Prose at the deck step, one measure wide. */
-.b-story-text { font-size: var(--t-deck); line-height: var(--lh-base); color: var(--d100); max-width: 68ch; text-wrap: pretty; margin: 0; }
-.b-story { padding-top: 4px; }
 
 /* ══ 40. THE CHOOSER ═══════════════════════════════════════════════════════
    A row of every campaign was the whole answer laid out before the question
@@ -1397,3 +1393,61 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    said it was hidden was drawn open. Every panel that sets display says
    what hidden means for it. */
 .b-pick[hidden], .b-end-strip[hidden] { display: none; }
+
+/* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
+   Five sentences of prose is a paragraph to read. Where they stand now is
+   the deck line, the moments that got them there are a chain read left to
+   right, and how it ends is one quiet line under it. The chain wraps rather
+   than scrolls: a horizontal scroller inside a page that scrolls is two
+   scrollbars arguing. */
+.b-story { padding-top: 4px; }
+.b-story-now {
+  margin: 0 0 16px; max-width: 62ch; text-wrap: pretty;
+  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-tight); color: var(--d100);
+}
+.b-story-now b { font-weight: var(--fw-extrabold); color: var(--d50); }
+.b-story-now b.tone-ok { color: var(--ok-text); }
+.b-story-now b.tone-warn { color: var(--warn-text); }
+.b-story-now b.tone-err { color: var(--err-text); }
+.b-story-now b.tone-neutral { color: var(--d50); }
+.b-story-line {
+  list-style: none; margin: 0 0 14px; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 0;
+}
+.b-story-step {
+  position: relative; display: flex; flex-direction: column; gap: 2px;
+  padding: 0 22px 0 0; margin-right: 14px;
+}
+/* the line between two moments, drawn from the dot of one to the next */
+.b-story-step::after {
+  content: ""; position: absolute; left: 14px; right: 4px; top: 5px; height: 1px;
+  background: var(--card-border);
+}
+.b-story-step:last-child { padding-right: 0; margin-right: 0; }
+.b-story-step:last-child::after { display: none; }
+.b-story-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--d400);
+  border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--card-border);
+}
+.b-story-dot.tone-ok { background: var(--ok-text); box-shadow: 0 0 0 1px rgba(23,178,106,0.4); }
+.b-story-dot.tone-warn { background: var(--warn-text); box-shadow: 0 0 0 1px rgba(247,144,9,0.4); }
+.b-story-dot.tone-err { background: var(--err-text); box-shadow: 0 0 0 1px rgba(240,68,56,0.4); }
+.b-story-k {
+  margin-top: 6px; font-size: var(--t-small); font-weight: var(--fw-bold);
+  color: var(--d100); white-space: nowrap;
+}
+.b-story-t { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
+.b-story-step.is-now .b-story-k { color: var(--d50); }
+.b-story-step.is-now .b-story-dot { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16); }
+.b-story-end {
+  margin: 0; max-width: 68ch; text-wrap: pretty;
+  font-size: var(--t-ui); color: var(--d200); line-height: var(--lh-base);
+}
+.b-story-end b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* The ladder opens the story, so it sits above the deck line rather than in
+   a section of its own; a gap in the chain is a gap, not a moment. */
+.b-story .b-ladder { margin-bottom: 14px; }
+.b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
+.b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
+.b-story-mem { margin-top: 14px; }
