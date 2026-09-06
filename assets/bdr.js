@@ -255,6 +255,29 @@
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
   const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent' };
+
+  /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
+     Four kinds of document sit behind a campaign. The name says which one
+     it is; this says what it is for, which is the part a caller has to
+     decide in the second before they offer it. */
+  const RES_KIND = {
+    deck: { label: 'One pager', is: 'What it is, what it costs them today, and what changes.',
+      use: 'The thing to offer on a first call that went well but not to a meeting.' },
+    pricing: { label: 'Pricing', is: 'What it costs, and what it is measured against.',
+      use: 'Send it when price is the thing in the way — never before it comes up.' },
+    case: { label: 'Case study', is: 'Somebody in their sector who did this, and what it did for them.',
+      use: 'Send it when they want proof more than detail.' },
+    faq: { label: 'Questions', is: 'The questions this audience asks, answered plainly.',
+      use: 'Send it when the objection was a question wearing an objection’s clothes.' },
+  };
+  const docOut = () => '<svg class="b-doc-out" viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
+    'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4.5"/></svg>';
+  /* One chip, wherever a document is offered. */
+  function docChip(campId, i, r) {
+    return '<button class="b-doc" type="button" data-doc="' + esc(campId + ':' + i) + '">' +
+      esc(r.name) + docOut() + '</button>';
+  }
   /* ══ AFTER THE HAND-OVER, THE DIRECTOR'S FOUR MEETINGS ═════════════════
      Discovery, proof, commercial, resolution — the flowchart's second half.
      None of them is the BDR's to run; all of them happen to a lead the BDR
@@ -2508,6 +2531,24 @@
     });
   }
 
+  /* ══ OPENING A DOCUMENT ════════════════════════════════════════════════
+     The corpus holds it; the canvas is where anything from the corpus is
+     read. So the chip opens it there — what it is, when it goes out, and
+     which campaign it belongs to. */
+  function openDoc(campId, i) {
+    const k = DB.byCamp[campId];
+    const r = k && k.resources[Number(i)];
+    if (!r) return;
+    const kind = RES_KIND[r.kind] || { label: 'Document', is: '', use: '' };
+    openCanvas();
+    say('aimy', answerBlock(r.name,
+      '<div class="s-brief-call">' +
+        '<p class="s-callp"><b>What it is</b> ' + esc(kind.label) + ' — ' + esc(kind.is) + '</p>' +
+        '<p class="s-callp"><b>When it goes out</b> ' + esc(kind.use) + '</p>' +
+        '<p class="s-callp"><b>Belongs to</b> ' + esc(k.name) + '</p>' +
+      '</div>', 'in the shared corpus'));
+  }
+
   function backHere() {
     const cap = (t) => (t.length > 34 ? t.slice(0, 32).replace(/\s+\S*$/, '') + '…' : t);
     const a = S.con && S.acc && DB.byAcc[S.acc];
@@ -3164,17 +3205,10 @@
         pager(paged(people), 'person') +
       '</section>' +
 
-      '<section class="s-block s-block-wide" aria-label="Where they stand">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
-          '<span class="s-block-say">what the list has yielded</span></div>' +
-        funnelOf(people, 'On the list') +
-      '</section>' +
-
-      '<section class="s-block s-block-wide" aria-label="What has been said to them">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said to them</h2>' +
-          '<span class="s-block-say">newest first</span></div>' +
-        feedBlock(hist, 'Nobody on this list has been rung yet. ' + callFirst) +
-      '</section>' +
+      /* A LIST IS WHO IS ON IT. Where they stand and what has been said
+         are the campaign's questions, answered on the campaign's page — a
+         list that repeats them is a second place for the same figure to go
+         stale in. */
     '</div>';
   }
 
@@ -3232,7 +3266,11 @@
       '<span class="s-brow-side">' +
         '<span class="s-brow-fig">' + (a ? commas(a.size) + ' staff' : '—') + '</span>' +
         '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
-        '<span class="s-brow-tag"><span class="tag tag-' + esc(rg.tone) + '">' + esc(rg.label) + '</span></span>' +
+        /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The rung is a state:
+           a dot in its tone and the word, quiet. The only pill on the row
+           is the one you press. */
+        '<span class="b-rstate"><span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') +
+          '"></span>' + esc(rg.label) + '</span>' +
         (c.phone && callable(c)
           ? '<button class="s-insight-lnk b-roster-call" type="button" data-call="' + esc(c.id) + '">Call</button>'
           : !c.phone && !c.dnc && !isExit(c.checkpoint)
@@ -4815,8 +4853,7 @@
           (k.resources.length
             ? '<div class="b-sell-end">' +
               '<h3 class="b-sell-cap">What you can send</h3>' +
-              '<div class="b-cuts">' + k.resources.map((r) =>
-                '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>' +
+              '<div class="b-docs">' + k.resources.map((r, i) => docChip(k.id, i, r)).join('') + '</div>' +
             '</div>'
             : '') +
         '</div>' +
@@ -7685,8 +7722,8 @@
        own material stands in for the history — which is the only thing a
        caller can actually offer somebody they have never spoken to. */
     if (camp && c.checkpoint === 'not-called' && camp.resources.length) {
-      body += line('What you can send', camp.resources.map((r) =>
-        '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join(' '));
+      body += line('What you can send', '<span class="b-docs">' +
+        camp.resources.map((r, i) => docChip(camp.id, i, r)).join('') + '</span>');
     }
     const obj = objectionLikely(c, camp);
     if (obj) body += line('They will push back on', obj);
@@ -8499,6 +8536,13 @@
       }
       return;
     }
+    const doc = t.closest('[data-doc]');
+    if (doc) {
+      const v = doc.getAttribute('data-doc');
+      openDoc(v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1));
+      return;
+    }
+
     const hto = t.closest('[data-handto]');
     if (hto) {
       const v = hto.getAttribute('data-handto');

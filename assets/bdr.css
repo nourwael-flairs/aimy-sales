@@ -1128,7 +1128,7 @@ button.pipe-chip:active { transform: scale(0.97); }
 .b-roster .s-brow-side { gap: 3px; min-width: 120px; }
 .b-roster .s-brow-fig { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: -0.01em; }
 .b-roster .s-brow-rev { font-size: var(--t-small); color: var(--d300); }
-.b-roster .s-brow-tag { margin-top: 2px; }
+.b-roster .b-rstate { margin-top: 4px; }
 .b-roster-call { margin-top: 8px; }
 
 
@@ -1578,3 +1578,52 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
 .b-nm-by { font-size: var(--t-small); color: var(--d300); }
+
+/* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
+   They were grey uppercase tags — a status treatment on a thing you open,
+   set in 10px capitals so a document's name read as a label rather than a
+   title. A chip you can press: sentence case at the small step, the open
+   mark at the end, and a border that answers the cursor. */
+.b-docs { display: flex; flex-wrap: wrap; gap: 8px; }
+.b-doc {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold);
+  color: var(--d100); text-align: left;
+  padding: 6px 12px; border-radius: 99px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-doc:hover { color: var(--d50); border-color: var(--accent); background: var(--card-bg-raised); }
+.b-doc:active { transform: scale(0.97); }
+.b-doc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-doc-out { flex: none; color: var(--d300); }
+.b-doc:hover .b-doc-out { color: var(--accent-text); }
+@media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
+
+/* ══ 49. THE TWO QUIET ENDS, WITH ROOM ═════════════════════════════════════
+   Two columns whose captions did not start at the same height and whose
+   content ran into the block under them. One grid, one row of captions, and
+   a line of air under the pair. */
+.b-sell-ends {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  column-gap: 56px; row-gap: 28px; margin-top: 4px;
+}
+.b-sell-end > .b-sell-cap { margin: 0 0 12px; }
+.b-sell-item { margin: 0 0 8px; line-height: var(--lh-base); }
+.b-sell-item:last-child { margin-bottom: 0; }
+
+/* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
+   The rung sat in the roster's right column as a bordered pill, directly
+   above the Call pill, and the two read as a pair of buttons. A dot in the
+   rung's own tone and the word beside it: a state you read, over the one
+   thing on the row you press. */
+.b-rstate {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-rstate-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--d400); flex: none; }
+.b-rstate-dot.tone-ok { background: var(--ok-text); }
+.b-rstate-dot.tone-warn { background: var(--warn-text); }
+.b-rstate-dot.tone-err { background: var(--err-text); }
+.b-rstate-dot.tone-neutral { background: var(--d400); }
