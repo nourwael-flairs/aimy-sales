@@ -4883,15 +4883,28 @@
      it once. The shell's quote register — a raised surface, one mark, no
      accent — is built for exactly this: AiMY's reading OF the bars above,
      not a second announcement competing with the first. */
+  /* ══ ONE BLOCK READS THE BARS ══════════════════════════════════════════
+     Two paragraphs sat loose between the funnel and the block whose whole
+     job is to say what the funnel means — who left the ladder, and what the
+     managers are holding. Both are readings of the bars above them, both
+     name a figure and say what it amounts to, and they were the only two
+     sentences on the page in nobody's voice. They are readings now, and they
+     lead, because they are read off the thing directly above. */
   function campAimy(k) {
-    const rs = campReadings(k);
+    const st = campStand(k);
+    const rs = [];
+    const exits = exitsSay(st.members);
+    if (exits) rs.push({ text: exits, from: 'where each of them stopped' });
+    const deals = dealsSay(k);
+    if (deals) rs.push({ text: deals, from: 'the leads you handed over' });
+    campReadings(k).forEach((r) => rs.push(r));
     if (!rs.length) return '';
     return '<div class="s-insight is-quote b-readings">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>Read off the bars above' +
       '</div>' +
-      '<ul class="b-reading-list">' + rs.map((r) =>
+      '<ul class="b-reading-list">' + rs.slice(0, 4).map((r) =>
         '<li class="b-reading">' + r.text +
           '<span class="b-aimy-from">' + esc(r.from) + '</span></li>').join('') +
       '</ul>' +
@@ -4956,7 +4969,20 @@
     });
     return out;
   }
-  function funnelOf(members, topLabel) {
+  /* Who is off the ladder, as a sentence. It was welded to the funnel and
+     printed underneath it, which is why the campaign page had two loose
+     paragraphs sitting between the bars and the block that reads them. */
+  function exitsSay(members) {
+    const n2 = rungCounts(members);
+    const gone = EXITS.filter((x) => n2[x.k]);
+    const goneN = gone.reduce((t, x) => t + n2[x.k], 0);
+    if (!goneN) return '';
+    return '<b>' + commas(goneN) + '</b> ' + esc(verbFor(goneN, 'person')) +
+      ' left the ladder — ' + gone.map((x) =>
+        commas(n2[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.';
+  }
+
+  function funnelOf(members, topLabel, held) {
     const ever = everAt(members);
     const total = members.length || 1;
     let prev = null;
@@ -4975,23 +5001,21 @@
         '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
       '</div>';
     }).join('');
-    const n2 = rungCounts(members);
-    const gone = EXITS.filter((x) => n2[x.k]);
-    const goneN = gone.reduce((t, x) => t + n2[x.k], 0);
     return '<div class="b-funnel">' +
         '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
           '<span class="b-fn-n">people</span><span class="b-fn-conv">of the one above</span></div>' +
         rows + '</div>' +
-      (goneN ? '<p class="b-tally-out">' + esc(plural(goneN, 'person')) +
-        ' left the ladder — ' + gone.map((x) =>
-          commas(n2[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
+      /* The campaign page holds this back and reads it out in the block
+         under the bars; the company page has no such block and keeps it. */
+      (held ? '' : (exitsSay(members)
+        ? '<p class="b-tally-out">' + exitsSay(members) + '</p>' : ''));
   }
 
   /* ══ WITH THE MANAGERS ═════════════════════════════════════════════════
      The handed-over leads, by whoever is managing each one and how far the
      director has taken it. Named per person now that a hand-over chooses a
      manager, so two managers on one campaign read as two. */
-  function dealsLine(k) {
+  function dealsSay(k) {
     const handed = membersOf(k.id).filter((c) => c.checkpoint === 'handed-over');
     if (!handed.length) return '';
     const by = Object.create(null);
@@ -5015,7 +5039,7 @@
       if (g.lost) bits.push(commas(g.lost) + ' said no at resolution');
       return esc(g.name) + ': ' + esc(plural(g.n, 'person')) + ' — ' + bits.join(', ');
     });
-    return '<p class="b-tally-out">With ' + say.join('; with ') + '.</p>';
+    return 'With ' + say.join('; with ') + '.';
   }
 
   function campStands(k) {
@@ -5056,8 +5080,7 @@
           (n.interested || 0) + (n['handed-over'] || 0), 'got to a meeting, or past it', 'ok') +
       '</div>' +
 
-      funnelOf(st.members) +
-      dealsLine(k) +
+      funnelOf(st.members, null, true) +
       campAimy(k) +
     '</section>';
   }
