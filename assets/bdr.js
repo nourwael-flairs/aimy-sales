@@ -991,9 +991,88 @@
         touch.push(t);
         if (!last || t.at > last) last = t.at;
       }
-      c.attempts = n;
-      c.lastCallAt = last;
-      c.checkpointAt = last;
+      /* ══ THE HISTORY RECORDS THE CLIMB ═════════════════════════════════
+         Every touchpoint was written with moved: null, so a person at
+         Meeting set had a history that ended "no rung climbed yet" and a
+         callback that said "stays at Meeting set". The rungs somebody
+         stands on were reached by particular calls, and those calls say so
+         now, wearing an outcome that could have done it: a meeting is set
+         on a connected call that asked for one; showed up, interested and
+         handed over are settled by hand. Which calls: the last one reaches
+         the rung they stand on, the earlier rungs are spread back through
+         the history in order. Positions come off the id's hash, not the
+         generator, so nothing else in the corpus moves. */
+      const mineT = touch.slice(-n).sort((x, y) => (x.at < y.at ? -1 : 1));
+      const hc = Math.abs(hash(c.id + ':climb'));
+      const steps = isExit(rung)
+        ? LADDER.slice(1, 1 + climbed).map((x) => x.k).concat([rung])
+        : LADDER.slice(1, 1 + rank(rung)).map((x) => x.k);
+      const use = steps.slice(Math.max(0, steps.length - n));
+      const top = isExit(rung) ? rank(use[use.length - 2] || 'not-called') : rank(rung);
+      /* A history that never got past no-answer holds no connected call,
+         and one that never got past no-answer holds no callback either. */
+      mineT.forEach((t, i) => {
+        let oc = t.outcome;
+        if (oc === 'reached' && top < rank('answered')) oc = i % 2 ? 'gatekeeper' : 'no-answer';
+        if (oc === 'callback' && top < rank('callback')) oc = 'no-answer';
+        if (oc !== t.outcome) {
+          t.outcome = oc;
+          t.note = NOTE[oc][(hc + i) % NOTE[oc].length];
+          t.secs = 8 + (hc + i) % 38;
+        }
+        if (t.outcome !== 'reached') { t.proposals = []; t.objections = []; t.openings = []; }
+        else t.proposals = t.proposals.filter((x) => x !== 'meeting' && x !== 'demo');
+      });
+      const idx = [];
+      for (let si = 0; si < use.length - 1; si++) {
+        const base = Math.floor(((si + 1) * (n - 1)) / use.length);
+        const lo = idx.length ? idx[idx.length - 1] + 1 : 0;
+        const hi = (n - 1) - (use.length - 1 - si);
+        idx.push(Math.max(lo, Math.min(hi, base)));
+      }
+      idx.push(n - 1);
+      let prevRung = 'not-called';
+      use.forEach((k, si) => {
+        const t = mineT[idx[si]];
+        t.moved = [prevRung, k];
+        prevRung = k;
+        if (k === 'no-answer') {
+          t.outcome = 'no-answer'; t.proposals = []; t.objections = []; t.openings = [];
+          t.note = NOTE['no-answer'][(hc + si) % NOTE['no-answer'].length];
+        } else if (k === 'callback') {
+          t.outcome = 'callback'; t.proposals = []; t.objections = []; t.openings = [];
+          t.note = NOTE.callback[(hc + si) % NOTE.callback.length]; t.secs = 20 + hc % 25;
+        } else if (k === 'answered') {
+          t.outcome = 'reached';
+          t.proposals = t.proposals.filter((x) => x !== 'meeting' && x !== 'demo');
+          if (!t.proposals.length) t.proposals = [['info', 'callback', 'other'][hc % 3]];
+          t.note = NOTE.reached[(hc + si) % NOTE.reached.length]; t.secs = 90 + hc % 400;
+        } else if (k === 'meeting-set') {
+          /* the proposal is settled once c.next says meeting or demo */
+          t.outcome = 'reached'; t.proposals = ['meeting']; t.secs = 120 + hc % 480;
+          t.note = 'Got through. They will take a meeting.';
+        } else if (k === 'showed-up' || k === 'interested' || k === 'handed-over') {
+          t.outcome = 'checkpoint'; t.secs = 0; t.proposals = []; t.objections = []; t.openings = [];
+          t.note = k === 'showed-up' ? 'They showed up.' : k === 'interested' ? 'They are interested.' : 'Handed to the director.';
+        }
+        /* an exit: the last touchpoint already wears the outcome */
+      });
+      /* nobody is "connected" before the call that first reached them */
+      const firstReach = idx[use.indexOf('answered')];
+      if (firstReach != null) mineT.forEach((t, i) => {
+        if (i < firstReach && t.outcome === 'reached') {
+          t.outcome = i % 2 ? 'gatekeeper' : 'no-answer';
+          t.note = NOTE[t.outcome][(hc + i) % NOTE[t.outcome].length];
+          t.secs = 8 + (hc + i) % 38; t.proposals = []; t.objections = []; t.openings = [];
+        }
+      });
+      /* the rung each touchpoint left them on, for "stays at" */
+      prevRung = 'not-called';
+      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.rung = prevRung; });
+      const calls = mineT.filter((t) => t.outcome !== 'checkpoint');
+      c.attempts = calls.length;
+      c.lastCallAt = calls.length ? calls[calls.length - 1].at : last;
+      c.checkpointAt = mineT[n - 1].at;
       if (rung === 'do-not-call') c.dnc = true;
 
       /* What is owed next, and when. Only the rungs that owe something. */
@@ -1001,9 +1080,16 @@
         c.next = { what: 'Call them back', due: dayAdd(between(r, -9, 6)) };
       } else if (rung === 'meeting-set') {
         c.next = { what: pick(r, ['Meeting with them', 'Demo for them']), due: dayAdd(between(r, -6, 14)) };
+        /* the call that set it asked for the thing in the diary */
+        const setBy = mineT[n - 1];
+        if (/Demo/.test(c.next.what)) { setBy.proposals = ['demo']; setBy.note = 'Got through. They will take a demo.'; }
       } else if (rung === 'answered' && chance(r, 0.45)) {
         c.next = { what: pick(r, ['Send what was promised', 'Call them back']), due: dayAdd(between(r, -8, 9)) };
-      } else if (rung === 'interested' || rung === 'showed-up') {
+      } else if (rung === 'showed-up') {
+        /* ONE NEXT STEP PER RUNG. Showed up owes the interest question; the
+           hand-over is owed by Interested. The page said both at once. */
+        c.next = { what: 'Say whether they are interested', due: dayAdd(between(r, -3, 8)) };
+      } else if (rung === 'interested') {
         c.next = { what: 'Hand to the director', due: dayAdd(between(r, -3, 8)) };
       }
       if (chance(r, 0.18)) {
@@ -5529,6 +5615,7 @@
       lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
+      rung: mv.to || c.checkpoint,
     };
     const fields = { attempts: c.attempts + 1, lastCallAt: now };
     if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
@@ -5771,7 +5858,7 @@
       outcome: 'sent',
       proposals: ['info'], objections: [], openings: [],
       note: 'Sent the company profile' + (camp ? ' for ' + camp.name : '') + '.',
-      lines: [], next: null, moved: null,
+      lines: [], next: null, moved: null, rung: c.checkpoint,
     };
     /* It buys a reason to ring again, so it sets one. */
     patchCon(c, { next: { what: 'Call them back', due: dayAdd(3) } });
@@ -5821,7 +5908,7 @@
       proposals: [], objections: [], openings: [],
       note: mv === 'no-show' ? 'They did not turn up.'
         : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
-      lines: [], next: null, moved: [c.checkpoint, to],
+      lines: [], next: null, moved: [c.checkpoint, to], rung: to,
     };
     patchCon(c, { checkpoint: to, checkpointAt: now, next: nextForRung(to) });
     addTouch(t);
@@ -6596,6 +6683,7 @@
     outcome: t.outcome,
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
+    rung: t.rung || null,
   });
 
   function callFacts(f, c) {
@@ -6625,7 +6713,9 @@
     if (f.to) {
       rows.push(['Checkpoint', (f.from ? rungLabel(f.from) + ' → ' : '') + rungLabel(f.to), 'ok']);
     } else if (c) {
-      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || c.checkpoint), 'neutral']);
+      /* the rung they were on when it happened, not the rung today: a
+         callback from July does not "stay at" a meeting set in August */
+      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.rung || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
     return rows;
@@ -6773,6 +6863,7 @@
       outcome: outcome, proposals: props, objections: [], openings: [],
       note: 'AiMY called them.', lines: [], next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
+      rung: mv.to || c.checkpoint,
     };
     const fields = { attempts: c.attempts + 1, lastCallAt: now };
     if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
