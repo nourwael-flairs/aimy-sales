@@ -1709,12 +1709,24 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 
 /* ══ 52. A FACE ════════════════════════════════════════════════════════════
-   Drawn, not fetched — see the argument in bdr.js. The ring is what stops a
-   pale ground from cutting a hole in a dark surface, and it is the same ring
-   whichever surface the face lands on. */
+   A photograph over a drawing — see the argument in bdr.js. The image is
+   absolutely placed so that when the request fails it collapses to nothing
+   and the drawing behind it is simply what you see; alt is empty because a
+   face that does not load must not leave a word behind. The rings are on the
+   wrapper: an inner one so a pale photograph does not cut a hole in a dark
+   surface, an outer one to sit it on whatever ground it lands on. */
 .b-face {
-  display: block; flex: none; border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16), 0 0 0 1px var(--card-border);
+  position: relative; display: block; flex: none; overflow: hidden; border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--card-border);
+}
+.b-face > svg { display: block; width: 100%; height: 100%; }
+.b-face-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; border-radius: 50%;
+}
+.b-face::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 /* The masthead and the canvas both held a monogram in a tinted circle; the
    face brings its own ground, so theirs would only show as a rim. */
@@ -1744,66 +1756,56 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
 .b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
 
-/* Who to ask reception for. One line, full width, under the three — it is a
-   sentence rather than a fact, and it does not want a column. */
-.b-cwho {
-  margin: 24px 0 0; font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); max-width: 92ch; text-wrap: pretty;
-}
-.b-cwho b { color: var(--d50); font-weight: var(--fw-bold); }
-
-.b-cwho-cap { display: block; margin-bottom: 6px; }
-
 /* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
    The people ringing the same two hundred numbers as you. A face, a name and
    what they are on it for — the knowledge graph's node, at the size a person
    is drawn rather than the size a company is. */
-.b-team { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 24px; }
+/* No card around each of them. A pill with a border and a ground made three
+   colleagues read as three controls; the face is the object here, and the
+   space between them says where one person ends. */
+.b-team { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; margin-top: 26px; }
 .b-team-cap { flex-basis: 100%; margin: 0 0 2px; }
-.b-mate {
-  display: flex; align-items: center; gap: 9px;
-  padding: 6px 14px 6px 6px; border-radius: var(--r-pill);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-}
-.b-mate.is-you { border-color: rgba(var(--accent-rgb), 0.42); background: rgba(var(--accent-rgb), 0.08); }
+.b-mate { display: flex; align-items: center; gap: 10px; }
 .b-mate-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-mate-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); white-space: nowrap; }
-.b-mate-role { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
+.b-mate-role { font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
 
 /* ══ 55. WHAT IS IN THE WAY ════════════════════════════════════════════════
-   Two halves per row: the obstacle measured on the left, what beats it on
-   the right. The measure gets a bar because the whole point is proportion —
-   "Pricing, 27" means nothing until you know it is 27 of 96 — and the remedy
-   gets the reading width, because it is a sentence somebody says out loud.
-   No rule between the halves: the gap and the caption do that work. */
-.b-ways { display: flex; flex-direction: column; gap: 22px; margin-top: 12px; }
-.b-ways-cap { margin-top: 30px; }
+   One block. It was five findings, each with a 24px figure, a bar, a blurb,
+   a caption over the remedy and a chip under it — five sections wearing the
+   clothes of a page, for something read between two calls.
+
+   A sentence, then a line each: the count, what it is, what beats it. The
+   bars went because three of them measured against three different totals,
+   which is the one thing a bar cannot do — the proportion is in words beside
+   the name now. Amber marks the obstacle nobody has written an answer to,
+   and nothing else, so it means one thing on this block. */
+.b-way-lead {
+  margin: 0 0 18px; font-size: var(--t-lead); color: var(--d100);
+  line-height: var(--lh-base); max-width: 78ch; text-wrap: pretty;
+}
+.b-way-lead b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-ways { display: flex; flex-direction: column; gap: 14px; }
 .b-way {
-  display: grid; grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
-  column-gap: 44px; row-gap: 12px; align-items: start;
+  display: grid; grid-template-columns: 46px minmax(140px, 190px) minmax(0, 1fr);
+  column-gap: 20px; row-gap: 2px; align-items: baseline;
 }
-.b-way-l { display: flex; flex-direction: column; gap: 6px; }
-.b-way-top { display: flex; align-items: baseline; gap: 9px; }
 .b-way-n {
-  font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.02em;
-  line-height: 1; color: var(--d50); font-variant-numeric: tabular-nums;
+  font-size: var(--t-lead); font-weight: var(--fw-bold); color: var(--d50);
+  text-align: right; font-variant-numeric: tabular-nums;
 }
+.b-way-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-way-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
-.b-way-bar {
-  display: block; height: 4px; border-radius: var(--r-pill);
-  background: var(--wash-3); overflow: hidden;
-}
-.b-way-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--warn-text); }
-.b-way-of { font-size: var(--t-small); color: var(--d300); }
-.b-way-sub { margin: 2px 0 0; font-size: var(--t-small); color: var(--d200); line-height: var(--lh-base); }
-.b-way-r { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.b-way-of { font-size: var(--t-micro); color: var(--d300); }
 .b-way-beat {
-  margin: 0; font-size: var(--t-body); color: var(--d100);
+  font-size: var(--t-body); color: var(--d200);
   line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
 }
-/* An obstacle nobody has written an answer to is a finding, not a blank. */
-.b-way-beat.is-gap { color: var(--warn-text); }
-@media (max-width: 900px) { .b-way { grid-template-columns: minmax(0, 1fr); } }
+.b-way-beat .b-doc, .b-way-beat .s-inline-btn { vertical-align: 1px; margin-left: 2px; }
+@media (max-width: 900px) {
+  .b-way { grid-template-columns: 46px minmax(0, 1fr); }
+  .b-way-beat { grid-column: 2; }
+}
 .b-way-thin {
   margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
   line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;

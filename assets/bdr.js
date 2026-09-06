@@ -455,13 +455,30 @@
     'M7.3 10.7c0-3.1 2.1-4.9 4.7-4.9 2.3 0 4.2 1.3 4.7 3.5-1.5-1.3-3.6-1.8-5.7-1.5-1.8.3-3.1 1.2-3.7 2.9z',
     'M7.3 10.4a4.7 4.7 0 0 1 9.4 0c0-2.8-2.1-4.3-4.7-4.3s-4.7 1.5-4.7 4.3z',
   ];
+  /* ══ THE PHOTOGRAPH ════════════════════════════════════════════════════
+     One picture per person on the team, fixed by hand rather than drawn
+     from a hash: there are nine of them and a name carries an expectation
+     that a coin flip does not meet. Anyone the map does not name falls back
+     to the hash, which is what a corpus of six thousand leads needs.
+
+     The drawing stays underneath. A photograph is a request over the
+     network, and this build runs out of a folder — when the request fails
+     the image collapses and the face that was always there shows through,
+     rather than nine broken-image marks across the masthead. */
+  const AV_PIC = {
+    engy: 'women/44', habeba: 'women/68', omar: 'men/32', sara: 'women/26',
+    lina: 'women/65', ahmed: 'men/75', nadia: 'women/12', karim: 'men/41',
+    yasmin: 'women/33',
+  };
   function faceOf(id, px) {
     const h = Math.abs(hash(String(id) + ':face'));
     const look = AV_LOOK[h % AV_LOOK.length];
     const wear = AV_WEAR[(h >> 3) % AV_WEAR.length];
     const land = AV_LAND[(h >> 6) % AV_LAND.length];
     const top = AV_TOP[(h >> 9) % AV_TOP.length];
-    return '<svg class="b-face" viewBox="0 0 24 24" width="' + px + '" height="' + px + '" ' +
+    const pic = AV_PIC[id] || ((h & 1 ? 'men/' : 'women/') + (h % 90));
+    return '<span class="b-face" style="width:' + px + 'px;height:' + px + 'px">' +
+      '<svg viewBox="0 0 24 24" width="100%" height="100%" ' +
       'aria-hidden="true" focusable="false">' +
       '<circle cx="12" cy="12" r="12" fill="' + land + '"/>' +
       '<path d="M10.4 12.4h3.2v3.6h-3.2z" fill="' + look.skin + '"/>' +
@@ -474,7 +491,10 @@
       '<circle cx="10.3" cy="10.3" r="0.62" fill="#241a13" opacity="0.72"/>' +
       '<circle cx="13.7" cy="10.3" r="0.62" fill="#241a13" opacity="0.72"/>' +
       '<path d="' + top + '" fill="' + look.hair + '"/>' +
-    '</svg>';
+    '</svg>' +
+    '<img class="b-face-img" src="https://randomuser.me/api/portraits/' + pic + '.jpg" ' +
+      'alt="" loading="lazy" width="' + px + '" height="' + px + '">' +
+    '</span>';
   }
 
   /* WHO DID IT. `by` is who pressed the button; a call AiMY placed is
@@ -4601,10 +4621,6 @@
      order and no other: what am I trying to get out of this, what am I
      selling, and whose is it. Then who to ask reception for, and who else
      is ringing these people. */
-  /* The role is stored lower-case because it reads mid-sentence nearly
-     everywhere; the persona line is the one place it opens one. */
-  const up1 = (t) => String(t || '').replace(/^./, (ch) => ch.toUpperCase());
-
   const cmPart = (cap, body) =>
     '<div class="b-cmeta-part">' +
       '<h2 class="b-cmeta-cap">' + esc(cap) + '</h2>' +
@@ -4615,20 +4631,23 @@
      "owned by Karim Fouad · with Sally Tarek and Omar Fathy" was a list of
      names in the kind line, above the campaign's own name, in the slot that
      says what KIND of record this is. They are the people ringing the same
-     two hundred numbers as you, which is worth a face each. */
+     two hundred numbers as you, which is worth a face each.
+
+     A face, a name, a job. It said what each of them is FOR on this
+     campaign — owns it, calling — which is a sentence about the campaign
+     dressed as a fact about a person, and the same three words on every
+     campaign they are on. */
+  const JOB = { 'sales-manager': 'Sales manager', bdr: 'BDR' };
   function teamRow(k) {
     const ids = [k.owner].concat(k.crew.filter((id) => id !== k.owner));
     return '<div class="b-team">' +
       '<span class="b-cmeta-cap b-team-cap">The team</span>' +
       ids.map((id) => {
-        const who = actor(id);
         const you = id === me().id;
-        const role = id === k.owner ? 'Owns it'
-          : (REP[id] && REP[id].fn === 'sales-manager') ? 'Sales manager' : 'Calling';
-        return '<div class="b-mate' + (you ? ' is-you' : '') + '">' + faceOf(id, 30) +
+        return '<div class="b-mate">' + faceOf(id, 32) +
           '<span class="b-mate-t">' +
-            '<span class="b-mate-name">' + esc(you ? 'You' : who.name) + '</span>' +
-            '<span class="b-mate-role">' + esc(role) + '</span>' +
+            '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
+            '<span class="b-mate-role">' + esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + '</span>' +
           '</span>' +
         '</div>';
       }).join('') +
@@ -4638,23 +4657,19 @@
   function campMeta(k) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
-    const per = k.persona;
     return '<div class="b-cmeta">' +
       cmPart('The goal', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
+      /* The name and which kind it is. The blurb underneath was the line a
+         caller says out loud, and it is said out loud in What to say — here
+         it was a second copy of it in the smallest type on the page. */
       cmPart('What we sell them', sells.map((x) =>
         '<p class="b-cmeta-p"><b>' + esc(x.name) + '</b> ' +
-          '<span class="tag tag-neutral">' + esc(x.kind || 'offer') + '</span><br>' +
-          esc(x.blurb) + '</p>').join('')) +
-      cmPart('Who it is for', cl
-        ? '<p class="b-cmeta-p"><b>' + esc(cl.name) + '</b> — ' + esc(cl.what) + '. ' +
-          'You are calling as them, not as us.</p>'
-        : '<p class="b-cmeta-p"><b>Our own book</b> — nobody else is paying for these ' +
-          'meetings, so the pitch is ours to make and ours to change.</p>') +
+          '<span class="tag tag-neutral">' + esc(x.kind || 'offer') + '</span></p>').join('')) +
+      /* The name, and nothing after it. What the engagement is does not
+         change a single thing a caller does in the next eight minutes. */
+      cmPart('Client', '<p class="b-cmeta-p"><b>' +
+        esc(cl ? cl.name : 'Our own book') + '</b></p>') +
     '</div>' +
-    (per
-      ? '<p class="b-cwho"><span class="b-cmeta-cap b-cwho-cap">Who we are calling</span>' +
-        '<b>' + esc(up1(per.who)) + '</b> at ' + esc(per.at) + ', where ' + esc(per.why) + '.</p>'
-      : '') +
     teamRow(k);
   }
 
@@ -5089,7 +5104,8 @@
         n: said[kk], of: gave, unit: 'reason',
         name: (OBJECTION[kk] || {}).label || kk,
         sub: (OBJECTION[kk] || {}).blurb || '',
-        beats: agreed[kk] || '',
+        beats: agreed[kk] ||
+          'Say the same thing to it twice and tell ' + actor(k.owner).name + ' what worked.',
         gap: !agreed[kk],
         doc: doc,
       };
@@ -5103,7 +5119,7 @@
       stops.push({
         n: noNum, of: members.length, unit: 'person', name: 'No number on the record',
         sub: 'They are on the campaign and there is nothing to dial.',
-        beats: 'AiMY finds numbers overnight, and the finder brings people who already have one.',
+        beats: 'AiMY finds numbers overnight; the finder brings people who already have one.',
         door: { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' },
       });
     }
@@ -5112,8 +5128,8 @@
       stops.push({
         n: gate, of: here.length, unit: 'call', name: 'Stopped at reception',
         sub: 'Somebody answered and it was not them.',
-        beats: 'Ask for ' + (k.persona ? k.persona.who : 'the person by their job') +
-          ' by the job, not by the name — reception puts a name through to nobody.',
+        beats: 'Ask for ' + (k.persona ? k.persona.who : 'them by the job') +
+          ' by the job — reception puts a name through to nobody.',
       });
     }
     const stuck = members.filter((c) => c.checkpoint === 'no-answer' && c.attempts >= TOUCH_RULE).length;
@@ -5140,7 +5156,7 @@
     /* Under four reasons is a handful of anecdotes, and three rows each
        reading "1 of 3" is noise wearing the clothes of a finding. */
     return {
-      spoken: gave >= 4 ? spoken.slice(0, 3) : [],
+      spoken: gave >= 4 ? spoken.slice(0, 2) : [],
       thin: gave && gave < 4 ? gave : 0,
       stops: stops.slice(0, 2), calls: here.length, gave: gave,
     };
@@ -5148,53 +5164,54 @@
 
   function blockersBlock(k) {
     const b = blockersOf(k);
-    if (!b.spoken.length && !b.stops.length) return '';
-    const row = (x) =>
-      '<div class="b-way">' +
-        '<div class="b-way-l">' +
-          '<div class="b-way-top">' +
-            '<span class="b-way-n">' + commas(x.n) + '</span>' +
-            '<span class="b-way-name">' + esc(x.name) + '</span>' +
-          '</div>' +
-          '<span class="b-way-bar"><span class="b-way-fill" style="width:' +
-            Math.max(3, Math.round((x.n / Math.max(1, x.of)) * 100)) + '%"></span></span>' +
-          '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
-          '<p class="b-way-sub">' + esc(x.sub) + '</p>' +
-        '</div>' +
-        '<div class="b-way-r">' +
-          '<span class="b-cmeta-cap">' + (x.gap ? 'Nothing agreed' : 'What beats it') + '</span>' +
-          '<p class="b-way-beat' + (x.gap ? ' is-gap' : '') + '">' +
-            (x.gap
-              ? 'Nobody agreed an answer to this one when the campaign was ' +
-                'written. Say the same thing to it twice, and tell ' +
-                esc(actor(k.owner).name) + ' what worked.'
-              : esc(x.beats)) + '</p>' +
-          (x.door
-            ? '<button class="s-insight-lnk" type="button" ' + x.door.attr + '>' +
-              esc(x.door.say) + '</button>'
-            : '') +
-          (x.doc != null && x.doc >= 0
-            ? '<div class="b-docs">' + docChip(k.id, x.doc, k.resources[x.doc]) + '</div>'
-            : '') +
-        '</div>' +
-      '</div>';
+    const rows = b.stops.concat(b.spoken);
+    if (!rows.length) return '';
+    /* ══ ONE BLOCK, ONE LINE EACH ══════════════════════════════════════
+       It drew five findings, each with a figure at 24px, a bar, a blurb, a
+       caption over the remedy and a chip under it — five sections wearing
+       the clothes of a page. A caller reads this between calls, and what
+       they need out of it is which obstacle is biggest and what to do about
+       it. So: a sentence naming the worst of it and the one nobody has an
+       answer for, then a line each — the count, what it is, what beats it.
+
+       The bars are gone. Three of them measured against three different
+       totals, which is the one thing a bar cannot do; the proportion is
+       said in words beside each name instead. */
+    const worst = rows[0];
+    const gap = b.spoken.filter((x) => x.gap)[0];
+    const lead = '<b>' + esc(worst.name) + '</b> is the most of it — ' +
+      commas(worst.n) + ' of ' + esc(plural(worst.of, worst.unit)) + '.' +
+      (gap
+        ? ' Of the ' + esc(plural(b.gave, 'reason')) + ' anybody gave here, <b class="tone-warn">' +
+          esc(gap.name.toLowerCase()) + '</b> is the one nobody agreed an answer to.'
+        : b.spoken.length
+          ? ' Every reason they give has an answer this campaign already agreed.'
+          : '');
     return '<section class="s-block s-block-wide" aria-label="What is in the way">' +
       '<div class="s-camp-list-head"><h2 class="s-block-h">What is in the way</h2>' +
         '<span class="s-block-say">read off ' + esc(plural(b.calls, 'call')) +
         ' on this campaign</span></div>' +
-      (b.spoken.length
-        ? '<h3 class="b-sell-cap">What they say, and how often</h3>' +
-          '<div class="b-ways">' + b.spoken.map(row).join('') + '</div>'
-        : b.thin
-          ? '<h3 class="b-sell-cap">What they say, and how often</h3>' +
-            '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
-            esc(verbFor(b.thin, 'has')) + ' given a ' +
-            'reason so far. Too few to call it a pattern — the answers this campaign ' +
-            'agreed are in What to say below.</p>'
-          : '') +
-      (b.stops.length
-        ? '<h3 class="b-sell-cap b-ways-cap">What stops the call happening</h3>' +
-          '<div class="b-ways">' + b.stops.map(row).join('') + '</div>'
+      '<p class="b-way-lead">' + lead + '</p>' +
+      '<div class="b-ways">' + rows.map((x) =>
+        '<div class="b-way">' +
+          '<span class="b-way-n' + (x.gap ? ' tone-warn' : '') + '">' + commas(x.n) + '</span>' +
+          '<span class="b-way-what">' +
+            '<span class="b-way-name">' + esc(x.name) + '</span>' +
+            '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
+          '</span>' +
+          '<span class="b-way-beat">' +
+            (x.gap ? '<b class="tone-warn">Nothing agreed.</b> ' : '') + esc(x.beats) +
+            (x.door
+              ? ' <button class="s-inline-btn" type="button" ' + x.door.attr + '>' +
+                esc(x.door.say) + '</button>'
+              : '') +
+            (x.doc != null && x.doc >= 0 ? ' ' + docChip(k.id, x.doc, k.resources[x.doc]) : '') +
+          '</span>' +
+        '</div>').join('') + '</div>' +
+      (!b.spoken.length && b.thin
+        ? '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
+          esc(verbFor(b.thin, 'has')) + ' given a reason so far — too few to call it a ' +
+          'pattern. The answers this campaign agreed are in What to say below.</p>'
         : '') +
     '</section>';
   }
