@@ -1521,7 +1521,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--d50); max-width: 60ch; text-wrap: pretty;
 }
 .b-nm-due {
-  display: inline-block; margin-left: 8px; vertical-align: 2px; white-space: nowrap;
+  align-self: flex-start; margin-bottom: 5px; white-space: nowrap;
   padding: 2px 9px; border-radius: 99px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.01em;
   color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
@@ -1948,3 +1948,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The one action on a surface goes at the end of its row, where "Call these
    15" is on the queue and every other surface's action is. */
 .b-acts-end { justify-content: flex-end; }
+
+/* ══ 61. A MENU IS FIVE ROWS AND A SCROLLBAR ═══════════════════════════════
+   Fourteen campaigns ran a menu off the bottom of the screen and under the
+   composer, so the last of them could not be reached at all. Five rows and
+   then it scrolls; the caption and the search box stay put, because a search
+   that scrolls away is a search you cannot correct. */
+.b-menu { max-height: 328px; overflow-y: auto; overscroll-behavior: contain; }
+.b-menu > .b-menu-cap:first-child, .b-menu > .b-menu-find {
+  position: sticky; z-index: 1; background: var(--card-bg-raised);
+}
+.b-menu > .b-menu-cap:first-child { top: 0; }
+.b-menu > .b-menu-find { top: 22px; }

@@ -3916,32 +3916,80 @@
     const has = (axis) => (t[axis] || []).length > 0;
     const camps = myCampaigns();
 
-    /* Somebody already wrote down who this is for. */
-    const camp = camps[0];
-    if (camp && !has('industry')) {
-      const read = readSaid(camp.goal + ' ' + camp.pitch, buildKind())
-        .filter((p) => p[0] === 'industry');
-      if (read.length) {
-        out.push({ k: 'goal', terms: read,
-          say: 'The goal on <b>' + esc(camp.name) + '</b> describes ' +
-            read.map((p) => esc(INDUSTRY[p[1]].label)).join(', ') + '.',
-          act: 'Use that' });
-      }
+    /* ══ AN EMPTY BUILDER IS A QUESTION WITH NO ANSWER OFFERED ═══════════
+       Everything else in this block narrows a set that already exists. These
+       three propose the first criterion, off things a caller already has:
+       a campaign of theirs that is running out of people, where their own
+       handovers came from, and where they actually get through.
+
+       The first used to read a sector out of the campaign's goal sentence.
+       The goal is the ask now — "a first meeting with the VP of engineering"
+       — and names no sector at all, so it read nothing and the empty builder
+       went silent. The campaign carries an industry and a region as fields;
+       there is no sentence to parse. */
+    const THE_REGION = { nl: 1, nordic: 1 };
+    const short = camps.filter(campOpen)
+      .map((k) => ({ k: k, left: queue(k.id, 'all').length }))
+      .sort((a, b) => a.left - b.left)[0];
+    if (short && !has('industry')) {
+      const k = short.k;
+      const reg = REGION[k.region];
+      out.push({ k: 'goal',
+        terms: [['industry', k.industry]].concat((reg ? reg.cc : []).map((cc) => ['where', cc])),
+        /* Two of the nine region names take an article and the rest do
+           not, and "in Netherlands" is the kind of seam that makes a
+           sentence read as assembled rather than written. */
+        say: '<b>' + esc(k.name) + '</b> has ' + esc(plural(short.left, 'person')) +
+          ' left to ring and is after ' + esc(INDUSTRY[k.industry].label.toLowerCase()) +
+          ' in ' + (reg ? (THE_REGION[reg.k] ? 'the ' : '') + esc(reg.label) : 'its region') + '.',
+        act: 'Look for those' });
     }
-    /* Where the ones you have actually got somewhere came from. */
+    /* Where the ones you have actually got somewhere came from. Two sectors
+       at two in five, because "came from ten sectors" is every sector and no
+       suggestion at all. */
     if (!has('industry')) {
       const won = DB.con.filter((c) => c.checkpoint === 'handed-over');
-      /* "came from ten sectors" is every sector, which is no suggestion; the
-         top three are offered only where they hold most of the handovers */
       const per = Object.create(null);
       won.forEach((c) => { const a = accOf(c); if (a) per[a.industry] = (per[a.industry] || 0) + 1; });
-      const inds = Object.keys(per).sort((x, y) => per[y] - per[x]).slice(0, 3);
+      const inds = Object.keys(per).sort((x, y) => per[y] - per[x]).slice(0, 2);
       const held = inds.reduce((t, i) => t + per[i], 0);
-      if (inds.length && won.length && held / won.length >= 0.6) {
+      if (inds.length && won.length >= 4 && held / won.length >= 0.4) {
         out.push({ k: 'won', terms: inds.map((i) => ['industry', i]),
-          say: 'Your ' + plural(won.length, 'handover') + ' came from ' +
-            inds.map((i) => esc(INDUSTRY[i].label)).join(', ') + '.',
+          say: '<b>' + commas(held) + ' of your ' + commas(won.length) + '</b> handovers came ' +
+            'from ' + listSay(inds.map((i) => INDUSTRY[i].label)) + '.',
           act: 'Add those sectors' });
+      }
+    }
+    /* Where you actually get through. A country you have rung enough times
+       for the rate to mean anything, and which beats your own average. */
+    if (!has('where')) {
+      const mineT = DB.touch.filter((t2) => t2.by === me().id && OUTCOME[t2.outcome]);
+      const tot = Object.create(null);
+      const got = Object.create(null);
+      let allN = 0;
+      let allGot = 0;
+      mineT.forEach((t2) => {
+        const c = DB.byCon[t2.con];
+        const a = c && accOf(c);
+        if (!a) return;
+        tot[a.country] = (tot[a.country] || 0) + 1;
+        allN++;
+        if (t2.outcome === 'reached') { got[a.country] = (got[a.country] || 0) + 1; allGot++; }
+      });
+      /* Only a country the builder can actually be narrowed to. Austria and
+         Switzerland are inside DACH and are not choices on the axis, so
+         offering one adds a criterion with no name and no chip. */
+      const known = Object.create(null);
+      COUNTRY_OPTS.forEach((o) => (known[o[0]] = o[1]));
+      const best = Object.keys(tot).filter((cc) => known[cc] && tot[cc] >= 25)
+        .sort((x, y) => (got[y] || 0) / tot[y] - (got[x] || 0) / tot[x])[0];
+      const rate = best ? (got[best] || 0) / tot[best] : 0;
+      if (best && allN && rate > (allGot / allN) * 1.15) {
+        const label = known[best];
+        out.push({ k: 'gets', terms: [['where', best]],
+          say: 'You get through most in <b>' + esc(label) + '</b> — ' +
+            Math.round(rate * 100) + '% of the ' + commas(tot[best]) + ' calls you have made there.',
+          act: 'Only ' + esc(label) });
       }
     }
     /* What you already hold that matches, and how much of it is live. */
@@ -6273,9 +6321,13 @@
               ? '<div class="b-nm-do' + (o.done ? ' is-done' : '') + '">' +
                   '<span class="b-nm-mark">' + (o.done ? nmTick() : nmClock()) + '</span>' +
                   '<span class="b-nm-text">' +
-                    '<span class="b-nm-say">' + o.next +
-                      (o.due ? '<span class="b-nm-due' + (o.due.late ? ' is-late' : '') + '">' +
-                        esc(o.due.what) + ' · ' + esc(o.due.when) + '</span>' : '') + '</span>' +
+                    /* THE CHIP IS ABOVE THE SENTENCE. Trailing it, the chip
+                       wrapped onto its own line anyway and read as an
+                       afterthought to the instruction; what is owed and when
+                       is the thing you look for first. */
+                    (o.due ? '<span class="b-nm-due' + (o.due.late ? ' is-late' : '') + '">' +
+                      esc(o.due.what) + ' · ' + esc(o.due.when) + '</span>' : '') +
+                    '<span class="b-nm-say">' + o.next + '</span>' +
                     (o.hand ? '<span class="b-nm-then">' + o.hand + '</span>' : '') +
                   '</span>' +
                 '</div>'
