@@ -3708,10 +3708,24 @@
           'data-bname aria-label="Name this list" /></h1>' +
       '</div></div>' +
 
+      /* ══ A SENTENCE POINTING AT THE BAR IS NOT A WAY INTO IT ═══════════
+         "Say who you are after in the bar below" was the whole of the empty
+         state: an instruction to go and do something somewhere else on the
+         page, with an example you would have to read, remember and retype.
+         The one press puts the example in the bar with the caret at its end,
+         so the first thing a caller does is edit a working sentence rather
+         than face an empty field trying to recall the shape of one. */
       (DRAFT.said
         ? '<p class="s-block-wide s-said">' + esc(DRAFT.said) + '</p>'
-        : '<p class="s-block-wide s-said is-empty">Say who you are after in the bar below — something ' +
-          'like “' + esc(eg) + '”.</p>') +
+        : '<div class="s-block-wide b-empty">' +
+            /* A company has no job title, and the builder does not offer the
+               axis on that side either. */
+            '<p class="s-said is-empty">Say who you are after — a sector, a country, ' +
+            'a size' + (kind === 'con' ? ', a job title' : '') + '. Say it in any order ' +
+            'and I will read it.</p>' +
+            '<button class="s-insight-lnk primary" type="button" data-fill="' + esc(eg) + '">' +
+              'Add criteria</button>' +
+          '</div>') +
 
       (chips.length
         ? '<div class="s-find-crit s-block-wide">' + chips.map((c) =>
@@ -9197,6 +9211,19 @@
     if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
     if (ask) { runInput(ask.getAttribute('data-ask')); return; }
+
+    /* ══ FILL THE BAR, DO NOT RUN IT ══════════════════════════════════════
+       `data-ask` submits what it carries, which is right for a question with
+       one answer. This one hands you a sentence to change: the caret goes to
+       the end so typing continues it, and nothing happens until you say so. */
+    const fill = t.closest('[data-fill]');
+    if (fill) {
+      const el = byId('floatInput');
+      el.value = fill.getAttribute('data-fill');
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+      return;
+    }
 
     const railToggle = t.closest('#railToggle');
     if (railToggle) {

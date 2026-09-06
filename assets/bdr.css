@@ -1916,3 +1916,10 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    removed from the list is a source you stop expecting back. */
 .b-src.is-off .b-src-n { color: var(--d300); }
 .b-src.is-off .b-src-v { color: var(--warn-text); }
+
+/* ══ 58. THE WAY INTO THE BAR ══════════════════════════════════════════════
+   The empty state told you where to type and left you to remember the shape
+   of the sentence. The line and the press that fills it sit together, so the
+   instruction and the way to follow it are one thing. */
+.b-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.b-empty .s-said { margin: 0; }
