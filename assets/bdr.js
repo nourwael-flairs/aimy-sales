@@ -4537,12 +4537,20 @@
     if (!said || said.from === 'the account itself') return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
     const who = got && DB.byCon[got.con];
-    const target = (who && callable(who)) ? who : ring[0];
     let door = '';
-    if (target) {
-      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(target.id) + '">' +
-        'Call ' + esc(target.name.split(' ')[0]) +
-        (who && target.id === who.id ? ' — they picked up before' : '') + '</button>';
+    /* THE DOOR FOLLOWS THE SENTENCE. The reading names who picked up; when
+       that person cannot be rung now — a meeting set, a hand-over — the
+       door opens their record rather than ringing somebody else under
+       their name. */
+    if (who && callable(who)) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(who.id) + '">' +
+        'Call ' + esc(who.name.split(' ')[0]) + ' — they picked up before</button>';
+    } else if (who) {
+      door = '<button class="s-insight-lnk" type="button" data-con="' + esc(who.id) + '">' +
+        'Open ' + esc(who.name) + ' — ' + esc(rg2(who)) + '</button>';
+    } else if (ring[0]) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(ring[0].id) + '">' +
+        'Call ' + esc(ring[0].name.split(' ')[0]) + '</button>';
     } else if (free.length) {
       door = '<button class="s-insight-lnk" type="button" data-goto="accCamps">' +
         'Put them on a campaign</button>';
@@ -4792,6 +4800,12 @@
     if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
       door = '<button class="s-insight-lnk" type="button" data-acc="' + esc(a.id) + '">' +
         'Try one of the ' + others.length + ' others at ' + esc(a.name) + '</button>';
+    } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
+      /* NO COLLEAGUE TO TRY, so the door is the supplier. The reading says
+         this number may not be theirs, and "Call Ava" under it rang it
+         again. */
+      door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
+        'Ask ' + esc(finderOf().name) + ' for a better number</button>';
     } else if (last && last.outcome === 'gatekeeper' && c.phone) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Ring the mobile now</button>';
@@ -6019,6 +6033,28 @@
     paint();
     toast('Company profile sent to ' + c.name.split(' ')[0] + ' · ring back in 3 days', () => {
       dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+  }
+
+  /* ══ A BETTER NUMBER FOR ONE PERSON ════════════════════════════════════
+     The list has "Fill in what is missing"; a person whose number rang out
+     six times had nothing. The supplier's own hit rate decides, off the id,
+     so the answer is the same every time it is asked. A new number starts
+     its own count of attempts; the history keeps the old calls. */
+  function enrichCon(id) {
+    const c = DB.byCon[id];
+    if (!c) return;
+    const f = finderOf();
+    const first = c.name.split(' ')[0];
+    const h = Math.abs(hash(c.id + ':again'));
+    if ((h % 1000) / 1000 >= f.phone) { toast(f.name + ' has no other number for ' + first + '.'); return; }
+    const before = { phone: c.phone, enrichedAt: c.enrichedAt, attempts: c.attempts };
+    const phone = '+31 6 ' + String(1000000 + (h % 8999999));
+    patchCon(c, { phone: phone, enrichedAt: TODAY_ISO, attempts: 0 });
+    paint();
+    toast(f.name + ' found another number for ' + first + ' · ' + phone, () => {
       patchCon(c, before);
       paint();
     });
@@ -7583,6 +7619,9 @@
       paintCall();
       return;
     }
+    const en = t.closest('[data-enrichcon]');
+    if (en) { enrichCon(en.getAttribute('data-enrichcon')); return; }
+
     const sp = t.closest('[data-sendprofile]');
     if (sp) { sendProfile(sp.getAttribute('data-sendprofile')); return; }
 
