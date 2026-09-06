@@ -5023,9 +5023,13 @@
      cannot say why it ranked somebody is a queue you have to trust. */
   function whyLine(c) {
     switch (c.checkpoint) {
-      case 'callback':
+      case 'callback': {
+        /* "28 Aug" on 6 Sep is nine days late, and the card should say so. */
+        const late = c.next ? -daysBetween(TODAY_ISO, c.next.due) : 0;
         return 'Asked to be rung back <b>' +
-          esc(c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)) + '</b>';
+          esc(c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt)) + '</b>' +
+          (late > 0 ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
+      }
       case 'not-called':
         return 'Never rung';
       case 'no-answer':
@@ -5732,7 +5736,15 @@
        another, and somebody who declined and then asks to be taken off the
        list has to be able to be. */
     if (isExit(c.checkpoint)) return { to: null, next: null };
-    if (outcome === 'no-answer' || outcome === 'gatekeeper') return { to: up('no-answer') };
+    if (outcome === 'no-answer' || outcome === 'gatekeeper') {
+      /* ══ A NO-ANSWER ON A CALLBACK MOVES THE DATE ═════════════════════
+         Ringing an overdue callback and getting nobody left the date where
+         it was, so the same person sat first in the queue again the moment
+         the call was logged. The day moves to tomorrow: still a callback,
+         still owed, behind today's. */
+      const owed = c.checkpoint === 'callback' && c.next && c.next.due <= TODAY_ISO;
+      return { to: up('no-answer'), next: owed ? { what: c.next.what, due: dayAdd(1) } : null };
+    }
     if (outcome === 'callback') {
       return { to: up('callback'), next: { what: 'Call them back', due: dayAdd(days) } };
     }
@@ -5802,7 +5814,9 @@
     const moved = mv.to ? ' · moved to ' + rungLabel(mv.to) : '';
     const where = camp ? ' · ' + camp.name + ' now has ' +
       plural(queue(camp.id).length, 'person') + ' to call' : '';
-    toast('Logged ' + said + ' with ' + c.name.split(' ')[0] + moved + where, () => {
+    const again = mv.next && (outcome === 'no-answer' || outcome === 'gatekeeper')
+      ? ' · due again ' + sayWhen(mv.next.due) : '';
+    toast('Logged ' + said + ' with ' + c.name.split(' ')[0] + moved + again + where, () => {
       dropTouch(t.id);
       patchCon(c, before);
       paint();
@@ -6986,9 +7000,18 @@
       card: '<div class="s-callsum-in-turn">' +
         callSummaryHtml(factsOfPending(call, c, mv), c, '', call.lines) + '</div>',
       step: 'calllog',
-      opts: [{ k: 'go', label: sess
-        ? (nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish')
-        : 'Log it' }],
+      /* ══ LOG IT, THEN THE NEXT ONE ═══════════════════════════════════
+         Outside a run the read-back ended with "Log it" and the queue.
+         The queue's next person is one press away now — the same ranking
+         the page shows — and plain "Log it" stays for when it is not. */
+      opts: sess
+        ? [{ k: 'go', label: nextCon ? 'Log it and call ' + nextCon.name.split(' ')[0] : 'Log it and finish' }]
+        : (function () {
+            const nx = queue(null, 'all').filter((x) => x.id !== call.con)[0];
+            return nx
+              ? [{ k: 'gonext', label: 'Log it and call ' + nx.name.split(' ')[0] }, { k: 'go', label: 'Log it' }]
+              : [{ k: 'go', label: 'Log it' }];
+          })(),
     });
     paintThread();
   }
@@ -7588,7 +7611,14 @@
       if (DB.call) { DB.call.held = !DB.call.held; paintCall(); }
       return;
     }
-    if (t.closest('[data-calllog]')) { logCall(); return; }
+    const cl = t.closest('[data-calllog]');
+    if (cl) {
+      const how = cl.getAttribute('data-calllog');
+      logCall();
+      /* the queue has re-ranked by now; its first is the one to ring */
+      if (how === 'gonext') { const nx = queue(null, 'all')[0]; if (nx) startCall(nx.id); }
+      return;
+    }
     if (t.closest('[data-callskip]')) { skipCall(); return; }
     if (t.closest('[data-sessstop]')) {
       const sess = DB.call && DB.call.sess;
