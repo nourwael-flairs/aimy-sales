@@ -1317,10 +1317,16 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-ghost {
   display: inline-flex; align-items: center; gap: 7px; line-height: 1;
   font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
-  cursor: pointer; padding: 6px 13px; border-radius: var(--r-pill);
-  /* One height with a mark or without: the mark is a pixel taller than the
-     type beside it, so a shape shared by both would otherwise be two shapes. */
-  min-height: 28px;
+  cursor: pointer; border-radius: var(--r-pill);
+  /* THE PRIMARY'S OWN BOX. A ghost and a filled button standing in the same
+     row are the same control at two weights, and these were 28px against 32
+     with 13px of side padding against 16 — near enough to look like a
+     mistake rather than a decision. The box is the primary's; what stays
+     different is the fill and the weight, which is the hierarchy.
+
+     min-height rather than vertical padding, so a mark a pixel taller than
+     the type beside it cannot make one ghost taller than another. */
+  min-height: 32px; padding: 0 16px;
   color: var(--d200); background: none; border: 1px solid var(--card-border);
   transition: color var(--t-fast), background-color var(--t-fast),
     border-color var(--t-fast), transform 160ms var(--ease-out);
