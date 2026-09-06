@@ -1923,3 +1923,32 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    instruction and the way to follow it are one thing. */
 .b-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .b-empty .s-said { margin: 0; }
+
+/* ══ 59. WHAT TO EXPECT ════════════════════════════════════════════════════
+   Three rows on one grid so the estimates line up and can be read down the
+   middle column without reading the reasons. The reason is at the small step
+   because it is why the estimate is a guess, and a guess whose working is
+   hidden is a count wearing a hedge. */
+.b-expect { display: grid; gap: 10px 18px; }
+.b-exp {
+  display: grid; grid-template-columns: 110px minmax(96px, max-content) minmax(0, 1fr);
+  gap: 2px 18px; align-items: baseline;
+}
+.b-exp-k {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-exp-v { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.b-exp-why {
+  font-size: var(--t-small); color: var(--d300);
+  line-height: var(--lh-base); max-width: 58ch; text-wrap: pretty;
+}
+.b-exp-off { display: block; color: var(--d400); }
+@media (max-width: 860px) {
+  .b-exp { grid-template-columns: minmax(0, 1fr); }
+  .b-exp-why { grid-column: 1; }
+}
+
+/* A rule above the foot is the section separator this build took out
+   everywhere else; the space under the block above it says the same thing. */
+.s-build-foot { border-top: 0; padding-top: 0; margin-top: 26px; }

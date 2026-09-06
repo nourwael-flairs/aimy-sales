@@ -3747,11 +3747,9 @@
          working of that sentence rather than another thing to press. */
       '<div class="s-build-foot s-block-wide">' +
         '<div class="b-src-side">' +
-        '<p class="s-build-total s-block-wide"><b>' + commas(found.length) + '</b> of the ' +
-          commas(DB.net.length) + ' I can reach match' +
-          (take ? ', and <b>' + commas(take) + '</b> of yours' : '') + '. ' +
-          esc(finderOf().name) + ' would give a number for about <b>' +
-          commas(Math.round(found.length * finderOf().phone)) + '</b> of them.</p>' +
+        buildExpect(t, found) +
+        (take ? '<p class="s-build-total s-block-wide"><b>' + commas(take) +
+          '</b> of your own are going in with them.</p>' : '') +
         '<div class="b-srcs">' +
           '<span class="b-srcs-cap">Where the numbers come from</span>' +
           FINDERS.map((x) =>
@@ -3766,9 +3764,13 @@
         '</div>' +
         '</div>' +
 
+        /* IT ASKS; IT DOES NOT PROMISE. "Generate 11" put an exact count on
+           the one control whose whole job is to go and find out what the
+           count is — the same claim the sentence above it just stopped
+           making. What comes back is on the run and on the list after it. */
         '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
-          (found.length + take ? '' : ' disabled aria-disabled="true"') + '>Generate ' +
-          commas(Math.min(found.length + take, 500)) + '</button>' +
+          (found.length + take ? '' : ' disabled aria-disabled="true"') + '>' +
+          'Generate the list</button>' +
       '</div>' +
     '</div>';
   }
@@ -3844,6 +3846,61 @@
 
   /* ── WHAT AiMY OFFERS, AND APPLIES NONE OF ──
      Each one states the count behind it and waits to be pressed. */
+  const anyCrit = (t) => BUILD_AXES.some((ax) => (t[ax.k] || []).length);
+  /* A number given to two figures is a number nobody will read as exact. */
+  const roughly = (n) => {
+    if (n < 10) return commas(n);
+    const p2 = Math.pow(10, String(Math.round(n)).length - 2);
+    return commas(Math.round(n / p2) * p2);
+  };
+
+  /* ══ BEFORE THE RUN THERE IS NOTHING TO COUNT ══════════════════════════
+     The foot read "12,000 of the 12,000 I can reach match. Apollo would give
+     a number for about 8,880 of them" — a definite count, and the count of
+     the whole index when nobody had said what they were after. If the page
+     already knows how many there are and how many have numbers, pressing
+     Generate discovers nothing, and the run underneath it is theatre.
+
+     What is actually known here is the criteria and a local sketch of the
+     market. So: an expectation, said as one — how wide the criteria are,
+     how many should come back with a number, how much of it you may already
+     hold — each with the thing the guess is read off. The counts arrive from
+     the run, which is the only place they can come from. */
+  function buildExpect(t, found) {
+    if (!anyCrit(t)) return '';
+    const f = finderOf();
+    const share = found.length / Math.max(1, DB.net.length);
+    const wide = !found.length
+      ? ['Nothing like this', 'Nothing in my sketch of the market matches. The suppliers ' +
+        'hold more than I can see, but expect very little back.']
+      : share >= 0.45
+        ? ['Very wide', 'Nearly everything I can see matches. Name a sector or a country, ' +
+          'or you will get whoever the suppliers hand over first.']
+        : share >= 0.15
+          ? ['Wide', 'It will fill the run easily, and it will be a broad list.']
+          : share >= 0.03
+            ? ['About right', 'Narrow enough to be a list, wide enough to fill a run.']
+            : ['Narrow', 'You may get fewer than 500 back.'];
+    const row = (k, v, why) =>
+      '<span class="b-exp">' +
+        '<span class="b-exp-k">' + esc(k) + '</span>' +
+        '<span class="b-exp-v">' + esc(v) + '</span>' +
+        '<span class="b-exp-why">' + why + '</span>' +
+      '</span>';
+    return '<div class="b-expect">' +
+      '<span class="b-srcs-cap">What to expect · read off the criteria, before anybody is asked</span>' +
+      row('How wide', wide[0], esc(wide[1]) +
+        (found.length ? ' <span class="b-exp-off">My sketch holds about ' +
+          roughly(found.length) + ' like this; the suppliers hold more.</span>' : '')) +
+      row('With a number', 'About ' + Math.round(f.phone * 10) + ' in 10',
+        esc(f.name) + ' fills the most numbers of the sources answering. ' +
+        'What actually comes back is on the run.') +
+      /* What you already hold is said by the suggestion above, which also
+         offers to drop them. Saying it twice, once without the fix, is the
+         duplication this rebuild keeps taking out. */
+    '</div>';
+  }
+
   function buildSuggests(t, found, mine2) {
     const out = [];
     const has = (axis) => (t[axis] || []).length > 0;
@@ -3887,7 +3944,7 @@
     }
     /* A concentration worth narrowing to. A third or better, or it is a fact
        rather than a finding. */
-    if (found.length > 3 && !has('where')) {
+    if (found.length > 3 && !has('where') && anyCrit(t)) {
       const n = Object.create(null);
       found.forEach((r) => (n[r.country] = (n[r.country] || 0) + 1));
       const top = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
@@ -3900,7 +3957,9 @@
       }
     }
     /* The overlap between the index and your own book. */
-    if ((t.only || []).indexOf('new') < 0) {
+    /* "1,441 of the 12,000 are already in your book" is true of the whole
+       index and says nothing about a list nobody has described yet. */
+    if ((t.only || []).indexOf('new') < 0 && anyCrit(t)) {
       const dupes = found.filter((r) => r.known).length;
       if (dupes) {
         out.push({ k: 'dedupe', terms: [['only', 'new']],
@@ -4374,13 +4433,14 @@
         .sort((a, b) => b.email - a.email)[0];
       out.push({ n: noMail.length, act: better ? 'Ask ' + better.name : 'No better source',
         attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
-        say: 'have no email address. ' + (better
+        say: verbFor(noMail.length, 'has') + ' no email address. ' + (better
           ? esc(better.name) + ' fills ' + Math.round(better.email * 100) + '% of them.'
           : esc(f.name) + ' is the best of ' + ofThem + ' for addresses.') });
     }
     if (known.length) {
       out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
-        say: 'are already in your book, so saving these would give you a second copy ' +
+        say: verbFor(known.length, 'is') + ' already in your book, so saving ' +
+          (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
           'of somebody you may already have rung.' });
     }
     return out;
