@@ -1332,3 +1332,8 @@ button.pipe-chip:active { transform: scale(0.97); }
 button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), color var(--t-fast); }
 button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
 button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ══ 39. THE STORY SO FAR ══════════════════════════════════════════════════
+   Prose at the deck step, one measure wide. */
+.b-story-text { font-size: var(--t-deck); line-height: var(--lh-base); color: var(--d100); max-width: 68ch; text-wrap: pretty; margin: 0; }
+.b-story { padding-top: 4px; }

@@ -4804,9 +4804,11 @@
                   ' here</button>'
                 : '')
             : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
+          accHandBtn(people) +
         '</div>' +
       '</section>' +
 
+      storyBlock(accStory(a, people, hist)) +
       accLead(a, people, hist, ring, free) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
@@ -5019,6 +5021,8 @@
         '</div>' +
         actionsRow(c) +
       '</section>' +
+
+      storyBlock(storyOf(c)) +
 
       conLead(c) +
 
@@ -5307,6 +5311,70 @@
     const nextPh = PHASES[ph.length];
     return d.name + ' has it. ' + done + '. Next: ' +
       (nextPh ? nextPh.label.toLowerCase() : 'resolution') + ', and it is not yours.';
+  }
+
+  /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
+     A record read top to bottom is a profile; a profile read as prose is a
+     story: where they came from, who rang first, what each call moved, how
+     many touches, where they stand and what is owed, and how it ends — the
+     manager takes it from Interested, which is where the BDR's loop closes. */
+  function storyOf(c) {
+    const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)
+      .sort((x, y) => (x.at < y.at ? -1 : 1));
+    const calls = all.filter((t) => OUTCOME[t.outcome]);
+    const list = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
+    const camps = campsOf(c).filter(mine);
+    const d = directorOf(c);
+    const bits = [];
+    /* a list that took somebody already rung did not find them */
+    const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
+    bits.push((foundBy ? 'Found by ' + list.via + ' on the ' + list.name + ' list, ' + sayDay(list.at)
+      : 'In the book from the start' + (list ? ', put on the ' + list.name + ' list ' + sayDay(list.at) : '')) +
+      (camps.length ? ', on ' + listSay(camps.map((k) => k.name)) : ', on no campaign of yours') + '.');
+    if (calls.length) bits.push('First rung ' + sayDay(calls[0].at) + ' by ' + whoDid(calls[0]).name + '.');
+    const moves = all.filter((t) => t.moved && !isExit(t.moved[1]) && rank(t.moved[1]) > rank(t.moved[0]));
+    if (moves.length) bits.push(moves.map((t) => rungLabel(t.moved[1]) + ' ' + sayDay(t.at)).join(', then ') + '.');
+    if (all.length) bits.push(plural(all.length, 'touchpoint') + ' so far' + (calls.length !== all.length ? ', ' + plural(calls.length, 'call') : '') + '.');
+    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    bits.push('Now: ' + rg.label + ' — ' + rg.say + (c.next
+      ? '; ' + c.next.what.toLowerCase() + ' ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') + sayWhen(c.next.due) : '') + '.');
+    if (c.checkpoint === 'handed-over') bits.push(dealLine(c));
+    else if (isExit(c.checkpoint)) bits.push('That is where it ended, ' + sayDay(c.checkpointAt || c.lastCallAt || TODAY_ISO) + '.');
+    else bits.push('Your part ends at Interested: then ' + d.name + ' takes it, and discovery, proof, commercial and resolution are ' + d.name.split(' ')[0] + '’s.');
+    return bits.map(esc).join(' ');
+  }
+  function storyBlock(text) {
+    return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">The story so far</h2></div>' +
+      '<p class="b-story-text">' + text + '</p>' +
+    '</section>';
+  }
+  /* The company's story: who rang first, how many are in, who is furthest,
+     and where the BDR's part ends. */
+  function accStory(a, people, hist) {
+    const calls = hist.filter((t) => OUTCOME[t.outcome]).slice().sort((x, y) => (x.at < y.at ? -1 : 1));
+    const live = people.filter((c) => !isExit(c.checkpoint));
+    const reached = live.filter((c) => rank(c.checkpoint) >= rank('answered'));
+    const top = live.slice().sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
+    const bits = [];
+    bits.push(calls.length ? 'First rung ' + sayDay(calls[0].at) + ' by ' + whoDid(calls[0]).name + '.' : 'Nobody here has been rung.');
+    bits.push(plural(people.length, 'person') + ' on the record' + (calls.length ? ', ' + plural(calls.length, 'call') + ' in' : '') +
+      (reached.length ? ', ' + commas(reached.length) + ' reached' : '') + '.');
+    if (top && rank(top.checkpoint) >= rank('answered')) {
+      bits.push('The furthest along is ' + top.name + ', at ' + rungLabel(top.checkpoint) +
+        (top.checkpointAt ? ' since ' + sayDay(top.checkpointAt) : '') + '.');
+      bits.push(top.checkpoint === 'handed-over' ? dealLine(top)
+        : 'Your part ends at Interested: then ' + directorOf(top).name + ' takes it.');
+    }
+    return bits.map(esc).join(' ');
+  }
+  /* The hand-over from the company page: the furthest person, once warm. */
+  function accHandBtn(people) {
+    const warm = people.filter((c) => !isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered') && c.checkpoint !== 'handed-over')
+      .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
+    if (!warm) return '';
+    return '<button class="s-inline-btn" type="button" data-decide="handed-over" data-for="' + esc(warm.id) + '">' +
+      'Hand ' + esc(warm.name.split(' ')[0]) + ' to ' + esc(directorOf(warm).name) + '</button>';
   }
 
   function whatNext(c) {
@@ -6507,7 +6575,11 @@
     { k: 'showed-up',   label: 'They showed up',  from: ['meeting-set'] },
     { k: 'no-show',     label: 'They did not show', from: ['meeting-set'] },
     { k: 'interested',  label: 'They are interested', from: ['meeting-set', 'showed-up'] },
-    { k: 'handed-over', label: 'Hand to the director', from: ['showed-up', 'interested'] },
+    /* ══ THE HAND-OVER CLOSES THE BDR'S LOOP ═══════════════════════════
+       Once a lead is warm the sales manager takes it, so the door is
+       there from the first real conversation; at Interested it is the
+       thing to press. */
+    { k: 'handed-over', label: 'Hand to the director', from: ['answered', 'meeting-set', 'showed-up', 'interested'] },
     { k: 'declined',    label: 'They said no',    from: ['answered', 'meeting-set', 'showed-up', 'interested', 'callback'] },
   ];
 
