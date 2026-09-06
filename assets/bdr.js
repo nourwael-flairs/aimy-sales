@@ -255,7 +255,21 @@
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
   const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent' };
+  /* ══ AFTER THE HAND-OVER, THE DIRECTOR'S FOUR MEETINGS ═════════════════
+     Discovery, proof, commercial, resolution — the flowchart's second half.
+     None of them is the BDR's to run; all of them happen to a lead the BDR
+     produced. The record carries each as a touchpoint by the director, so
+     the person who handed them over can watch the story close. */
+  const PHASES = [
+    { k: 'discovery',  label: 'Discovery meeting',  did: 'went deeper into what needs developing' },
+    { k: 'proof',      label: 'Proof meeting',      did: 'showed the solution and how we can help' },
+    { k: 'commercial', label: 'Commercial meeting', did: 'put the proposal and the prices on the table' },
+    { k: 'resolution', label: 'Resolution',         did: 'took the final decision' },
+  ];
+  const PHASE = Object.create(null);
+  PHASES.forEach((x) => (PHASE[x.k] = x));
   const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
+    : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
 
   const OPENING = Object.create(null);
@@ -1074,6 +1088,33 @@
       c.lastCallAt = calls.length ? calls[calls.length - 1].at : last;
       c.checkpointAt = mineT[n - 1].at;
       if (rung === 'do-not-call') c.dnc = true;
+      /* ══ WHAT THE DIRECTOR HAS DONE WITH IT SINCE ═══════════════════════
+         A handed-over lead's history ended at the hand-over. The director's
+         meetings land on the record as touchpoints by the director, dated
+         off the hand-over up to today; a resolution carries the decision.
+         Off the hash, so the generator is untouched. */
+      if (rung === 'handed-over') {
+        const kk = camp.filter((x) => x.id === camps[0])[0];
+        const dirId = kk && kk.owner ? kk.owner : MANAGERS[0].id;
+        mineT[n - 1].note = 'Handed to ' + REP[dirId].name + '.';
+        const hp = Math.abs(hash(c.id + ':phase'));
+        let when = new Date(mineT[n - 1].at);
+        for (let pi = 0; pi < PHASES.length; pi++) {
+          when = new Date(when.getTime() + (pi === 0 ? 3 + hp % 8 : 6 + ((hp >> (3 * pi)) % 9)) * DAY_MS);
+          if (when.getTime() > TODAY.getTime()) break;
+          const ph = PHASES[pi];
+          const decision = ph.k === 'resolution' ? (((hp >> 12) % 3) === 0 ? 'lost' : 'won') : null;
+          touch.push({
+            id: 't' + tId++, con: c.id, camp: camps[0], by: dirId, at: when.toISOString(), secs: 0,
+            outcome: 'phase', phase: ph.k, decision: decision,
+            proposals: [], objections: [], openings: [],
+            note: decision === 'won' ? 'They signed on the terms agreed.'
+              : decision === 'lost' ? 'They decided against it.'
+              : ph.label + ' held. ' + REP[dirId].name.split(' ')[0] + ' ' + ph.did + '.',
+            lines: [], next: null, moved: null, rung: 'handed-over',
+          });
+        }
+      }
 
       /* What is owed next, and when. Only the rungs that owe something. */
       if (rung === 'callback') {
@@ -2259,9 +2300,35 @@
     if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
       '</b> did not pick up last time');
     if (!bits.length) bits.push('there is nobody left to ring');
+    const decided = decidedLately();
     return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
       '</b> people on them can be rung. ' +
-      bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.';
+      bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
+      (decided ? ' ' + decided : '');
+  }
+
+  /* ══ THE LOOP CLOSES WHERE THE FLOWCHART CLOSES ═══════════════════════
+     A decision landed this week on somebody handed over from one of your
+     campaigns. It is the one thing past the hand-over the BDR wants told. */
+  function decidedHits() {
+    const hits = [];
+    DB.touch.forEach((t) => {
+      if (t.outcome !== 'phase' || !t.decision) return;
+      if (daysBetween(t.at.slice(0, 10), TODAY_ISO) > 7) return;
+      const c = DB.byCon[t.con];
+      if (!c || !campsOf(c).some(mine)) return;
+      hits.push({ c: c, t: t });
+    });
+    return hits.sort((a, b) => (a.t.at < b.t.at ? 1 : -1));
+  }
+  function decidedLately() {
+    const hits = decidedHits();
+    if (!hits.length) return '';
+    const h = hits[0];
+    const more = hits.length - 1;
+    return '<b>' + esc(h.c.name) + '</b>, handed over ' + esc(sayWhen(h.c.checkpointAt.slice(0, 10))) + ', ' +
+      (h.t.decision === 'won' ? 'signed' : 'said no at resolution') + ' ' + esc(sayWhen(h.t.at.slice(0, 10))) +
+      (more ? ', and ' + plural(more, 'other') + ' got a decision this week' : '') + '.';
   }
 
   /* Four ways to start, each with the reason it is worth pressing. The V3
@@ -4164,6 +4231,30 @@
           commas(n[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
   }
 
+  /* With the director: the handed-over leads by the phase they have reached. */
+  function dealsLine(k) {
+    const handed = membersOf(k.id).filter((c) => c.checkpoint === 'handed-over');
+    if (!handed.length) return '';
+    const at = Object.create(null);
+    let won = 0, lost = 0, waiting = 0;
+    handed.forEach((c) => {
+      const ph = phasesOf(c);
+      const last = ph[ph.length - 1];
+      if (!last) { waiting++; return; }
+      if (last.decision === 'won') { won++; return; }
+      if (last.decision === 'lost') { lost++; return; }
+      at[last.phase] = (at[last.phase] || 0) + 1;
+    });
+    const d = actor(k.owner || MANAGERS[0].id);
+    const bits = [];
+    if (waiting) bits.push(commas(waiting) + ' waiting for discovery');
+    PHASES.forEach((x) => { if (at[x.k]) bits.push(commas(at[x.k]) + ' past ' + x.label.toLowerCase().replace(' meeting', '')); });
+    if (won) bits.push('<b>' + commas(won) + ' signed</b>');
+    if (lost) bits.push(commas(lost) + ' said no at resolution');
+    return '<p class="b-tally-out">With ' + esc(d.name) + ': ' + esc(plural(handed.length, 'person')) +
+      ' handed over — ' + bits.join(', ') + '.</p>';
+  }
+
   function campStands(k) {
     const st = campStand(k);
     const n = st.n;
@@ -4203,6 +4294,7 @@
       '</div>' +
 
       funnelOf(st.members) +
+      dealsLine(k) +
       campAimy(k) +
     '</section>';
   }
@@ -4619,16 +4711,47 @@
      everything else after it in the order it is likely to be needed. */
   function actionsRow(c) {
     const first = c.name.split(' ')[0];
-    const call = c.phone
+    /* No call on somebody who opted out: the number is on the page, the
+       verb is not. */
+    const call = c.phone && !c.dnc
       ? { html: 'Call ' + esc(first), attr: 'data-call="' + esc(c.id) + '"' } : null;
-    const moves = movesFor(c).map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
-    const send = (c.checkpoint === 'answered' || c.checkpoint === 'callback')
+    /* THE DIRECTOR HAS A NAME. "Hand to the director" handed them to
+       nobody in particular; the campaign's owner is who gets them. */
+    const moves = movesFor(c).map((m) => ({
+      html: esc(m.k === 'handed-over' ? 'Hand to ' + directorOf(c).name : m.label),
+      attr: 'data-move="' + esc(m.k) + '"',
+    }));
+    /* ══ NOT INTERESTED ENDS WITH THE PROFILE ═════════════════════════════
+       The flowchart ends "showed no interest" with the company profile
+       going out, and the verb was only on Answered and Callback. It is on
+       every rung from Answered up, and on Declined it is the thing to press
+       — once; after it has gone, nothing is. */
+    const sentSince = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
+      .filter((t) => t && t.outcome === 'sent' && t.at >= (c.checkpointAt || ''))[0];
+    const send = ['answered', 'callback', 'meeting-set', 'showed-up', 'interested', 'declined'].indexOf(c.checkpoint) >= 0
       ? { html: 'Send the company profile', attr: 'data-sendprofile="' + esc(c.id) + '"' } : null;
     /* Past a meeting the question is what happened at it; before one, the
        question is the phone. */
     const settling = rank(c.checkpoint) >= rank('meeting-set') && !isExit(c.checkpoint);
-    const list = (settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
-      .concat(send ? [send] : []);
+    let list;
+    let quiet = [];
+    let say = '';
+    if (c.checkpoint === 'handed-over') {
+      list = [];
+      quiet = call ? [call] : [];
+      say = directorOf(c).name + ' has it now.';
+    } else if (c.checkpoint === 'declined') {
+      list = send && !sentSince ? [send] : [];
+      quiet = call ? [call] : [];
+      say = sentSince ? 'They said no, and the profile went out ' + sayWhen(sentSince.at.slice(0, 10)) + '.' : '';
+    } else if (isExit(c.checkpoint)) {
+      list = [];
+      quiet = call ? [call] : [];
+      say = rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.';
+    } else {
+      list = (settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
+        .concat(send ? [send] : []);
+    }
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
        uses, so the name here is the card that would be first if you went
        back — which is the whole point of not going back. */
@@ -4637,11 +4760,8 @@
       list.map((b, i) =>
         '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
         b.attr + '>' + b.html + '</button>').join('') +
-      (!list.length
-        ? '<span class="s-block-sub">' + esc(isExit(c.checkpoint)
-            ? rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.'
-            : 'The director has it now.') + '</span>'
-        : '') +
+      (say ? '<span class="s-block-sub">' + esc(say) + '</span>' : '') +
+      quiet.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' + b.html + '</button>').join('') +
       (next
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
@@ -4746,19 +4866,25 @@
       month = m;
       const up = t.moved && rank(t.moved[1]) > rank(t.moved[0]);
       const out = t.moved && isExit(t.moved[1]);
-      return head + '<details class="s-call b-tl-item' + (up || out ? ' is-milestone' : '') + '"' +
+      /* the director's meetings are milestones too; a lost resolution is drawn as a way out */
+      const ph = t.outcome === 'phase';
+      const phTone = ph ? (t.decision === 'lost' ? 'warn' : 'ok') : null;
+      return head + '<details class="s-call b-tl-item' + (up || out || ph ? ' is-milestone' : '') + '"' +
         (i === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
-          '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : 'neutral'] || 'tone-neutral') +
+          '<span class="b-tl-dot ' + (TL_TONE[o ? o.tone : (phTone || 'neutral')] || 'tone-neutral') +
             '" aria-hidden="true"></span>' +
           '<span class="s-call-when">' + esc(sayDay(t.at)) + '</span>' +
           '<span class="s-call-by' + (t.by === 'aimy' ? ' is-ai' : '') + '">' +
             esc(actor(t.by).name) + '</span>' +
-          '<span class="s-call-out tone-' + esc(o ? o.tone : 'neutral') + '">' +
+          '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
           (t.moved
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
-            : '') +
+            : ph && t.decision
+              ? '<span class="b-tl-move' + (t.decision === 'lost' ? ' is-out' : '') + '">→ ' +
+                (t.decision === 'won' ? 'Signed' : 'Declined') + '</span>'
+              : '') +
           '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
         '</summary>' +
         '<div class="s-call-body">' +
@@ -4788,6 +4914,27 @@
      proof meeting, the commercial one and the resolution belong to the
      director, and a page that stops naming them at the handover leaves the
      caller thinking the lead has gone quiet. */
+  /* Where it is with the director, read off the phase touchpoints. */
+  function phasesOf(c) {
+    return (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
+      .filter((t) => t && t.outcome === 'phase').sort((x, y) => (x.at < y.at ? -1 : 1));
+  }
+  function dealLine(c) {
+    const d = directorOf(c);
+    const ph = phasesOf(c);
+    const since = c.checkpointAt ? ' since ' + sayDay(c.checkpointAt) : '';
+    if (!ph.length) return d.name + ' has had it' + since + '. Discovery is the first of four meetings, and none of them are yours.';
+    const done = ph.map((t) => (PHASE[t.phase] || {}).label + ' ' + sayDay(t.at)).join(' · ');
+    const last = ph[ph.length - 1];
+    if (last.decision) {
+      return d.name + ' has had it' + since + '. ' + done + '. ' +
+        (last.decision === 'won' ? 'They signed ' : 'They said no ') + sayWhen(last.at.slice(0, 10)) + '. Done.';
+    }
+    const nextPh = PHASES[ph.length];
+    return d.name + ' has had it' + since + '. ' + done + '. Next: ' +
+      (nextPh ? nextPh.label.toLowerCase() : 'resolution') + ', and it is not yours.';
+  }
+
   function whatNext(c) {
     switch (c.checkpoint) {
       case 'not-called':  return 'Next: ring them for the first time.';
@@ -4797,8 +4944,8 @@
       case 'meeting-set': return 'Next: the meeting happens, then say here whether they turned up.';
       case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this rung is waiting on.';
       case 'interested':  return 'Next: hand them to the director. Past that it is discovery, proof, commercial and resolution — and none of those are yours.';
-      case 'handed-over': return 'Done. The director runs discovery, proof, commercial and resolution from here.';
-      case 'declined':    return 'Nothing is owed. Ring again only if something has changed.';
+      case 'handed-over': return dealLine(c);
+      case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and ring again only if something has changed.';
       case 'wrong-number': return 'Nothing is owed until somebody finds a number that is theirs.';
       case 'do-not-call': return 'Nothing is owed, and nothing may be. They opted out.';
       default:            return 'Next: ring them.';
@@ -5418,6 +5565,12 @@
     return k || null;
   }
 
+  /* The director a lead is handed to: the owner of the campaign it is on. */
+  function directorOf(c) {
+    const k = DB.byCamp[campFor(c)];
+    return actor(k && k.owner ? k.owner : MANAGERS[0].id);
+  }
+
   function startCall(id, sess) {
     const c = DB.byCon[id];
     if (!c) return;
@@ -5906,15 +6059,19 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint',
       proposals: [], objections: [], openings: [],
-      note: mv === 'no-show' ? 'They did not turn up.'
+      note: mv === 'no-show' ? 'They did not turn up. Ring to reschedule.'
+        : mv === 'handed-over' ? 'Handed to ' + directorOf(c).name + '.'
         : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
       lines: [], next: null, moved: [c.checkpoint, to], rung: to,
     };
-    patchCon(c, { checkpoint: to, checkpointAt: now, next: nextForRung(to) });
+    /* A NO-SHOW OWES A CALL WITH A REASON. "Call them back" said nothing
+       about why; the flowchart's step is reach them to reschedule. */
+    patchCon(c, { checkpoint: to, checkpointAt: now,
+      next: mv === 'no-show' ? { what: 'Ring to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
     addTouch(t);
     const camp = DB.byCamp[t.camp];
     toast(c.name.split(' ')[0] + ' → ' + rungLabel(to) +
-      (camp ? ' · ' + camp.name : ''), () => {
+      (to === 'handed-over' ? ' · ' + directorOf(c).name + ' has it' : camp ? ' · ' + camp.name : ''), () => {
       dropTouch(t.id);
       patchCon(c, before);
       paint();
@@ -5976,6 +6133,12 @@
           ' passed and nobody has said whether they turned up.',
         cta: 'Say what happened',
         ask: 'Which meetings have passed without anyone saying whether they turned up?' });
+    }
+    const dec = decidedLately();
+    if (dec) {
+      tasks.push({ id: 'decided', sev: 'p2', type: 'Handed over', when: 'this week',
+        body: dec.replace(/<[^>]+>/g, ''), cta: 'See who decided',
+        ask: 'Who that was handed over got a decision this week?' });
     }
     const closing = myCampaigns()
       .map((k) => ({ k: k, left: daysBetween(TODAY_ISO, k.to), fresh: queue(k.id, 'not-called').length }))
@@ -6380,6 +6543,15 @@
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
       '">' + esc(label) + '</button>';
 
+    if (/\b(decision|decided|signed|handed)\b/.test(q)) {
+      const hits = decidedHits();
+      if (!hits.length) return 'Nobody handed over from your campaigns got a decision this week.';
+      return '<b>' + plural(hits.length, 'decision') + '</b> this week on people handed over from your campaigns.' +
+        '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
+          door(h.c.name + ' · ' + (h.t.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(h.t.at.slice(0, 10)),
+            Object.assign(cleared(), { con: h.c.id }))).join('') +
+        '</div>';
+    }
     if (/\bmeeting/.test(q)) {
       const met = DB.con.filter((c) => c.checkpoint === 'meeting-set' && c.next &&
         daysBetween(TODAY_ISO, c.next.due) < 0 && campsOf(c).some(mine));
@@ -6683,7 +6855,7 @@
     outcome: t.outcome,
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
-    rung: t.rung || null,
+    rung: t.rung || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
   });
 
   function callFacts(f, c) {
@@ -6694,6 +6866,11 @@
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
     else if (KINDS[f.outcome]) rows.push(['What happened', KINDS[f.outcome], 'neutral']);
+    else if (f.outcome === 'phase') {
+      rows.push(['What happened', (PHASE[f.phase] || {}).label + ' · ' + actor(f.by).name +
+        (f.decision ? (f.decision === 'won' ? ' · they signed' : ' · they said no') : ''),
+        f.decision === 'lost' ? 'warn' : 'ok']);
+    }
     /* Stated even when empty. A groundwork call is a thing that happened,
        and a missing row is indistinguishable from one nobody filled in. */
     if (o) {
