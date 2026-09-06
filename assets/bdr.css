@@ -1294,21 +1294,59 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    Ending a lead sat in the row of ordinary verbs at the same weight as
    "Call". It is under a rule of its own now, quiet until pressed, and it
    says what it does before it does it. */
-.b-end { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.b-end-open { color: var(--d300); }
-.b-end-open:hover { border-color: rgba(240, 68, 56, 0.5); color: var(--err-text); }
-.b-end-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.b-end-say { font-size: var(--t-small); color: var(--d200); }
-.b-end-go { color: var(--err-text); border-color: rgba(240, 68, 56, 0.4); }
-.b-end-go:hover { border-color: var(--err-text); }
+/* ══ THE WAY OUT IS A CONTROL, NOT A CAPTION ═══════════════════════════════
+   Both of these were text links, and the trigger was one with its accent
+   removed — grey words with no border, no ground and no colour, which is a
+   fact on a page rather than a button. Its hover set a border-colour on an
+   element that had no border to colour.
+
+   A bordered pill with a cancel mark, the shape every other quiet control
+   here takes, carrying the destructive tone on hover and press rather than
+   at rest: it is read far more often than it is used, and a red word sitting
+   in the masthead all day is an alarm nobody hears by the afternoon. */
+.b-end { margin-left: auto; flex: none; }
+.b-end-open, .b-end-go {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  cursor: pointer; padding: 6px 13px; border-radius: var(--r-pill);
+  transition: color var(--t-fast), background-color var(--t-fast),
+    border-color var(--t-fast), transform 160ms var(--ease-out);
+}
+/* Ghost: no fill at rest, so it sits on the page rather than on top of
+   it. The border is what is left saying 'press me', and the tone arrives
+   with the cursor. */
+.b-end-open {
+  color: var(--d200); background: none; border: 1px solid var(--card-border);
+}
+.b-end-open:hover {
+  color: var(--err-text); background: var(--err-bg); border-color: rgba(240, 68, 56, 0.45);
+}
+.b-end-open:active, .b-end-go:active { transform: scale(0.97); }
+.b-end-open:focus-visible, .b-end-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-end-mark { flex: none; opacity: 0.7; }
+.b-end-open:hover .b-end-mark { opacity: 1; }
+/* The question, on the menus' own machinery: a click anywhere else or Escape
+   is the way back, and it hangs from the right because the button does. */
+.b-end-pop { left: auto; right: 0; transform-origin: top right; width: 296px; max-width: 84vw; }
+.b-end-say {
+  margin: 2px 10px 10px; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+.b-end-acts { display: flex; align-items: center; gap: 10px; padding: 0 10px 4px; }
+/* The confirm wears the tone at rest; the way back stays a quiet word,
+   because the quiet one should be the easy one. */
+.b-end-go {
+  color: var(--err-text); background: var(--err-bg); border: 1px solid rgba(240, 68, 56, 0.45);
+}
+.b-end-go:hover { border-color: var(--err-text); background: rgba(240, 68, 56, 0.18); }
+@media (prefers-reduced-motion: reduce) {
+  .b-end-open, .b-end-go { transition: none; }
+  .b-end-open:active, .b-end-go:active { transform: none; }
+}
 
 /* Who has it now — a fact about the record, not a thing to press. */
 .b-managed b { color: var(--d50); font-weight: var(--fw-bold); }
 
-/* `display` on a class beats the browser's own `[hidden]`, so a panel that
-   said it was hidden was drawn open. Every panel that sets display says
-   what hidden means for it. */
-.b-end-strip[hidden] { display: none; }
 
 /* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
    Five sentences of prose is a paragraph to read. Where they stand now is
@@ -1454,7 +1492,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 
 /* Two more rules that were separating rather than containing. */
 .b-camps-row { margin-top: 20px; padding-top: 0; border-top: 0; }
-.b-end { margin-top: 20px; padding-top: 0; border-top: 0; }
 
 /* The briefing's own rule, above the ways to start: inside one card, and
    still a rule doing what the gap under a caption already does. */
@@ -2064,3 +2101,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    you, which is a hierarchy and not a fade. */
 .call-none { color: var(--d300); }
 .call-who { color: var(--d300); }
+
+/* The way back and the way out at opposite edges of one line. The back
+   button carries its own bottom margin for the pages that use it bare; in
+   here the row owns the spacing. */
+.b-topbar { display: flex; align-items: center; gap: 12px; }
+.b-topbar .s-back { margin-bottom: 0; }
+
+/* CENTRED ON THE LETTERS, WHICH HERE IS THE SAME AS CENTRED ON THE BOX.
+   Measured rather than nudged: in Urbanist at this size and weight the cap
+   band centre and the em box centre both sit 4.5px above the baseline, so
+   they coincide and a hand correction would only move it off. What the box
+   does need is its leading taken away — the line box is fifteen pixels of
+   font metrics around thirteen of type, and centring the mark against that
+   is centring it against air. */
+.b-end-open { line-height: 1; }
+.b-end-word { display: inline-block; line-height: 1; }

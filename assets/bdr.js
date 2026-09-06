@@ -5855,8 +5855,14 @@
     const rg = RUNG[c.checkpoint] || RUNG['not-called'];
     const n = (DB.touchesOf[c.id] || []).length;
 
+    /* THE WAY BACK AND THE WAY OUT SHARE A ROW. One leaves the record, the
+       other ends it, and they are the only two things on this page that are
+       not about working the lead — at opposite edges of the line above it,
+       as far from Call as the page can put them. */
     return '<div class="s-home">' +
-      backHere() +
+      /* WIDE, or the two-column grid takes it into the first column and
+         the far edge of the row turns out to be the middle of the page. */
+      '<div class="b-topbar s-block-wide">' + backHere() + endGate(c) + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Person' +
@@ -5917,6 +5923,44 @@
      — where the one thing this page is waiting for is whether they turned
      up. The rung says what the next press is; the row puts it first and
      everything else after it in the order it is likely to be needed. */
+  /* ══ THE WAY OUT IS A CONTROL, AT THE FAR END OF THE MASTHEAD ══════════
+     "They said no" was an .s-inline-btn — a text link — with its accent
+     taken off, which leaves grey words with no border, no ground and no
+     colour, sitting flush left under the primary exactly where a caption
+     sits. Everything that says "you can press this" had been removed, and
+     its hover set a border-colour on an element with no border.
+
+     A mark and a bordered pill, at the top right of the record beside its
+     name: a press that ends a lead should not live a thumb's width from the
+     press that rings them, and the corner opposite the primary is where an
+     interface puts the thing you do once and rarely.
+
+     The question is a popover, on the same machinery as every other menu
+     here — so a click anywhere else or Escape is the way back, and the row
+     underneath does not grow a second state to hold it. */
+  function endGate(c) {
+    const endable = !isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
+      rank(c.checkpoint) >= rank('callback');
+    if (!endable) return '';
+    return '<span class="b-menu-wrap b-end">' +
+      '<button class="b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
+        '<svg class="b-end-mark" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
+          'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+          '<circle cx="12" cy="12" r="8.75"/><path d="M5.8 18.2 18.2 5.8"/></svg>' +
+        '<span class="b-end-word">They said no</span></button>' +
+      '<div class="b-menu b-end-pop" id="noGate" role="menu" hidden>' +
+        '<span class="b-menu-cap">End it here</span>' +
+        '<p class="b-end-say">They leave your queue and nothing is owed. ' +
+          'Undo on the toast is the way back.</p>' +
+        '<div class="b-end-acts">' +
+          '<button class="b-end-go" type="button" role="menuitem" data-move="declined">' +
+            'Yes, they said no</button>' +
+          '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
+        '</div>' +
+      '</div>' +
+    '</span>';
+  }
+
   function actionsRow(c) {
     const first = c.name.split(' ')[0];
     /* No call on somebody who opted out: the number is on the page, the
@@ -5978,20 +6022,6 @@
         .concat(settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
         .concat(send ? [send] : []);
     }
-    /* THE WAY OUT, ON ITS OWN, BEHIND A PRESS. Ending a lead sat between
-       ordinary verbs at the same weight as "Call"; it is one press away
-       from the row, and it says what it does before it does it. */
-    const endable = !isExit(c.checkpoint) && c.checkpoint !== 'handed-over' && rank(c.checkpoint) >= rank('callback');
-    const gate = endable
-      ? '<div class="b-end">' +
-          '<button class="s-inline-btn b-end-open" type="button" data-pickopen="noGate">They said no</button>' +
-          '<span class="b-end-strip" id="noGate" hidden>' +
-            '<span class="b-end-say">That ends it — they leave your queue and nothing is owed.</span>' +
-            '<button class="s-inline-btn b-end-go" type="button" data-move="declined">Yes, they said no</button>' +
-            '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
-          '</span>' +
-        '</div>'
-      : '';
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
        uses, so the name here is the card that would be first if you went
        back — which is the whole point of not going back. */
@@ -6008,7 +6038,7 @@
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
         : '') +
-    '</div>' + gate;
+    '</div>';
   }
   const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
 
