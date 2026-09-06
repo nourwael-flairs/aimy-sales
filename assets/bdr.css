@@ -1893,3 +1893,26 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin-right: 4px;
 }
 .b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
+
+/* ══ 57. WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
+   Three chips with one lit, beside a sentence naming the lit one — a control
+   for picking a supplier on a page where nobody picks a supplier. It is a
+   listing now: what each of them fills, and which of them has stopped
+   answering. Under the sentence it explains, left of the button, because it
+   is that sentence's working and not another thing to press. */
+.b-src-side { flex: 1 1 26ch; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.b-src-side > .s-build-total { flex: none; }
+.b-srcs { display: flex; flex-direction: column; gap: 5px; }
+.b-srcs-cap {
+  margin-bottom: 2px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-src { display: flex; align-items: center; gap: 9px; font-size: var(--t-small); }
+.b-src-n { font-weight: var(--fw-bold); color: var(--d100); min-width: 88px; }
+.b-src-v { color: var(--d300); }
+/* A supplier that is not answering is a fact about today, not a fault of
+   yours — stated in the warning tone and left in the list, because a source
+   removed from the list is a source you stop expecting back. */
+.b-src.is-off .b-src-n { color: var(--d300); }
+.b-src.is-off .b-src-v { color: var(--warn-text); }

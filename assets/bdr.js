@@ -3206,11 +3206,24 @@
      queue. Every chip is always visible and toggling one is the whole of the
      interaction; nothing opens, nothing has to be dismissed. */
 
+  /* ══ WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
+     Three suppliers, and one of them is down — which is the normal state of
+     three third-party APIs and something the page could not say. `down` is a
+     fixture here; in a real build it is whatever the last call to them
+     returned. */
   const FINDERS = [
-    { k: 'apollo', name: 'Apollo', phone: 0.74, email: 0.86 },
-    { k: 'zoom', name: 'ZoomInfo', phone: 0.58, email: 0.79 },
-    { k: 'serper', name: 'Exa / Serper', phone: 0.41, email: 0.62 },
+    { k: 'apollo', name: 'Apollo', phone: 0.74, email: 0.86, down: false },
+    { k: 'zoom', name: 'ZoomInfo', phone: 0.58, email: 0.79, down: false },
+    { k: 'serper', name: 'Exa / Serper', phone: 0.41, email: 0.62, down: true },
   ];
+  const finderUp = () => FINDERS.filter((x) => !x.down);
+  /* ══ WHICH SUPPLIER IS ASKED IS NOT AN ADDRESS ═════════════════════════
+     It was kept in `bk`, the same URL key that holds whether you are
+     building companies or people. Pressing "Ask ZoomInfo" wrote bk=zoom, and
+     the kind survived only because a draft happened to be in memory — reload
+     that URL and the builder was collecting neither companies nor people.
+     A supplier preference for one run is not where a page is. */
+  let FINDER = 'apollo';
 
   const BUILD_AXES = [
     { k: 'industry', label: 'Industry', of: (n) => n.industry,
@@ -3289,7 +3302,12 @@
     return buildMatched(t).length;
   }
 
-  const finderOf = () => FINDERS.filter((f) => f.k === (S.bk || 'apollo'))[0] || FINDERS[0];
+  /* The one being asked, and never one that is not answering. */
+  const finderOf = () => {
+    const up = finderUp();
+    const pick = up.filter((f) => f.k === FINDER)[0];
+    return pick || up.sort((a, b) => b.phone - a.phone)[0] || FINDERS[0];
+  };
 
   function listsPage() {
     if (S.build) return buildPage();
@@ -3704,17 +3722,36 @@
 
       buildSuggestBlock(t, found, mine2) +
 
+      /* ══ THE SOURCES ARE A LISTING, NOT A CHOICE ═══════════════════════
+         They were three chips with one lit, beside a sentence naming the lit
+         one — a control for picking a supplier, on a page where nobody is
+         picking a supplier. Which one answers is not a decision a caller
+         makes; what they need is whether the numbers are coming and, when
+         one of them stops, which one and since when.
+
+         Under the sentence and to the left of the button, because it is the
+         working of that sentence rather than another thing to press. */
       '<div class="s-build-foot s-block-wide">' +
+        '<div class="b-src-side">' +
         '<p class="s-build-total s-block-wide"><b>' + commas(found.length) + '</b> of the ' +
           commas(DB.net.length) + ' I can reach match' +
           (take ? ', and <b>' + commas(take) + '</b> of yours' : '') + '. ' +
           esc(finderOf().name) + ' would give a number for about <b>' +
           commas(Math.round(found.length * finderOf().phone)) + '</b> of them.</p>' +
-        '<div class="b-cuts">' + FINDERS.map((x) =>
-          '<button class="filter-chip' + (finderOf().k === x.k ? ' active' : '') +
-          '" type="button" data-finder="' + esc(x.k) + '">' + esc(x.name) +
-          '<span class="b-cut-n">' + Math.round(x.phone * 100) + '%</span></button>').join('') +
+        '<div class="b-srcs">' +
+          '<span class="b-srcs-cap">Where the numbers come from</span>' +
+          FINDERS.map((x) =>
+            '<span class="b-src' + (x.down ? ' is-off' : '') + '">' +
+              '<span class="b-rstate-dot ' + (x.down ? 'tone-warn' : 'tone-ok') + '"></span>' +
+              '<span class="b-src-n">' + esc(x.name) + '</span>' +
+              '<span class="b-src-v">' + (x.down
+                ? 'not answering since ' + esc(sayDay(dayAdd(-2))) + ' — their end, not ours'
+                : Math.round(x.phone * 100) + '% of them come back with a number') +
+              '</span>' +
+            '</span>').join('') +
         '</div>' +
+        '</div>' +
+
         '<button class="entry-action em-direct s-build-go" type="button" data-bgo' +
           (found.length + take ? '' : ' disabled aria-disabled="true"') + '>Generate ' +
           commas(Math.min(found.length + take, 500)) + '</button>' +
@@ -4089,7 +4126,7 @@
       foot.innerHTML = finished
         ? '<button class="pipe-btn pipe-rise" type="button" data-pipe-open>' + pipeCheck(14) +
             'Open what came back</button>' +
-          FINDERS.filter((x) => x.k !== f.k).map((x) =>
+          finderUp().filter((x) => x.k !== f.k).map((x) =>
             '<button class="pipe-chip pipe-rise" type="button" data-rerun="' + esc(x.k) + '">' +
             'Run again with ' + esc(x.name) + '</button>').join('')
         : '<span class="pipe-chip">' + esc(active.label) + '…</span>';
@@ -4301,28 +4338,31 @@
      and the numbers on the page move. */
   function fillOffers(rows) {
     const f = finderOf();
+    /* "The best of the three" is not true while one of the three is not
+       answering, and the listing on the builder says which one that is. */
+    const ofThem = finderUp().length < FINDERS.length ? 'the ones answering' : 'the three';
     const noPhone = rows.filter((n) => n.seedPhone >= f.phone);
     const noMail = rows.filter((n) => n.seedEmail >= f.email);
     const known = rows.filter((n) => n.known);
     const out = [];
     if (noPhone.length) {
-      const better = FINDERS.filter((x) => x.phone > f.phone)
+      const better = finderUp().filter((x) => x.phone > f.phone)
         .sort((a, b) => b.phone - a.phone)[0];
       out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
         attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
         say: 'came back without a number, so they cannot be rung. ' +
           (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
             '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
-            : esc(f.name) + ' is the best of the three for numbers.') });
+            : esc(f.name) + ' is the best of ' + ofThem + ' for numbers.') });
     }
     if (noMail.length) {
-      const better = FINDERS.filter((x) => x.email > f.email)
+      const better = finderUp().filter((x) => x.email > f.email)
         .sort((a, b) => b.email - a.email)[0];
       out.push({ n: noMail.length, act: better ? 'Ask ' + better.name : 'No better source',
         attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
         say: 'have no email address. ' + (better
           ? esc(better.name) + ' fills ' + Math.round(better.email * 100) + '% of them.'
-          : esc(f.name) + ' is the best of the three for addresses.') });
+          : esc(f.name) + ' is the best of ' + ofThem + ' for addresses.') });
     }
     if (known.length) {
       out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
@@ -8912,10 +8952,10 @@
       return;
     }
     const finder = t.closest('[data-finder]');
-    if (finder) { go({ bk: finder.getAttribute('data-finder') }); return; }
+    if (finder) { FINDER = finder.getAttribute('data-finder'); paint(); return; }
     if (t.closest('[data-pipe-open]')) { go({ build: 'done' }, true); return; }
     const rerun = t.closest('[data-rerun]');
-    if (rerun) { S.bk = rerun.getAttribute('data-rerun'); buildRun(); return; }
+    if (rerun) { FINDER = rerun.getAttribute('data-rerun'); buildRun(); return; }
     if (t.closest('[data-save]')) { saveList(); return; }
     const sc = t.closest('[data-savecamp]');
     if (sc) { saveList(sc.getAttribute('data-savecamp')); return; }
