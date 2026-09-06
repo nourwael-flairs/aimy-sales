@@ -469,15 +469,6 @@
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
 }
 .b-sell-cap:first-child { margin-top: 0; }
-/* THE ONE LINE YOU SAY OUT LOUD, at the deck step. Everything else in this
-   block is something you look at; this is something you speak, and it was at
-   the same 13px as the tags under it. */
-.b-sell-pitch {
-  font-size: var(--ty-deck); font-weight: var(--fw-medium);
-  line-height: var(--lh-base); color: var(--d50);
-  max-width: 62ch; text-wrap: pretty;
-}
-
 /* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
    `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
    for chrome — a placeholder, a disabled control — and the shell spends them
@@ -518,28 +509,8 @@
    And the answers are capped at 58ch. They ran the full block — measured at
    800px, about 130 characters — which is roughly twice the width anybody
    tracks a line back across. */
-.b-say {
-  display: grid; grid-template-columns: 140px minmax(0, 1fr);
-  gap: 10px 20px; align-items: baseline;
-}
-.b-say-k {
-  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
-  min-width: 0;
-}
-.b-say-v {
-  font-size: var(--fs-xs); color: var(--d200);
-  line-height: var(--lh-base); max-width: 58ch; min-width: 0;
-  text-wrap: pretty;
-}
-/* The lines you SAY, at full ink and a step up in weight. A product blurb is
-   something you read before the call; an answer to an objection is something
-   that comes out of your mouth during it, and the two were the same colour. */
-.b-say.is-say .b-say-v { color: var(--d50); font-weight: var(--fw-medium); }
-.b-say.is-say { gap: 14px 20px; }
 @media (max-width: 611.98px) {
   /* Below this the label column costs more than the alignment is worth. */
-  .b-say, .b-say.is-say { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-  .b-say-v { margin-bottom: 10px; }
 }
 
 /* ══ 22. THE POLISH PASS ═══════════════════════════════════════════════════
@@ -634,7 +605,7 @@
    one word orphaned; pretty paragraphs so the last line is never a single
    word. Both are free, and both are the difference between set and typed. */
 .s-block-h, .s-rec-name, .s-rec-cap { text-wrap: balance; }
-.s-block-sub, .b-aimy-say, .s-lead-say, .b-say-v, .s-callsum-val, .ntf-row-body { text-wrap: pretty; }
+.s-block-sub, .b-aimy-say, .s-lead-say, .b-back-v, .s-callsum-val, .ntf-row-body { text-wrap: pretty; }
 
 /* T5 — THE CURRENT SURFACE IS UNDERLINED. Colour alone marked which of
    Calls / Campaigns / Lists you were on, and on the calls surface all three
@@ -821,7 +792,6 @@
   margin-bottom: 16px;
 }
 .s-home .s-lead-say { font-size: var(--t-lead); }
-.b-sell-pitch { font-size: var(--t-deck); }
 .s-home .s-rec-kind { font-size: var(--t-micro); }
 .b-qcard .s-card-title { font-size: var(--t-lead); }
 .b-reading { font-size: var(--t-body); }
@@ -1451,3 +1421,63 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
 .b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
 .b-story-mem { margin-top: 14px; }
+
+/* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
+   Four columns on one grid: the rung, the bar, how many ever got that far,
+   and what share of the rung above that is. The last column is the reason
+   the block exists, so it is set in the mono face and reads down its own
+   edge. */
+.b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
+.b-fn-row { display: contents; }
+.b-fn-head { display: contents; }
+.b-fn-head .b-fn-name, .b-fn-head .b-fn-n, .b-fn-head .b-fn-conv {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300); padding-bottom: 2px;
+}
+.b-fn-conv {
+  font-family: var(--font-mono); font-size: var(--t-small); color: var(--d200);
+  min-width: 44px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.b-fn-head .b-fn-conv { font-family: inherit; text-align: right; }
+
+/* ══ 44. WHAT TO SAY, AS SPEECH ════════════════════════════════════════════
+   The opener is the one thing in the block you say out loud, so it is set
+   as speech: the accent ground, a rule down its left edge, and the deck
+   step. What comes back is a pair — their words tagged in the warning
+   tone, your answer in full ink under it. What we sell and what you can
+   send are the quiet ends. */
+.b-open {
+  margin: 0 0 22px; padding: 16px 18px 16px 20px; position: relative;
+  background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 14px;
+}
+.b-open::before {
+  content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
+  border-radius: 99px; background: var(--accent);
+}
+.b-open-cap {
+  display: block; margin-bottom: 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-text);
+}
+.b-open-say {
+  margin: 0; max-width: 64ch; text-wrap: pretty;
+  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
+}
+.b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.b-back-row {
+  display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 4px 16px; align-items: baseline;
+}
+.b-back-k { justify-self: start; }
+.b-back-v {
+  margin: 0; max-width: 62ch; text-wrap: pretty;
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
+}
+.b-sell-ends { display: flex; flex-wrap: wrap; gap: 12px 48px; }
+.b-sell-end { min-width: 240px; flex: 1; }
+.b-sell-item { margin: 0 0 6px; font-size: var(--t-ui); color: var(--d200); max-width: 52ch; }
+.b-sell-item b { color: var(--d50); font-weight: var(--fw-bold); }
+@media (max-width: 720px) {
+  .b-back-row { grid-template-columns: 1fr; }
+  .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
+}

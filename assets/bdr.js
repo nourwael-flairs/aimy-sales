@@ -3148,7 +3148,7 @@
       '<section class="s-block s-block-wide" aria-label="Where they stand">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
           '<span class="s-block-say">what the list has yielded</span></div>' +
-        funnelOf(people) +
+        funnelOf(people, 'On the list') +
       '</section>' +
 
       '<section class="s-block s-block-wide" aria-label="What has been said to them">' +
@@ -4602,44 +4602,89 @@
   const FN_TONE = { ok: 'tone-ok', warn: 'tone-warn', neutral: 'tone-neutral',
     err: 'tone-warn' };
 
-  function funnelOf(members) {
-    const n = rungCounts(members);
+  /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT RUNG ═════════════
+     It drew how many people STAND on each rung today, scaled to the
+     biggest — which says where the book is piled up and nothing about
+     whether the ringing works. A funnel answers the other question: of the
+     people who got this far, how many got one further. So each row counts
+     everybody who ever reached that rung (their history says so, whatever
+     happened after), the bar is that share of the campaign, and the figure
+     beside it is the share of the row above — the drop, which is the whole
+     reason to look. Pipedrive and Zoho both draw it this way. */
+  const FUNNEL_STEPS = ['not-called', 'no-answer', 'answered', 'meeting-set', 'showed-up', 'interested', 'handed-over'];
+  function everAt(members) {
+    const out = Object.create(null);
+    FUNNEL_STEPS.forEach((k) => (out[k] = 0));
+    members.forEach((c) => {
+      let top = isExit(c.checkpoint) ? 0 : rank(c.checkpoint);
+      (DB.touchesOf[c.id] || []).forEach((id) => {
+        const t = TOUCH[id];
+        if (t && t.moved && !isExit(t.moved[1])) top = Math.max(top, rank(t.moved[1]));
+      });
+      FUNNEL_STEPS.forEach((k) => { if (top >= rank(k)) out[k]++; });
+    });
+    return out;
+  }
+  function funnelOf(members, topLabel) {
+    const ever = everAt(members);
     const total = members.length || 1;
-    const bars = LADDER.filter((x) => n[x.k]).map((x) =>
-      '<span class="b-fn-name">' + esc(x.label) + '</span>' +
-      '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[x.tone] || 'tone-neutral') + '" ' +
-        'style="width:' + Math.max(1, Math.round((n[x.k] / total) * 100)) + '%"></span></span>' +
-      '<span class="b-fn-n">' + commas(n[x.k]) + '</span>').join('');
-    const gone = EXITS.filter((x) => n[x.k]);
-    const goneN = gone.reduce((t, x) => t + n[x.k], 0);
-    return (bars ? '<div class="b-funnel">' + bars + '</div>' : '') +
+    let prev = null;
+    const rows = FUNNEL_STEPS.map((k) => {
+      const n = ever[k];
+      if (!n && k !== 'not-called') return '';
+      const rg = RUNG[k];
+      const pct = Math.max(1, Math.round((n / total) * 100));
+      const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
+      prev = n;
+      return '<div class="b-fn-row">' +
+        '<span class="b-fn-name">' + esc(k === 'not-called' ? (topLabel || 'On the campaign') : rg.label) + '</span>' +
+        '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[rg.tone] || 'tone-neutral') + '" ' +
+          'style="width:' + pct + '%"></span></span>' +
+        '<span class="b-fn-n">' + commas(n) + '</span>' +
+        '<span class="b-fn-conv">' + (conv == null ? '' : conv + '%') + '</span>' +
+      '</div>';
+    }).join('');
+    const n2 = rungCounts(members);
+    const gone = EXITS.filter((x) => n2[x.k]);
+    const goneN = gone.reduce((t, x) => t + n2[x.k], 0);
+    return '<div class="b-funnel">' +
+        '<div class="b-fn-head"><span class="b-fn-name">Got this far</span><span></span>' +
+          '<span class="b-fn-n">people</span><span class="b-fn-conv">of the one above</span></div>' +
+        rows + '</div>' +
       (goneN ? '<p class="b-tally-out">' + esc(plural(goneN, 'person')) +
         ' left the ladder — ' + gone.map((x) =>
-          commas(n[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
+          commas(n2[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.</p>' : '');
   }
 
-  /* With the director: the handed-over leads by the phase they have reached. */
+  /* ══ WITH THE MANAGERS ═════════════════════════════════════════════════
+     The handed-over leads, by whoever is managing each one and how far the
+     director has taken it. Named per person now that a hand-over chooses a
+     manager, so two managers on one campaign read as two. */
   function dealsLine(k) {
     const handed = membersOf(k.id).filter((c) => c.checkpoint === 'handed-over');
     if (!handed.length) return '';
-    const at = Object.create(null);
-    let won = 0, lost = 0, waiting = 0;
+    const by = Object.create(null);
     handed.forEach((c) => {
+      const m = directorOf(c);
+      const g = by[m.id] || (by[m.id] = { name: m.name, at: Object.create(null), won: 0, lost: 0, waiting: 0, n: 0 });
+      g.n++;
       const ph = phasesOf(c);
       const last = ph[ph.length - 1];
-      if (!last) { waiting++; return; }
-      if (last.decision === 'won') { won++; return; }
-      if (last.decision === 'lost') { lost++; return; }
-      at[last.phase] = (at[last.phase] || 0) + 1;
+      if (!last) { g.waiting++; return; }
+      if (last.decision === 'won') { g.won++; return; }
+      if (last.decision === 'lost') { g.lost++; return; }
+      g.at[last.phase] = (g.at[last.phase] || 0) + 1;
     });
-    const d = actor(k.owner || MANAGERS[0].id);
-    const bits = [];
-    if (waiting) bits.push(commas(waiting) + ' waiting for discovery');
-    PHASES.forEach((x) => { if (at[x.k]) bits.push(commas(at[x.k]) + ' past ' + x.label.toLowerCase().replace(' meeting', '')); });
-    if (won) bits.push('<b>' + commas(won) + ' signed</b>');
-    if (lost) bits.push(commas(lost) + ' said no at resolution');
-    return '<p class="b-tally-out">With ' + esc(d.name) + ': ' + esc(plural(handed.length, 'person')) +
-      ' handed over — ' + bits.join(', ') + '.</p>';
+    const say = Object.keys(by).map((id) => {
+      const g = by[id];
+      const bits = [];
+      if (g.waiting) bits.push(commas(g.waiting) + ' waiting for discovery');
+      PHASES.forEach((x) => { if (g.at[x.k]) bits.push(commas(g.at[x.k]) + ' past ' + x.label.toLowerCase().replace(' meeting', '')); });
+      if (g.won) bits.push('<b>' + commas(g.won) + ' signed</b>');
+      if (g.lost) bits.push(commas(g.lost) + ' said no at resolution');
+      return esc(g.name) + ': ' + esc(plural(g.n, 'person')) + ' — ' + bits.join(', ');
+    });
+    return '<p class="b-tally-out">With ' + say.join('; with ') + '.</p>';
   }
 
   function campStands(k) {
@@ -4711,46 +4756,49 @@
 
   function sellingBlock(k) {
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
-    const cap = (t) => '<h3 class="b-sell-cap">' + esc(t) + '</h3>';
-    /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════
-       What we sell and what they push back on are the same shape — a name
-       and a line about it — and they were drawn two different ways: the
-       first as bold-then-text run together on one line, the second in a
-       96px RIGHT-aligned gutter where "Something else" wrapped to two lines
-       and every label ended at a different distance from its own answer.
-       Four left edges in one block, and nothing to scan down.
-
-       One grid, one left edge, labels left-aligned so they start where the
-       eye is already going. The "is-say" modifier marks the lines you
-       actually speak, which get full ink; a product blurb is read, not said. */
-    const rows = (pairs, mod) => '<div class="b-say' + (mod || '') + '">' +
-      pairs.map((r) => '<span class="b-say-k">' + esc(r[0]) + '</span>' +
-        '<span class="b-say-v">' + esc(r[1]) + '</span>').join('') + '</div>';
+    /* ══ THE SENTENCE YOU SAY IS THE THING ON THE PAGE ═════════════════
+       Four captions, a paragraph and a two-column grid, all at one weight:
+       a block whose whole job is to be read in the ten seconds before a
+       call connects, and nothing in it caught the eye. The opener is the
+       one thing here you say OUT LOUD, so it is set as speech — big,
+       quoted, in the accent ground. What comes back at you is a pair: what
+       they say, tagged in the warning tone, and what you say to it, in
+       full ink underneath. What you sell and what you can send are the
+       quiet ends of the block, because neither is spoken. */
     return '<details class="s-block s-block-wide b-sell" id="pitchBox"' +
       (UI.pitchSeen ? '' : ' open') + '>' +
-      /* THE FOLDED LINE IS THE OPENER. It listed the product names, which
-         are on the campaign card and in the header; the one thing a folded
-         block should hand you is the sentence you are about to say. */
       '<summary class="b-sell-sum"><span class="s-block-h">What to say</span>' +
         '<span class="s-block-say b-sell-opener">' + esc(firstSentence(k.pitch)) +
         '</span></summary>' +
       '<div class="b-sell-body">' +
 
-        cap('What we sell them') +
-        rows(sells.map((x) => [x.name, x.blurb])) +
+        '<blockquote class="b-open">' +
+          '<span class="b-open-cap">Open with</span>' +
+          '<p class="b-open-say">' + esc(k.pitch) + '</p>' +
+        '</blockquote>' +
 
-        cap('Open with') +
-        '<p class="b-sell-pitch">' + esc(k.pitch) + '</p>' +
-
-        cap('What comes back, and what to say to it') +
-        rows(k.objections.map((o) =>
-          [(OBJECTION[o.k] || {}).label || o.k, o.say]), ' is-say') +
-
-        (k.resources.length
-          ? cap('What you can send') +
-            '<div class="b-cuts">' + k.resources.map((r) =>
-              '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>'
+        (k.objections.length
+          ? '<h3 class="b-sell-cap">What comes back, and what you say to it</h3>' +
+            '<div class="b-back">' + k.objections.map((o) =>
+              '<div class="b-back-row">' +
+                '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+                '<p class="b-back-v">' + esc(o.say) + '</p>' +
+              '</div>').join('') + '</div>'
           : '') +
+
+        '<div class="b-sell-ends">' +
+          '<div class="b-sell-end">' +
+            '<h3 class="b-sell-cap">What we sell them</h3>' +
+            sells.map((x) => '<p class="b-sell-item"><b>' + esc(x.name) + '</b> ' + esc(x.blurb) + '</p>').join('') +
+          '</div>' +
+          (k.resources.length
+            ? '<div class="b-sell-end">' +
+              '<h3 class="b-sell-cap">What you can send</h3>' +
+              '<div class="b-cuts">' + k.resources.map((r) =>
+                '<span class="tag tag-neutral">' + esc(r.name) + '</span>').join('') + '</div>' +
+            '</div>'
+            : '') +
+        '</div>' +
       '</div>' +
     '</details>';
   }
@@ -4899,7 +4947,7 @@
         '<div class="s-camp-list-head"><h2 class="s-block-h">Where they stand</h2>' +
           '<span class="s-block-say">' + esc(plural(callsIn(hist).length, 'call')) +
           ' into this company</span></div>' +
-        funnelOf(people) +
+        funnelOf(people, 'On the record here') +
       '</section>' +
 
       /* Every call into the company, whoever made it and whoever they
