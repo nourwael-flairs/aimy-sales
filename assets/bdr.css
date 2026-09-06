@@ -1721,3 +1721,51 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .topnav-avatar { background: none; padding: 0; overflow: hidden; }
 .msg-avatar.user-av { background: none; border: 0; border-radius: 50%; }
 .b-nm-note .b-face { margin-top: 1px; }
+
+/* ══ 53. WHAT A CAMPAIGN IS ════════════════════════════════════════════════
+   Three parts across the masthead's width, in the order a caller asks them:
+   what am I trying to get, what am I selling, whose is it. They are a
+   definition list, not a card grid — no borders between them, because the
+   caption above each is already the separator and a rule would make three
+   facts read as three objects. */
+.b-cmeta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  column-gap: 48px; row-gap: 24px; margin: 22px 0 0; max-width: 1080px;
+}
+.b-cmeta-part { min-width: 0; }
+.b-cmeta-cap {
+  display: block; margin: 0 0 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
+.b-cmeta-p { margin: 0 0 10px; line-height: var(--lh-base); max-width: 44ch; text-wrap: pretty; }
+.b-cmeta-p:last-child { margin-bottom: 0; }
+.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
+
+/* Who to ask reception for. One line, full width, under the three — it is a
+   sentence rather than a fact, and it does not want a column. */
+.b-cwho {
+  margin: 24px 0 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 92ch; text-wrap: pretty;
+}
+.b-cwho b { color: var(--d50); font-weight: var(--fw-bold); }
+
+.b-cwho-cap { display: block; margin-bottom: 6px; }
+
+/* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
+   The people ringing the same two hundred numbers as you. A face, a name and
+   what they are on it for — the knowledge graph's node, at the size a person
+   is drawn rather than the size a company is. */
+.b-team { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 24px; }
+.b-team-cap { flex-basis: 100%; margin: 0 0 2px; }
+.b-mate {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 14px 6px 6px; border-radius: var(--r-pill);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-mate.is-you { border-color: rgba(var(--accent-rgb), 0.42); background: rgba(var(--accent-rgb), 0.08); }
+.b-mate-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-mate-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); white-space: nowrap; }
+.b-mate-role { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }

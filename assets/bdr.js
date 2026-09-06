@@ -300,18 +300,73 @@
   const openLabel = (k) => (OPENING[k] ? OPENING[k].label : k);
 
   /* What we sell. Eight offerings; a campaign carries one or two. */
+  /* A caller is asked what this is on nearly every connected call, and
+     "a product or a service?" is the form the question takes. It was not
+     written down anywhere, so the answer came out different every time. */
   const SELLS = [
-    { k: 'voice',   name: 'AiMY Voice',              blurb: 'an AI voice agent that answers, qualifies and books' },
-    { k: 'qa',      name: 'AiMY QA',                 blurb: 'quality scored on every conversation, not on a sample' },
-    { k: 'know',    name: 'AiMY Knowledge',          blurb: 'one answer surface over documentation nobody can find' },
-    { k: 'support', name: 'Managed customer support', blurb: 'a support team we run for you, in your tone of voice' },
-    { k: 'test',    name: 'QA and test automation',  blurb: 'a test suite, and the engineers who keep it green' },
-    { k: 'eng',     name: 'Engineering teams',       blurb: 'engineers embedded in your team, on EU hours' },
-    { k: 'data',    name: 'Data annotation',         blurb: 'labelled data at volume, with an accuracy guarantee' },
-    { k: 'back',    name: 'Finance and back office', blurb: 'invoicing, reconciliation and reporting, run for you' },
+    { k: 'voice',   name: 'AiMY Voice',              kind: 'product',
+      blurb: 'an AI voice agent that answers, qualifies and books' },
+    { k: 'qa',      name: 'AiMY QA',                 kind: 'product',
+      blurb: 'quality scored on every conversation, not on a sample' },
+    { k: 'know',    name: 'AiMY Knowledge',          kind: 'product',
+      blurb: 'one answer surface over documentation nobody can find' },
+    { k: 'support', name: 'Managed customer support', kind: 'service',
+      blurb: 'a support team we run for you, in your tone of voice' },
+    { k: 'test',    name: 'QA and test automation',  kind: 'service',
+      blurb: 'a test suite, and the engineers who keep it green' },
+    { k: 'eng',     name: 'Engineering teams',       kind: 'service',
+      blurb: 'engineers embedded in your team, on EU hours' },
+    { k: 'data',    name: 'Data annotation',         kind: 'service',
+      blurb: 'labelled data at volume, with an accuracy guarantee' },
+    { k: 'back',    name: 'Finance and back office', kind: 'service',
+      blurb: 'invoicing, reconciliation and reporting, run for you' },
   ];
   const SELL = Object.create(null);
   SELLS.forEach((s) => (SELL[s.k] = s));
+
+  /* ══ WHOSE BOOK THIS IS ═════════════════════════════════════════════════
+     Most of these campaigns are ours. Some are run for somebody who pays us
+     to open a market they cannot reach — and on those the caller is not
+     speaking for AiMY, which changes the first sentence out of their mouth
+     and everything they can promise. The page never said which was which.
+     A client brings its own offer; the AiMY-branded products are our book. */
+  const CLIENTS = [
+    { k: 'norvant', name: 'Norvant Data', sells: ['data'],
+      what: 'training-data operations. We find the teams still labelling by hand' },
+    { k: 'harlow', name: 'Harlow Delivery', sells: ['back'],
+      what: 'back-office delivery. Their offer, our callers, their diary' },
+    { k: 'peregrin', name: 'Peregrin Labs', sells: ['test', 'eng'],
+      what: 'engineering and test capacity. We source and qualify; they take it from the meeting' },
+    { k: 'ostend', name: 'Ostend Care', sells: ['support'],
+      what: 'outsourced customer support. We open the market and hand every meeting over' },
+  ];
+  const CLIENT = Object.create(null);
+  CLIENTS.forEach((c) => (CLIENT[c.k] = c));
+
+  /* ══ WHO WE ASK FOR, AND WHY THEY WOULD TAKE THE CALL ═══════════════════
+     The one thing every caller has to know before dialling and the one thing
+     the campaign page never carried: the job title to ask reception for, and
+     the state of affairs that makes this worth their eight minutes. */
+  const ASK_OF = {
+    voice: 'whoever owns the contact centre',
+    qa: 'whoever owns quality',
+    know: 'whoever owns internal documentation',
+    support: 'the head of customer support',
+    test: 'the head of engineering',
+    eng: 'the VP of engineering',
+    data: 'whoever owns the model pipeline',
+    back: 'the finance director',
+  };
+  const WHY_NOW = {
+    voice: 'the queue is longer than the team answering it, and they are hiring to fix that',
+    qa: 'they listen to a handful of calls a week and call that quality',
+    know: 'the same question gets three different answers from three people',
+    support: 'support is covered by people whose actual job is something else',
+    test: 'they are shipping on a cadence they cannot staff',
+    eng: 'they are hiring engineers faster than they can onboard them',
+    data: 'labelling is being done by the team that is meant to be modelling',
+    back: 'month-end takes a week and nobody can say why',
+  };
 
   const INDUSTRIES = [
     { k: 'software',    label: 'Software' },
@@ -838,8 +893,15 @@
     for (let i = 0; i < CAMP_N; i++) {
       const ind = pick(r, INDUSTRIES);
       const reg = pick(r, REGIONS);
-      const sells = [pick(r, SELLS)];
-      if (chance(r, 0.35)) {
+      /* Two in five are run for a client, and those sell the client's offer
+         rather than ours — a campaign cannot be for Norvant and pitch AiMY
+         Voice, which is what a free draw from the whole catalogue produced. */
+      const forClient = chance(r, 0.4) ? pick(r, CLIENTS) : null;
+      const sells = [forClient ? SELL[pick(r, forClient.sells)] : pick(r, SELLS)];
+      if (forClient) {
+        const other = forClient.sells.filter((x) => x !== sells[0].k);
+        if (other.length && chance(r, 0.45)) sells.push(SELL[other[0]]);
+      } else if (chance(r, 0.35)) {
         const second = pick(r, SELLS);
         if (second.k !== sells[0].k) sells.push(second);
       }
@@ -884,15 +946,41 @@
          index here put half of mine in the finished pile. */
       const crew = [];
 
+      /* ══ THE GOAL IS THE ASK; THE NUMBER IS THE MEASURE ═══════════════
+         "Book 19 first meetings with logistics operations leads" was doing
+         both jobs and neither well. It read as a quota in a run of unlabelled
+         facts, and the page had to find the 19 by running a regular
+         expression over its own prose to know what to measure against — so
+         renaming an industry could silently change the target.
+
+         The ask is the goal. The number is `target`, and where it stands
+         against that number is the insight sixty pixels below. */
+      const askFor = ASK_OF[sells[0].k];
+      const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
       camp.push({
         id: 'c' + i,
         name: name,
-        goal: pick(r, [
-          'Book ' + between(r, 8, 30) + ' first meetings with ' + ind.label.toLowerCase() + ' operations leads',
-          'Open ' + between(r, 10, 25) + ' conversations in ' + reg.label + ' before the quarter closes',
-          'Find ' + between(r, 6, 18) + ' teams carrying the work ' + sells[0].name + ' takes off them',
-          'Replace ' + between(r, 5, 15) + ' manual support desks in ' + reg.label,
-        ]),
+        client: forClient ? forClient.k : null,
+        target: target,
+        persona: {
+          who: askFor,
+          at: ind.label.toLowerCase() + ' companies with more than ' +
+            commas(pick(r, [200, 500, 1000, 2000])) + ' staff in ' + reg.label,
+          why: WHY_NOW[sells[0].k],
+        },
+        /* Three ways to ask for each, or every campaign selling the same
+           thing prints the same goal and the surface reads as a template. */
+        goal: target.noun === 'meeting'
+          ? pick(r, [
+            'A first meeting with ' + askFor + ' — in the diary, not a promise to send something',
+            'Thirty minutes with ' + askFor + ', booked while you are still on the call',
+            'A scoping call with ' + askFor + ', with somebody in the room who can sign',
+          ])
+          : pick(r, [
+            'A real conversation with ' + askFor + ' about what this is costing them today',
+            'To hear from ' + askFor + ' how they run this now, and what it takes',
+            'A straight answer from ' + askFor + ' on whether this is worth their money',
+          ]),
         pitch: 'They are in ' + reg.label + ', and they are running this with people rather than with a system. ' +
           sells[0].name + ' is ' + sells[0].blurb + '. Open on what it costs them today, not on what we do.',
         sells: sells.map((s) => s.k),
@@ -4429,30 +4517,15 @@
       backBtn('data-home', 'Back to the briefing') +
 
       '<section class="s-rec-head s-block-wide">' +
-        /* "Campaign · Lina Haddad" read as a person's name. The owner is
-           labelled, and the crew — who else is ringing these people — is on
-           the page for the first time. */
-        '<span class="s-rec-kind">Campaign · owned by ' + esc(actor(k.owner).name) +
-          (function () {
-            const crew = k.crew.filter((id) => id !== me().id && id !== k.owner)
-              .map((id) => actor(id).name);
-            return crew.length ? ' · with ' + esc(listSay(crew)) : '';
-          })() + '</span>' +
+        '<span class="s-rec-kind">Campaign · ' + esc(INDUSTRY[k.industry].label) + ' · ' +
+          esc(REGION[k.region].label) + ' · ' + esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to)) +
+        '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
             (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
-        /* The dots between these come from the stylesheet, so a fact that is
-           not there does not leave a separator behind it. */
-        '<div class="s-rec-facts">' +
-          '<div><span>' + esc(k.goal) + '</span></div>' +
-          '<div>' +
-            '<span>' + esc(plural(members.length, 'person')) + ' on it</span>' +
-            '<span><b>' + commas(all.length) + '</b> yours to ring</span>' +
-            '<span>' + esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to)) + '</span>' +
-          '</div>' +
-        '</div>' +
+        campMeta(k) +
         '<div class="s-rec-actions">' +
           (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
             esc(k.id) + '">Call the next one</button>' : '') +
@@ -4500,6 +4573,76 @@
     '</div>';
   }
 
+  /* ══ WHAT A CAMPAIGN IS ════════════════════════════════════════════════
+     The masthead carried one unlabelled sentence and two counts: the goal
+     with nothing saying it was the goal, how many people are on it, and how
+     many of those are yours to ring. Both counts were already stated below
+     — the roster count heads Where it stands, and the ringable count sits
+     under To call — so the masthead was spending its whole width repeating
+     the page while five things a caller has to know before dialling were
+     nowhere on it at all.
+
+     Three parts carry it, because a caller asks three questions in this
+     order and no other: what am I trying to get out of this, what am I
+     selling, and whose is it. Then who to ask reception for, and who else
+     is ringing these people. */
+  /* The role is stored lower-case because it reads mid-sentence nearly
+     everywhere; the persona line is the one place it opens one. */
+  const up1 = (t) => String(t || '').replace(/^./, (ch) => ch.toUpperCase());
+
+  const cmPart = (cap, body) =>
+    '<div class="b-cmeta-part">' +
+      '<h2 class="b-cmeta-cap">' + esc(cap) + '</h2>' +
+      '<div class="b-cmeta-say">' + body + '</div>' +
+    '</div>';
+
+  /* ══ THE TEAM, AS PEOPLE ═══════════════════════════════════════════════
+     "owned by Karim Fouad · with Sally Tarek and Omar Fathy" was a list of
+     names in the kind line, above the campaign's own name, in the slot that
+     says what KIND of record this is. They are the people ringing the same
+     two hundred numbers as you, which is worth a face each. */
+  function teamRow(k) {
+    const ids = [k.owner].concat(k.crew.filter((id) => id !== k.owner));
+    return '<div class="b-team">' +
+      '<span class="b-cmeta-cap b-team-cap">The team</span>' +
+      ids.map((id) => {
+        const who = actor(id);
+        const you = id === me().id;
+        const role = id === k.owner ? 'Owns it'
+          : (REP[id] && REP[id].fn === 'sales-manager') ? 'Sales manager' : 'Calling';
+        return '<div class="b-mate' + (you ? ' is-you' : '') + '">' + faceOf(id, 30) +
+          '<span class="b-mate-t">' +
+            '<span class="b-mate-name">' + esc(you ? 'You' : who.name) + '</span>' +
+            '<span class="b-mate-role">' + esc(role) + '</span>' +
+          '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  function campMeta(k) {
+    const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
+    const cl = k.client ? CLIENT[k.client] : null;
+    const per = k.persona;
+    return '<div class="b-cmeta">' +
+      cmPart('The goal', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
+      cmPart('What we sell them', sells.map((x) =>
+        '<p class="b-cmeta-p"><b>' + esc(x.name) + '</b> ' +
+          '<span class="tag tag-neutral">' + esc(x.kind || 'offer') + '</span><br>' +
+          esc(x.blurb) + '</p>').join('')) +
+      cmPart('Who it is for', cl
+        ? '<p class="b-cmeta-p"><b>' + esc(cl.name) + '</b> — ' + esc(cl.what) + '. ' +
+          'You are calling as them, not as us.</p>'
+        : '<p class="b-cmeta-p"><b>Our own book</b> — nobody else is paying for these ' +
+          'meetings, so the pitch is ours to make and ours to change.</p>') +
+    '</div>' +
+    (per
+      ? '<p class="b-cwho"><span class="b-cmeta-cap b-cwho-cap">Who we are calling</span>' +
+        '<b>' + esc(up1(per.who)) + '</b> at ' + esc(per.at) + ', where ' + esc(per.why) + '.</p>'
+      : '') +
+    teamRow(k);
+  }
+
   /* ══ WHERE A CAMPAIGN IS AGAINST WHAT IT IS FOR ═══════════════════════
      Read once and used by the lead block, the figures and the readings, so
      three parts of one page cannot report three different positions.
@@ -4511,15 +4654,19 @@
   function campStand(k) {
     const members = membersOf(k.id);
     const n = rungCounts(members);
-    const target = Number((k.goal.match(/\b(\d{1,4})\b/) || [])[1]) || 0;
-    const wantsMeeting = !/\bconversation/i.test(k.goal);
+    /* Read off the field. This ran a regular expression over the goal
+       sentence to find its own target, which made the number a consequence
+       of the wording — "Replace 5 manual support desks in Belgium" measured
+       itself at 5 meetings, and any rewrite of the prose moved the bar. */
+    const target = k.target ? k.target.n : 0;
+    const wantsMeeting = !k.target || k.target.noun === 'meeting';
     const at = wantsMeeting ? 'meeting-set' : 'answered';
     const done = members.filter((c) => rank(c.checkpoint) >= rank(at)).length;
     const left = daysBetween(TODAY_ISO, k.to);
     const need = Math.max(0, target - done);
     return {
       members: members, n: n, target: target, done: done, need: need, left: left,
-      noun: wantsMeeting ? 'meeting' : 'conversation',
+      noun: k.target ? k.target.noun : 'meeting',
       /* Whole weeks, rounded up, because half a meeting a week is not a
          rate anybody can work to. */
       perWeek: left > 0 ? Math.ceil(need / Math.max(1, left / 7)) : 0,
