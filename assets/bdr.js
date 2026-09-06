@@ -6207,8 +6207,8 @@
         cta: 'Work the callbacks',
         ask: 'Who asked to be rung back and is due today?' });
     }
-    const met = DB.con.filter((c) => c.checkpoint === 'meeting-set' && c.next &&
-      daysBetween(TODAY_ISO, c.next.due) < 0 && campsOf(c).some(mine));
+    /* the same cut the chip counts, so the bell and the page cannot disagree */
+    const met = queue(null, 'after');
     if (met.length) {
       tasks.push({ id: 'meetings', sev: 'p2', type: 'Meetings', when: met.length + ' unconfirmed',
         body: plural(met.length, 'meeting') + (met.length === 1 ? ' has' : ' have') +
@@ -6636,8 +6636,7 @@
         '</div>';
     }
     if (/\bmeeting/.test(q)) {
-      const met = DB.con.filter((c) => c.checkpoint === 'meeting-set' && c.next &&
-        daysBetween(TODAY_ISO, c.next.due) < 0 && campsOf(c).some(mine));
+      const met = queue(S.camp || null, 'after');
       if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
       return '<b>' + plural(met.length, 'meeting') + '</b> ' + (met.length === 1 ? 'has' : 'have') +
         ' passed and nobody has said whether they turned up.' +
