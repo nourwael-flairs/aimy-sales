@@ -1769,3 +1769,42 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-mate-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-mate-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); white-space: nowrap; }
 .b-mate-role { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
+
+/* ══ 55. WHAT IS IN THE WAY ════════════════════════════════════════════════
+   Two halves per row: the obstacle measured on the left, what beats it on
+   the right. The measure gets a bar because the whole point is proportion —
+   "Pricing, 27" means nothing until you know it is 27 of 96 — and the remedy
+   gets the reading width, because it is a sentence somebody says out loud.
+   No rule between the halves: the gap and the caption do that work. */
+.b-ways { display: flex; flex-direction: column; gap: 22px; margin-top: 12px; }
+.b-ways-cap { margin-top: 30px; }
+.b-way {
+  display: grid; grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
+  column-gap: 44px; row-gap: 12px; align-items: start;
+}
+.b-way-l { display: flex; flex-direction: column; gap: 6px; }
+.b-way-top { display: flex; align-items: baseline; gap: 9px; }
+.b-way-n {
+  font-size: 24px; font-weight: var(--fw-bold); letter-spacing: -0.02em;
+  line-height: 1; color: var(--d50); font-variant-numeric: tabular-nums;
+}
+.b-way-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.b-way-bar {
+  display: block; height: 4px; border-radius: var(--r-pill);
+  background: var(--wash-3); overflow: hidden;
+}
+.b-way-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--warn-text); }
+.b-way-of { font-size: var(--t-small); color: var(--d300); }
+.b-way-sub { margin: 2px 0 0; font-size: var(--t-small); color: var(--d200); line-height: var(--lh-base); }
+.b-way-r { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.b-way-beat {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+}
+/* An obstacle nobody has written an answer to is a finding, not a blank. */
+.b-way-beat.is-gap { color: var(--warn-text); }
+@media (max-width: 900px) { .b-way { grid-template-columns: minmax(0, 1fr); } }
+.b-way-thin {
+  margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
+  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+}

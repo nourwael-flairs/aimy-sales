@@ -1182,11 +1182,19 @@
         const props = [];
         const objs = [];
         const opps = [];
+        /* ══ A REASON IS RECORDED WHERE A REASON IS GIVEN ═══════════════
+           Only connected calls carried one, at a coin flip, so a campaign
+           with two hundred and ninety calls held three reasons in total and
+           anything reading them back had a sample of three to work from.
+           The outcome that most obviously comes with a reason — somebody
+           saying no — carried none at all, which is the one place a caller
+           always asks why. */
         if (oc === 'reached') {
           if (chance(r, 0.55)) props.push(pick(r, PROPOSALS).k);
-          if (chance(r, 0.5)) objs.push(pick(r, OBJECTIONS).k);
+          if (chance(r, 0.72)) objs.push(pick(r, OBJECTIONS).k);
           if (chance(r, 0.15)) opps.push(pick(r, OPENINGS).k);
         }
+        if (oc === 'not-interested') objs.push(pick(r, OBJECTIONS).k);
         const t = {
           id: 't' + tId++,
           con: c.id,
@@ -4559,6 +4567,13 @@
       /* The detail behind the headline, under the doing of it. */
       campStands(k) +
 
+      /* WHAT IS STOPPING IT, BETWEEN HOW IT IS GOING AND WHAT TO SAY.
+         The block above says where the campaign stands; the one below says
+         the words. Neither said why it is stuck, which is the question
+         between them and the one a caller actually carries into the next
+         call. */
+      blockersBlock(k) +
+
       sellingBlock(k) +
 
       /* Context, not a worklist: the last few things that happened here and
@@ -4788,21 +4803,10 @@
     /* The goal is the lead block's figure and deck, sixty pixels under the
        masthead. Saying it again here made the first reading under the bars a
        copy of the first thing on the page. */
-    /* What this audience says no about, counted, with the answer the
-       campaign has already agreed to it. */
-    const objs = Object.create(null);
-    let gave = 0;
-    here.forEach((t) => (t.objections || []).forEach((o) => { objs[o] = (objs[o] || 0) + 1; gave++; }));
-    const top = Object.keys(objs).sort((a, b) => objs[b] - objs[a])[0];
-    if (top && objs[top] >= 3) {
-      const agreed = k.objections.filter((o) => o.k === top)[0];
-      out.push({
-        text: '<b>' + esc((OBJECTION[top] || {}).label || top) + '</b> is what they push back ' +
-          'on — ' + objs[top] + ' of the ' + gave + ' reasons anybody gave here. ' +
-          esc(agreed ? agreed.say : (OBJECTION[top] || {}).blurb || ''),
-        from: plural(here.length, 'call') + ' on this campaign',
-      });
-    }
+    /* The top objection was read out here, once, with the agreed answer
+       appended. What is in the way now counts every one of them, pairs
+       each with the answer and the document that carries it, and says so
+       when there is no agreed answer at all — which this could not. */
 
     /* The hour this campaign gets through, which is not the book's hour:
        a campaign into one region rings a different clock. */
@@ -5043,6 +5047,156 @@
     '</section>';
   }
 
+
+  /* ══ WHAT IS IN THE WAY ════════════════════════════════════════════════
+     The page could say where a campaign stood and what to say on it, and
+     nothing at all about why it was stuck. That is the middle of the story:
+     a caller comes off a run of calls knowing the reason they keep hearing,
+     and the campaign was the one place that could count it and could not.
+
+     Two kinds of obstacle, and they are not the same kind of thing. What
+     they SAY — counted off the calls, not scripted, so it is what this
+     audience actually raises rather than what somebody expected them to.
+     And what stops the call happening at all: no number, reception, rung
+     four times and never picked up.
+
+     Every one is paired with what beats it. For a spoken objection that is
+     the answer the team agreed and the document that carries it — and where
+     no answer was ever agreed it says so, because a campaign that lists an
+     objection and no answer has told a caller what is coming and nothing
+     else. For a blocked call it is the move: the name to ask reception for,
+     the hour this campaign gets through, the rule about the fifth attempt.
+
+     THIS IS NOT WHAT TO SAY. That block below is the script — what to
+     expect and the agreed line. This one is the measurement: what actually
+     came back, how often, and whether we have anything for it. */
+  /* Which document answers which reason. "We do not offer that" is not
+     met by a case study — it is met by the page that says what we do. */
+  const DOC_FOR = { pricing: 'pricing', feature: 'deck', service: 'faq', timing: 'case', other: 'faq' };
+  function blockersOf(k) {
+    const here = DB.touch.filter((t) => t.camp === k.id && OUTCOME[t.outcome]);
+    const members = membersOf(k.id);
+    const agreed = Object.create(null);
+    k.objections.forEach((o) => (agreed[o.k] = o.say));
+    const said = Object.create(null);
+    let gave = 0;
+    here.forEach((t) => (t.objections || []).forEach((o) => { said[o] = (said[o] || 0) + 1; gave++; }));
+    const spoken = Object.keys(said).sort((a, b) => said[b] - said[a]).map((kk) => {
+      const want = DOC_FOR[kk];
+      let doc = -1;
+      k.resources.forEach((r, i) => { if (doc < 0 && r.kind === want) doc = i; });
+      return {
+        n: said[kk], of: gave, unit: 'reason',
+        name: (OBJECTION[kk] || {}).label || kk,
+        sub: (OBJECTION[kk] || {}).blurb || '',
+        beats: agreed[kk] || '',
+        gap: !agreed[kk],
+        doc: doc,
+      };
+    });
+
+    /* What stops the call happening. Counted against different totals — a
+       roster for the first, the calls for the rest — so each says its own. */
+    const stops = [];
+    const noNum = members.filter((c) => !c.phone && !c.dnc).length;
+    if (noNum) {
+      stops.push({
+        n: noNum, of: members.length, unit: 'person', name: 'No number on the record',
+        sub: 'They are on the campaign and there is nothing to dial.',
+        beats: 'AiMY finds numbers overnight, and the finder brings people who already have one.',
+        door: { attr: 'data-bopen="' + esc(k.id) + '"', say: 'Find more for this campaign' },
+      });
+    }
+    const gate = here.filter((t) => t.outcome === 'gatekeeper').length;
+    if (gate) {
+      stops.push({
+        n: gate, of: here.length, unit: 'call', name: 'Stopped at reception',
+        sub: 'Somebody answered and it was not them.',
+        beats: 'Ask for ' + (k.persona ? k.persona.who : 'the person by their job') +
+          ' by the job, not by the name — reception puts a name through to nobody.',
+      });
+    }
+    const stuck = members.filter((c) => c.checkpoint === 'no-answer' && c.attempts >= TOUCH_RULE).length;
+    if (stuck) {
+      const h = hourOf(here);
+      stops.push({
+        n: stuck, of: members.length, unit: 'person', name: 'Rung four times, never picked up',
+        sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
+        beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
+          'Try that hour, or open their company and ring somebody else there.',
+        door: { attr: 'data-q="no-answer"', say: 'Show the no-answers' },
+      });
+    }
+    const passed = queue(k.id, 'after').length;
+    if (passed) {
+      stops.push({
+        n: passed, of: members.length, unit: 'person', name: 'Meeting passed, nothing logged',
+        sub: 'The meeting was the whole point and nobody said what happened.',
+        beats: 'Ring them and settle it — showed up, did not show, or interested.',
+        door: { attr: 'data-q="after"', say: 'Work the ' + commas(passed) },
+      });
+    }
+    stops.sort((a, b) => b.n - a.n);
+    /* Under four reasons is a handful of anecdotes, and three rows each
+       reading "1 of 3" is noise wearing the clothes of a finding. */
+    return {
+      spoken: gave >= 4 ? spoken.slice(0, 3) : [],
+      thin: gave && gave < 4 ? gave : 0,
+      stops: stops.slice(0, 2), calls: here.length, gave: gave,
+    };
+  }
+
+  function blockersBlock(k) {
+    const b = blockersOf(k);
+    if (!b.spoken.length && !b.stops.length) return '';
+    const row = (x) =>
+      '<div class="b-way">' +
+        '<div class="b-way-l">' +
+          '<div class="b-way-top">' +
+            '<span class="b-way-n">' + commas(x.n) + '</span>' +
+            '<span class="b-way-name">' + esc(x.name) + '</span>' +
+          '</div>' +
+          '<span class="b-way-bar"><span class="b-way-fill" style="width:' +
+            Math.max(3, Math.round((x.n / Math.max(1, x.of)) * 100)) + '%"></span></span>' +
+          '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
+          '<p class="b-way-sub">' + esc(x.sub) + '</p>' +
+        '</div>' +
+        '<div class="b-way-r">' +
+          '<span class="b-cmeta-cap">' + (x.gap ? 'Nothing agreed' : 'What beats it') + '</span>' +
+          '<p class="b-way-beat' + (x.gap ? ' is-gap' : '') + '">' +
+            (x.gap
+              ? 'Nobody agreed an answer to this one when the campaign was ' +
+                'written. Say the same thing to it twice, and tell ' +
+                esc(actor(k.owner).name) + ' what worked.'
+              : esc(x.beats)) + '</p>' +
+          (x.door
+            ? '<button class="s-insight-lnk" type="button" ' + x.door.attr + '>' +
+              esc(x.door.say) + '</button>'
+            : '') +
+          (x.doc != null && x.doc >= 0
+            ? '<div class="b-docs">' + docChip(k.id, x.doc, k.resources[x.doc]) + '</div>'
+            : '') +
+        '</div>' +
+      '</div>';
+    return '<section class="s-block s-block-wide" aria-label="What is in the way">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">What is in the way</h2>' +
+        '<span class="s-block-say">read off ' + esc(plural(b.calls, 'call')) +
+        ' on this campaign</span></div>' +
+      (b.spoken.length
+        ? '<h3 class="b-sell-cap">What they say, and how often</h3>' +
+          '<div class="b-ways">' + b.spoken.map(row).join('') + '</div>'
+        : b.thin
+          ? '<h3 class="b-sell-cap">What they say, and how often</h3>' +
+            '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here has given a ' +
+            'reason so far. Too few to call it a pattern — the answers this campaign ' +
+            'agreed are in What to say below.</p>'
+          : '') +
+      (b.stops.length
+        ? '<h3 class="b-sell-cap b-ways-cap">What stops the call happening</h3>' +
+          '<div class="b-ways">' + b.stops.map(row).join('') + '</div>'
+        : '') +
+    '</section>';
+  }
 
   /* ══ WHAT TO SAY, IN THE ORDER YOU SAY IT ══════════════════════════════
      It was one paragraph of product names run together, a second paragraph
