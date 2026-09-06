@@ -1376,15 +1376,30 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   position: relative; display: flex; flex-direction: column; gap: 2px;
   padding: 0 22px 0 0; margin-right: 14px;
 }
-/* the line between two moments, drawn from the dot of one to the next */
+/* ══ THE CHAIN IS TRAVELLED ════════════════════════════════════════════════
+   Every moment on this line has already happened, and they were drawn as
+   chrome-grey dots joined by the hairline this build uses for the edge of a
+   card — a stepper on which nothing had been stepped, ending on the only
+   thing with any colour in it. Read at a glance it said the opposite of what
+   it holds.
+
+   What has passed is filled and joined by a line you can see. The tip is
+   open — a ring in the rung's own tone with the page showing through, which
+   is the shape everything from a Stepper to a git log uses for the point
+   still moving. And an elided stretch is dashed on both sides, because "3
+   steps more" is a piece of the walk nobody is claiming to draw. */
 .b-story-step::after {
-  content: ""; position: absolute; left: 14px; right: 4px; top: 5px; height: 1px;
-  background: var(--card-border);
+  content: ""; position: absolute; left: 14px; right: 4px; top: 5px; height: 2px;
+  border-radius: 2px; background: var(--d400);
+}
+.b-story-step.is-gap::after,
+.b-story-step:has(+ .b-story-step.is-gap)::after {
+  background: repeating-linear-gradient(90deg, var(--d400) 0 3px, transparent 3px 7px);
 }
 .b-story-step:last-child { padding-right: 0; margin-right: 0; }
 .b-story-step:last-child::after { display: none; }
 .b-story-dot {
-  width: 10px; height: 10px; border-radius: 50%; background: var(--d400);
+  width: 10px; height: 10px; border-radius: 50%; background: var(--d200);
   border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--card-border);
 }
 .b-story-dot.tone-ok { background: var(--ok-text); box-shadow: 0 0 0 1px rgba(23,178,106,0.4); }
@@ -1396,7 +1411,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-story-t { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
 .b-story-step.is-now .b-story-k { color: var(--d50); }
-.b-story-step.is-now .b-story-dot { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16); }
+/* The tip: the tone becomes the ring and the ground shows through it. Four
+   rules rather than a variable, because the tone arrives as a class and a
+   class is the only thing the audit can pair with a rule. */
+.b-story-step.is-now .b-story-dot {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--d200), 0 0 0 6px rgba(var(--accent-rgb), 0.14);
+}
+.b-story-step.is-now .b-story-dot.tone-ok {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--ok-text), 0 0 0 6px rgba(23, 178, 106, 0.18);
+}
+.b-story-step.is-now .b-story-dot.tone-warn {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--warn-text), 0 0 0 6px rgba(247, 144, 9, 0.18);
+}
+.b-story-step.is-now .b-story-dot.tone-err {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--err-text), 0 0 0 6px rgba(240, 68, 56, 0.18);
+}
 
 /* The ladder opens the story, so it sits above the deck line rather than in
    a section of its own; a gap in the chain is a gap, not a moment. */
@@ -1785,3 +1818,78 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
   line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
 }
+
+/* ══ 56. THE BRIEF, IN THREE STEPS ═════════════════════════════════════════
+   Nine label-and-value pairs at one size, one weight and one colour. A brief
+   has three jobs and they are not equal: what you act on now, what shapes
+   the words, and the campaign's material — identical on every call in it and
+   therefore reference, not instruction.
+
+   The steps are typographic, not boxed. One card inside a card inside the
+   canvas is three borders around one idea; a size and a colour do it with
+   none. */
+.b-prep { display: flex; flex-direction: column; }
+.b-prep-id {
+  margin: -2px 0 16px; font-size: var(--t-ui); color: var(--d200);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+
+/* 1. Where they stand and what is owed — the fact that decides what this
+   call is for, on one line, at the top, where it is looked for. */
+.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.b-prep-owed { font-size: var(--t-ui); color: var(--d100); }
+.b-prep-due {
+  padding: 2px 9px; border-radius: var(--r-pill); white-space: nowrap;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  color: var(--d100); background: var(--wash-3); border: 1px solid var(--card-border);
+}
+.b-prep-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+
+/* 2. The one line here anybody says out loud, so it is set as speech. */
+.b-open {
+  margin: 0 0 18px; padding: 14px 16px;
+  background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 14px;
+}
+.b-open-cap {
+  display: block; margin-bottom: 6px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-text);
+}
+.b-open-say {
+  margin: 0; max-width: 58ch; text-wrap: pretty;
+  font-size: var(--t-lead); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50);
+}
+
+/* 3. What shapes those words. Body ink, because it is read; the label is the
+   only bold thing on the line, as it is everywhere else in this build. */
+.b-prep-know { display: flex; flex-direction: column; gap: 9px; }
+.b-prep-line {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
+}
+.b-prep-line b {
+  display: block; margin-bottom: 1px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300);
+}
+
+/* 4. What arrives mid-call: which one they actually raise, then the script. */
+.b-prep-most {
+  margin: 0 0 12px; font-size: var(--t-small); color: var(--d200);
+  line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
+}
+
+/* 5. The shelf. A step down in size and ink says reference without a rule
+   above it or a box around it. */
+.b-prep-ref { display: flex; flex-direction: column; gap: 7px; margin-top: 20px; }
+.b-prep-refp {
+  margin: 0; font-size: var(--t-small); color: var(--d300);
+  line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
+}
+.b-prep-refp b {
+  color: var(--d200); font-weight: var(--fw-bold);
+  margin-right: 4px;
+}
+.b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }

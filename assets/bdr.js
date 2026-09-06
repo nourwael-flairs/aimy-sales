@@ -8179,6 +8179,23 @@
     }
   }
 
+  /* ══ THE BRIEF IN THREE STEPS ══════════════════════════════════════════
+     Nine label-and-value pairs at one size, one weight and one colour, in
+     the order they happened to be written. Everything on it was true and
+     nothing on it was louder than anything else, so a caller with ten
+     seconds read the first two lines and started the call.
+
+     A brief has three jobs and they are not equal. WHERE THEY STAND and the
+     sentence to open with are what you act on in the next four seconds, so
+     they lead and the opener is set as speech, because it is the only line
+     here anybody says out loud. WHAT YOU KNOW is the two or three facts that
+     shape those words — what changed at the company, what was said last
+     time, what somebody wrote down. WHAT IS ON THE SHELF is the campaign's
+     own material, identical on every call in it, and it goes last and
+     quietest: reference, not instruction.
+
+     What they push back on sits between the second and the third, because
+     it is the only part of the campaign's material that arrives mid-call. */
   function callPrep(c) {
     const a = accOf(c);
     const camp = DB.byCamp[campFor(c)];
@@ -8186,73 +8203,80 @@
     const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
-    const line = (k, v) => '<p class="s-callp"><b>' + esc(k) + '</b> ' + v + '</p>';
-
-    let body = '<div class="s-brief-call">';
-    body += line('Who', esc(c.name) + ', ' + esc(c.title) +
-      (a ? ' at ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
-        commas(a.size) + ' staff' : ''));
-    /* WHERE THEY ARE, SAID BEFORE WHAT HAS PASSED. The rung is the one
-       fact that decides what this call is for, and it was the one fact the
-       brief did not carry. `since` and the owed follow-up come with it,
-       because a checkpoint with no date is a claim with no age. */
     const rg = RUNG[c.checkpoint];
-    body += line('Where they are', '<span class="tone-' + esc(rg.tone) + '">' +
-      esc(rg.label) + '</span> — ' + esc(rg.say) +
-      (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') +
-      (c.next ? esc('. ' + c.next.what + ' ' +
-        (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
-        sayWhen(c.next.due)) : ''));
-    body += line('What has passed', (hist.length
+    const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
+
+    let body = '<div class="b-prep">';
+
+    /* WHO, AS A SUBTITLE. The block is already headed with their name, so
+       repeating it as the first of nine facts spent the loudest line on the
+       one thing the reader had just read. */
+    body += '<p class="b-prep-id">' + esc(c.title) +
+      (a ? ' · ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
+        commas(a.size) + ' staff' : '') + '</p>';
+
+    /* ── 1. where they stand, and what is owed ── */
+    body += '<div class="b-prep-state">' +
+      '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
+        esc(rg.label) + '</span>' +
+      '<span class="b-prep-owed">' + esc(rg.say) +
+        (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
+      (c.next
+        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
+          esc((late ? 'was due ' : 'due ') + sayWhen(c.next.due)) + '</span>'
+        : '') +
+    '</div>';
+
+    /* ── 2. the sentence you say ── */
+    body += '<blockquote class="b-open">' +
+      '<span class="b-open-cap">Open with</span>' +
+      '<p class="b-open-say">' + esc(stageOpen(c, camp, last)) + '</p>' +
+    '</blockquote>';
+
+    /* ── 3. the two or three facts that shape it ── */
+    const know = [];
+    const sig = signalOf(a);
+    if (sig) {
+      know.push(['What changed', esc(a.name + ' ' + sig.text + ' · ' + sayWhen(sig.at)) + ' — ' +
+        signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>']);
+    }
+    know.push(['Last time', (hist.length
       ? esc(plural(hist.length, 'touchpoint') + ', last ' + kindLabel(last).toLowerCase() +
         ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
       : 'Nothing. This is the first contact.') +
-      (quietUnderFour(c) ? ' — ' + esc(quietSay(quietUnderFour(c), c)) : ''));
-    /* WHAT CHANGED, before what to remember: the news pairs with what they
-       said, and the opener below should lean on it. */
-    const sig = signalOf(a);
-    if (sig) {
-      body += line('What changed', esc(a.name + ' ' + sig.text + ' · seen ' + sayWhen(sig.at)) + ' — ' +
-        signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>');
-    }
+      (quietUnderFour(c) ? ' — ' + esc(quietSay(quietUnderFour(c), c)) : '')]);
     if (c.remember) {
-      body += line('Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
-        esc(actor(c.remember.by).name) + '</span>');
+      know.push(['Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+        esc(actor(c.remember.by).name) + '</span>']);
     }
-    if (camp) {
-      /* What it is, not just what it is called. The campaign page carried
-         the blurb and this carried the name, so a caller had the sentence
-         they say out loud on the page they had left. */
-      body += line('Selling', esc(camp.sells.map((x) =>
-        SELL[x].name + ' — ' + SELL[x].blurb).join('; ')));
-      body += line('The goal', esc(camp.goal));
-    }
-    body += line('Open with', esc(stageOpen(c, camp, last)));
-    /* ON EVERY CALL, NOT ONLY THE FIRST. It was held back until there was
-       no history to offer instead, which is the one call where the least is
-       known about what they would want. Something to send is the fallback
-       of every call that goes well and stops short of a meeting. */
-    if (camp && camp.resources.length) {
-      body += line('What you can send', '<span class="b-docs">' +
-        camp.resources.map((r, i) => docChip(camp.id, i, r)).join('') + '</span>');
-    }
-    const obj = objectionLikely(c, camp);
-    if (obj) body += line('They will push back on', obj);
-    body += '</div>';
+    body += '<div class="b-prep-know">' + know.map((x) =>
+      '<p class="b-prep-line"><b>' + esc(x[0]) + '</b> ' + x[1] + '</p>').join('') + '</div>';
 
-    /* ══ WHAT COMES BACK, AND WHAT YOU SAY TO IT ═══════════════════════════
-       The answers this campaign agreed, in the brief rather than on the
-       campaign page, because the ten seconds before a call connects is when
-       a caller reads them. The line above is the measurement — which one
-       they actually raise most — and this is the script for all of them. */
+    /* ── 4. what arrives mid-call ── */
+    const obj = objectionLikely(c, camp);
     if (camp && camp.objections.length) {
-      body += '<h3 class="b-brief-cap">What comes back, and what you say to it</h3>' +
+      body += '<h3 class="b-brief-cap">If they push back</h3>' +
+        (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
             '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
+
+    /* ── 5. the campaign's own material, quietest ── */
+    if (camp) {
+      body += '<div class="b-prep-ref">' +
+        '<p class="b-prep-refp"><b>Selling</b> ' + esc(camp.sells.map((x) =>
+          SELL[x].name + ' — ' + SELL[x].blurb).join('; ')) + '</p>' +
+        '<p class="b-prep-refp"><b>Asking for</b> ' + esc(camp.goal) + '</p>' +
+        (camp.resources.length
+          ? '<p class="b-prep-refp"><b>You can send</b> <span class="b-docs">' +
+            camp.resources.map((r, i) => docChip(camp.id, i, r)).join('') + '</span></p>'
+          : '') +
+      '</div>';
+    }
+    body += '</div>';
 
     /* THE RUN'S CONTROLS LIVE ON THE BRIEF, under a sentence naming what they
        act on. In the panel they read as pausing or stopping THIS call, which
