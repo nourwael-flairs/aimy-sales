@@ -1478,3 +1478,31 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-back-row { grid-template-columns: 1fr; }
   .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
 }
+
+/* ══ 45. NO RULES BETWEEN SECTIONS ═════════════════════════════════════════
+   The shell separates one block from the next with a hairline, and once a
+   page carries six blocks that is six rules down a screen doing what a gap
+   already does. Proximity is the separator: the boundary between two
+   sections is 64px of air — twice the 32px the grid puts between the rows
+   inside one — and the heading does the rest. Rules that survive are the
+   ones that are not separators: a row inside a list, and the notifications
+   panel, which is QA's byte for byte. */
+.s-home > .s-block { border-top: 0; padding-top: 32px; }
+.s-home > .s-block:first-of-type { padding-top: 0; }
+
+/* The four figures had a rule over each of them and 24px between: the rule
+   was reading as a table header nobody wrote. The caption over the figure
+   is the label, and a door says it is a door by its own sub-line. */
+.s-home .s-af, .s-home .b-af-door { border-top: 0; padding-top: 0; }
+.s-home .s-afs { margin-bottom: 24px; }
+@media (hover: hover) and (pointer: fine) {
+  .b-af-door:hover .s-af-cap { color: var(--accent-text); }
+}
+
+/* Two more rules that were separating rather than containing. */
+.b-camps-row { margin-top: 20px; padding-top: 0; border-top: 0; }
+.b-end { margin-top: 20px; padding-top: 0; border-top: 0; }
+
+/* The briefing's own rule, above the ways to start: inside one card, and
+   still a rule doing what the gap under a caption already does. */
+.s-home .s-starts-wrap { margin-top: 28px; padding-top: 0; border-top: 0; }
