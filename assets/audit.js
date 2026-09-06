@@ -204,7 +204,12 @@ const BANNED = [
    The reader is pure and depends on nothing but its own lexicons, so it can
    be lifted out of the source and run here. */
 {
-  const raw = read('assets/bdr.js');
+  /* Read with the endings flattened. Check 7 above is the one that cares what
+     they are; this one slices on `\n  }` and `\n  ];`, the file's indentation
+     contract, and a CRLF checkout — which is what git leaves here — silently
+     matched none of them. It did not report a wrong reading; it reported that
+     it could not run, which is the same shape of failure it exists to catch. */
+  const raw = read('assets/bdr.js').split('\r\n').join('\n');
   const grab = (name, kind) => {
     const at = raw.indexOf('  ' + kind + ' ' + name);
     if (at < 0) return null;

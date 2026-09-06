@@ -1641,3 +1641,79 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-menu-sub { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .b-menu-more { padding-top: 2px; }
 .b-menu-item.is-foot { color: var(--d200); font-weight: var(--fw-semibold); margin-top: 2px; }
+
+/* ══ 51. THE MAP ═══════════════════════════════════════════════════════════
+   A root, a rail, and what hangs off it. The rail is the drawing: one line
+   down from the company card and an elbow into each limb, which is what
+   makes a set of cards read as branches of one thing instead of another
+   grid. The last limb's line stops at its own elbow, so the rail ends where
+   the map ends rather than running into the white space below it. */
+.b-map { margin-top: 4px; }
+.b-map-body { margin-left: 22px; }
+.b-limb { position: relative; padding: 0 0 10px 26px; }
+.b-limb:last-child { padding-bottom: 0; }
+/* The elbow is one rounded corner, not a vertical meeting a horizontal at a
+   right angle — a drawn join reads as a join, and a crossing reads as two
+   lines that happen to touch. The trunk between limbs is the second rule,
+   and the last limb has none, so the rail ends at the last branch. */
+.b-limb::before {
+  content: ""; position: absolute; left: 0; top: 0; width: 17px; height: 25px;
+  border-left: 1px solid var(--card-border-hover);
+  border-bottom: 1px solid var(--card-border-hover);
+  border-bottom-left-radius: 9px;
+}
+.b-limb:not(:last-child)::after {
+  content: ""; position: absolute; left: 0; top: 25px; bottom: 0; width: 1px;
+  background: var(--card-border-hover);
+}
+.b-map-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* A node is a door with one fact on it: for a person, the rung as a dot. */
+.b-node {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start; cursor: pointer;
+  font-family: inherit; text-align: left; min-width: 172px; max-width: 260px;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-node:hover { border-color: var(--accent); background: var(--card-bg-raised); }
+.b-node:active { transform: scale(0.985); }
+.b-node:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-node.is-root {
+  max-width: 340px; padding: 12px 16px;
+  background: var(--card-bg-raised); border-color: var(--card-border-hover);
+}
+.b-node.is-here { border-color: rgba(var(--accent-rgb), 0.42); background: rgba(var(--accent-rgb), 0.08); }
+/* THE NAME WRAPS, IT DOES NOT TRUNCATE. "Finance and back office — …" is
+   not a campaign you can choose between; two lines are. The dot and the mark
+   hold the first line while it does. */
+.b-node-top { display: flex; align-items: flex-start; gap: 7px; min-width: 0; max-width: 100%; }
+.b-node-top .b-rstate-dot { margin-top: 6px; }
+.b-node-name {
+  min-width: 0; font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
+  line-height: 1.35; text-wrap: pretty;
+}
+.b-node.is-root .b-node-name { font-size: var(--t-lead); letter-spacing: -0.01em; }
+.b-node-sub {
+  font-size: var(--t-small); color: var(--d300);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.b-node-mark {
+  flex: none; margin-top: 2px; padding: 1px 6px; border-radius: var(--r-pill);
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--accent-text); background: rgba(var(--accent-rgb), 0.16);
+}
+
+/* A limb that names its own kind of join. The margin above it is what puts
+   its middle on the elbow: the rail points at the caption, not past it. */
+.b-branch-head {
+  display: inline-flex; align-items: baseline; gap: 10px;
+  margin: 16px 0 10px; font-family: inherit; text-align: left;
+}
+.b-branch-head.is-flat { cursor: default; }
+.b-branch-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.b-branch-n { font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .b-node { transition: none; }
+  .b-node:active { transform: none; }
+}

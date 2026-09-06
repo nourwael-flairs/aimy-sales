@@ -5040,6 +5040,7 @@
 
       storyBlock(accStory(a, people, hist)) +
       accLead(a, people, hist, ring, free) +
+      accMap(a, people) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
@@ -5261,6 +5262,8 @@
       '</section>' +
 
       storyBlock(storyOf(c)) +
+
+      conMap(c) +
 
       conLead(c) +
 
@@ -5558,6 +5561,128 @@
   const nmTick = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
     'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
+  /* ══ THE MAP ═══════════════════════════════════════════════════════════
+     Every record here is joined to others and no page ever drew the joins.
+     One shape on both surfaces — a root, a rail, and what hangs off it —
+     read in the two directions a caller needs. From a person: the company
+     they are at, and everybody else we hold inside it, because the person
+     who will not take the call has a colleague who might. From a company:
+     the people we hold there and the campaigns those people sit on, which
+     is the one join no other block on that page can draw. Every node is a
+     door and carries the fact that decides whether to open it. */
+  function mapShell(o) {
+    return '<section class="s-block s-block-wide" aria-label="The map">' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">The map</h2>' +
+        '<span class="s-block-say">' + esc(o.say) + '</span></div>' +
+      '<div class="b-map">' +
+        '<button class="b-node is-root" type="button" ' + o.root.attr + '>' +
+          '<span class="b-node-name">' + esc(o.root.name) + '</span>' +
+          '<span class="b-node-sub">' + esc(o.root.sub) + '</span>' +
+        '</button>' +
+        '<div class="b-map-body">' + o.limbs.map((x) =>
+          '<div class="b-limb">' + x + '</div>').join('') + '</div>' +
+      '</div>' +
+      (o.more ? '<p class="b-vfoot">' + esc(o.more) + '</p>' : '') +
+    '</section>';
+  }
+  const dotOf = (c) => '<span class="b-rstate-dot ' +
+    (TL_TONE[(RUNG[c.checkpoint] || RUNG['not-called']).tone] || 'tone-neutral') + '"></span>';
+
+  /* From a person: the company, and everybody we hold inside it. */
+  function conMap(c) {
+    const a = accOf(c);
+    if (!a) return '';
+    const all = consAt(a.id).slice().sort((x, y) =>
+      (x.id === c.id ? -1 : y.id === c.id ? 1 : rank(y.checkpoint) - rank(x.checkpoint)));
+    const shown = all.slice(0, 8);
+    return mapShell({
+      say: plural(all.length, 'lead') + ' at this company',
+      root: {
+        name: a.name,
+        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        attr: 'data-acc="' + esc(a.id) + '"',
+      },
+      limbs: ['<div class="b-map-row">' + shown.map((x) =>
+        '<button class="b-node' + (x.id === c.id ? ' is-here' : '') + '" type="button" ' +
+        'data-con="' + esc(x.id) + '">' +
+          '<span class="b-node-top">' + dotOf(x) +
+            '<span class="b-node-name">' + esc(x.name) + '</span>' +
+            (x.id === c.id ? '<span class="b-node-mark">here</span>' : '') + '</span>' +
+          '<span class="b-node-sub">' + esc(x.title) + '</span>' +
+        '</button>').join('') + '</div>'],
+      more: all.length > shown.length
+        ? plural(all.length - shown.length, 'more') + ' at ' + a.name + ', on the roster below' : '',
+    });
+  }
+
+  /* From a company: who we hold here, and what they are being worked on.
+     One limb per kind of join, because a company joins two different things
+     and a caller asks about them separately. A limb per campaign instead —
+     which is what this drew first — printed the same seven names nine times
+     down the page: true, and unreadable. Every campaign is here, not only
+     mine: a company somebody else in the building is already calling is the
+     one thing this drawing can say that no other block on the page can. */
+  function accMap(a, people) {
+    if (!people.length) return '';
+    const by = Object.create(null);
+    people.forEach((c) => campsOf(c).forEach((k) => (by[k.id] = by[k.id] || []).push(c)));
+    const ids = Object.keys(by).sort((x, y) =>
+      ((mine(DB.byCamp[y]) ? 1 : 0) - (mine(DB.byCamp[x]) ? 1 : 0)) || (by[y].length - by[x].length));
+    const mineN = ids.filter((id) => mine(DB.byCamp[id])).length;
+    const loose = people.filter((c) => !campsOf(c).length).length;
+    const folk = people.slice(0, 8);
+    const camps = ids.slice(0, 8);
+    /* The head above already counts both, so a caption repeats it or says
+       nothing. It says the thing the head cannot: which of these are mine. */
+    const cap = (name, n) =>
+      '<span class="b-branch-head is-flat">' +
+        '<span class="b-branch-name">' + esc(name) + '</span>' +
+        (n ? '<span class="b-branch-n">' + esc(n) + '</span>' : '') +
+      '</span>';
+    const limbs = [
+      cap('Who we hold here', '') +
+      '<div class="b-map-row">' + folk.map((x) =>
+        '<button class="b-node" type="button" data-con="' + esc(x.id) + '">' +
+          '<span class="b-node-top">' + dotOf(x) +
+            '<span class="b-node-name">' + esc(x.name) + '</span></span>' +
+          '<span class="b-node-sub">' + esc(x.title) + '</span>' +
+        '</button>').join('') + '</div>',
+    ];
+    if (camps.length) {
+      limbs.push(
+        cap('What they are being worked on',
+          mineN ? commas(mineN) + ' of them yours' : 'none of them yours') +
+        '<div class="b-map-row">' + camps.map((id) => {
+          const k = DB.byCamp[id];
+          return '<button class="b-node" type="button" data-camp="' + esc(id) + '">' +
+            '<span class="b-node-top">' +
+              '<span class="b-node-name">' + esc(k.name) + '</span>' +
+              (mine(k) ? '<span class="b-node-mark">yours</span>' : '') +
+            '</span>' +
+            '<span class="b-node-sub">' + commas(by[id].length) + ' of ' + commas(people.length) +
+              (mine(k) ? '' : ' · ' + actor(k.owner).name + '’s') +
+              (campOpen(k) ? '' : ' · closed') + '</span>' +
+          '</button>';
+        }).join('') + '</div>');
+    }
+    const rest = [];
+    if (people.length > folk.length) {
+      rest.push(plural(people.length - folk.length, 'more lead') + ' on the roster below');
+    }
+    if (ids.length > camps.length) rest.push(plural(ids.length - camps.length, 'more campaign'));
+    if (loose) rest.push(commas(loose) + ' on no campaign at all');
+    return mapShell({
+      say: plural(people.length, 'lead') + ' and ' + plural(ids.length, 'campaign'),
+      root: {
+        name: a.name,
+        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        attr: 'data-acc="' + esc(a.id) + '"',
+      },
+      limbs: limbs,
+      more: rest.join(' · '),
+    });
+  }
 
   function storyBlock(o) {
     return '<section class="s-block s-block-wide b-story" aria-label="The story so far">' +
