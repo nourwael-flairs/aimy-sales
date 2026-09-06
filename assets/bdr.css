@@ -1315,3 +1315,20 @@ button.pipe-chip:active { transform: scale(0.97); }
 /* ══ 37. THE DECISION ON THE CARD ══════════════════════════════════════════
    On the After-meeting cut a card ends in two answers instead of one verb. */
 .b-qcard-decide { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ══ 38. THE CHAT COLUMN ═══════════════════════════════════════════════════
+   On screen and Recent, in the column the markup reserved for them. */
+.b-chat-group { display: flex; flex-direction: column; gap: 4px; }
+.b-chat-cap {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300); padding: 0 8px 4px;
+}
+.b-chat-item {
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
+  text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.b-chat-item.is-on { background: var(--card-bg-raised); border-color: var(--card-border); color: var(--d50); }
+button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), color var(--t-fast); }
+button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
+button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

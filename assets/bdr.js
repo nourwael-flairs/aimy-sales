@@ -1662,6 +1662,7 @@
     paintProto();
     guardBack();
     postPaint(pre);
+    if (byId('aimyOverlay').classList.contains('open')) { paintBasis(); paintChats(); }
   }
 
   /* The lists a surface declares, mounted after its markup exists. Kept apart
@@ -6729,7 +6730,46 @@
   const TURNS = [];
   let THREAD_SEEN = 0;
 
-  function openCanvas() { byId('aimyOverlay').classList.add('open'); }
+  /* ══ THE CANVAS SAYS ITS BASIS ═════════════════════════════════════════
+     The bar was in the markup — "Based on" — and nothing filled it. It
+     names what the canvas is looking at: the person on the phone or on
+     screen, their company and campaign; a campaign; a company; a list; or
+     your book. */
+  function paintBasis() {
+    const host = byId('overlayContextTags');
+    if (!host) return;
+    const tag = (label) => '<span class="overlay-context-tag">' + esc(label) + '</span>';
+    const tags = [];
+    const c = (DB.call && DB.byCon[DB.call.con]) || (PENDING && DB.byCon[PENDING.con]) || (S.con && DB.byCon[S.con]);
+    if (c) {
+      tags.push(tag(c.name));
+      const a = accOf(c); if (a) tags.push(tag(a.name));
+      const k = DB.byCamp[campFor(c)]; if (k) tags.push(tag(k.name));
+    } else if (S.camp && DB.byCamp[S.camp]) tags.push(tag(DB.byCamp[S.camp].name));
+    else if (S.acc && DB.byAcc[S.acc]) tags.push(tag(DB.byAcc[S.acc].name));
+    else if (S.list && DB.byList[S.list]) tags.push(tag(DB.byList[S.list].name));
+    else tags.push(tag('Your book · ' + plural(myCampaigns().length, 'campaign')));
+    host.innerHTML = tags.join('');
+  }
+  /* ══ THE CHAT COLUMN: ON SCREEN, AND RECENT ════════════════════════════
+     The markup promised two groups and drew an empty 240px column with a
+     border. On screen is what the thread is about; Recent is what you have
+     asked this session, each a press away from being asked again. */
+  const ASKED = [];
+  function paintChats() {
+    const host = byId('overlayChats');
+    if (!host) return;
+    const c = S.con && DB.byCon[S.con], k = S.camp && DB.byCamp[S.camp], a = S.acc && DB.byAcc[S.acc], l = S.list && DB.byList[S.list];
+    const on = c ? c.name : k ? k.name : a ? a.name : l ? l.name : 'Your book';
+    host.innerHTML =
+      '<div class="b-chat-group"><div class="b-chat-cap">On screen</div>' +
+        '<div class="b-chat-item is-on">' + esc(on) + '</div></div>' +
+      (ASKED.length
+        ? '<div class="b-chat-group"><div class="b-chat-cap">Recent</div>' + ASKED.slice(0, 8).map((q) =>
+            '<button class="b-chat-item" type="button" data-ask="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>'
+        : '');
+  }
+  function openCanvas() { byId('aimyOverlay').classList.add('open'); paintBasis(); paintChats(); }
   function closeCanvas() {
     byId('aimyOverlay').classList.remove('open');
     /* THE RAIL GOES WITH IT. The canvas is where a run lives — the brief,
@@ -6836,9 +6876,33 @@
   const CALL_RE = /^(call|ring|dial)\b/i;
   const ASK_RE = /\?$|^(how|who|what|when|where|why|show|which)\b/i;
 
+  /* Who the sentence is about: a name in it on one of your campaigns, else
+     whoever is open. Nobody: ask, and keep the sentence in the thread. */
+  function logBySentence(text, read) {
+    const lower = text.toLowerCase();
+    const mineCamps = Object.create(null);
+    myCampaigns().forEach((k) => (mineCamps[k.id] = 1));
+    const c = DB.con.filter((x) => x.camps.some((k) => mineCamps[k]) && lower.indexOf(x.name.toLowerCase()) >= 0)[0]
+      || (S.con ? DB.byCon[S.con] : null);
+    openCanvas();
+    say('you', esc(text));
+    if (!c) {
+      say('aimy', 'Who was that with? Put the name in the sentence and I will log it against them.');
+      return true;
+    }
+    PENDING = {
+      con: c.id, camp: campFor(c), secs: 0, sess: null, auto: false, lines: [],
+      note: text, read: read, outcome: impliedDisp(read.disp, read.props, read.objs) || 'no-answer',
+      guessed: !read.disp, when: read.when || 1, bySentence: c.name,
+    };
+    callLogPropose();
+    return true;
+  }
+
   function runInput(text) {
     const t = String(text || '').trim();
     if (!t) return;
+    if (ASK_RE.test(t) && ASKED.indexOf(t) < 0) ASKED.unshift(t);
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
@@ -6901,17 +6965,19 @@
       /* Naming a record is navigation, and navigation closes the canvas. It
          opened over the person it had just taken you to otherwise — the
          thing you asked for, behind the surface you asked it from. */
-      if (found && found.con) { hideCanvas(); go({ con: found.con.id }); return; }
+      if (found && found.con) { hideCanvas(); go(Object.assign(cleared(), { con: found.con.id })); return; }
       if (found && found.camp) {
         hideCanvas();
         go(Object.assign(cleared(), { camp: found.camp.id }));
         return;
       }
-      /* A sentence that reads as a call, against whoever is open. */
+      /* ══ A SENTENCE ABOUT A CALL LOGS IT ═════════════════════════════════
+         The bar promises "log a touchpoint" and this said "open the call
+         panel". The sentence names who, or whoever is open is who; the
+         read-back is the same card a call ends on, agreed in a word. */
       const read = readCall(t);
-      if (read.disp && S.con) {
-        toast('Open the call panel to log that against ' + DB.byCon[S.con].name.split(' ')[0] + '.');
-        return;
+      if (read.disp || read.props.length || read.objs.length) {
+        if (logBySentence(t, read)) return;
       }
     }
 
@@ -6986,25 +7052,35 @@
         '</div>';
     }
     if (/callback|call back|rung back|owe|due/.test(q)) {
+      const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
       return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be rung back' +
         (S.camp ? ' on this campaign' : ' across your ' +
-        plural(myCampaigns().length, 'campaign')) + '. ' +
+        plural(myCampaigns().length, 'campaign')) + (late ? ', <b>' + commas(late) + '</b> of them overdue' : '') + '. ' +
         door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' }));
     }
     if (/how many|left|remaining|to call/.test(q)) {
+      /* the after-meeting cut is not rung, so it is not in the sum; it is said */
       return '<b>' + commas(all.length) + '</b> people can be rung' +
         (S.camp ? ' on this campaign' : '') + ' — ' +
-        BUCKETS.filter((b) => counts[b.k]).map((b) =>
-          commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '. ' +
-        door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' }));
+        BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
+          commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
+        (counts.after ? ' And <b>' + plural(counts.after, 'meeting') + '</b> ' +
+          (counts.after === 1 ? 'has' : 'have') + ' passed without a word.' : '') + ' ' +
+        door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' })) +
+        (counts.after ? ' ' + door('Say what happened', Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : '');
     }
     if (/happened|yesterday|today.*call|did i/.test(q)) {
-      const since = new Date(Date.now() - 2 * DAY_MS).toISOString();
-      const mineT = DB.touch.filter((t) => t.by === me().id && t.at >= since);
-      if (!mineT.length) return 'Nothing on the record from you in the last two days.';
+      /* today and yesterday both answered "the last two days" */
+      const yday = /yesterday/.test(q);
+      const from = yday ? dayAdd(-1) : TODAY_ISO;
+      const to = yday ? TODAY_ISO : dayAdd(1);
+      const label = yday ? 'yesterday' : 'today';
+      const mineT = DB.touch.filter((t) => t.by === me().id && OUTCOME[t.outcome] &&
+        t.at.slice(0, 10) >= from && t.at.slice(0, 10) < to);
+      if (!mineT.length) return 'Nothing on the record from you ' + label + '.';
       const by = Object.create(null);
       mineT.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
-      return '<b>' + plural(mineT.length, 'call') + '</b> in the last two days — ' +
+      return '<b>' + plural(mineT.length, 'call') + '</b> ' + label + ' — ' +
         Object.keys(by).map((k) => by[k] + ' ' +
           ((OUTCOME[k] || { label: k }).label.toLowerCase())).join(', ') + '.';
     }
@@ -7028,8 +7104,42 @@
         Math.round((b.got / b.n) * 100) + '% of ' + plural(b.n, 'call') + ' made in that hour ' +
         'got through.';
     }
-    return 'I can tell you what is due, how many are left to call, what you logged ' +
-      'recently, and when people actually answer. Everything else is on the page.';
+    /* ══ A CAMPAIGN NAMED IN A QUESTION GETS ITS STANDING ══════════════════
+       "How is Ireland logistics doing?" got the fallback; a name alone
+       navigates, a name in a question answers. */
+    const named = myCampaigns().filter((k) => q.indexOf(k.name.toLowerCase()) >= 0)[0];
+    if (named) {
+      const st = campStand(named);
+      const cq = queue(named.id);
+      const backs = cq.filter((c) => c.checkpoint === 'callback').length;
+      const fresh = cq.filter((c) => c.checkpoint === 'not-called').length;
+      return '<b>' + esc(named.name) + '</b>: <b>' + st.done + '</b> of the ' + st.target + ' ' +
+        st.noun + (st.target === 1 ? '' : 's') + ' it is for' +
+        /* the same sentences the campaign's own lead uses */
+        (!st.need ? ' — past its goal, everything from here is on top' +
+            (st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go' : '')
+          : st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go — ' + st.perWeek + ' a week lands the other ' + st.need
+          : ', past its end date and ' + st.need + ' short') +
+        '. <b>' + commas(cq.length) + '</b> to ring' + (backs || fresh ? ': ' +
+          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never rung' : null].filter(Boolean).join(', ') : '') + '. ' +
+        door('Open the campaign', Object.assign(cleared(), { camp: named.id }));
+    }
+    /* ══ WHAT TO DO FIRST ══════════════════════════════════════════════════
+       The bell's own footer asks it, and got the fallback. The bell's rows
+       are already in order; the answer says so and hands each one on. */
+    if (/do first|first and why|what should i do|where do i start|start with|priorit/.test(q)) {
+      const tasks = bdrTasks();
+      if (!tasks.length) return 'Nothing is waiting on you. Ring the next one.';
+      const first = tasks[0];
+      return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
+        (tasks.length > 1 ? ' Then ' + tasks.slice(1, 3).map((t) => esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
+        '<div class="b-cuts">' + tasks.slice(0, 4).map((t) =>
+          '<button class="s-insight-lnk" type="button" data-ask="' + esc(t.ask) + '">' + esc(t.cta) + '</button>').join('') + '</div>';
+    }
+    return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
+      'people answer, which meetings passed, what changed at the companies you ring, who went ' +
+      'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
+      'what to do first. Name a person or a campaign to go there; a sentence about a call logs it.';
   }
 
   /* ══ THE CALL IN THE CANVAS, PORTED FROM THE V3 BUILD ═══════════════════
@@ -7362,7 +7472,7 @@
     lbuildSpend();
     TURNS.push({
       who: 'aimy',
-      html: esc(logSay(call)) + ' Is that right?',
+      html: (call.bySentence ? 'Against ' + esc(call.bySentence) + ' — ' : '') + esc(logSay(call)) + ' Is that right?',
       hint: 'Or tell me what I got wrong, or press [1] to [7] for the outcome.',
       /* THE NOTE COMES OFF THE PROPOSAL and stays on the record's card. Here
          it is either the sentence you typed one line above or the paraphrase
