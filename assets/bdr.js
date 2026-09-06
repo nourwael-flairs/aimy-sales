@@ -1151,6 +1151,31 @@
       if (!c.phone && chance(r, 0.1)) { c.phone = '+31 6 ' + between(r, 1000000, 9999999); c.enrichedAt = dayAdd(-1); }
     });
 
+    /* ══ SIGNALS: WHAT CHANGED AT A COMPANY WHILE YOU WERE RINGING IT ═════
+       The notes' two examples: budget came up and then they raised a round;
+       they were not hiring and then a role went up. A signal sits on the
+       account, dated, with where it was seen. About one company in twelve
+       has one from the last three weeks (one in twenty-four; sixty-nine on
+       one caller's queue read as noise, not news) — off the id's hash, so the corpus
+       is unmoved. The kinds are the openings lexicon's own. */
+    const SIGNAL_TEXT = {
+      'funded':       ['raised a Series A', 'raised a Series B', 'closed a funding round', 'took growth funding'],
+      'hiring':       ['posted three QA engineer roles', 'is hiring a Head of Support', 'put up five support desk roles', 'is hiring test automation engineers'],
+      'new-hire':     ['has a new CTO', 'has a new Head of Operations', 'appointed a new COO', 'has a new Head of Customer Experience'],
+      'renewal-near': ['renews its current supplier next quarter', 'has a contract renewal due in October'],
+      'visited-site': ['visited our pricing page twice this week', 'downloaded the case study from our site'],
+    };
+    const SIGNAL_SRC = { 'funded': 'the news', 'hiring': 'LinkedIn', 'new-hire': 'LinkedIn', 'renewal-near': 'their filings', 'visited-site': 'our site' };
+    const SIGNAL_KINDS = Object.keys(SIGNAL_TEXT);
+    acc.forEach((a) => {
+      const h = Math.abs(hash(a.id + ':signal'));
+      a.signal = null;
+      if (h % 24 !== 0) return;
+      const k = SIGNAL_KINDS[(h >> 4) % SIGNAL_KINDS.length];
+      const texts = SIGNAL_TEXT[k];
+      a.signal = { k: k, text: texts[(h >> 8) % texts.length], src: SIGNAL_SRC[k], at: dayAdd(-((h >> 12) % 21)) };
+    });
+
     /* ── What the sources can find ──
        The book is what you have; this is what is out there. Three thousand
        rows a search runs against, generated from the same pools so a result
@@ -1736,11 +1761,71 @@
      So each branch names the record it came from. Ranked by how much it
      changes the next sixty seconds — something a person wrote down beats
      something the pattern noticed. */
+  /* ══ A SIGNAL IS FRESH FOR THREE WEEKS ═════════════════════════════════
+     After that it is history, and history is what the calls already say. */
+  const SIGNAL_FRESH_DAYS = 21;
+  const signalOf = (a) => (a && a.signal && daysBetween(a.signal.at, TODAY_ISO) <= SIGNAL_FRESH_DAYS ? a.signal : null);
+  /* What the signal does to what they said. The notes' example: the budget
+     came up, then they raised a round — the objection has moved. */
+  function signalMeans(sig, hist) {
+    const objs = [];
+    (hist || []).forEach((t) => (t.objections || []).forEach((o) => { if (objs.indexOf(o) < 0) objs.push(o); }));
+    const had = (k) => objs.indexOf(k) >= 0;
+    if (sig.k === 'funded') {
+      if (had('pricing')) return 'Pricing came up before. The budget has just moved.';
+      if (had('timing')) return 'Timing came up before. A round changes the quarter.';
+      return 'Money just arrived; open on what they will spend it on.';
+    }
+    if (sig.k === 'hiring') {
+      if (had('feature') || had('service')) return 'They said it did not do enough; they are hiring people to do it by hand.';
+      return 'They are hiring into the work we sell. Open on the roles.';
+    }
+    if (sig.k === 'new-hire') {
+      if (objs.length) return esc(OBJECTION[objs[0]].label) + ' came up with the last person. This is a new one.';
+      return 'A new decision-maker; the old no does not bind them.';
+    }
+    if (sig.k === 'renewal-near') return 'A renewal is the one moment they compare. Open on it.';
+    return 'They came to us. Open on what they looked at.';
+  }
+  function signalReading(a, sig, hist) {
+    return {
+      text: esc(a.name) + ' ' + esc(sig.text) + ' ' + esc(sayWhen(sig.at)) + '. ' + signalMeans(sig, hist),
+      from: 'a signal from ' + sig.src,
+    };
+  }
+
+  /* ══ FOUR TOUCHES BEFORE YOU LET GO ════════════════════════════════════
+     The notes' rule. Somebody rung or reached, under four touchpoints,
+     quiet for a week, nothing owed: the rule says touch them again. Returns
+     the touches so far when the rule applies, otherwise nothing. */
+  const TOUCH_RULE = 4;
+  const QUIET_DAYS = 7;
+  function quietUnderFour(c) {
+    if (isExit(c.checkpoint) || rank(c.checkpoint) < 1 || rank(c.checkpoint) > 3) return 0;
+    const ids = DB.touchesOf[c.id] || [];
+    if (!ids.length || ids.length >= TOUCH_RULE) return 0;
+    if (c.next && c.next.due > TODAY_ISO) return 0;
+    const last = TOUCH[ids[0]];
+    return last && daysBetween(last.at.slice(0, 10), TODAY_ISO) >= QUIET_DAYS ? ids.length : 0;
+  }
+  const quietSay = (n, c) => {
+    const last = TOUCH[(DB.touchesOf[c.id] || [])[0]];
+    return plural(n, 'touch', 'touches') + ', then ' + (last ? plural(daysBetween(last.at.slice(0, 10), TODAY_ISO), 'day') : 'a while') +
+      ' of nothing. The rule is ' + TOUCH_RULE + ' before you let go.';
+  };
+
   function aimySays(c, onRecord) {
     const camp = DB.byCamp[campFor(c)];
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     const last = hist[0];
     const a = accOf(c);
+
+    /* ══ SOMETHING CHANGED AT THE COMPANY ═══════════════════════════════
+       Fresh news outranks the last call: it is the one thing that can
+       turn a no into a different conversation, and it is paired with
+       what they said. */
+    const sig = signalOf(a);
+    if (sig) return signalReading(a, sig, hist);
 
     /* Somebody wrote this down about them, on purpose. On the record it
        already has a home — the stand section prints it — so the reading
@@ -1778,6 +1863,9 @@
       return { text: plural(c.attempts, 'attempt') + ' and nobody has picked up. ' +
         'The number may not be the one they answer.', from: 'this record’s own history' };
     }
+    /* Under four touches and gone quiet: the rule says touch them again. */
+    const quiet = quietUnderFour(c);
+    if (quiet) return { text: quietSay(quiet, c), from: 'the four-touch rule' };
     /* Nothing has happened yet, so the useful thing is who they are. */
     if (!hist.length && a && camp) {
       return {
@@ -4495,6 +4583,7 @@
           '<div>' +
             '<span>' + esc(a.domain) + '</span>' +
             (REGION[a.region] ? '<span>' + esc(REGION[a.region].label) + '</span>' : '') +
+            (signalOf(a) ? '<span><b>' + esc(a.signal.text) + '</b> · ' + esc(sayWhen(a.signal.at)) + '</span>' : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
@@ -4593,6 +4682,9 @@
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
   function accSays(a, people, hist) {
+    /* What changed here, paired with what anybody here said. */
+    const sig = signalOf(a);
+    if (sig) return signalReading(a, sig, hist);
     /* Somebody else got through here. That is the most useful sentence on
        the page and the one nothing else in this product would tell you. */
     const got = hist.filter((t) => t.outcome === 'reached')[0];
@@ -5102,6 +5194,12 @@
   }
   const qRank = (c) => B_ORDER[bucketOf(c)];
   function qTie(a, b) {
+    /* A company that just moved, then the people the four-touch rule
+       names, then the campaign closing first, then size. */
+    const ga = signalOf(accOf(a)) ? 0 : 1, gb = signalOf(accOf(b)) ? 0 : 1;
+    if (ga !== gb) return ga - gb;
+    const qa = quietUnderFour(a) ? 0 : 1, qb = quietUnderFour(b) ? 0 : 1;
+    if (qa !== qb) return qa - qb;
     const ea = earliestEnd(a), eb = earliestEnd(b);
     if (ea !== eb) return ea < eb ? -1 : 1;
     const sa = accOf(a) ? accOf(a).size : 0, sb = accOf(b) ? accOf(b).size : 0;
@@ -6241,6 +6339,25 @@
           today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length + ' meetings set.',
         cta: 'Read the summary', ask: 'What happened today?' });
     }
+    /* ══ SIGNALS AND THE FOUR-TOUCH RULE, AS REMINDERS ══════════════════
+       The notes' "remind and notify": what changed at the companies you
+       are ringing, and who went quiet before the fourth touch. */
+    /* this week's, for a reminder; the cards and the canvas carry three weeks */
+    const sigs = signalHits(7);
+    if (sigs.length) {
+      tasks.push({ id: 'signals', sev: 'p2', type: 'Signals',
+        when: plural(sigs.length, 'company', 'companies') + ' moved this week',
+        body: sigs.slice(0, 2).map((h) => h.a.name + ' ' + h.sig.text + ' ' + sayWhen(h.sig.at)).join('; ') +
+          (sigs.length > 2 ? '; and ' + plural(sigs.length - 2, 'more') : '') + '. Each has somebody in your queue.',
+        cta: 'See the signals', ask: 'What changed at the companies I am calling?' });
+    }
+    const quiet = queue(null, 'all').filter(quietUnderFour);
+    if (quiet.length) {
+      tasks.push({ id: 'four-touch', sev: 'p3', type: 'Touchpoints', when: quiet.length + ' under four',
+        body: plural(quiet.length, 'person') + ' you rang or reached went quiet before the fourth touch. ' +
+          'The rule is four before you let go.',
+        cta: 'Show them', ask: 'Who went quiet before the fourth touch?' });
+    }
     const loose = DB.list.filter((l) => !l.for);
     if (loose.length) {
       const n = loose.reduce((t, l) => t + l.has.length, 0);
@@ -6250,6 +6367,18 @@
         cta: 'Put them on one', ask: 'Which of my lists are not on a campaign?' });
     }
     return tasks;
+  }
+  /* The companies with a fresh signal and somebody in your queue, newest first. */
+  function signalHits(withinDays) {
+    const by = Object.create(null);
+    queue(null, 'all').forEach((c) => {
+      const a = accOf(c);
+      const sig = signalOf(a);
+      if (!sig) return;
+      if (withinDays != null && daysBetween(sig.at, TODAY_ISO) > withinDays) return;
+      (by[a.id] || (by[a.id] = { a: a, sig: sig, people: [] })).people.push(c);
+    });
+    return Object.keys(by).map((k) => by[k]).sort((x, y) => (x.sig.at < y.sig.at ? 1 : -1));
   }
   function refreshTasks() {
     AIMY_TASKS.length = 0;
@@ -6635,6 +6764,24 @@
             Object.assign(cleared(), { con: h.c.id }))).join('') +
         '</div>';
     }
+    if (/\b(signal|news|changed|funding|hiring|moved)\b/.test(q)) {
+      const hits = signalHits();
+      if (!hits.length) return 'Nothing has changed at the companies in your queue these three weeks.';
+      return '<b>' + plural(hits.length, 'company', 'companies') + '</b> in your queue moved. Each door is the company; the first person to ring is on it.' +
+        '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
+          door(h.a.name + ' · ' + h.sig.text + ' · ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
+        '</div>';
+    }
+    if (/\b(quiet|fourth|four touch|touchpoints?)\b/.test(q)) {
+      const quiet = queue(null, 'all').filter(quietUnderFour);
+      if (!quiet.length) return 'Nobody you rang or reached has gone quiet under four touches.';
+      return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
+        '<div class="b-cuts">' +
+          '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' +
+          quiet.slice(0, 6).map((c) =>
+          door(c.name + ' · ' + quietUnderFour(c) + ' of ' + TOUCH_RULE, Object.assign(cleared(), { con: c.id }))).join('') +
+        '</div>';
+    }
     if (/\bmeeting/.test(q)) {
       const met = queue(S.camp || null, 'after');
       if (!met.length) return 'No meeting has passed without an outcome. Everything booked is still ahead.';
@@ -6806,10 +6953,18 @@
       (c.next ? esc('. ' + c.next.what + ' ' +
         (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
         sayWhen(c.next.due)) : ''));
-    body += line('What has passed', hist.length
+    body += line('What has passed', (hist.length
       ? esc(plural(hist.length, 'touchpoint') + ', last ' + kindLabel(last).toLowerCase() +
         ' ' + sayWhen(last.at)) + (last.note ? ' — ' + esc(last.note) : '')
-      : 'Nothing. This is the first contact.');
+      : 'Nothing. This is the first contact.') +
+      (quietUnderFour(c) ? ' — ' + esc(quietSay(quietUnderFour(c), c)) : ''));
+    /* WHAT CHANGED, before what to remember: the news pairs with what they
+       said, and the opener below should lean on it. */
+    const sig = signalOf(a);
+    if (sig) {
+      body += line('What changed', esc(a.name + ' ' + sig.text + ' ' + sayWhen(sig.at)) + ' — ' +
+        signalMeans(sig, hist) + ' <span class="s-callp-who">— ' + esc(sig.src) + '</span>');
+    }
     if (c.remember) {
       body += line('Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
         esc(actor(c.remember.by).name) + '</span>');
