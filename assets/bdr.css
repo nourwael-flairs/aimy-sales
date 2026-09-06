@@ -1,0 +1,2066 @@
+@charset "UTF-8";
+/* ═══════════════════════════════════════════════════════════════════════════
+   AiMY SALES — THE BDR BUILD, WHAT IT ADDS TO THE SHEET
+
+   THIS FILE IS AN APPENDIX, NOT A STYLESHEET. The shell, the components, the
+   background, the rail, the briefing card, the queue row, the toast and the
+   canvas are `sales.css` and are used unchanged — the BDR build is a new
+   PROCESS over the existing design, not a new design. If something here
+   starts redefining what sales.css already says, that is the mistake this
+   header exists to name, and the rule is to delete the rule and use the one
+   that is already there.
+
+   Loaded after sales.css and before aimy-responsive.css, so the responsive
+   layer still supersedes both.
+
+   Two things in this product genuinely did not exist before:
+
+     THE WINDOWED LIST. A campaign holds thousands of people and the book
+     holds twenty thousand calls. `.s-queue` renders every row it is given,
+     which is right for the six the V3 briefing showed and impossible for six
+     thousand. `.b-vlist` positions rows by arithmetic so only what is on
+     screen exists. Its CHILDREN are still `.s-qrow` and friends — the
+     windowing is a positioning wrapper, not a second row design.
+
+     THE CHECKPOINT LADDER. Where one lead stands with a BDR, which the V3
+     build did not have because it derived status rather than storing a rung.
+
+   Everything else here is a small variant of something in sales.css and says
+   which one.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ══ 1. THE WINDOWED LIST ══════════════════════════════════════════════════
+   The host is as tall as the whole list; the rows inside it are positioned
+   by index. About thirty exist at a time whatever the list holds.
+
+   POSITIONING ONLY. No display, no font, no colour — the row element carries
+   its own class from sales.css (`.s-qrow`, `.s-camp-row`) and that decides
+   what it looks like. A `display` here would fight the grid those rules set
+   up, which is how an appendix turns into a second design system. */
+.b-vlist { position: relative; width: 100%; }
+.b-vrow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  box-sizing: border-box;
+  padding: 12px 0;
+}
+
+/* THE HAIRLINE IS ON EVERY ROW, not on `.s-qrow + .s-qrow` as sales.css:4934
+   has it. Under windowing the first row in the DOM is not the first row in
+   the list — it is whichever one the scroll position reached — so an
+   adjacent-sibling rule leaves exactly one row without a separator and moves
+   which one that is as you scroll. */
+.b-vrow + .b-vrow,
+.b-vlist > .b-vrow:first-child { border-top: 1px solid var(--hairline); }
+.b-vlist > .b-vrow:first-child { border-top: 0; }
+
+.b-vfoot { padding: 12px 0 0; font-size: var(--fs-xs); color: var(--d500); }
+
+/* ══ 2. THE CHECKPOINT LADDER ══════════════════════════════════════════════
+   Where one lead stands, as eight bars and one sentence. The bars carry the
+   position; the sentence carries the meaning — eight labels along a track is
+   eight things to read to answer one question, and at this width each would
+   be four characters.
+
+   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per rung would
+   be eight colours to learn, and the product already spends its semantic
+   colours on status. */
+
+/* ══ 3. THE CHIP ROW OVER A QUEUE ══════════════════════════════════════════
+   Which part of the queue you are looking at. `.filter-chip` is the library's
+   and is what the float bar's tray already uses, so this is a layout wrapper
+   around existing chips rather than a new control. The count rides inside the
+   chip because a chip that says "Due" and a number beside it that says 12 are
+   two things to read for one fact. */
+.b-cuts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
+
+/* §4 held a campaign row. Campaigns are cards in the same grid as people
+   now, so the row and its five rules are gone with it. */
+
+/* ══ 5. THE PAGER ══════════════════════════════════════════════════════════
+   Where you are in the queue, and the two ways to move. Never "load more":
+   a caller has to be able to go back to the fifteen they were just on. */
+.b-pager {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-top: 12px;
+}
+.b-pager-go { display: flex; gap: 8px; }
+
+/* §6 styled an outcome row in the call rail. Logging is a conversation
+   again — AiMY proposes what it heard and you agree or correct it — so the
+   row and its rules are gone with it.
+
+   The one thing the rail still needs that the library does not ship: Skip
+   sits in the handset row and is a word rather than a shape, because it is
+   not one of the four everybody already knows. */
+.call-tool.call-tool-word {
+  width: auto; padding: 0 12px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+}
+
+/* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
+   A row of counts, stated rather than linked. These are RUNGS, and the queue
+   under them cuts by what is owed — so a door here would open a filter that
+   does not exist, which is worse than no door. */
+
+/* §8 held a labelled chip row per axis. The builder asks in the composer
+   now, the way the V3 build does — you say who you are after and the page
+   shows what it heard, with AiMY offering the rest. So the rows are gone. */
+
+/* The keyboard cursor. j and k move it, o opens the row it is on. Tinted
+   rather than outlined: an outline on an absolutely positioned row of fixed
+   height would be clipped by its own neighbours. */
+.b-vrow.is-cursor { background: var(--accent-dim); }
+
+/* ══ 9. ONE LIBRARY DEFECT, OVERRIDDEN HERE AND FLAGGED ════════════════════
+   `aimy-ds.css:627` sets `.evidence-pill .val { color: #fff }` — a hard-coded
+   white, which the design system's own Level 1 gate bans. In light mode the
+   pill's ground is near-white, so the NUMBER on every rail card is white on
+   white: the figure that makes the card's sentence believable is the one part
+   of it nobody can read. Measured: computed colour rgb(255,255,255) on
+   "1,066 to call".
+
+   This is not new and not caused by this build — the V3 build under /old/ has
+   the same line and the same defect. It is fixed HERE rather than THERE
+   because the library is an extracted copy and stays a faithful one, and it
+   is written down rather than quietly patched because it belongs in the
+   library's own gap register. `--text-strong` is the token that already means
+   "the strongest text on this surface" and it flips with the theme. */
+.evidence-pill .val { color: var(--text-strong); }
+
+/* ══ 10. THE HEADING IS THE SWITCHER ═══════════════════════════════════════
+   Not a control above the heading and not a column beside it: the title of
+   the block IS the choice. The one you are on reads as the heading it would
+   have been anyway; the other two sit beside it, quiet, and press to become
+   it. A product with three surfaces does not need a row of chrome to say so.
+
+   An h2 with buttons inside, so the page keeps a real heading in its outline
+   whichever surface is showing. The type is `.s-block-h`'s, because the one
+   you are on IS that heading and must not be a different size from the one
+   it replaces. */
+.b-switch {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
+  margin: 0;
+}
+.b-switch-btn {
+  appearance: none; border: 0; background: transparent; padding: 0;
+  cursor: pointer; font-family: var(--font-display);
+  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); color: var(--d500);
+  transition: color var(--t-fast);
+}
+.b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+.b-switch-btn.is-on { color: var(--d50); }
+.b-switch-n {
+  margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; color: var(--d600);
+}
+.b-switch-btn.is-on .b-switch-n { color: var(--d400); }
+
+/* ══ 11. THE QUEUE, AS CARDS IN THREE COLUMNS ══════════════════════════════
+   A row had space for a name, a line and a button — enough to be ranked by
+   and not enough to prepare with, so every call began by opening the record
+   to find out who this was. A card carries what a caller wants before the
+   phone rings, and three of them fit across the page.
+
+   `repeat(3, …)` with a floor, not `auto-fill`: the shell's own `.s-grid`
+   fills by width and would give two columns here and four on a wide monitor.
+   Three is the number the card was written for. It drops to two and then one
+   where three would stop fitting.
+*/
+.b-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+@media (max-width: 1087.98px) { .b-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 719.98px)  { .b-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── NO FIXED HEIGHT, OR A TALL CARD LOSES ITS BOTTOM ─────────────────────
+   This was `height: 100%`, which pins the card to the height the grid row
+   already has — and `.type-card` carries `overflow: hidden` for its rounded
+   corners, so any card whose content ran past that had the rest cut off.
+   Measured on a three-line AiMY note: the block's tint, the basis line and
+   part of the number were simply gone.
+
+   The grid's `align-items: stretch` was already doing the job the height was
+   added for. Without the height the row sizes to its tallest card and every
+   card stretches to match it, which is the same result and cannot clip. */
+.b-qcard { gap: 0; height: auto; }
+.b-qcard .tc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.b-qcard .tc-type { margin-left: auto; text-align: right; }
+
+/* ── THE CARD'S OWN PADDING IS ON ITS CHILDREN ────────────────────────────
+   `.type-card` is `padding: 0` and every `.tc-*` part carries `… 14px` of its
+   own. Two of the parts here are this build's and had none, so the reason
+   line and the note ran flush to the card's left edge while the name and the
+   company above them were indented — a ragged margin down the middle of every
+   card. The 14px is the library's number, not a new one. */
+.b-qcard-why { padding: 8px 14px 0; }
+.b-qcard .b-qcard-note { padding: 6px 14px 0 23px; }
+
+/* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
+   The first cut ranked by ink alone and everything was a different grey, with
+   the number a caller was about to dial the faintest thing on the card. The
+   second overcorrected: nearly everything at full white, so the name at 16/800
+   and the reason at 14/600 were both shouting and neither led.
+
+   Size, weight and ink now descend together, which is what makes a hierarchy
+   read at a glance rather than on inspection. Nothing drops below `--d400`,
+   so nothing is dim — the lower steps are barely muted, not faded out.
+
+     16 / 800 / d50    the name          what you are choosing between
+     13 / 700 / d50    why they are here smaller than the name, so it reads second
+     13 / 600 / d100   the role          identity
+     12 / 500 / d300   the company       context you read once
+     12 / 400 / d300   what was said     somebody else's sentence, italic
+     12 / 600 / d200   the number        the thing you are about to dial
+     10 / 700 / d400   the campaign      a label, not a sentence
+
+   Scoped to `.b-qcard`, so no other card in the product moves. */
+.b-qcard .tc-type {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d400);
+}
+.b-qcard .tc-title {
+  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight); color: var(--d50);
+}
+.b-qcard .b-qcard-role {
+  padding: 6px 14px 0; font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--d100);
+}
+.b-qcard-where {
+  margin: 0; padding: 2px 14px 0;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--d300);
+}
+.b-qcard-why {
+  font-size: var(--fs-base); font-weight: var(--fw-bold);
+  line-height: var(--lh-snug); color: var(--d50);
+}
+.b-qcard .b-qcard-note {
+  margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-regular);
+  line-height: var(--lh-snug); color: var(--d300);
+}
+
+/* The number and the one action, pushed to the foot of the card so every card
+   in a row ends on the same line.
+
+   `.b-qcard .b-qcard-foot`, not `.b-qcard-foot`: the foot also carries
+   `.tc-gov`, and sales.css:2550 sets `.s-card .tc-gov { margin-top: 16px }` at
+   (0,2,0) — which beat a bare class and left the footers 21px out of line on
+   cards that were themselves exactly the same height. Measured at 612 · 633 ·
+   628 across one row of three. */
+.b-qcard .b-qcard-foot {
+  margin-top: auto; display: flex; align-items: center;
+  justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.b-qcard-num {
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; color: var(--d200);
+}
+
+/* The keyboard cursor on a card. A ring rather than a tint: a card already
+   has a ground of its own, and tinting it would fight the status tag on it. */
+.b-qcard.is-cursor { border-color: var(--accent); }
+
+/* ══ 12. WHAT AiMY KNOWS ABOUT THIS ONE ════════════════════════════════════
+   One line per card, under the mark, with the record it came from named
+   underneath it. The mark is what makes it AiMY's rather than the product's,
+   and the basis line is what makes it a reading rather than an assertion —
+   an insight that cannot say where it came from is one a caller has to take
+   on trust, and the first wrong one costs the rest.
+
+   Tinted rather than bordered: it belongs to the card, not beside it. */
+/* ── THE BLOCK IS THE CARD'S FLEXIBLE REGION ──────────────────────────────
+   It had no bottom margin and the foot above it took `margin-top: auto`, so
+   the free space in a card landed BETWEEN them — which meant the tallest card
+   in a row had no space at all and its block's rounded bottom sat flush on
+   the footer rule. Measured across nine cards: gaps of 28, 11, 0, 0, 51, 51,
+   0, 0, 0. Zero reads as clipped, and 51 next to 0 reads as broken.
+
+   So the block absorbs the slack instead of the gap doing it. `flex: 1 1 auto`
+   lets it grow to whatever the row's tallest card left over, its text stays
+   at the top, and every card's block now ends the same distance above the
+   foot. The blocks differ in height and agree on where they finish, which is
+   the opposite of what they did before. */
+.b-aimy {
+  flex: 1 1 auto;
+  display: flex; gap: 8px; align-items: flex-start;
+  margin: 10px 14px 14px; padding: 10px 12px;
+  background: var(--accent-dim);
+  border-radius: var(--r-md);
+}
+.b-aimy-mark { width: 13px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+.b-aimy-say {
+  min-width: 0; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--d100);
+}
+.b-aimy-say b { font-weight: var(--fw-bold); }
+.b-aimy-from {
+  display: block; margin-top: 4px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+}
+
+/* ══ 13. THE BUILDER'S HEADING TAKES ITS OWN WIDTH ═════════════════════════
+   `.s-sheet-head` is a flex row and `.s-sheet-head-main` is only `min-width:
+   0` — it has no grow, so it is sized by its content. Its content is a text
+   input at `width: 100%`, which resolves against a parent sized by that same
+   input: circular, so the browser falls back to an input's default width and
+   the list name reads "Software · 200 to 1,000 · Nethe".
+
+   In the V3 build the head sits in a sheet that constrains it; here it sits
+   in the page grid, which does not. One `flex: 1 1 auto`. */
+.s-home > .s-sheet-head > .s-sheet-head-main { flex: 1 1 auto; }
+
+/* §14 styled the conversation options. The shell already has them —
+   .s-cb-opts, .s-cb-opt and .s-cb-hint — so this build renders those and
+   defines nothing. */
+
+
+/* ══ 15. THE THIRD RANK ON A RECORD HEADER ════════════════════════════════
+   A company header carries three ranks of fact, and the shell has two: the
+   heading, and `.s-block-sub` at `--d500` for everything under it. The third
+   is our record OF the company rather than a fact about it — the domain, the
+   region, which campaigns of ours it sits on — and none of it changes who
+   you ring next, so at `--d500` beside the headcount it competed with the one
+   line the block exists for.
+
+   `--d600`, which is the next step down the ink ladder the library already
+   ships. Barely muted, on purpose: quiet enough to rank below the size and
+   the industry, loud enough that the domain is still readable, because a
+   fact nobody can read is a fact that may as well not be drawn. */
+
+/* ══ 16. A CARD THAT OPENS SOMETHING LOOKS LIKE IT ═════════════════════════
+   The library already gives `.type-card` a hover state — the border lifts and
+   a shadow arrives — which is a promise that pressing it does something. It
+   did not: only the title inside was a door, so the hover was a lie the card
+   told about ninety per cent of its own surface.
+
+   The pointer is the other half of that promise, and it is all that is added:
+   the border and the shadow already say the card is live, and a second
+   emphasis on top of them would make a grid of fifteen cards flash. Controls
+   inside keep their own cursors, and the router matches them first. */
+.b-qcard[data-open] { cursor: pointer; }
+
+/* ══ 17. THE SEARCH BOX ════════════════════════════════════════════════════
+   The shell has one search field, `.dd-search`, and it is built to sit at the
+   top of an open dropdown: sticky, negative margins, a hairline under it and
+   the panel's own ground behind. Dropped into a page header it drew a full-
+   width bar with a rule under it across the whole block.
+
+   So this is that field's anatomy — an icon, a bare input, no chrome on the
+   input itself — in a shape that sits in a flex header row beside the
+   switcher. It borrows the card's border and ground rather than inventing
+   its own, because it is a control on a page and not a panel of its own.
+
+   `align-self: center` because `.s-camp-list-head` aligns on the baseline,
+   which puts a bordered box's text baseline level with a heading's and hangs
+   the box's top edge above the line. */
+.b-find {
+  display: flex; align-items: center; gap: 6px; align-self: center;
+  padding: 6px 10px; border-radius: var(--r-lg);
+  border: 1px solid var(--card-border); background: var(--card-bg);
+  min-width: 220px; max-width: 320px; flex: 0 1 280px;
+  transition: border-color var(--t-fast);
+}
+.b-find:focus-within { border-color: var(--accent); }
+.b-find svg { color: var(--d500); flex-shrink: 0; }
+.b-find input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
+}
+.b-find input::placeholder { color: var(--d600); }
+/* A way out that does not need the keyboard. Only drawn when there is
+   something to clear, so it is never a control that does nothing. */
+.b-find-x {
+  border: 0; background: none; cursor: pointer; padding: 0 2px;
+  font-size: var(--fs-sm); line-height: 1; color: var(--d500);
+  transition: color var(--t-fast);
+}
+.b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+
+
+/* ══ 18. THE ACTIONS BELOW THE TITLE ROW ═══════════════════════════════════
+   `Call these 15` and `Let AiMY call 15` are drawn from what the search
+   matched, so they come and go while you type. Sharing a flex row with the
+   search box meant the box moved every time they did — sliding sideways under
+   the cursor mid-word, which is the one thing a search field must never do.
+
+   So they live here, under a title row that holds only what cannot change:
+   the switcher, whose counts are of the whole book, and the box. Pulled up
+   into the head's own bottom margin so the two rows still read as one header
+   rather than as a header and a stray row of links. */
+.b-acts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: -8px 0 16px;
+}
+
+/* ══ 19. THE LADDER AS A NARROWING ═════════════════════════════════════════
+   Ten counts in one flat run put `9 meeting set` and `2 do not call` at the
+   same rank and hid the one shape a campaign has: it narrows. Two hundred
+   rung, forty answered, nine with a meeting.
+
+   Three columns, and the middle one is the finding. Every bar is drawn
+   against the WHOLE roster rather than against the largest rung — scaled to
+   the biggest bar, every campaign looks the same shape and the narrowing
+   disappears. The name and the number are at full ink because they are the
+   content; the track behind the bar is the only quiet thing here. */
+.b-funnel {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 8px 14px; align-items: center; margin: 4px 0 4px;
+}
+.b-fn-name { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); }
+.b-fn-bar {
+  height: 8px; border-radius: var(--r-pill);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  overflow: hidden;
+}
+.b-fn-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--d400); }
+.b-fn-fill.tone-ok { background: var(--ok-text); }
+.b-fn-fill.tone-warn { background: var(--warn-text); }
+.b-fn-fill.tone-neutral { background: var(--d300); }
+.b-fn-n {
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
+  font-variant-numeric: tabular-nums;
+}
+/* The ways off the ladder. A sentence, not a fourth bar: three counts that
+   share one fact — these people are no longer callable — read as a sentence,
+   and drawing them as steps would put leaving on the same scale as climbing. */
+.b-tally-out { margin-top: 10px; font-size: var(--fs-xs); color: var(--d200); }
+
+/* ══ 20. WHAT TO SAY ═══════════════════════════════════════════════════════
+   Four kinds of preparation at one weight, in the block a caller scans in the
+   ten seconds before a call connects. It ran the product names together in a
+   paragraph, gave the pitch the same step, drew the objections with the
+   Remember stripe — a treatment meant for a durable fact about one person —
+   and finished with grey tags.
+
+   Now each part is captioned and the opener is the loudest thing in it,
+   because the opener is the only line here you say out loud. */
+/* What comes back at you and the answer agreed to it. It was a section on
+   the campaign page and it is a part of the brief now — the caption is the
+   brief's, the pair underneath is the one this build already drew. */
+.b-brief-cap {
+  margin: 18px 0 10px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d300);
+}
+/* ══ 21. THE QUIET STEPS WERE TOO QUIET ════════════════════════════════════
+   `--d500` is #637280 and `--d600` is #4a5b6e. Against this ground they are
+   for chrome — a placeholder, a disabled control — and the shell spends them
+   on content: `.s-block-sub` is the sentence under every heading in this
+   build, `.b-vfoot` is how many of what you are looking at, `.s-rec-kind` is
+   what kind of thing you have open. All three are things the reader is meant
+   to read, drawn in the colour of things they are not.
+
+   Raised, and the hierarchy comes from size and weight where it already did:
+   `.s-block-sub` is 13px against a 20px heading, `.b-vfoot` is 13px under a
+   card grid. Nothing here changes a size — it only stops the smaller step
+   from also being the dimmer one. */
+.s-block-sub { color: var(--d200); }
+.b-vfoot { color: var(--d200); }
+.s-rec-kind { color: var(--d300); }
+.b-aimy-from { color: var(--d300); }
+.s-callsum-cap { color: var(--d300); }
+.s-callsum-val { color: var(--d50); }
+.s-call-by { color: var(--d200); }
+.s-call-ago { color: var(--d300); }
+.s-block-say { color: var(--d200); }
+/* The way back is a navigation control, not a footnote. At --d400 it was the
+   dimmest thing on a record page, under a masthead at full ink. */
+.s-back { color: var(--d200); }
+/* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
+   What we sell and what they push back on are the same shape — a name and a
+   line about it — and they were drawn two different ways. The first ran bold
+   name into plain blurb on one line with an 8px gap, so where the name ended
+   was a thing you worked out rather than saw. The second sat in a 96px RIGHT-
+   aligned gutter, which put "Something else" on two lines and left every
+   label a different distance from the answer it belongs to.
+
+   One grid. Labels LEFT-aligned, because a column you scan down has to start
+   at the same place every time, and a right-aligned gutter only aligns the
+   end nobody reads from. 140px holds every label in this lexicon on one line.
+
+   And the answers are capped at 58ch. They ran the full block — measured at
+   800px, about 130 characters — which is roughly twice the width anybody
+   tracks a line back across. */
+@media (max-width: 611.98px) {
+  /* Below this the label column costs more than the alignment is worth. */
+}
+
+/* ══ 22. THE POLISH PASS ═══════════════════════════════════════════════════
+   Everything below is the aggregate of details nobody will consciously
+   notice, which is the point: a press that answers, a hover that does not
+   fire under a thumb, a count that does not jitter, an edge that catches the
+   light. None of it changes what a surface says. All of it changes whether
+   the surface feels like it was made.
+
+   ONE CURVE, ONE SPEED. The library's transitions run on the default `ease`
+   at 150ms. Everything this build adds runs on a strong ease-out — starts
+   fast, settles clean — at 120–160ms, because a press seen two hundred times
+   a day has to answer instantly and get out of the way. */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+
+/* [1] EVERY PRESSABLE ANSWERS THE PRESS. Zero of these had an :active state.
+   scale(0.97) is the number Linear ships; it is felt rather than seen, which
+   is exactly the register a work tool wants. The transition list restates
+   the colour properties the shell already animates on these, because a
+   later `transition` replaces the earlier one rather than adding to it. */
+.s-insight-lnk, .s-inline-btn, .s-cb-opt, .call-end, .call-tool,
+.b-switch-btn, .ntf-row-cta, .s-back, .b-find-x, .filter-chip,
+.overlay-sugg-chip, .b-pager-go button, .ntf-clear, .ntf-foot-btn {
+  transition:
+    transform 160ms var(--ease-out),
+    color var(--t-fast), background-color var(--t-fast), border-color var(--t-fast);
+}
+.s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
+.call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+.b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
+.b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active {
+  transform: scale(0.97);
+}
+/* [8] The card door, barely. A card is two hundred pixels wide; 0.97 on it
+   is a lurch. 0.995 is the same answer at the size of the thing pressed. */
+.b-qcard[data-open] {
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.b-qcard[data-open]:active { transform: scale(0.995); }
+
+/* [2] HOVER ONLY WHERE THERE IS A HOVER. A touch fires :hover on tap and
+   leaves it lit until the next tap somewhere else — a switcher tab that
+   stays half-highlighted after you leave it. */
+@media (hover: hover) and (pointer: fine) {
+  .b-switch-btn:hover { color: var(--d200); }
+  .b-find-x:hover { color: var(--d100); }
+}
+
+/* [3] [7] NO STRIPES. The hint under a question and the Remember line both
+   wore a 2px accent stripe down the left as their only treatment — the one
+   decoration every UI kit of a certain vintage reached for. The hint is a
+   sentence and reads as one. Remember is the durable fact on a record, and a
+   raised surface behind it says "different from the call above" without
+   drawing a line to say so. */
+.s-cb-hint { border-left: 0; padding-left: 0; color: var(--d200); }
+.s-callsum-mem {
+  border-left: 0; padding: 8px 10px; border-radius: var(--r-md);
+  background: var(--card-bg-raised); color: var(--d100);
+}
+
+/* [4] AN EYEBROW IS A SECTION MARKER, NOT A ROW LABEL. Nine roles here were
+   uppercase-and-tracked, so a brief's "Who" and a card's campaign tag shouted
+   at the same pitch as the section they sat in. The section captions keep
+   it — .s-rec-kind, .b-sell-cap, .s-af-cap, .s-lead-mark — and the labels
+   inside rows drop to sentence case at semibold, where weight and position do
+   the work the tracking was doing badly. */
+.s-callsum-cap, .s-callp b, .b-aimy-from, .tc-type {
+  text-transform: none; letter-spacing: normal;
+  font-weight: var(--fw-semibold);
+}
+.s-callsum-cap { font-size: var(--fs-xs); }
+.s-callp b { font-size: var(--fs-xs); color: var(--d300); }
+.b-aimy-from { font-size: var(--fs-2xs); }
+.tc-type { font-size: var(--fs-2xs); color: var(--d300); }
+
+/* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
+   changes, so the switcher shifted sideways every time a search narrowed it.
+   Set once on the containers, so every count inside inherits it. */
+.b-switch-n, .b-vfoot, .b-pager, .b-tally-out, .b-qcard, .s-block-say {
+  font-variant-numeric: tabular-nums;
+}
+
+/* T1 — ELEVATION BY LIGHT. On a dark ground a shadow is invisible; what
+   separates a raised surface is the edge that catches light. One pixel of
+   white at 4% along the top, and cards, the lead block, the search box and
+   the read-back card read as material rather than as outlines. */
+.b-qcard, .s-insight.is-lead, .b-find, .s-callsum-in-turn, .s-call, .b-aimy {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* T4 — OPTICAL TEXT. Balanced headings so a two-line title does not leave
+   one word orphaned; pretty paragraphs so the last line is never a single
+   word. Both are free, and both are the difference between set and typed. */
+.s-block-h, .s-rec-name, .s-rec-cap { text-wrap: balance; }
+.s-block-sub, .b-aimy-say, .s-lead-say, .b-back-v, .s-callsum-val, .ntf-row-body { text-wrap: pretty; }
+
+/* T5 — THE CURRENT SURFACE IS UNDERLINED. Colour alone marked which of
+   Calls / Campaigns / Lists you were on, and on the calls surface all three
+   sat at nearly the same ink. A two-pixel rule under the current one, in ink
+   rather than accent, because it is a position and not an action. The rule
+   is one element that slides between positions (§32); the page itself
+   never waits for it. */
+.b-switch-btn { padding-bottom: 4px; }
+
+/* T6 — THE SEARCH BOX SAYS IT HAS FOCUS. The border already turns accent;
+   a 3px ring at 18% is the standard input focus and reads at a glance from
+   across the page. Low alpha on purpose — a ring, not a glow. */
+.b-find:focus-within {
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+/* Reduced motion means fewer and gentler, not none. The colour transitions
+   stay because they aid comprehension; the transforms go. */
+@media (prefers-reduced-motion: reduce) {
+  .s-insight-lnk:active, .s-inline-btn:active, .s-cb-opt:active, .call-end:active,
+  .call-tool:active, .b-switch-btn:active, .ntf-row-cta:active, .s-back:active,
+  .b-find-x:active, .filter-chip:active, .overlay-sugg-chip:active,
+  .b-pager-go button:active, .ntf-clear:active, .ntf-foot-btn:active,
+  .b-qcard[data-open]:active { transform: none; }
+}
+
+/* ══ 23. THE RECORD, AS A JOURNEY ══════════════════════════════════════════
+   The lead block on a person is the campaign's lead without the figure: one
+   reading at the deck step and a door. The campaign's 24px padding and 32px
+   margins are for a block that opens a page; this one sits between a masthead
+   and the ladder, and at that size read as a second header. */
+.s-insight.is-lead.b-lead-slim { padding: 16px 18px; margin: 4px 0 8px; }
+.b-lead-slim .s-lead-deck { margin-bottom: 12px; font-size: var(--ty-heading); }
+.b-lead-slim .s-lead-mark { margin-bottom: 8px; }
+
+/* What is owed and the ways to move it, on one line. The sentence leads and
+   the chips follow at baseline, so "Call them back due tomorrow" reads as a
+   fact with three answers beside it rather than as a label over a row. */
+
+/* The month over a run of touchpoints. Small, at full ink, with the space
+   above it doing the separating — a rule would compete with the cards. */
+.b-month {
+  margin: 14px 0 6px; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d300);
+}
+.s-calls > .b-month:first-child { margin-top: 0; }
+
+/* The way out, at the end of the action row and pushed to its far side so it
+   reads as an exit and not as a fourth thing to do to this person. */
+.b-next { margin-left: auto; }
+/* Remember on the record wears the same raised tint the touchpoint cards use,
+   and the name of who noted it sits inside the sentence rather than beside
+   it as a second line. */
+.s-block .s-callsum-mem { margin-top: 4px; }
+
+/* ══ 24. THE CAMPAIGN, AS A JOURNEY ════════════════════════════════════════
+   ONE VERTICAL RHYTHM. The sections on this page arrived with three different
+   gaps between them — the masthead's 24, the lead block's 32, the figure
+   strip's 32 and whatever the block before it left. Set once here, on the
+   page's own children, so a reader's eye learns one interval and stops
+   measuring. The back link and the masthead are one unit and sit closer. */
+/* Measured: .s-home is a grid with a 32px gap, and .s-block then adds a 24px
+   margin AND a 24px padding above its hairline, so two blocks in a row sat
+   80px apart while the masthead and the lead block sat 32. One interval —
+   the grid gap — and the hairline block keeps only its own 24px above the
+   rule, which is what makes the rule read as belonging to the block below. */
+.s-home > .s-back { margin-bottom: 0; }
+.s-home > .s-rec-head { margin-bottom: 0; }
+.s-home > .s-block + .s-block { margin-top: 0; }
+.s-home > .s-insight.is-lead { margin: 0; }
+
+/* THE HEADER'S THREE ROWS STEP BY SIZE AND WEIGHT. The goal is the sentence
+   the campaign exists for and was set at the same size as the date range
+   under it. Now: the goal at the small step in medium, the counts under it a
+   step down, and the name above both at the masthead. */
+.s-rec-facts > div:first-child {
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
+  max-width: 62ch; text-wrap: pretty;
+}
+.s-rec-facts > div + div { font-size: var(--fs-xs); color: var(--d200); margin-top: 2px; }
+.s-rec-facts > div + div b { color: var(--d50); }
+
+/* Today's run, under the deck. A fact line, not a second deck. */
+.b-lead-today {
+  margin: -8px 0 16px; font-size: var(--fs-xs); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-lead-today b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* THE FIGURE STRIP, TIGHTER, WITH THE FUNNEL BREATHING UNDER IT. The four
+   figures had 24px between columns and 32 below, then the bars started 4px
+   later — the strip floated and the funnel was crowded. */
+.s-afs { gap: 12px 24px; margin-bottom: 20px; }
+.b-funnel { margin: 0 0 6px; }
+
+/* A tile that opens a cut. It keeps the strip's anatomy and adds only what
+   says it can be pressed: the arrow in its sub-line, the caption turning to
+   accent on hover, and a press that answers. */
+.b-af-door {
+  font: inherit; color: inherit; background: none; text-align: left;
+  border: 0; border-top: 1px solid var(--card-border); cursor: pointer;
+  padding: 16px 0 0; display: flex; flex-direction: column; gap: 4px;
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast);
+}
+.b-af-door .s-af-sub { color: var(--accent-text); font-weight: var(--fw-semibold); }
+.b-af-door:active { transform: scale(0.985); }
+.b-af-door:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; border-radius: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .b-af-door:hover { border-top-color: var(--accent); }
+}
+
+/* The readings as a list on the quote surface: one mark, then lines, each
+   with its basis at the end in the small step. Full width under the funnel
+   rather than the quote's 62ch — the bars above it are full width and a
+   narrower block under them reads as a different column. */
+/* Two classes, because the shell's `.s-insight.is-quote` is two classes and
+   one would lose to it — measured as a 62ch block under full-width bars. */
+.s-insight.is-quote.b-readings { max-width: none; margin: 16px 0 0; }
+.b-readings .s-lead-mark { color: var(--d300); }
+.b-reading-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.b-reading {
+  font-size: var(--fs-base); line-height: var(--lh-base); color: var(--d100);
+  max-width: 70ch; text-wrap: pretty;
+}
+.b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-reading .b-aimy-from { display: block; margin-top: 2px; }
+
+/* The folded opener sits after the title and wraps under it on a narrow
+   row, at the small step so the title stays the loud thing. */
+
+/* The feed as a plain column. The shell's row is a grid with no horizontal
+   padding, so it already shares the cards' left edge — nothing to correct. */
+.b-feed { display: flex; flex-direction: column; gap: 10px; }
+.b-feed-row { padding: 0; }
+.b-feed > .b-month { margin: 14px 0 6px; }
+.b-feed > .b-month:first-child { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .b-af-door:active { transform: none; } }
+
+/* ══ 25. THE COMPANY, AS A JOURNEY ═════════════════════════════════════════
+   The campaign chips were a sentence over a row of chips in the header, above
+   the people they act on. They sit under the people now, as one labelled row:
+   a caption in sentence case at the small step — not another uppercase eyebrow
+   — and the chips after it on the same baseline, so the row reads as one
+   action with five answers rather than as a heading and a list. */
+.b-camps-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--card-border);
+}
+
+/* ══ 26. ONE SCALE, EVERYWHERE ═════════════════════════════════════════════
+   Measured before this pass: a record's name at 20px and everything under it
+   at 13, with 0px between the kind line and the name, 0px between the name
+   and the goal, and 0px between the counts and the actions. The kind line
+   was 13px bold — the same size as the facts it labels. The lead figure (24)
+   outranked the page title (20), and the lead deck, the section headings, the
+   switcher and every card title were all 16/800: one size for four jobs.
+
+   Seven steps, each with one job, set here once and applied to every surface.
+   Nothing changes position; only sizes, weights and the gaps between rows. */
+:root {
+  --t-title: 26px;   /* the name of the thing you have open; the Today heading */
+  --t-figure: 24px;  /* the lead block's number — below the title, above all else */
+  --t-deck: 17px;    /* the consequence sentence; the pitch opener */
+  --t-lead: 15px;    /* the goal under a title; the sentence beside a figure */
+  --t-body: 14px;    /* readings, brief lines, feed notes */
+  --t-ui: 13px;      /* buttons, chips, facts rows, row text */
+  --t-small: 12px;   /* section sub-lines, foot lines */
+  --t-micro: 11px;   /* kind lines, section captions, tags — the one uppercase role */
+}
+
+/* [1] THE STEPS. `.s-home .x` outranks the shell's single-class media rules
+   that were setting the masthead to 20 and the figure to 24 at this width. */
+.s-home .s-rec-name { font-size: var(--t-title); line-height: 1.1; letter-spacing: -0.02em; }
+.slv-head .slv-title, .slv-title { font-size: var(--t-title); }
+.s-home .s-lead-n { font-size: var(--t-figure); line-height: 1; }
+.s-home .s-lead-deck, .b-lead-slim .s-lead-deck {
+  font-size: var(--t-deck); font-weight: var(--fw-bold); line-height: 1.3;
+  margin-bottom: 16px;
+}
+.s-home .s-lead-say { font-size: var(--t-lead); }
+.s-home .s-rec-kind { font-size: var(--t-micro); }
+.b-qcard .s-card-title { font-size: var(--t-lead); }
+.b-reading { font-size: var(--t-body); }
+.s-block-say { font-size: var(--t-small); font-weight: var(--fw-medium); }
+.b-vfoot { font-size: var(--t-small); }
+
+/* [2] THE HEADER'S ROWS HAVE ROOM. A flex column so every gap is stated
+   rather than inherited from line boxes: kind → name 6, name → goal 10,
+   goal → counts 6, counts → actions 16. The goal moves to the Lead step —
+   it is the sentence the campaign exists for, and it was 13px grey. */
+.s-home > .s-rec-head { display: flex; flex-direction: column; }
+.s-home .s-rec-kind { margin-bottom: 6px; }
+.s-home .s-rec-title { margin-bottom: 10px; }
+.s-home .s-rec-facts { gap: 0; }
+.s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
+.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 6px; }
+.s-home .s-rec-actions { margin-top: 16px; }
+
+/* [3] INSIDE A SECTION. Heading → first row 12, action row → chips 12, chips
+   → grid 16, grid → foot 12. The action row had been pulled up into the
+   heading's margin by 8px; the chips sat 10 from the grid. */
+.s-camp-list-head { margin-bottom: 12px; }
+.b-acts { margin: 0 0 12px; }
+.b-cuts + .b-grid { margin-top: 4px; }
+
+/* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
+.b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--d300); font-weight: var(--fw-semibold); }
+.s-starts-cap { color: var(--d300); }
+.rail-scope-cap { color: var(--d300); font-weight: var(--fw-semibold); }
+
+/* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
+   today-line at UI size, and 16 to the actions — measured at 56 before with
+   the today-line stacked inside two margins. */
+.s-home .s-lead-line { margin-bottom: 12px; }
+.b-lead-today { margin: -6px 0 14px; font-size: var(--t-ui); }
+
+/* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
+   A 2px rail down the left, a node per touchpoint on it in the tone of how
+   the call went, a larger accent ring where a rung was climbed, and the rung
+   it reached on the line. The cards are the same cards; the rail is drawn
+   in the column the section already reserves for it. Metrics set once:
+   10px dot, 14px milestone ring, 26px gutter, rail at 7px. */
+.b-tl { position: relative; padding-left: 26px; display: flex; flex-direction: column; gap: 10px; }
+.b-tl::before {
+  content: ''; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 2px;
+  background: var(--card-border); border-radius: 1px;
+}
+.b-tl-month { margin: 6px 0 0; }
+.b-tl > .b-tl-month:first-child { margin-top: 0; }
+.b-tl-item { position: relative; }
+.b-tl-dot {
+  position: absolute; left: -24px; top: 17px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--d400); box-shadow: 0 0 0 3px var(--body-bg);
+}
+.b-tl-dot.tone-ok { background: var(--ok-text); }
+.b-tl-dot.tone-warn { background: var(--warn-text); }
+.b-tl-dot.tone-err { background: var(--err-text); }
+.b-tl-dot.tone-neutral { background: var(--d400); }
+/* A rung climbed: the ring is the milestone, in accent, and the node sits
+   on the rail a shade larger so the eye catches it scanning down. */
+.b-tl-item.is-milestone .b-tl-dot {
+  width: 14px; height: 14px; left: -26px; top: 15px;
+  background: var(--body-bg); border: 3px solid var(--accent);
+}
+.b-tl-item.is-milestone .b-tl-dot.tone-err { border-color: var(--err-text); }
+.b-tl-move {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); color: var(--accent-text);
+  white-space: nowrap;
+}
+.b-tl-move.is-out { color: var(--err-text); }
+/* Where it began. */
+.b-tl-end {
+  position: relative; padding: 4px 0 2px;
+  font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-tl-dot.is-end { top: 8px; background: var(--d300); }
+
+/* ══ 28. THE NOTIFICATIONS PANEL — AiMY QA'S CSS, VERBATIM ═════════════════
+   Copied out of ../QA/index.html by line range. QA names its tokens
+   differently; the bridge below maps them onto this shell's so the rules
+   themselves are untouched. The wash values are QA's own, dark and light. */
+.ntf-anchor {
+  --qa-accent: var(--accent); --qa-accent-rgb: var(--accent-rgb);
+  --wash-3: rgba(255,255,255,0.04); --wash-6: rgba(255,255,255,0.07); --wash-7: rgba(255,255,255,0.08);
+  --transition-fast: 150ms;
+}
+:root[data-theme="light"] .ntf-anchor {
+  --wash-3: rgba(16,24,40,0.05); --wash-6: rgba(16,24,40,0.09); --wash-7: rgba(16,24,40,0.1);
+}
+
+.ntf-anchor { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.topnav-bell:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+.bell-dot[hidden] { display: none; }
+
+.ntf-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  font-family: "Urbanist", sans-serif;
+  text-align: left;
+}
+.ntf-panel[hidden] { display: none; }
+
+/* Scrollbar, matching .dashboard-scroll / .overlay-thread rather than
+   leaving the browser default sitting inside a 14px-radius card.
+   --wash-6 and --card-border are the only wash/border tokens declared in
+   all six files' dark roots; --wash-8/--wash-11 used elsewhere are not. */
+.ntf-panel { scrollbar-width: thin; scrollbar-color: var(--wash-6) transparent; }
+.ntf-panel::-webkit-scrollbar { width: 6px; }
+.ntf-panel::-webkit-scrollbar-track { background: transparent; }
+.ntf-panel::-webkit-scrollbar-thumb { background: var(--wash-6); border-radius: 4px; }
+.ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
+
+.ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
+.ntf-head b { font-size: 12px; font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
+.ntf-count {
+  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9999px;
+  background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ntf-count[hidden] { display: none; }
+.ntf-clear {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 10.5px; font-weight: 600; color: var(--d500);
+  padding: 2px 4px; border-radius: 6px;
+  transition: color var(--transition-fast);
+}
+.ntf-clear:hover { color: var(--d100); }
+.ntf-clear:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 1px; }
+
+.ntf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ntf-row {
+  display: flex; gap: 9px; padding: 10px; border-radius: 10px;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.ntf-row:hover { background: var(--wash-3); }
+.ntf-row.is-read { opacity: 0.45; }
+.ntf-sev { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: var(--d500); }
+.ntf-sev.p1 { background: var(--err); }
+.ntf-sev.p2 { background: var(--warn); }
+.ntf-sev.p3 { background: var(--qa-accent); }
+.ntf-row-main { flex: 1; min-width: 0; }
+.ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.ntf-row-type { font-size: 11px; font-weight: 800; color: var(--d50); }
+.ntf-row-when { margin-left: auto; font-size: 10px; color: var(--d500); flex-shrink: 0; }
+.ntf-row-body { margin: 0 0 7px; font-size: 11.5px; line-height: 1.5; color: var(--d400); }
+.ntf-row-cta {
+  font-family: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer;
+  padding: 4px 10px; border-radius: 9999px;
+  background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent);
+  border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.ntf-row-cta:hover { background: rgba(var(--qa-accent-rgb), 0.2); border-color: rgba(var(--qa-accent-rgb), 0.4); }
+.ntf-row-cta:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+
+.ntf-foot { padding: 8px 4px 4px; border-top: 1px solid var(--wash-6); margin-top: 6px; }
+.ntf-foot-btn {
+  width: 100%; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  padding: 8px; border-radius: 9px; background: var(--wash-3);
+  border: 1px solid var(--wash-6); color: var(--d300);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.ntf-foot-btn:hover { background: var(--wash-6); color: var(--d50); }
+.ntf-foot-btn:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
+.ntf-empty { padding: 22px 12px; text-align: center; font-size: 11.5px; color: var(--d500); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
+}
+
+/* ══ 29. THE RUN, AS A PIPELINE ════════════════════════════════════════════
+   The deploy-pipeline component's anatomy — track, stage tiles on connectors,
+   a step list, a log well, a footer — in this shell's material: the card's
+   ground and border, the accent for what is running, the ok green for what
+   is done, the mono face for the log. No light gradients; elevation by the
+   lit top edge the rest of the product uses. */
+.pipe { display: flex; justify-content: center; }
+.pipe-card {
+  width: 100%; padding: 14px;
+  border-radius: 20px; background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 40px -20px rgba(0,0,0,0.5);
+}
+.pipe-panel {
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.pipe-badge, .pipe-stage-time, .pipe-row-time, .pipe-row-sub, .pipe-elapsed {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+
+/* header */
+.pipe-head { padding: 6px 8px 16px; }
+.pipe-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pipe-head-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pipe-title { margin: 0; font-size: var(--t-deck); font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--d50); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pipe-badge {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-micro); line-height: 1;
+  color: var(--d200); background: var(--card-bg-raised); border: 1px solid var(--card-border);
+}
+.pipe-badge-dot { color: var(--d500); }
+.pipe-head-state { display: flex; align-items: center; gap: 8px; flex: none; }
+.pipe-status { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text); }
+.pipe-status.done { color: var(--ok-text); }
+.pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
+.pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px rgba(23,178,106,0.18); }
+.pipe-track { position: relative; height: 6px; margin-top: 13px; border-radius: 99px; overflow: hidden; background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+.pipe-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); transition: background-color 400ms var(--ease-out); }
+.pipe-fill.done { background: var(--ok-text); }
+
+/* stage rail */
+.pipe-rail { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 20px; }
+.pipe-stage { width: auto; min-width: 96px; flex: none; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.pipe-conn-wrap { flex: 1; padding: 0 8px; margin-top: 25px; }
+.pipe-tile {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 16px; color: var(--d400);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
+}
+.pipe-tile.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
+.pipe-tile.done { color: var(--ok-text); background: var(--ok-bg); border-color: rgba(23,178,106,0.3); }
+.pipe-check {
+  position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: var(--ok-text); border: 2.5px solid var(--card-bg-raised);
+}
+.pipe-stage-label { margin-top: 11px; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); transition: color 400ms var(--ease-out); }
+.pipe-stage-label.pending { color: var(--d400); }
+.pipe-stage-time { margin-top: 3px; font-size: var(--t-small); color: var(--d400); }
+.pipe-stage-time.running { color: var(--accent-text); }
+.pipe-stage-time.done { color: var(--ok-text); }
+.pipe-conn { position: relative; height: 3px; border-radius: 99px; background: var(--card-bg); border: 1px solid var(--card-border); }
+.pipe-conn-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); }
+.pipe-conn-fill.done { background: var(--ok-text); }
+.pipe-dot {
+  position: absolute; top: 50%; left: 0; width: 10px; height: 10px; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--accent); border: 2.5px solid var(--card-bg-raised);
+}
+.pipe-dot[hidden] { display: none; }
+
+/* step list */
+.pipe-rows { margin-top: 12px; padding: 8px; display: flex; flex-direction: column; }
+.pipe-row {
+  display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px;
+  border: 1px solid transparent; transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
+}
+.pipe-row.live { background: rgba(var(--accent-rgb), 0.08); border-color: rgba(var(--accent-rgb), 0.18); }
+.pipe-row-mark { width: 22px; height: 22px; flex: none; display: flex; align-items: center; justify-content: center; }
+.pipe-row-check { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--ok-text); }
+.pipe-row-idle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--card-border); background: var(--card-bg); }
+.pipe-spinbox { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.pipe-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pipe-row-sub { font-size: var(--t-small); color: var(--d300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pipe-row-label { font-size: var(--t-body); font-weight: var(--fw-medium); color: var(--d50); transition: color 300ms var(--ease-out); }
+.pipe-row-label.pending { color: var(--d400); font-weight: var(--fw-regular); }
+.pipe-row-time { font-size: var(--t-small); color: var(--d400); }
+.pipe-row-time.done { color: var(--d200); }
+
+/* footer */
+.pipe-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 8px 4px; }
+.pipe-foot-act { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.pipe-elapsed { font-size: var(--t-ui); color: var(--d300); }
+.pipe-chip {
+  font-family: inherit; padding: 9px 15px; border-radius: 99px; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border); cursor: default;
+}
+button.pipe-chip { cursor: pointer; transition: transform 160ms var(--ease-out), border-color var(--t-fast), color var(--t-fast); }
+button.pipe-chip:hover { border-color: var(--accent); color: var(--d50); }
+button.pipe-chip:active { transform: scale(0.97); }
+button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* motion — a thing arriving is already most of its size; nothing overshoots;
+   nothing runs on its own (the ring on the live tile stands still, the dot in
+   the masthead stands still — the spinner is the one thing that moves, and
+   it moves because you pressed Find); the check is drawn, not dropped. */
+@keyframes pipe-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pipe-spin { to { transform: rotate(360deg); } }
+@keyframes pipe-draw { to { stroke-dashoffset: 0; } }
+.pipe-pop { animation: pipe-pop 200ms var(--ease-out) both; }
+.pipe-pop path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pipe-draw 220ms var(--ease-out) 60ms forwards; }
+.pipe-spin { animation: pipe-spin 850ms linear infinite; }
+/* text that changes state goes through a blur — swapText() */
+.b-swap { transition: opacity 90ms var(--ease-out), filter 90ms var(--ease-out); }
+.b-swap.is-swapping { opacity: 0; filter: blur(4px); }
+@media (prefers-reduced-motion: reduce) {
+  .pipe-pop, .pipe-pop path, .pipe-spin { animation: none !important; }
+  .pipe-pop path { stroke-dashoffset: 0; }
+  .b-swap { transition: none; }
+}
+@media (max-width: 520px) {
+  .pipe-tile { width: 44px; height: 44px; border-radius: 13px; }
+  .pipe-stage { width: 70px; }
+}
+
+/* ══ 30. THE ROSTER ════════════════════════════════════════════════════════
+   The shell's row, at this build's scale. V3 set the row's name at the title
+   step in the display face because its rows sat one to a screen in a sheet;
+   fifteen of them under a masthead want the lead step and the body face, with
+   the verb centred on the row rather than opening a beat under it. */
+/* The ladder down the left of a row: name 15/800, what they do 13/500, where
+   and how to reach them 12, the addresses 12 in the mono face, AiMY's line 12
+   with the mark. The right column ranks the same way — the size at the lead
+   step because it is compared between rows, the fit and the tag under it —
+   and the verb closes the column. Rank by size and weight; nothing dims
+   below --d300. */
+.b-roster .s-brow { padding: 14px 12px; column-gap: 20px; align-items: start; }
+.b-roster .s-brow-main { gap: 3px; }
+.b-roster .s-brow-name { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); letter-spacing: -0.01em; color: var(--d50); }
+.b-roster .s-brow-desc { font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200); }
+.b-roster .s-brow-facts { font-size: var(--t-small); color: var(--d300); }
+.b-roster .s-brow-facts i { font-style: normal; color: var(--d300); }
+.b-roster .s-brow-links { margin-top: 2px; gap: 4px 14px; }
+.b-roster .s-brow-link { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--d300); }
+.b-roster-ai {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 6px;
+  font-size: var(--t-small); color: var(--d200); line-height: var(--lh-base); max-width: 60ch;
+}
+.b-roster-ai .b-aimy-mark { flex: none; margin-top: 1px; }
+.b-roster-ai b { color: var(--d50); }
+.b-roster .s-brow-side { gap: 3px; min-width: 120px; }
+.b-roster .s-brow-fig { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: -0.01em; }
+.b-roster .s-brow-rev { font-size: var(--t-small); color: var(--d300); }
+.b-roster .b-rstate { margin-top: 4px; }
+.b-roster-call { margin-top: 8px; }
+
+
+/* The results head sat 24px in from the page edge: .s-sheet-head is a sheet
+   component with its own padding, and on this page it is a grid child like
+   every other header. Flush left, like the masthead on the other pages. */
+.s-home > .s-sheet-head { padding-left: 0; padding-right: 0; }
+
+/* The leaving gate: the lead block's anatomy in the warn register — a
+   decision, not a finding — with a note under the deck that says what each
+   way out does. Inline at the top of the result, never a modal. */
+.s-insight.is-lead.b-gate {
+  background: rgba(247,144,9,0.06); border-color: rgba(247,144,9,0.22);
+}
+.b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
+.b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
+
+/* ══ 31. THE TOAST ARRIVES AND LEAVES THE SAME WAY ═════════════════════════
+   The library gives the toast a 220ms rise, and it never ran here: the toast
+   was inserted already .visible, so there was no first frame to rise from,
+   and it left by innerHTML = '', which is no way to leave. @starting-style
+   gives the insertion its first frame — 8px up, through 4px of blur, from
+   0.97 — and .is-leaving takes it out along the same axis, faster, because a
+   thing leaving is a thing you have stopped looking at. transitions.dev's
+   toast, on the library's toast. */
+.s-toast {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), filter 220ms var(--ease-out);
+}
+@starting-style {
+  .s-toast.visible { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); filter: blur(4px); }
+}
+.s-toast.visible.is-leaving {
+  opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.97); filter: blur(4px);
+  pointer-events: none; transition-duration: 160ms;
+}
+@media (prefers-reduced-motion: reduce) { .s-toast { transition: none; } }
+
+/* ══ 32. THE RULE SLIDES, AND A CHANGED FIGURE TICKS ═══════════════════════
+   The page is rebuilt from a string, so nothing on it knows where it was a
+   frame ago. Two things want to. The rule under Calls · Campaigns · Lists is
+   one bar placed by transform; before a repaint its place is read, after it
+   the bar is put back there and let go — 160ms, ease-in-out, because it is
+   movement on screen and not an entrance. And a figure a write just changed
+   — a chip's count, the roster figures on a campaign, the three counts in the
+   switcher — ticks once, the new number rising through 4px of blur. Never on
+   load, never on scroll, never for navigating: only for what you just did. */
+.b-switch { position: relative; }
+.b-switch-bar {
+  position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--d50);
+  transform-origin: left center; transition: transform 160ms cubic-bezier(0.77, 0, 0.175, 1);
+  pointer-events: none;
+}
+.b-tick { display: inline-block; animation: b-tick 220ms var(--ease-out) both; }
+@keyframes b-tick { from { opacity: 0; transform: translateY(5px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .b-switch-bar { transition: none; } .b-tick { animation: none; } }
+
+/* ══ 33. A NEW TURN ARRIVES ════════════════════════════════════════════════
+   The thread is rebuilt when it grows, and the turn that grew it appeared
+   already in place. It comes up 6px through 4px of blur now, 200ms, and
+   nothing already read moves. The read-back card is a turn, so it arrives
+   the same way. */
+.chat-msg.b-arrive { animation: b-arrive 200ms var(--ease-out) both; }
+@keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
+
+/* ══ 34. A DISCLOSURE OPENS; IT DOES NOT SNAP ══════════════════════════════
+   A call on the timeline and a transcript are <details>, and a <details>
+   snaps open. ::details-content with interpolate-size lets the
+   height run 200ms out; a browser without it keeps the snap. The chevron
+   turns a quarter instead of being swapped for a different glyph, which is
+   the one place a glyph swap read as a flicker. transitions.dev's accordion,
+   on the platform's own element. */
+.s-call, .s-trace { interpolate-size: allow-keywords; }
+.s-call::details-content, .s-trace::details-content {
+  height: 0; overflow: clip;
+  transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
+}
+.s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+.s-call-sum::before, .s-trace-sum::before {
+  content: "▸"; display: inline-block; margin-right: 0.35em;
+  transition: transform 160ms var(--ease-out);
+}
+.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
+  content: "▸"; transform: rotate(90deg);
+}
+
+/* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════
+   The read-back's hint names the digits that set an outcome. A keycap: the
+   mono face, a hairline, the raised ground — coss's Kbd, at this scale. */
+.b-kbd {
+  display: inline-block; font-family: var(--font-mono); font-size: var(--t-micro); line-height: 1;
+  padding: 2px 5px 3px; border-radius: 4px; color: var(--d100);
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  box-shadow: inset 0 -1px 0 var(--card-border); vertical-align: 1px;
+}
+
+/* ══ 36. THREE SMALL SWAPS ═════════════════════════════════════════════════
+   The theme toggle showed the sun in both themes, by display. Both icons
+   sit in one cell now and the one that is not for this theme is scaled
+   down, turned and blurred out — an icon swap, 160ms, the way
+   transitions.dev draws it. The keep-tick on a found row is a native box
+   that flipped; it is drawn now, the check revealed left to right in 140ms
+   on the accent ground. And the leaving gate, which is an answer to a door
+   you pressed, arrives the way a turn arrives. */
+.ds-theme-toggle { display: inline-grid; place-items: center; }
+.ds-theme-toggle svg { grid-area: 1 / 1; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), filter 160ms var(--ease-out); }
+.ds-theme-toggle .icon-sun, .ds-theme-toggle .icon-moon { display: block; }
+.ds-theme-toggle .icon-moon { opacity: 0; transform: scale(0.6) rotate(-40deg); filter: blur(2px); }
+:root[data-theme="light"] .ds-theme-toggle .icon-sun { opacity: 0; transform: scale(0.6) rotate(40deg); filter: blur(2px); }
+:root[data-theme="light"] .ds-theme-toggle .icon-moon { opacity: 1; transform: none; filter: none; }
+
+.s-pick-tick .s-tick {
+  appearance: none; -webkit-appearance: none; margin: 0; width: 16px; height: 16px; border-radius: 5px;
+  border: 1.5px solid var(--d400); background: var(--card-bg); display: grid; place-items: center;
+  transition: opacity var(--t-fast), background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+.s-pick-tick .s-tick::after {
+  content: ""; width: 10px; height: 10px; background: #fff;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 12.5l4.5 4.5L19 7' fill='none' stroke='black' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+  clip-path: inset(0 100% 0 0); transition: clip-path 140ms var(--ease-out);
+}
+.s-pick-tick .s-tick:checked { background: var(--accent); border-color: var(--accent); }
+.s-pick-tick .s-tick:checked::after { clip-path: inset(0 0 0 0); }
+.s-pick-tick .s-tick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.b-gate { animation: b-arrive 200ms var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .s-call::details-content, .s-trace::details-content,
+  .s-call-sum::before, .s-trace-sum::before,
+  .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
+  .b-gate { animation: none; }
+}
+
+/* ══ 37. THE DECISION ON THE CARD ══════════════════════════════════════════
+   On the After-meeting cut a card ends in two answers instead of one verb. */
+.b-qcard-decide { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ══ 38. THE CHAT COLUMN ═══════════════════════════════════════════════════
+   On screen and Recent, in the column the markup reserved for them. */
+.b-chat-group { display: flex; flex-direction: column; gap: 4px; }
+.b-chat-cap {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300); padding: 0 8px 4px;
+}
+.b-chat-item {
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
+  text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.b-chat-item.is-on { background: var(--card-bg-raised); border-color: var(--card-border); color: var(--d50); }
+button.b-chat-item { cursor: pointer; transition: border-color var(--t-fast), color var(--t-fast); }
+button.b-chat-item:hover { border-color: var(--card-border); color: var(--d50); }
+button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+
+/* ══ 40. THE CHOOSER ═══════════════════════════════════════════════════════
+   A row of every campaign was the whole answer laid out before the question
+   was asked. The button asks; this is where the answer is given — a filter
+   box, the options as chips that hold their state, and one confirm that
+   says how many are chosen. It opens where it stands, inside the actions
+   row it belongs to, so nothing covers the record you are deciding about. */
+/* The chooser panel is gone — one menu puts things on a campaign now. Its
+   search box is the part worth keeping, because the menus use it. */
+.b-pick-find {
+  width: 100%; font-family: inherit; font-size: var(--t-ui); color: var(--d50);
+  padding: 8px 12px; border-radius: 10px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-pick-find::placeholder { color: var(--d300); }
+.b-pick-find:focus-visible {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+/* ══ 41. THE RUN SITS WITH THE CUTS IT RUNS ════════════════════════════════
+   "Call these 15" had a row of its own above the cuts, which read as a
+   second heading over the list. It ends the row of cuts instead: the chips
+   say which fifteen, and the verb is at the far end of the same line. */
+.b-cuts-row { align-items: center; }
+.b-cuts-go { margin-left: auto; }
+
+/* ══ 42. THE WAY OUT IS ITS OWN DECISION ═══════════════════════════════════
+   Ending a lead sat in the row of ordinary verbs at the same weight as
+   "Call". It is under a rule of its own now, quiet until pressed, and it
+   says what it does before it does it. */
+.b-end { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-end-open { color: var(--d300); }
+.b-end-open:hover { border-color: rgba(240, 68, 56, 0.5); color: var(--err-text); }
+.b-end-strip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.b-end-say { font-size: var(--t-small); color: var(--d200); }
+.b-end-go { color: var(--err-text); border-color: rgba(240, 68, 56, 0.4); }
+.b-end-go:hover { border-color: var(--err-text); }
+
+/* Who has it now — a fact about the record, not a thing to press. */
+.b-managed b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* `display` on a class beats the browser's own `[hidden]`, so a panel that
+   said it was hidden was drawn open. Every panel that sets display says
+   what hidden means for it. */
+.b-end-strip[hidden] { display: none; }
+
+/* ══ 39. THE STORY, AS A STORY ═════════════════════════════════════════════
+   Five sentences of prose is a paragraph to read. Where they stand now is
+   the deck line, the moments that got them there are a chain read left to
+   right, and how it ends is one quiet line under it. The chain wraps rather
+   than scrolls: a horizontal scroller inside a page that scrolls is two
+   scrollbars arguing. */
+.b-story { padding-top: 4px; }
+.b-story-now {
+  margin: 0 0 16px; max-width: 62ch; text-wrap: pretty;
+  font-size: var(--t-deck); font-weight: var(--fw-medium); line-height: var(--lh-tight); color: var(--d100);
+}
+.b-story-now b { font-weight: var(--fw-extrabold); color: var(--d50); }
+.b-story-now b.tone-ok { color: var(--ok-text); }
+.b-story-now b.tone-warn { color: var(--warn-text); }
+.b-story-now b.tone-err { color: var(--err-text); }
+.b-story-now b.tone-neutral { color: var(--d50); }
+.b-story-line {
+  list-style: none; margin: 0 0 14px; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 0;
+}
+.b-story-step {
+  position: relative; display: flex; flex-direction: column; gap: 2px;
+  padding: 0 22px 0 0; margin-right: 14px;
+}
+/* ══ THE CHAIN IS TRAVELLED ════════════════════════════════════════════════
+   Every moment on this line has already happened, and they were drawn as
+   chrome-grey dots joined by the hairline this build uses for the edge of a
+   card — a stepper on which nothing had been stepped, ending on the only
+   thing with any colour in it. Read at a glance it said the opposite of what
+   it holds.
+
+   What has passed is filled and joined by a line you can see. The tip is
+   open — a ring in the rung's own tone with the page showing through, which
+   is the shape everything from a Stepper to a git log uses for the point
+   still moving. And an elided stretch is dashed on both sides, because "3
+   steps more" is a piece of the walk nobody is claiming to draw. */
+.b-story-step::after {
+  content: ""; position: absolute; left: 14px; right: 4px; top: 5px; height: 2px;
+  border-radius: 2px; background: var(--d400);
+}
+.b-story-step.is-gap::after,
+.b-story-step:has(+ .b-story-step.is-gap)::after {
+  background: repeating-linear-gradient(90deg, var(--d400) 0 3px, transparent 3px 7px);
+}
+.b-story-step:last-child { padding-right: 0; margin-right: 0; }
+.b-story-step:last-child::after { display: none; }
+.b-story-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--d200);
+  border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--card-border);
+}
+.b-story-dot.tone-ok { background: var(--ok-text); box-shadow: 0 0 0 1px rgba(23,178,106,0.4); }
+.b-story-dot.tone-warn { background: var(--warn-text); box-shadow: 0 0 0 1px rgba(247,144,9,0.4); }
+.b-story-dot.tone-err { background: var(--err-text); box-shadow: 0 0 0 1px rgba(240,68,56,0.4); }
+.b-story-k {
+  margin-top: 6px; font-size: var(--t-small); font-weight: var(--fw-bold);
+  color: var(--d100); white-space: nowrap;
+}
+.b-story-t { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
+.b-story-step.is-now .b-story-k { color: var(--d50); }
+/* The tip: the tone becomes the ring and the ground shows through it. Four
+   rules rather than a variable, because the tone arrives as a class and a
+   class is the only thing the audit can pair with a rule. */
+.b-story-step.is-now .b-story-dot {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--d200), 0 0 0 6px rgba(var(--accent-rgb), 0.14);
+}
+.b-story-step.is-now .b-story-dot.tone-ok {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--ok-text), 0 0 0 6px rgba(23, 178, 106, 0.18);
+}
+.b-story-step.is-now .b-story-dot.tone-warn {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--warn-text), 0 0 0 6px rgba(247, 144, 9, 0.18);
+}
+.b-story-step.is-now .b-story-dot.tone-err {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 2px var(--err-text), 0 0 0 6px rgba(240, 68, 56, 0.18);
+}
+
+.b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
+.b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
+
+/* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
+   Four columns on one grid: the rung, the bar, how many ever got that far,
+   and what share of the rung above that is. The last column is the reason
+   the block exists, so it is set in the mono face and reads down its own
+   edge. */
+.b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
+.b-fn-row { display: contents; }
+.b-fn-head { display: contents; }
+.b-fn-head .b-fn-name, .b-fn-head .b-fn-n, .b-fn-head .b-fn-conv {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300); padding-bottom: 2px;
+}
+.b-fn-conv {
+  font-family: var(--font-mono); font-size: var(--t-small); color: var(--d200);
+  min-width: 44px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.b-fn-head .b-fn-conv { font-family: inherit; text-align: right; }
+
+/* ══ 44. WHAT TO SAY, AS SPEECH ════════════════════════════════════════════
+   The opener is the one thing in the block you say out loud, so it is set
+   as speech: the accent ground and the deck step. It had a 3px accent bar
+   down its left edge too — a tint and a stripe saying one thing twice, and
+   the stripe is the oldest tell in the book. What comes back is a pair — their words tagged in the warning
+   tone, your answer in full ink under it. What we sell and what you can
+   send are the quiet ends. */
+.b-back { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.b-back:last-child { margin-bottom: 0; }
+.b-back-row {
+  display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 4px 16px; align-items: baseline;
+}
+.b-back-k { justify-self: start; }
+.b-back-v {
+  margin: 0; max-width: 62ch; text-wrap: pretty;
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base); color: var(--d50);
+}
+@media (max-width: 720px) {
+  .b-back-row { grid-template-columns: 1fr; }
+  .b-funnel { grid-template-columns: minmax(80px, 1fr) 2fr auto auto; }
+}
+
+/* ══ 45. NO RULES BETWEEN SECTIONS ═════════════════════════════════════════
+   The shell separates one block from the next with a hairline, and once a
+   page carries six blocks that is six rules down a screen doing what a gap
+   already does. Proximity is the separator: the boundary between two
+   sections is 64px of air — twice the 32px the grid puts between the rows
+   inside one — and the heading does the rest. Rules that survive are the
+   ones that are not separators: a row inside a list, and the notifications
+   panel, which is QA's byte for byte. */
+.s-home > .s-block { border-top: 0; padding-top: 32px; }
+.s-home > .s-block:first-of-type { padding-top: 0; }
+
+/* The four figures had a rule over each of them and 24px between: the rule
+   was reading as a table header nobody wrote. The caption over the figure
+   is the label, and a door says it is a door by its own sub-line. */
+.s-home .s-af, .s-home .b-af-door { border-top: 0; padding-top: 0; }
+.s-home .s-afs { margin-bottom: 24px; }
+@media (hover: hover) and (pointer: fine) {
+  .b-af-door:hover .s-af-cap { color: var(--accent-text); }
+}
+
+/* Two more rules that were separating rather than containing. */
+.b-camps-row { margin-top: 20px; padding-top: 0; border-top: 0; }
+.b-end { margin-top: 20px; padding-top: 0; border-top: 0; }
+
+/* The briefing's own rule, above the ways to start: inside one card, and
+   still a rule doing what the gap under a caption already does. */
+.s-home .s-starts-wrap { margin-top: 28px; padding-top: 0; border-top: 0; }
+
+
+/* ══ 47. A MENU ON ITS BUTTON ══════════════════════════════════════════════
+   Five managers under a search box, a multiple choice and a confirm was a
+   form for a question with one answer. The verb opens a menu under itself:
+   it scales up from the button's own corner rather than out of nothing —
+   140ms, no overshoot — and a name is the whole interaction. */
+.b-menu-wrap { position: relative; display: inline-flex; }
+.b-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; min-width: 216px;
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.03);
+  transform-origin: top left;
+  animation: b-menu-in 140ms var(--ease-out) both;
+}
+@keyframes b-menu-in { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+.b-menu[hidden] { display: none; }
+.b-menu-cap {
+  padding: 4px 10px 6px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d100);
+  text-align: left; padding: 8px 10px; border: 0; border-radius: 8px;
+  background: transparent; cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-menu-item:hover { background: rgba(var(--accent-rgb), 0.14); color: var(--d50); }
+.b-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .b-menu { animation: none; } }
+.b-menu-open[aria-expanded] { color: var(--d50); }
+.b-menu-wrap:has(.b-menu:not([hidden])) .b-menu-open { color: var(--d50); border-color: var(--accent); }
+.b-menu.is-right { left: auto; right: 0; transform-origin: top right; }
+
+/* ══ 46. THE THING TO DO, AND THE NOTE SOMEBODY LEFT ═══════════════════════
+   Two captioned rows of prose was a wireframe of this. They are different
+   kinds of thing: one is a task — a mark, the sentence, and the date it is
+   owed as a chip that turns amber once it has passed — and the other is a
+   note, which reads the way a note from a colleague reads anywhere else:
+   their initials, their sentence, their name. */
+.b-nm { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.b-nm-do, .b-nm-note {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 14px 16px; border-radius: 14px;
+}
+.b-nm-do { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
+.b-nm-do.is-done { background: var(--ok-bg); border-color: rgba(23,178,106,0.28); }
+.b-nm-note { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+.b-nm-mark {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; margin-top: 1px;
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
+}
+.b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: rgba(23,178,106,0.18); }
+.b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.b-nm-say {
+  font-size: var(--t-lead); font-weight: var(--fw-semibold); line-height: var(--lh-base);
+  color: var(--d50); max-width: 60ch; text-wrap: pretty;
+}
+.b-nm-due {
+  align-self: flex-start; margin-bottom: 5px; white-space: nowrap;
+  padding: 2px 9px; border-radius: 99px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.01em;
+  color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+.b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
+.b-nm-then b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-nm-said {
+  font-size: var(--t-body); font-weight: var(--fw-medium); line-height: var(--lh-base);
+  color: var(--d50); max-width: 62ch; text-wrap: pretty;
+}
+.b-nm-by { font-size: var(--t-small); color: var(--d300); }
+
+/* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
+   They were grey uppercase tags — a status treatment on a thing you open,
+   set in 10px capitals so a document's name read as a label rather than a
+   title. A chip you can press: sentence case at the small step, the open
+   mark at the end, and a border that answers the cursor. */
+.b-docs { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The tag's own colour and shape — it was already right — with the press,
+   the open mark and a hover that says it is a door. */
+.b-doc {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: inherit; font-size: 10px; font-weight: var(--fw-bold);
+  letter-spacing: 0.04em; text-transform: uppercase; text-align: left;
+  padding: 3px 9px; border-radius: var(--r-pill);
+  color: var(--d200); background: var(--wash-3); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-doc:hover { color: var(--d50); border-color: var(--accent); background: var(--wash-6); }
+.b-doc:active { transform: scale(0.97); }
+.b-doc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-doc-out { flex: none; color: var(--d300); }
+.b-doc:hover .b-doc-out { color: var(--accent-text); }
+@media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
+
+/* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
+   The rung sat in the roster's right column as a bordered pill, directly
+   above the Call pill, and the two read as a pair of buttons. A dot in the
+   rung's own tone and the word beside it: a state you read, over the one
+   thing on the row you press. */
+.b-rstate {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-rstate-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--d400); flex: none; }
+.b-rstate-dot.tone-ok { background: var(--ok-text); }
+.b-rstate-dot.tone-warn { background: var(--warn-text); }
+.b-rstate-dot.tone-err { background: var(--err-text); }
+.b-rstate-dot.tone-neutral { background: var(--d400); }
+
+/* The one figure the chips add up to, under the heading rather than at the
+   far end of its row, where a section's actions live. */
+.b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
+.b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* A menu row that names a person: the rung as a dot, the name, what they do. */
+.b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-menu-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: inherit; }
+.b-menu-sub { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-menu-more { padding-top: 2px; }
+.b-menu-item.is-foot { color: var(--d200); font-weight: var(--fw-semibold); margin-top: 2px; }
+
+/* ══ 51. THE MAP ═══════════════════════════════════════════════════════════
+   A root, a rail, and what hangs off it. The rail is the drawing: one line
+   down from the company card and an elbow into each limb, which is what
+   makes a set of cards read as branches of one thing instead of another
+   grid. The last limb's line stops at its own elbow, so the rail ends where
+   the map ends rather than running into the white space below it. */
+.b-map { margin-top: 8px; }
+/* THE ROOT AND THE FIRST BRANCH WERE TOUCHING. The limb draws its own
+   elbow from its own top edge, so with the body flush against the card the
+   corner was drawn across the first node and the stem had nowhere to be.
+   The body steps down and the stem is drawn into that step, which is the
+   only place a rail can start. */
+.b-map-body { position: relative; margin-left: 22px; margin-top: 16px; }
+.b-map-body::before {
+  content: ""; position: absolute; left: 0; top: -16px; width: 1px; height: 16px;
+  background: var(--card-border-hover);
+}
+.b-limb { position: relative; padding: 0 0 10px 26px; }
+.b-limb:last-child { padding-bottom: 0; }
+/* The elbow is one rounded corner, not a vertical meeting a horizontal at a
+   right angle — a drawn join reads as a join, and a crossing reads as two
+   lines that happen to touch. The trunk between limbs is the second rule,
+   and the last limb has none, so the rail ends at the last branch. */
+.b-limb::before {
+  content: ""; position: absolute; left: 0; top: 0; width: 17px; height: 25px;
+  border-left: 1px solid var(--card-border-hover);
+  border-bottom: 1px solid var(--card-border-hover);
+  border-bottom-left-radius: 9px;
+}
+.b-limb:not(:last-child)::after {
+  content: ""; position: absolute; left: 0; top: 25px; bottom: 0; width: 1px;
+  background: var(--card-border-hover);
+}
+.b-map-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* A node is a door with one fact on it: for a person, the rung as a dot. */
+.b-node {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start; cursor: pointer;
+  font-family: inherit; text-align: left; min-width: 172px; max-width: 260px;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-node:hover { border-color: var(--accent); background: var(--card-bg-raised); }
+.b-node:active { transform: scale(0.985); }
+.b-node:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-node.is-root {
+  max-width: 340px; padding: 12px 16px;
+  background: var(--card-bg-raised); border-color: var(--card-border-hover);
+}
+.b-node.is-here { border-color: rgba(var(--accent-rgb), 0.42); background: rgba(var(--accent-rgb), 0.08); }
+/* THE NAME WRAPS, IT DOES NOT TRUNCATE. "Finance and back office — …" is
+   not a campaign you can choose between; two lines are. The dot and the mark
+   hold the first line while it does. */
+.b-node-top { display: flex; align-items: flex-start; gap: 7px; min-width: 0; max-width: 100%; }
+.b-node-top .b-rstate-dot { margin-top: 6px; }
+.b-node-name {
+  min-width: 0; font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
+  line-height: 1.35; text-wrap: pretty;
+}
+.b-node.is-root .b-node-name { font-size: var(--t-lead); letter-spacing: -0.01em; }
+.b-node-sub {
+  font-size: var(--t-small); color: var(--d300);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.b-node-mark {
+  flex: none; margin-top: 2px; padding: 1px 6px; border-radius: var(--r-pill);
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--accent-text); background: rgba(var(--accent-rgb), 0.16);
+}
+
+/* A limb that names its own kind of join. The margin above it is what puts
+   its middle on the elbow: the rail points at the caption, not past it. */
+.b-branch-head {
+  display: inline-flex; align-items: baseline; gap: 10px;
+  margin: 16px 0 10px; font-family: inherit; text-align: left;
+}
+.b-branch-head.is-flat { cursor: default; }
+.b-branch-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.b-branch-n { font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .b-node { transition: none; }
+  .b-node:active { transform: none; }
+}
+
+/* ══ 52. A FACE ════════════════════════════════════════════════════════════
+   A photograph over a drawing — see the argument in bdr.js. The image is
+   absolutely placed so that when the request fails it collapses to nothing
+   and the drawing behind it is simply what you see; alt is empty because a
+   face that does not load must not leave a word behind. The rings are on the
+   wrapper: an inner one so a pale photograph does not cut a hole in a dark
+   surface, an outer one to sit it on whatever ground it lands on. */
+.b-face {
+  position: relative; display: block; flex: none; overflow: hidden; border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--card-border);
+}
+.b-face > svg { display: block; width: 100%; height: 100%; }
+.b-face-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; border-radius: 50%;
+}
+.b-face::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+/* The masthead and the canvas both held a monogram in a tinted circle; the
+   face brings its own ground, so theirs would only show as a rim. */
+.topnav-avatar { background: none; padding: 0; overflow: hidden; }
+.msg-avatar.user-av { background: none; border: 0; border-radius: 50%; }
+.b-nm-note .b-face { margin-top: 1px; }
+
+/* ══ 53. WHAT A CAMPAIGN IS ════════════════════════════════════════════════
+   Three parts across the masthead's width, in the order a caller asks them:
+   what am I trying to get, what am I selling, whose is it. They are a
+   definition list, not a card grid — no borders between them, because the
+   caption above each is already the separator and a rule would make three
+   facts read as three objects. */
+.b-cmeta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  column-gap: 48px; row-gap: 24px; margin: 22px 0 0; max-width: 1080px;
+}
+.b-cmeta-part { min-width: 0; }
+.b-cmeta-cap {
+  display: block; margin: 0 0 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
+.b-cmeta-p { margin: 0 0 10px; line-height: var(--lh-base); max-width: 44ch; text-wrap: pretty; }
+.b-cmeta-p:last-child { margin-bottom: 0; }
+.b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
+
+/* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
+   The people ringing the same two hundred numbers as you. A face, a name and
+   what they are on it for — the knowledge graph's node, at the size a person
+   is drawn rather than the size a company is. */
+/* No card around each of them. A pill with a border and a ground made three
+   colleagues read as three controls; the face is the object here, and the
+   space between them says where one person ends. */
+.b-team { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; margin-top: 26px; }
+.b-team-cap { flex-basis: 100%; margin: 0 0 2px; }
+.b-mate { display: flex; align-items: center; gap: 10px; }
+.b-mate-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-mate-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); white-space: nowrap; }
+.b-mate-role { font-size: var(--t-small); color: var(--d300); white-space: nowrap; }
+
+/* ══ 55. WHAT IS IN THE WAY ════════════════════════════════════════════════
+   One block. It was five findings, each with a 24px figure, a bar, a blurb,
+   a caption over the remedy and a chip under it — five sections wearing the
+   clothes of a page, for something read between two calls.
+
+   A sentence, then a line each: the count, what it is, what beats it. The
+   bars went because three of them measured against three different totals,
+   which is the one thing a bar cannot do — the proportion is in words beside
+   the name now. Amber marks the obstacle nobody has written an answer to,
+   and nothing else, so it means one thing on this block. */
+.b-way-lead {
+  margin: 0 0 18px; font-size: var(--t-lead); color: var(--d100);
+  line-height: var(--lh-base); max-width: 78ch; text-wrap: pretty;
+}
+.b-way-lead b { color: var(--d50); font-weight: var(--fw-bold); }
+.b-ways { display: flex; flex-direction: column; gap: 14px; }
+.b-way {
+  display: grid; grid-template-columns: 46px minmax(140px, 190px) minmax(0, 1fr);
+  column-gap: 20px; row-gap: 2px; align-items: baseline;
+}
+.b-way-n {
+  font-size: var(--t-lead); font-weight: var(--fw-bold); color: var(--d50);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.b-way-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-way-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
+.b-way-of { font-size: var(--t-micro); color: var(--d300); }
+.b-way-beat {
+  font-size: var(--t-body); color: var(--d200);
+  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+}
+.b-way-beat .b-doc, .b-way-beat .s-inline-btn { vertical-align: 1px; margin-left: 2px; }
+@media (max-width: 900px) {
+  .b-way { grid-template-columns: 46px minmax(0, 1fr); }
+  .b-way-beat { grid-column: 2; }
+}
+.b-way-thin {
+  margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
+  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+}
+
+/* ══ 56. THE BRIEF, IN THREE STEPS ═════════════════════════════════════════
+   Nine label-and-value pairs at one size, one weight and one colour. A brief
+   has three jobs and they are not equal: what you act on now, what shapes
+   the words, and the campaign's material — identical on every call in it and
+   therefore reference, not instruction.
+
+   The steps are typographic, not boxed. One card inside a card inside the
+   canvas is three borders around one idea; a size and a colour do it with
+   none. */
+.b-prep { display: flex; flex-direction: column; }
+.b-prep-id {
+  margin: -2px 0 16px; font-size: var(--t-ui); color: var(--d200);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+
+/* 1. Where they stand and what is owed — the fact that decides what this
+   call is for, on one line, at the top, where it is looked for. */
+.b-prep-state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.b-prep-owed { font-size: var(--t-ui); color: var(--d100); }
+.b-prep-due {
+  padding: 2px 9px; border-radius: var(--r-pill); white-space: nowrap;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  color: var(--d100); background: var(--wash-3); border: 1px solid var(--card-border);
+}
+.b-prep-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+
+/* 2. The one line here anybody says out loud, so it is set as speech. */
+.b-open {
+  margin: 0 0 18px; padding: 14px 16px;
+  background: rgba(var(--accent-rgb), 0.07); border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 14px;
+}
+.b-open-cap {
+  display: block; margin-bottom: 6px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-text);
+}
+.b-open-say {
+  margin: 0; max-width: 58ch; text-wrap: pretty;
+  font-size: var(--t-lead); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50);
+}
+
+/* 3. What shapes those words. Body ink, because it is read; the label is the
+   only bold thing on the line, as it is everywhere else in this build. */
+.b-prep-know { display: flex; flex-direction: column; gap: 9px; }
+.b-prep-line {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
+}
+.b-prep-line b {
+  display: block; margin-bottom: 1px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--d300);
+}
+
+/* 4. What arrives mid-call: which one they actually raise, then the script. */
+.b-prep-most {
+  margin: 0 0 12px; font-size: var(--t-small); color: var(--d200);
+  line-height: var(--lh-base); max-width: 64ch; text-wrap: pretty;
+}
+
+/* 5. The shelf. A step down in size and ink says reference without a rule
+   above it or a box around it. */
+.b-prep-ref { display: flex; flex-direction: column; gap: 7px; margin-top: 20px; }
+.b-prep-refp {
+  margin: 0; font-size: var(--t-small); color: var(--d300);
+  line-height: var(--lh-base); max-width: 66ch; text-wrap: pretty;
+}
+.b-prep-refp b {
+  color: var(--d200); font-weight: var(--fw-bold);
+  margin-right: 4px;
+}
+.b-prep-refp .b-docs { display: inline-flex; vertical-align: -2px; gap: 6px; }
+
+/* ══ 57. WHERE THE NUMBERS COME FROM ═══════════════════════════════════════
+   Three chips with one lit, beside a sentence naming the lit one — a control
+   for picking a supplier on a page where nobody picks a supplier. It is a
+   listing now: what each of them fills, and which of them has stopped
+   answering. Under the sentence it explains, left of the button, because it
+   is that sentence's working and not another thing to press. */
+.b-src-side { flex: 1 1 26ch; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.b-src-side > .s-build-total { flex: none; }
+/* ONE RHYTHM DOWN THE BLOCK. The caption sat 2px off its list while the
+   rows sat 5px apart, and what each supplier actually did was the palest
+   thing in it. Every row is one step apart, and the sentence is read at the
+   ink everything else on this page is read at. */
+.b-srcs { display: flex; flex-direction: column; gap: 8px; }
+.b-srcs-cap {
+  margin-bottom: 4px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d200);
+}
+.b-src { display: flex; align-items: baseline; gap: 10px; font-size: var(--t-body); }
+.b-src .b-rstate-dot { align-self: center; }
+.b-src-n { font-weight: var(--fw-bold); color: var(--d50); min-width: 104px; }
+.b-src-v { color: var(--d100); }
+/* A supplier that is not answering is a fact about today, not a fault of
+   yours — stated in the warning tone and left in the list, because a source
+   removed from the list is a source you stop expecting back. */
+.b-src.is-off .b-src-v { color: var(--warn-text); }
+
+/* ══ 58. THE WAY INTO THE BAR ══════════════════════════════════════════════
+   The empty state told you where to type and left you to remember the shape
+   of the sentence. The line and the press that fills it sit together, so the
+   instruction and the way to follow it are one thing. */
+.b-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.b-empty .s-said { margin: 0; }
+
+/* ══ 59. WHAT TO EXPECT ════════════════════════════════════════════════════
+   Three rows on one grid so the estimates line up and can be read down the
+   middle column without reading the reasons. The reason is at the small step
+   because it is why the estimate is a guess, and a guess whose working is
+   hidden is a count wearing a hedge. */
+/* One sentence under one caption. It was a two-row grid of labels and
+   paragraphs to say the two things a caller reads in a second. */
+.b-expect { display: flex; flex-direction: column; }
+.b-exp-say {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); max-width: 68ch; text-wrap: pretty;
+}
+.b-exp-say b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* A rule above the foot is the section separator this build took out
+   everywhere else; the space under the block above it says the same thing. */
+.s-build-foot { border-top: 0; padding-top: 0; margin-top: 26px; }
+
+/* ══ 60. THE RUN FITS THE SCREEN ═══════════════════════════════════════════
+   Four stage tiles, four log rows and a foot, on a card that grew past the
+   bottom of a short viewport — and a loading state you have to scroll is a
+   loading state that has stopped telling you anything. The card is capped at
+   the height it has, and the log scrolls inside it, which is the part that
+   grows. svh rather than vh, so a mobile browser's own bar is counted. */
+.pipe-card { max-height: calc(100svh - 190px); display: flex; flex-direction: column; }
+.pipe-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* Nothing is pressed here any more, so the foot is one line of elapsed. */
+.pipe-foot { padding: 12px 8px 2px; }
+@media (max-height: 720px) {
+  .pipe-rail { padding: 14px 20px; }
+  .pipe-card { max-height: calc(100svh - 150px); }
+}
+
+/* A button that carries a staged choice says so by holding full ink; the
+   verb it replaced is still the same button underneath. */
+.b-menu-open.is-set { color: var(--d50); }
+/* A tick in a menu row: on for what is chosen, a held place for what is not,
+   so the rows do not shift as you pick. */
+.b-menu-tick {
+  width: 14px; height: 14px; flex: none; border-radius: 5px;
+  border: 1px solid var(--card-border-hover); background: var(--card-bg);
+  position: relative;
+}
+.b-menu-tick.is-on { background: var(--accent); border-color: var(--accent); }
+.b-menu-tick.is-on::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(42deg);
+}
+
+/* The run is started from the top of the page it is the point of, so the
+   masthead carries it on the right the way every other masthead here does. */
+.b-sheet-act { margin-left: auto; flex: none; align-self: center; }
+.b-sheet-act .s-build-go[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* The primary opens a menu, so the menu hangs off a filled button rather
+   than a quiet one; it is the same wrapper either way. */
+.b-menu-wrap .s-build-go { white-space: nowrap; }
+
+/* A menu that searches. The box is the chooser's own, narrowed to the menu's
+   width and set between the caption and the rows it filters. */
+.b-menu-find { margin: 2px 0 6px; padding: 7px 10px; font-size: var(--t-ui); }
+.b-menu-item[hidden] { display: none !important; }
+/* The one action on a surface goes at the end of its row, where "Call these
+   15" is on the queue and every other surface's action is. */
+.b-acts-end { justify-content: flex-end; }
+
+/* ══ 61. A MENU IS FIVE ROWS AND A SCROLLBAR ═══════════════════════════════
+   Fourteen campaigns ran a menu off the bottom of the screen and under the
+   composer, so the last of them could not be reached at all. Five rows and
+   then it scrolls; the caption and the search box stay put, because a search
+   that scrolls away is a search you cannot correct. */
+.b-menu { max-height: 328px; overflow-y: auto; overscroll-behavior: contain; }
+.b-menu > .b-menu-cap:first-child, .b-menu > .b-menu-find {
+  position: sticky; z-index: 1; background: var(--card-bg-raised);
+}
+.b-menu > .b-menu-cap:first-child { top: 0; }
+.b-menu > .b-menu-find { top: 22px; }
+
+/* ══ 62. EVERY PRESSABLE ANSWERS THE HAND ══════════════════════════════════
+   Twenty kinds of control here pressed down under the cursor and seven did
+   not: the two ways into a list, a suggestion's door, a chat's opener, a
+   criterion chip, a filter chip's ring. A button that does not move under a
+   press is a button that might not have heard you, and the second press is
+   the one that runs twice. Same 160ms and the same curve as the rest; 0.97
+   for a button, 0.985 for a card, because a card is a bigger thing to move. */
+.s-way, .s-start, .s-finding-go, .b-chat-item, .chip {
+  transition: transform 160ms var(--ease-out), border-color var(--t-fast),
+    background-color var(--t-fast), color var(--t-fast);
+}
+.s-finding-go:active, .b-chat-item:active, .chip:active { transform: scale(0.97); }
+.s-way:active, .s-start:active { transform: scale(0.985); }
+.chip:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The find box focuses the way the menus' search does — a ring, not only a
+   changed border — so the two boxes that do the same job look the same lit. */
+.b-find:focus-within { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); }
+.b-find { transition: border-color var(--t-fast), box-shadow var(--t-fast); }
+/* A row that opens says so to the cursor, like everything else that opens. */
+.s-call { transition: border-color var(--t-fast); }
+.s-call:hover { border-color: var(--card-border-hover); }
+@media (prefers-reduced-motion: reduce) {
+  .s-way, .s-start, .s-finding-go, .b-chat-item, .chip { transition: none; }
+  .s-finding-go:active, .b-chat-item:active, .chip:active, .s-way:active, .s-start:active { transform: none; }
+}
+
+/* ══ 63. ONE SHADOW FOR WHAT FLOATS ════════════════════════════════════════
+   Four surfaces sit above the page — a menu, a toast, the bell's panel, the
+   run's card — and each carried its own recipe: 12/32 at .42, 18/40 at .5,
+   the library's xl, the library's lg. One token, layered the way a lifted
+   surface actually shades: a hairline where it meets the air, a short close
+   shadow and a long soft one, and on a light ground the same shape in the
+   page's own ink. Flat cards stay flat; on a dark ground a border says
+   structure and a shadow says lift, and the queue is structure. */
+:root {
+  --float-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 2px 6px -2px rgba(0, 0, 0, 0.5), 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+}
+:root[data-theme="light"] {
+  --float-shadow: 0 0 0 1px rgba(16, 24, 40, 0.06), 0 2px 6px -2px rgba(16, 24, 40, 0.12),
+    0 16px 40px -12px rgba(16, 24, 40, 0.2);
+}
+.b-menu, .aimy-toast, .ntf-panel, .pipe-card { box-shadow: var(--float-shadow); }
+
+/* CONCENTRIC. Outer radius is inner radius plus the padding between them,
+   or the corners of a nested surface visibly disagree with the corners of
+   the one holding it — the most common thing that makes a surface feel
+   slightly wrong without saying why. The menu is 8px rows inside 6px of
+   padding, so 14. The run's panels sit 14px inside a 20px card, so 8. A
+   card's reading sits 14px inside a 12px card, so it is the smallest step. */
+.b-menu { border-radius: 14px; }
+.pipe-panel { border-radius: 8px; }
+.b-aimy { border-radius: var(--r-sm); }
+
+/* A photograph's edge takes its ring from the ground it sits on: white at a
+   tenth on a dark page, black at a tenth on a light one. A white ring on a
+   light page is a ring that is not there. */
+:root[data-theme="light"] .b-face::after { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
+
+/* ══ 64. FIGURES LINE UP ═══════════════════════════════════════════════════
+   Every number a caller compares by eye — a lead figure, a tile, a count
+   after a bold — is set in tabular figures, so a 1 takes the room of a 7
+   and two of them stacked read as a column. */
+.s-lead-n, .s-lead-of, .s-af-val, .b-way-n, .b-exp-say b, .b-tocall b, .b-way-lead b,
+.s-block-say b, .b-vfoot b, .b-branch-n, .b-src-v, .pipe-elapsed, .b-menu-sub {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ 65. A NEW SURFACE ARRIVES ═════════════════════════════════════════════
+   Opacity and six pixels of rise, 200ms on the ease-out everything else here
+   enters on. No blur: the toast blurs in because it is small; a whole surface
+   through a filter is a repaint of everything on it on every frame. The class
+   is put on the stage by go() when the surface changed and by nothing else,
+   so a write's repaint and a page of the queue turning stay still. */
+@keyframes b-surface-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#wbStage.is-arriving > .s-home { animation: b-surface-in 200ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { #wbStage.is-arriving > .s-home { animation: none; } }
+
+/* ══ 66. CARDS SETTLE IN ORDER, ONCE ═══════════════════════════════════════
+   Under the same arrival the surface makes, the cards of a queue come in
+   one after another, 30ms apart — the list reads as a list arriving rather
+   than a block appearing, and the order the cards settle in is the order
+   they are ranked in. Capped at the eighth: fifteen steps would hold the
+   last card a quarter of a second, which is a wait, not a rhythm. Nothing
+   here runs on a repaint or a page of the queue turning, because the class
+   that starts it is only put on for a change of surface. */
+#wbStage.is-arriving .b-qcard {
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
+}
+@media (prefers-reduced-motion: reduce) { #wbStage.is-arriving .b-qcard { animation: none; } }
+
+/* OPTICAL. The clock centred on the sentence when the sentence was the first
+   line; the chip is the first line now, and the mark sat three pixels below
+   its middle. Measured, not guessed. */
+.b-nm-mark { margin-top: -2px; }
+
+/* The two lines in the call panel set in chrome-grey — "Not recording" and
+   the THEM/YOU label over each line — are read, not decoration, and read
+   at the ink the panel's other words are read at. Them stays a step under
+   you, which is a hierarchy and not a fade. */
+.call-none { color: var(--d300); }
+.call-who { color: var(--d300); }

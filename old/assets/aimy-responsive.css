@@ -1,0 +1,158 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AIMY RESPONSIVE — ONE UI SCALE
+
+   THE MECHANISM IS `zoom` ON <body>, and it is AiMY QA's
+   (QA/assets/aimy-responsive.css), ported so the three products answer a wide
+   screen the same way. Above the anchor the whole shell is scaled up
+   proportionally, so a wider viewport shows the SAME layout — the same cards
+   per row, the same proportions — physically larger, with no stretching and no
+   browser zoom. Below it the shell scales down to a floor rather than
+   collapsing, which is where this file departs from QA's; the argument is at
+   UI_MIN_SCALE in assets/aimy-viewport.js.
+
+   THE ANCHOR IS 1536, and it lives in assets/aimy-viewport.js. 1536 is the CSS
+   viewport a 1920 panel reports at Windows' default 125% display scaling — the
+   width this app is actually looked at. Anchoring above the real viewport is
+   what makes zooming out shrink the UI; the reasoning is written out in full
+   next to UI_ANCHOR_W.
+
+   WHY NOT px-to-rem, which is the route AiMY Knowledge took: converting the
+   ~3,100 px literals in sales.css and aimy-ds.css cannot fix
+   `body { height: 100vh }` or the ten other vw/vh sites, and cannot scale a
+   `position: fixed` offset against a viewport that does not shrink —
+   .aimy-float-wrap's `bottom: 20px` and .aimy-overlay's
+   `top: var(--topbar-height)` would drift away from a scaled shell. `zoom`
+   scales every property coherently.
+
+   ── WHY THE SELECTORS ARE PREFIXED ─────────────────────────────────────────
+   Sales carries no inline <style> block, so unlike QA this file would win on
+   load order alone. The prefix is kept anyway, at QA's (0,2,0), so the two
+   products' copies stay diffable and so a rule added to sales.css later cannot
+   silently take the shell apart. It does NOT outrank the theme rules, which are
+   `:root[data-theme="light"] .x` at (0,3,0) and set colour only.
+
+   WHAT THIS FILE MAY AND MAY NOT TOUCH. assets/aimy-ds.css is an extracted copy
+   of the library and stays a faithful one — sales.css:1029 states the rule and
+   this file follows it. Two of the library's declarations are wrong under a
+   scaled shell; both are overridden HERE rather than edited THERE, and both are
+   marked.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* :root:root, not :root — sales.css declares its tokens on :root (0,1,0), and
+   the token block has to outrank those the same way every other rule here
+   does. */
+:root:root {
+  /* Written by assets/aimy-viewport.js. 1 until proven otherwise, so a browser
+     without `zoom` — or with JS off — gets today's page and nothing worse. */
+  --ui-scale: 1;
+  --kb: 0;                    /* soft-keyboard height, RAW px, unitless */
+
+  /* THE VIEWPORT, EXPRESSED IN THE ZOOMED SUBTREE'S OWN COORDINATE SPACE.
+
+     Inside `zoom: k`, `100vh` resolves to the raw viewport height in LAYOUT px
+     and is then multiplied by k on the way to the screen — so `height: 100vh`
+     under zoom is k times too tall. Dividing by k cancels it exactly: the token
+     is worth one real viewport, while any literal added to it still scales with
+     the design. Measured at a scale of 1.667 on a 2560 viewport:
+     `calc(100vw / var(--ui-scale))` resolved to 1536 layout px, exactly.
+
+     THESE MUST NOT BE REGISTERED WITH @property. Unregistered custom properties
+     are substituted as tokens and computed at the point of USE (inside the
+     zoom); registering them would compute here on :root, outside the zoom, and
+     the division would cancel the wrong thing. */
+  --vp-w: calc(100vw  / var(--ui-scale));
+  --vp-h: calc(100dvh / var(--ui-scale));
+
+  /* Real-pixel insets, converted into the zoomed space. The design margin they
+     are added to scales; these do not, because a home indicator and a keyboard
+     are physical objects that do not care what the layout is doing. */
+  --safe-inset: calc(env(safe-area-inset-bottom, 0px) / var(--ui-scale));
+  --kb-inset:   calc(var(--kb) * 1px / var(--ui-scale));
+
+  /* The gap under the float bar. A token because two places read it and they
+     must not drift. */
+  --float-gap: 20px;
+}
+
+/* ── 1. THE SHELL ─────────────────────────────────────────────────────────
+   sales.css:626 ships `body { height: 100vh }`, which under zoom is k viewports
+   tall — the bottom of the app, the float bar included, falls off the screen.
+   Height has to come from somewhere OUTSIDE the zoom instead: <html> is not
+   zoomed, so its 100dvh is one real viewport, and body's 100% resolves against
+   that and is divided into the zoomed space by the engine.
+
+   100dvh rather than 100vh is the other half of the reported bug: on iPad
+   Safari 100vh is the LARGE viewport height, so the shell was taller than the
+   visible area even at scale 1 — which is the chat input that was not there. */
+:root { height: 100dvh; overflow: hidden; }
+:root body {
+  zoom: var(--ui-scale);
+  height: 100%;
+
+  /* ══ THE ONE THAT IS NOT IN QA'S COPY, AND IT IS LOAD-BEARING ══════════
+     aimy-ds.css:382 ships `body { min-height: 100vh }`. min-height BEATS
+     height, so fixing the line above changes nothing on its own: measured at
+     scale 1.667 on a 2560x1300 viewport, body stayed 2167 visual px tall — one
+     viewport times the scale, with the float bar 867px below the fold — until
+     this line existed. QA's pages do not carry that declaration, which is why
+     QA's file does not carry this answer to it. */
+  min-height: 100%;
+}
+
+/* ── 2. THE VIEWPORT-UNIT SITE IN THE LIBRARY ─────────────────────────────
+   sales.css owns its own vw/vh sites and they are converted in place. This one
+   belongs to aimy-ds.css (:2793, the citation preview), which is not edited.
+   Unused by this product today; carried because the library rule is, and a
+   latent `84vw` is a popover eight tenths of k viewports wide the first time
+   something renders a <cite>. */
+:root .cite-preview { max-width: calc(var(--vp-w) * 0.84); }
+
+/* ── 3. THE COMPOSER IS ALWAYS VISIBLE ────────────────────────────────────
+   Three things were stacked against it. 100vh is the LARGE viewport on iPad
+   Safari, so the shell already overhung the screen (fixed in section 1). The
+   viewport <meta> omitted viewport-fit=cover, so iOS reported every safe-area
+   inset as 0 and nothing could clear the home indicator (fixed in the markup).
+   And nothing listened for the soft keyboard, which shrinks the VISUAL viewport
+   only, leaving a position:fixed composer underneath it.
+
+   `bottom` picks up all three at once: design margin that scales, plus real px
+   of keyboard and home indicator that do not. */
+:root .aimy-float-wrap {
+  bottom: calc(var(--float-gap) + var(--safe-inset) + var(--kb-inset));
+}
+:root .aimy-overlay {
+  bottom: calc(var(--safe-inset) + var(--kb-inset));
+}
+/* So a keyboard-raised composer never hides the row the page just scrolled to.
+   .page-scroll already reserves 96px for the bar itself (sales.css:1049). */
+:root .page-scroll { scroll-padding-bottom: calc(96px + var(--kb-inset)); }
+
+/* ── 4. THE TOP BAR CANNOT COLLIDE ────────────────────────────────────────
+   QA's section 6, and Sales has the same defect for the same reason: the tabs
+   strip is `position: absolute; left: 50%` (sales.css:718) — centred on the
+   viewport while the logo and the right-hand cluster are not — so it runs out
+   of room on the right first. Measured before this rule: at an effective 904px
+   the strip ran to 620 and .topnav-right started at 598, a 22px overlap with
+   the strip on top of the user pill.
+
+   `static` puts it back in flow between the two .topnav-spacer elements the
+   markup already has (index.html:109, 136), and those two `flex: 1 1 0`
+   spacers then centre it between its neighbours instead — which cannot collide
+   by construction, at any strip width.
+
+   1087.98 = 1280 x 0.85. The derivation is in sales.css's breakpoint block;
+   inert above it, where every measurement is identical with and without it. */
+@media (max-width: 1087.98px) {
+  :root .topnav-tabs {
+    position: static;
+    left: auto;
+    transform: none;
+    min-width: 0;
+  }
+  :root .topnav-tabs-inner {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  :root .topnav-tabs-inner::-webkit-scrollbar { display: none; }
+}
