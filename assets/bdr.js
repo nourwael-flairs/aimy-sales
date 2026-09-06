@@ -2229,7 +2229,12 @@
           state: on ? 'reading' : 'staged',
           text: on
             ? '<b>' + commas(people.length) + '</b> people on ' + esc(on.name) + ', <b>' + commas(withNum) + '</b> with a number.'
-            : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is in your queue.',
+            : (function () {
+                const inQ = people.filter((c) => campsOf(c).some(mine)).length;
+                return inQ
+                  ? '<b>' + commas(people.length) + '</b> people and no campaign; <b>' + commas(inQ) + '</b> of them are in your queue through another.'
+                  : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is in your queue.';
+              })(),
           evidence: [{ val: people.length, cap: 'people' }, { val: withNum, cap: 'with a number' }].filter((e) => e.val),
           act: null, q: null,
         },
@@ -2449,6 +2454,18 @@
     return d > 0 ? 'closes first, in ' + plural(d, 'day') : 'is already past its end date';
   }
 
+  /* On lists with no campaign: how many people are on none of yours. */
+  function looseOff(loose) {
+    let n = 0, total = 0;
+    loose.forEach((l) => l.has.forEach((id) => {
+      const c = DB.byCon[id];
+      if (!c) return;
+      total++;
+      if (!campsOf(c).some(mine)) n++;
+    }));
+    return { n: n, all: n === total };
+  }
+
   function briefSentence(here, counts, all, camps) {
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
@@ -2464,11 +2481,16 @@
           'describe who to look for and what comes back is the list.';
       }
       const people = DB.list.reduce((n, l) => n + l.has.length, 0);
-      const parked = DB.list.filter((l) => !l.for).length;
+      const loose = DB.list.filter((l) => !l.for);
+      const parked = loose.length;
+      /* the people on a loose list who are on none of your campaigns — some
+         of them are in your queue through another campaign, and the list's
+         own page says so */
+      const off = looseOff(loose);
       return plural(DB.list.length, 'list') + ' holding <b>' + commas(people) + '</b> people' +
         (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
-          '</b> on no campaign, so nobody on ' + (parked === 1 ? 'it' : 'them') +
-          ' is in your queue' : ', all of them on a campaign') + '.';
+          '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
+            : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
     }
     return openerText(counts, all, camps);
   }
@@ -2907,9 +2929,16 @@
                 ks.forEach((k) => (by[k.id] = (by[k.id] || 0) + 1));
               });
               const tops = Object.keys(by).sort((x, y) => by[y] - by[x]).slice(0, 2);
+              /* two named, and the rest counted, so the facts add up to the lead */
+              const others = Object.keys(by).length - tops.length;
+              const onOthers = others ? people.filter((c) => {
+                const ks = campsOf(c).filter(mine);
+                return ks.length && !ks.some((k) => tops.indexOf(k.id) >= 0);
+              }).length : 0;
               return tops.map((kid) => '<span><b>' + commas(by[kid]) + '</b> on ' +
                 '<button class="s-inline-btn" type="button" data-camp="' + esc(kid) + '">' +
                 esc(DB.byCamp[kid].name) + '</button></span>').join('') +
+                (onOthers ? '<span><b>' + commas(onOthers) + '</b> on ' + (others === 1 ? 'one other' : 'other campaigns') + '</span>' : '') +
                 (none ? '<span><b>' + commas(none) + '</b> on none</span>' : '');
             })() +
             (function () {
@@ -3006,7 +3035,9 @@
         '<span class="s-brow-tag"><span class="tag tag-' + esc(rg.tone) + '">' + esc(rg.label) + '</span></span>' +
         (c.phone && callable(c)
           ? '<button class="s-insight-lnk b-roster-call" type="button" data-call="' + esc(c.id) + '">Call</button>'
-          : '') +
+          : !c.phone && !c.dnc && !isExit(c.checkpoint)
+            ? '<button class="s-inline-btn b-roster-call" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
+            : '') +
       '</span>' +
     '</div>';
   }
@@ -3130,7 +3161,7 @@
 
   /* The name tracks the criteria until you disagree with it. Type in the
      field and it is yours and stops moving; leave it and it keeps up. */
-  const buildAutoName = () => autoName(terms());
+  const buildAutoName = () => autoName(terms(), buildKind());
   const buildName = () => (DRAFT && DRAFT.name != null ? DRAFT.name : buildAutoName());
 
   function buildPage() {
@@ -3845,7 +3876,8 @@
       '<p class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>AiMY reads it</p>' +
-      '<p class="s-findings-say">Three things about what came back, before you keep it.</p>' +
+      '<p class="s-findings-say">' + (['', 'One thing', 'Two things', 'Three things', 'Four things'][offers.length] || plural(offers.length, 'thing')) +
+        ' about what came back, before you keep it.</p>' +
       '<div class="s-findings-list">' + offers.map((o) =>
         '<div class="s-finding">' +
           '<span class="s-finding-say"><b>' + commas(o.n) + '</b> ' + o.say + '</span>' +
@@ -3893,7 +3925,7 @@
       madeAcc.push(a);
       madeCon.push(c);
     });
-    const crit = describeTerms(t);
+    const crit = describeSentence(t, buildKind());
     /* The people you brought in from your own book join the list without
        being minted again — they are already records, and a second copy of
        somebody you have already rung is the worst thing a list can add. */
@@ -4019,9 +4051,33 @@
     if ((t.only || []).indexOf('new') >= 0) bits.push('not already in the book');
     return bits.length ? bits.join(' · ') : 'everyone the sources hold';
   }
-  function autoName(t) {
-    const d = describeTerms(t);
-    return d.length > 70 ? d.slice(0, 68) + '…' : d.replace(/^./, (c) => c.toUpperCase());
+  /* ══ A LIST IS NAMED THE WAY THE SEEDED ONES ARE ═══════════════════════
+     "Software · 200 to 1,000 · Netherlands · Quality" was the criteria
+     string as a title, over the same string as a description. The seeded
+     lists say who and where — "QA managers · Software" — and describe
+     underneath: "QA managers at software companies, 200 to 1,000 staff". */
+  const BAND_NOUN = { support: 'Support leads', quality: 'QA managers', tech: 'Technology leads', ops: 'Operations leads' };
+  const countryName = (k) => (COUNTRY_OPTS.filter((o) => o[0] === k)[0] || [k, k])[1];
+  const sizeLabel = (k) => (SIZE_BANDS.filter((b) => b.k === k)[0] || { label: k }).label;
+  function autoName(t, kind) {
+    const who = (t.title || []).map((k) => BAND_NOUN[k] || k).join(' and ');
+    const ind = (t.industry || []).map((k) => (INDUSTRY[k] || { label: k }).label).join(' or ');
+    const where = (t.where || []).map(countryName).join(' or ');
+    const bits = kind === 'acc' ? [ind ? ind + ' companies' : 'Companies', where] : [who || 'People', ind, where];
+    const name = bits.filter(Boolean).join(' · ');
+    return name.length > 70 ? name.slice(0, 68) + '…' : name;
+  }
+  function describeSentence(t, kind) {
+    const who = (t.title || []).map((k) => BAND_NOUN[k] || k).join(' and ');
+    const ind = (t.industry || []).map((k) => (INDUSTRY[k] || { label: k }).label.toLowerCase()).join(' or ');
+    /* "in the Netherlands", not "in Netherlands" */
+    const where = (t.where || []).map((k) => { const nm = countryName(k); return nm === 'Netherlands' ? 'the Netherlands' : nm; }).join(' or ');
+    const size = (t.size || []).map(sizeLabel).join(' or ');
+    const head = kind === 'acc'
+      ? (ind ? ind.replace(/^./, (c) => c.toUpperCase()) + ' companies' : 'Companies')
+      : (who || 'People') + (ind ? ' at ' + ind + ' companies' : '');
+    return head + (where ? ' in ' + where : '') + (size ? ', ' + size + ' staff' : '') +
+      ((t.only || []).indexOf('new') >= 0 ? ', not already in the book' : '');
   }
 
   /* ══ ONE CAMPAIGN, AS THE PERSON WORKING IT SEES IT ═════════════════════
@@ -6540,10 +6596,10 @@
     }
     const loose = DB.list.filter((l) => !l.for);
     if (loose.length) {
-      const n = loose.reduce((t, l) => t + l.has.length, 0);
+      const n = looseOff(loose).n;
       tasks.push({ id: 'lists-loose', sev: 'p3', type: 'Lists', when: loose.length + ' not on one',
         body: plural(loose.length, 'list') + (loose.length === 1 ? ' is' : ' are') +
-          ' on no campaign, so ' + plural(n, 'person') + ' are not in your queue.',
+          ' on no campaign, so ' + plural(n, 'person') + ' on them ' + (n === 1 ? 'is' : 'are') + ' not in your queue.',
         cta: 'Put them on one', ask: 'Which of my lists are not on a campaign?' });
     }
     return tasks;
@@ -7714,7 +7770,7 @@
   function lbuildAutoName() {
     const t = Object.create(null);
     lbuildTerms().forEach((p) => (t[p[0]] || (t[p[0]] = [])).push(p[1]));
-    return autoName(t);
+    return autoName(t, LBUILD.kind || 'con');
   }
 
   /* AN AXIS NOBODY HAS NAMED IS NOT A BLOCKER, it is the next useful thing to
@@ -7779,8 +7835,11 @@
       : p[0] === 'where' ? (COUNTRY_OPTS.filter((c) => c[0] === p[1])[0] || [p[1], p[1]])[1]
       : 'not already in the book');
     const hit = lbuildMatched().length;
+    /* in the page's axis order, so the read-back and the chips agree */
+    const axisOrder = BUILD_AXES.map((ax) => ax.k);
+    const inOrder = added.slice().sort((x, y) => axisOrder.indexOf(x[0]) - axisOrder.indexOf(y[0]));
     const head = added.length
-      ? 'Read that as <b>' + added.map((p) => esc(label(p))).join(', ') + '</b>.'
+      ? 'Read that as <b>' + inOrder.map((p) => esc(label(p))).join(', ') + '</b>.'
       : 'Nothing new in that.';
     if (!hit) {
       lbuildPush(head + ' Nothing in the index matches all of that. Take something ' +
