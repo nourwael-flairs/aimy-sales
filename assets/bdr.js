@@ -1632,6 +1632,7 @@
   }
   function paint() {
     const pre = prePaint();
+    SAID_SIGNAL = null;
     dropLists();
     GRID_AT = -1;
     byId('navBar').innerHTML = '';
@@ -1710,7 +1711,7 @@
         : '') +
       aimyBlock(aimySays(c)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">' + esc(c.phone) + '</span>' +
+        '<span class="b-qcard-num">' + (c.phone ? esc(c.phone) : 'No number') + '</span>' +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
@@ -1722,8 +1723,14 @@
               '<button class="s-insight-lnk" type="button" data-decide="showed-up" data-for="' + esc(c.id) + '">They showed up</button>' +
               '<button class="s-inline-btn" type="button" data-decide="no-show" data-for="' + esc(c.id) + '">Did not show</button>' +
             '</span>'
-          : '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
-            '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>') +
+          : callable(c)
+            ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+              '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>'
+            /* NO CALL ON SOMEBODY YOU CANNOT RING. A do-not-call, a hand-over, a
+               person with no number — the card offered Call on all of them. */
+            : !c.phone && !c.dnc && !isExit(c.checkpoint)
+              ? '<button class="s-inline-btn" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
+              : '<button class="s-inline-btn" type="button" data-con="' + esc(c.id) + '">Open</button>') +
       '</div>' +
     '</article>';
   }
@@ -1764,6 +1771,9 @@
   /* ══ A SIGNAL IS FRESH FOR THREE WEEKS ═════════════════════════════════
      After that it is history, and history is what the calls already say. */
   const SIGNAL_FRESH_DAYS = 21;
+  /* The company whose page is being drawn: its lead says the signal, so
+     its cards say the next thing they know instead. */
+  let SAID_SIGNAL = null;
   const signalOf = (a) => (a && a.signal && daysBetween(a.signal.at, TODAY_ISO) <= SIGNAL_FRESH_DAYS ? a.signal : null);
   /* What the signal does to what they said. The notes' example: the budget
      came up, then they raised a round — the objection has moved. */
@@ -1825,7 +1835,7 @@
        turn a no into a different conversation, and it is paired with
        what they said. */
     const sig = signalOf(a);
-    if (sig) return signalReading(a, sig, hist);
+    if (sig && !(a && a.id === SAID_SIGNAL)) return signalReading(a, sig, hist);
 
     /* Somebody wrote this down about them, on purpose. On the record it
        already has a home — the stand section prints it — so the reading
@@ -2043,6 +2053,14 @@
 
   function listSays(l, people, ring, camp) {
     if (!camp) {
+      /* the facts above say "7 on AiMY Knowledge"; the lead cannot then say
+         nobody is in the queue */
+      const on = people.filter((c) => c.camps.some((k) => DB.byCamp[k] && mine(DB.byCamp[k]))).length;
+      if (on) {
+        return { text: '<b>' + commas(people.length - on) + '</b> of the ' + commas(people.length) +
+          ' are on no campaign, so they are not in your queue. The ' + commas(on) + ' already on one of yours are.',
+          from: 'the list having no campaign' };
+      }
       return { text: 'Nobody on this list is in your queue until it is on a campaign.',
         from: 'the list having no campaign' };
     }
@@ -2160,6 +2178,44 @@
             { val: commas(membersOf(k.id).length), cap: 'on it' }],
           act: cback ? 'Show the ' + cback : null,
           q: cback ? 'callback' : null,
+        },
+      };
+    }
+    /* THE SIDEBAR READS THE PAGE IT IS BESIDE. A person got "This person"
+       and a campaign "This campaign"; a company and a list got the whole
+       book's callbacks, which is a card about somewhere else. */
+    const a = S.acc && DB.byAcc[S.acc];
+    if (a) {
+      const people = consAt(a.id);
+      const ring = people.filter(callable);
+      const sig = signalOf(a);
+      return {
+        eyebrow: 'This company', subject: a.name,
+        card: {
+          state: sig ? 'detected' : 'reading',
+          text: sig
+            ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' ' + esc(sayWhen(sig.at)) + '.'
+            : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
+              (ring.length ? '<b>' + commas(ring.length) + '</b> you can ring now.' : 'nobody you can ring now.'),
+          evidence: [{ val: people.length, cap: 'here' }, { val: ring.length, cap: 'to call' }].filter((e) => e.val),
+          act: null, q: null,
+        },
+      };
+    }
+    const l = S.list && DB.byList[S.list];
+    if (l) {
+      const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
+      const withNum = people.filter((c) => c.phone).length;
+      const on = l.for && DB.byCamp[l.for];
+      return {
+        eyebrow: 'This list', subject: l.name,
+        card: {
+          state: on ? 'reading' : 'staged',
+          text: on
+            ? '<b>' + commas(people.length) + '</b> people on ' + esc(on.name) + ', <b>' + commas(withNum) + '</b> with a number.'
+            : '<b>' + commas(people.length) + '</b> people and no campaign, so none of them is in your queue.',
+          evidence: [{ val: people.length, cap: 'people' }, { val: withNum, cap: 'with a number' }].filter((e) => e.val),
+          act: null, q: null,
         },
       };
     }
@@ -2457,7 +2513,9 @@
     let opens;
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
-      const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
+      /* a door says "Work X", so X has to be open; the sentence above may
+         still name the one that is past its date */
+      const soonest = camps.filter((k) => k.to >= TODAY_ISO).sort((a, b) => (a.to < b.to ? -1 : 1))[0];
       opens = [
         busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
           why: plural(queue(busiest.id).length, 'person') + ' left to ring on it' } : null,
@@ -2618,7 +2676,7 @@
     const noun = one || 'row';
     if (!pg.total) return '';
     if (pg.pages === 1) {
-      return '<p class="b-vfoot">' + plural(pg.total, noun, many) + ', all of them here.</p>';
+      return '<p class="b-vfoot">' + plural(pg.total, noun, many) + ', all shown.</p>';
     }
     return '<div class="b-pager">' +
       '<span class="b-vfoot">' + commas(pg.from + 1) + '–' + commas(pg.to) + ' of ' +
@@ -2822,8 +2880,8 @@
              gap, with its door. */
           '<div>' +
             '<span>' + (ring.length
-              ? '<b>' + commas(ring.length) + '</b> you can ring now'
-              : 'nobody you can ring now') + '</span>' +
+              ? '<b>' + commas(ring.length) + '</b> ringable'
+              : 'nobody ringable') + '</span>' +
             (function () {
               const by = Object.create(null);
               let none = 0;
@@ -3245,12 +3303,13 @@
     /* Where the ones you have actually got somewhere came from. */
     if (!has('industry')) {
       const won = DB.con.filter((c) => c.checkpoint === 'handed-over');
-      const inds = [];
-      won.forEach((c) => {
-        const a = accOf(c);
-        if (a && inds.indexOf(a.industry) < 0) inds.push(a.industry);
-      });
-      if (inds.length) {
+      /* "came from ten sectors" is every sector, which is no suggestion; the
+         top three are offered only where they hold most of the handovers */
+      const per = Object.create(null);
+      won.forEach((c) => { const a = accOf(c); if (a) per[a.industry] = (per[a.industry] || 0) + 1; });
+      const inds = Object.keys(per).sort((x, y) => per[y] - per[x]).slice(0, 3);
+      const held = inds.reduce((t, i) => t + per[i], 0);
+      if (inds.length && won.length && held / won.length >= 0.6) {
         out.push({ k: 'won', terms: inds.map((i) => ['industry', i]),
           say: 'Your ' + plural(won.length, 'handover') + ' came from ' +
             inds.map((i) => esc(INDUSTRY[i].label)).join(', ') + '.',
@@ -4547,6 +4606,7 @@
        at NOW; the lead reads the calls. Somebody reached in July who has
        since slipped back to callback made the chip say "Nobody reached yet"
        under a reading that named who got through. The call is the fact. */
+    SAID_SIGNAL = signalOf(a) ? a.id : null;
     const everReached = hist.some((t) => t.outcome === 'reached');
     const chip = top && rank(top.checkpoint) >= rank('answered')
       ? { label: rungLabel(top.checkpoint) + ' here', tone: (RUNG[top.checkpoint] || {}).tone || 'ok' }
@@ -4610,8 +4670,7 @@
                   esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
                   ' here</button>'
                 : '')
-            : '<span class="s-block-sub">Nobody here has a number you can ring. ' +
-              (free.length ? 'Putting them on a campaign is the next thing.' : '') + '</span>') +
+            : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
         '</div>' +
       '</section>' +
 
@@ -4690,6 +4749,23 @@
 
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
+  /* Why nobody at a company can be rung now. It said "no number" over two
+     people who had numbers and had simply gone past the rungs you ring. */
+  function accIdle(people) {
+    if (!people.length) return 'Nobody is on the record here.';
+    const live = people.filter((c) => !c.dnc && !isExit(c.checkpoint));
+    const past = live.filter((c) => rank(c.checkpoint) > 3).length;
+    const parked = live.filter((c) => rank(c.checkpoint) <= 3 && c.phone && c.next && c.next.due > TODAY_ISO).length;
+    const noNum = live.filter((c) => !c.phone).length;
+    const gone = people.length - live.length;
+    const bits = [];
+    if (past) bits.push(plural(past, 'person') + ' past the rungs you ring');
+    if (parked) bits.push(plural(parked, 'callback') + ' parked until its day');
+    if (noNum) bits.push(plural(noNum, 'person') + ' with no number');
+    if (gone) bits.push(plural(gone, 'person') + ' who left the ladder');
+    return 'Nobody here can be rung now: ' + bits.join(', ') + '.';
+  }
+
   function accSays(a, people, hist) {
     /* What changed here, paired with what anybody here said. */
     const sig = signalOf(a);
@@ -5156,6 +5232,9 @@
 
   /* Why this person is on the list today, with the fact in it. A queue that
      cannot say why it ranked somebody is a queue you have to trust. */
+  const owedBit = (c) => (c.next
+    ? ' · ' + esc(c.next.what) + ' ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') + esc(sayWhen(c.next.due))
+    : '');
   function whyLine(c) {
     switch (c.checkpoint) {
       case 'callback': {
@@ -5173,6 +5252,26 @@
         return afterMeeting(c)
           ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
           : c.next ? esc(c.next.what) + ' <b>' + esc(sayWhen(c.next.due)) + '</b>' : 'Meeting set';
+      /* ══ THE RUNGS PAST THE PHONE, AND THE WAYS OUT ═════════════════════
+         A handed-over person's card said "Spoke to them 8 Aug, no meeting
+         yet"; so did a do-not-call's. The line says where they are. */
+      case 'showed-up':
+        return 'Came to the meeting <b>' + esc(sayWhen(c.checkpointAt || c.lastCallAt)) + '</b>' + owedBit(c);
+      case 'interested':
+        return 'Interested since <b>' + esc(sayWhen(c.checkpointAt || c.lastCallAt)) + '</b>' + owedBit(c);
+      case 'handed-over': {
+        const ph = phasesOf(c);
+        const fin = ph[ph.length - 1];
+        return 'With <b>' + esc(directorOf(c).name) + '</b> since ' + esc(sayWhen(c.checkpointAt || c.lastCallAt)) +
+          (fin ? ' · ' + (fin.decision ? (fin.decision === 'won' ? 'signed ' : 'said no ') + esc(sayWhen(fin.at.slice(0, 10)))
+            : esc((PHASE[fin.phase] || {}).label || fin.phase) + ' held ' + esc(sayWhen(fin.at.slice(0, 10)))) : '');
+      }
+      case 'declined':
+        return 'Said no <b>' + esc(sayWhen(c.checkpointAt || c.lastCallAt)) + '</b>';
+      case 'wrong-number':
+        return 'The number is not theirs';
+      case 'do-not-call':
+        return 'Asked not to be called';
       default:
         /* what is owed, if anything is — the same line the record shows */
         return c.next
@@ -6219,7 +6318,7 @@
     const phone = '+31 6 ' + String(1000000 + (h % 8999999));
     patchCon(c, { phone: phone, enrichedAt: TODAY_ISO, attempts: 0 });
     paint();
-    toast(f.name + ' found another number for ' + first + ' · ' + phone, () => {
+    toast(f.name + (before.phone ? ' found another number for ' : ' found a number for ') + first + ' · ' + phone, () => {
       patchCon(c, before);
       paint();
     });
