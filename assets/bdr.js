@@ -4871,7 +4871,7 @@
              the only door to the finder was on a surface two clicks away
              that does not know which campaign you were working. */
           (campOpen(k)
-            ? '<button class="s-inline-btn" type="button" data-bopen="' + esc(k.id) +
+            ? '<button class="b-ghost" type="button" data-bopen="' + esc(k.id) +
               '">Find more for this campaign</button>'
             : '<span class="s-block-sub">It closed ' + esc(sayWhen(k.to)) + '. Nothing on it is dialled now.</span>') +
         '</div>' +
@@ -5995,11 +5995,6 @@
     const warm = rank(c.checkpoint) >= rank('callback') && !isExit(c.checkpoint) &&
       c.checkpoint !== 'handed-over';
     const send = null;
-    /* Past a meeting the question is what happened at it; before one, the
-       question is the phone. */
-    /* a meeting still ahead is not yet a question; the phone leads until it has happened */
-    const settling = rank(c.checkpoint) >= rank('meeting-set') && !isExit(c.checkpoint) &&
-      !(c.checkpoint === 'meeting-set' && c.next && c.next.due > TODAY_ISO);
     let list;
     let quiet = [];
     let say = '';
@@ -6023,9 +6018,15 @@
       quiet = call ? [call] : [];
       say = rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.';
     } else {
-      list = (find ? [find] : [])
-        .concat(settling ? moves.concat(call ? [call] : []) : (call ? [call] : []).concat(moves))
-        .concat(send ? [send] : []);
+      /* ══ THE PHONE IS THE ROW; THE RUNGS ARE THE QUESTION ══════════════
+         Four verbs stood in one line at two weights, and which of them led
+         swapped as soon as a meeting date passed — so the button under the
+         cursor changed from Call to They showed up without the page moving.
+         The row is what you DO with this record: ring them, hand them over,
+         go to the next one. What happened at the meeting is a different
+         kind of thing — a fact to record, not an action to take — and it
+         gets its own line and the question it answers. */
+      list = (find ? [find] : []).concat(call ? [call] : []).concat(send ? [send] : []);
     }
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
        uses, so the name here is the card that would be first if you went
@@ -6043,7 +6044,14 @@
         ? '<button class="s-inline-btn b-next" type="button" data-con="' + esc(next.id) + '">' +
           'Next in the queue: ' + esc(next.name) + ' →</button>'
         : '') +
-    '</div>';
+    '</div>' +
+    (moves.length
+      ? '<div class="b-ask">' +
+          '<span class="b-ask-cap">What happened?</span>' +
+          moves.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' +
+            b.html + '</button>').join('') +
+        '</div>'
+      : '');
   }
   const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
 

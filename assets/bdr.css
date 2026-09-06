@@ -2134,3 +2134,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    font metrics around thirteen of type, and centring the mark against that
    is centring it against air. */
 .b-end-word { display: inline-block; line-height: 1; }
+
+/* ══ 67. WHAT HAPPENED IS A QUESTION, NOT A VERB ═══════════════════════════
+   The rungs stood in the row of verbs at the same weight as Call, and which
+   of them led swapped the moment a meeting date passed. They are a different
+   kind of thing — a fact to record rather than an action to take — so they
+   sit under the row on a line of their own, behind the question they answer.
+   Baseline-aligned to the answers, because a label and the words it governs
+   sit on one line or the eye reads them as two rows. */
+.b-ask {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px;
+  margin-top: 12px;
+}
+.b-ask-cap {
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300); margin-right: 2px;
+}
