@@ -1329,6 +1329,28 @@
       });
     }
 
+    /* ══ THE DOCUMENTS ARE NAMED THE WAY DOCUMENTS ARE NAMED ═════════════
+       "Data annotation — one pager" is a slot, not a title. A shared drive
+       holds "What Data annotation costs, and against what" and "Norgate
+       Health — how they did it": the kind, the context, and for a case
+       study a real company from the sector it is meant to persuade.
+       Written after the accounts exist, because one of them borrows a
+       name from them. */
+    camp.forEach((k) => {
+      const sell = SELL[k.sells[0]];
+      const ind = INDUSTRY[k.industry];
+      const reg = REGION[k.region];
+      const pool = acc.filter((a) => a.industry === k.industry && a.region === k.region);
+      const ref = (pool.length ? pool : acc)[Math.abs(hash(k.id + ':ref')) % (pool.length || acc.length)];
+      const named = {
+        deck: sell.name + ' in ' + ind.label.toLowerCase() + ' — the one pager',
+        pricing: 'What ' + sell.name + ' costs, and against what',
+        case: ref.name + ' — how they did it',
+        faq: 'What ' + ind.label.toLowerCase() + ' teams ask us',
+      };
+      k.resources.forEach((x) => { x.name = named[x.kind] || x.name; });
+    });
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
@@ -2433,6 +2455,33 @@
      confirm — that is a form for a question with one answer. The verb
      opens a menu under itself, a name hands them over, and the toast's
      Undo is the way back. Escape and a click outside close it. */
+  /* ══ THE COLLEAGUES ARE A MENU ═════════════════════════════════════════
+     "2 others at Morberg Collection" counted people and opened a company,
+     which is a label promising one thing and a click doing another. It
+     names them: each row opens that person, and the last opens the
+     company they are all at. */
+  function coMenu(a, others, label) {
+    const shown = others.slice(0, 6);
+    return '<span class="b-menu-wrap">' +
+      '<button class="s-inline-btn b-menu-open" type="button" data-pickopen="coMenu" ' +
+        'aria-haspopup="menu">' + esc(label) + '</button>' +
+      '<div class="b-menu" id="coMenu" role="menu" hidden>' +
+        '<span class="b-menu-cap">Also at ' + esc(a.name) + '</span>' +
+        shown.map((x) => {
+          const rg = RUNG[x.checkpoint] || RUNG['not-called'];
+          return '<button class="b-menu-item" type="button" role="menuitem" data-con="' + esc(x.id) + '">' +
+            '<span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') + '"></span>' +
+            '<span class="b-menu-line"><span class="b-menu-name">' + esc(x.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(x.title) + '</span></span></button>';
+        }).join('') +
+        (others.length > shown.length
+          ? '<span class="b-menu-cap b-menu-more">and ' + commas(others.length - shown.length) + ' more</span>' : '') +
+        '<button class="b-menu-item is-foot" type="button" role="menuitem" data-acc="' + esc(a.id) + '">' +
+          'Open ' + esc(a.name) + '</button>' +
+      '</div>' +
+    '</span>';
+  }
+
   function mgrMenu(conId, label) {
     return '<span class="b-menu-wrap">' +
       '<button class="s-inline-btn b-menu-open" type="button" data-pickopen="mgrMenu" ' +
@@ -2931,19 +2980,21 @@
          nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp
-          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting' : 'To call') + '</h2>' +
-            /* "Never rung 102" three sections down and "New 58" on the chip
-               are both right — the roster, and who is callable now — and the
-               page never said so. This is the number the chips add up to. */
-            (S.q === 'after'
-              ? '<span class="s-block-say"><b>' + commas(counts.after || 0) + '</b> meetings passed without a word</span>'
-              : '<span class="s-block-say"><b>' + commas(all.length) + '</b> you can ring now</span>')
+          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting' : 'To call') + '</h2>'
           : switcher('calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
         findBox(S.camp ? 'Find someone on this campaign' : 'Find a name, a company, a campaign') +
       '</div>' +
+      /* THE NUMBER SITS UNDER THE HEADING IT COUNTS. It was at the far end
+         of the heading's row, which is where a section's actions live —
+         so the one figure the chips add up to read as a control. */
+      (S.camp
+        ? '<p class="b-tocall">' + (S.q === 'after'
+            ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
+            : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
+        : '') +
       cuts(counts, all, ring) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
@@ -4385,8 +4436,7 @@
          of its own, and both are worse than deciding which of the two lists
          is the reason you came. */
       '<section class="s-block s-block-wide" aria-label="What happened">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2>' +
-          '<span class="s-block-say">newest first</span></div>' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What happened</h2></div>' +
         feedBlock(campFeedItems(k.id)) +
       '</section>' +
     '</div>';
@@ -4827,8 +4877,7 @@
        ask for is a section nobody reads. The folded line quoted the
        opener, which is the first line of the panel underneath it. */
     return '<section class="s-block s-block-wide b-sell" id="pitchBox" aria-label="What to say">' +
-      '<div class="s-camp-list-head"><h2 class="s-block-h">What to say</h2>' +
-        '<span class="s-block-say">' + esc(listSay(k.sells.map((x) => SELL[x].name))) + '</span></div>' +
+      '<div class="s-camp-list-head"><h2 class="s-block-h">What to say</h2></div>' +
       '<div class="b-sell-body">' +
 
         '<blockquote class="b-open">' +
@@ -5013,8 +5062,7 @@
          apart, so the row leads with the name — and it is the same feed
          the campaign uses, under the day it happened. */
       '<section class="s-block s-block-wide" aria-label="What has been said here">' +
-        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2>' +
-          '<span class="s-block-say">newest first</span></div>' +
+        '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2></div>' +
         feedBlock(hist, 'Nobody has rung this company yet. ' + callFirst) +
       '</section>' +
     '</div>';
@@ -5200,8 +5248,7 @@
                out needs a colleague, not a company profile — so the fact that
                there are colleagues is on the record, with the door. */
             (others.length
-              ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
-                '">' + plural(others.length, 'other') + ' at ' + esc(a.name) + '</button></span>'
+              ? '<span>' + coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name) + '</span>'
               : (a ? '<span>the only person here</span>' : '')) +
             /* WHO IS MANAGING THEM NOW. The one fact about this record that
                is not the BDR's to act on, so it sits with the facts. */
@@ -5350,8 +5397,7 @@
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
         'Ask ' + esc(finderOf().name) + ' for a number</button>';
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && others.length) {
-      door = '<button class="s-insight-lnk" type="button" data-acc="' + esc(a.id) + '">' +
-        'Try one of the ' + others.length + ' others at ' + esc(a.name) + '</button>';
+      door = coMenu(a, others, 'Try one of the ' + others.length + ' others at ' + a.name);
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
       /* NO COLLEAGUE TO TRY, so the door is the supplier. The reading says
          this number may not be theirs, and "Call Ava" under it rang it

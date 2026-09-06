@@ -1585,15 +1585,17 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    title. A chip you can press: sentence case at the small step, the open
    mark at the end, and a border that answers the cursor. */
 .b-docs { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The tag's own colour and shape — it was already right — with the press,
+   the open mark and a hover that says it is a door. */
 .b-doc {
-  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-  font-family: inherit; font-size: var(--t-small); font-weight: var(--fw-semibold);
-  color: var(--d100); text-align: left;
-  padding: 6px 12px; border-radius: 99px;
-  background: var(--card-bg); border: 1px solid var(--card-border);
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: inherit; font-size: 10px; font-weight: var(--fw-bold);
+  letter-spacing: 0.04em; text-transform: uppercase; text-align: left;
+  padding: 3px 9px; border-radius: var(--r-pill);
+  color: var(--d200); background: var(--wash-3); border: 1px solid var(--card-border);
   transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
 }
-.b-doc:hover { color: var(--d50); border-color: var(--accent); background: var(--card-bg-raised); }
+.b-doc:hover { color: var(--d50); border-color: var(--accent); background: var(--wash-6); }
 .b-doc:active { transform: scale(0.97); }
 .b-doc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .b-doc-out { flex: none; color: var(--d300); }
@@ -1627,3 +1629,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-rstate-dot.tone-warn { background: var(--warn-text); }
 .b-rstate-dot.tone-err { background: var(--err-text); }
 .b-rstate-dot.tone-neutral { background: var(--d400); }
+
+/* The one figure the chips add up to, under the heading rather than at the
+   far end of its row, where a section's actions live. */
+.b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
+.b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
+
+/* A menu row that names a person: the rung as a dot, the name, what they do. */
+.b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-menu-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: inherit; }
+.b-menu-sub { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-menu-more { padding-top: 2px; }
+.b-menu-item.is-foot { color: var(--d200); font-weight: var(--fw-semibold); margin-top: 2px; }
