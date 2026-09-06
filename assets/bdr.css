@@ -2038,3 +2038,29 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 @keyframes b-surface-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #wbStage.is-arriving > .s-home { animation: b-surface-in 200ms var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { #wbStage.is-arriving > .s-home { animation: none; } }
+
+/* ══ 66. CARDS SETTLE IN ORDER, ONCE ═══════════════════════════════════════
+   Under the same arrival the surface makes, the cards of a queue come in
+   one after another, 30ms apart — the list reads as a list arriving rather
+   than a block appearing, and the order the cards settle in is the order
+   they are ranked in. Capped at the eighth: fifteen steps would hold the
+   last card a quarter of a second, which is a wait, not a rhythm. Nothing
+   here runs on a repaint or a page of the queue turning, because the class
+   that starts it is only put on for a change of surface. */
+#wbStage.is-arriving .b-qcard {
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
+}
+@media (prefers-reduced-motion: reduce) { #wbStage.is-arriving .b-qcard { animation: none; } }
+
+/* OPTICAL. The clock centred on the sentence when the sentence was the first
+   line; the chip is the first line now, and the mark sat three pixels below
+   its middle. Measured, not guessed. */
+.b-nm-mark { margin-top: -2px; }
+
+/* The two lines in the call panel set in chrome-grey — "Not recording" and
+   the THEM/YOU label over each line — are read, not decoration, and read
+   at the ink the panel's other words are read at. Them stays a step under
+   you, which is a hierarchy and not a fade. */
+.call-none { color: var(--d300); }
+.call-who { color: var(--d300); }

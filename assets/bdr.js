@@ -1968,7 +1968,12 @@
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
     const r = RUNG[c.checkpoint] || RUNG['not-called'];
     const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
+    /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
+       in order, 30ms apart, capped at the eighth so the last of fifteen is
+       not made to wait a quarter of a second — and a repaint never runs the
+       arrival, so the number is inert the rest of the time. */
     return '<article class="type-card s-card b-qcard" data-card="' + esc(c.id) + '" ' +
+      'style="--i:' + Math.min(i || 0, 8) + '" ' +
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
@@ -2241,7 +2246,8 @@
     const fresh = q.filter((c) => c.checkpoint === 'not-called').length;
     const left = daysBetween(TODAY_ISO, k.to);
     const members = membersOf(k.id);
-    return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '">' +
+    return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '" ' +
+      'style="--i:' + Math.min(i || 0, 8) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
