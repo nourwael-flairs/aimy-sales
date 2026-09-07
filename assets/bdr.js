@@ -1613,7 +1613,7 @@
       });
       const mineCamps = camp.filter((k) => k.crew.indexOf(DEFAULT_ME) >= 0);
       const SPEC = [
-        { ind: 'software',   band: '200 to 1,000',  who: 'QA managers',        via: 'Apollo',        ago: 46, on: 0 },
+        { ind: 'software',   band: '200 to 1,000',  who: 'QA managers',        via: 'LinkedIn Sales Navigator', ago: 46, on: 0 },
         { ind: 'industry', band: '1,000+',     who: 'Heads of support',   via: 'ZoomInfo',      ago: 31, on: 1 },
         { ind: 'banking',    band: '200 to 1,000',  who: 'Operations leads',   via: 'Apollo',        ago: 17, on: -1 },
         { ind: 'logistics',  band: '1,000+',        who: 'Support directors',  via: 'Exa / Serper',  ago: 6,  on: -1 },
@@ -3900,7 +3900,19 @@
      three third-party APIs and something the page could not say. `down` is a
      fixture here; in a real build it is whatever the last call to them
      returned. */
+  /* ══ WHERE THESE LEADS ACTUALLY COME FROM ══════════════════════════════
+     Every seller we spoke to named LinkedIn first and the data brokers
+     afterwards, and the builder listed the brokers and not LinkedIn at all.
+     It goes first because that is the order the work happens in.
+
+     Its numbers are the shape of the source rather than a better version of
+     the others: almost everybody is on it, so the title and the company are
+     as good as they get, and almost nobody has a direct line on it — you
+     leave with a name and an email and you still have to find the phone.
+     A broker is the opposite trade. Listing it first without saying that
+     would be a recommendation dressed as an ordering. */
   const FINDERS = [
+    { k: 'linkedin', name: 'LinkedIn Sales Navigator', phone: 0.21, email: 0.68, down: false },
     { k: 'apollo', name: 'Apollo', phone: 0.74, email: 0.86, down: false },
     { k: 'zoom', name: 'ZoomInfo', phone: 0.58, email: 0.79, down: false },
     { k: 'serper', name: 'Exa / Serper', phone: 0.41, email: 0.62, down: true },
@@ -3912,7 +3924,7 @@
      the kind survived only because a draft happened to be in memory — reload
      that URL and the builder was collecting neither companies nor people.
      A supplier preference for one run is not where a page is. */
-  let FINDER = 'apollo';
+  let FINDER = 'linkedin';
 
   const BUILD_AXES = [
     { k: 'industry', label: 'Industry', of: (n) => n.industry,
@@ -4469,10 +4481,18 @@
               /* A percentage, because that is the unit a fill rate is quoted
                  in everywhere else a caller meets one. "7 in 10 with a
                  number" made you work out both what the ratio was and what
-                 it was a ratio OF. */
+                 it was a ratio OF.
+
+                 BOTH NUMBERS, since LinkedIn joined the list. A listing whose
+                 only figure is the phone rate says the source these sellers
+                 actually use is the worst of the four, when what is true is
+                 that it trades a number for a name — and the row underneath
+                 offering to fill the gaps only makes sense once you can see
+                 which gap each one leaves. */
               '<span class="b-src-v">' + (x.down
                 ? 'not answering since ' + esc(sayDay(dayAdd(-2)))
-                : Math.round(x.phone * 100) + '% came with a phone number') +
+                : Math.round(x.phone * 100) + '% with a number · ' +
+                  Math.round(x.email * 100) + '% with an email') +
               '</span>' +
             '</span>').join('') +
         '</div>' +
@@ -10034,6 +10054,13 @@
     const know = [];
     know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
       'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
+    /* Something they put in public is the best opener there is, and it is
+       the thing a manager would have gone looking for by hand. */
+    const sig = a ? signalOf(a) : null;
+    if (sig) {
+      know.push([sig.src === 'LinkedIn' ? 'Seen on LinkedIn' : 'Seen',
+        esc(a.name) + ' ' + esc(sig.text) + ', ' + esc(sayWhen(sig.at)) + '.']);
+    }
     if (c.owner) {
       const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
       know.push(['How it started', esc(actor(c.owner).name) + ' rang them cold' +
