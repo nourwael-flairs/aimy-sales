@@ -424,6 +424,20 @@
   const INDUSTRY = Object.create(null);
   INDUSTRIES.forEach((i) => (INDUSTRY[i.k] = i));
 
+  /* ══ A COMPANY SOMEBODY TYPED KNOWS ONLY ITS NAME ═══════════════════════
+     Every company in the seed arrives complete — industry, city, headcount —
+     so a dozen surfaces read those straight off the record and print them.
+     A company named at a dinner has none of it, and a page that prints
+     "null staff" or "0 staff" has invented a fact rather than admitted a
+     gap. These say what is not known, and `accKnown` lets a sentence that
+     only works with the facts step aside for one that does not. */
+  const indLabel = (a) => (a && INDUSTRY[a.industry] ? INDUSTRY[a.industry].label : 'Industry not known');
+  const cityLabel = (a) => (a && a.city ? a.city : 'Location not known');
+  const headLabel = (a) => (a && a.size ? commas(a.size) + ' staff' : 'headcount not known');
+  const whereLabel = (a) => (a && a.city
+    ? a.city + (a.country ? ', ' + a.country : '') : 'Location not known');
+  const accKnown = (a) => !!(a && INDUSTRY[a.industry] && a.size);
+
   const REGIONS = [
     { k: 'nl',     label: 'Netherlands',  cc: ['NL'] },
     { k: 'be',     label: 'Belgium',      cc: ['BE'] },
@@ -2054,8 +2068,8 @@
          forced them to the same size, weight and ink. */
       '<p class="tc-summary b-qcard-role">' + esc(c.title) + '</p>' +
       (a ? '<p class="b-qcard-where">' + esc(a.name) + ' · ' +
-        esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
-        ' · ' + commas(a.size) + ' staff</p>' : '') +
+        esc(indLabel(a)) + ' · ' + esc(cityLabel(a)) +
+        ' · ' + esc(headLabel(a)) + '</p>' : '') +
       '<div class="b-qcard-why">' + (isMgr() ? dealWhy(c) : whyLine(c)) + '</div>' +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
@@ -2247,7 +2261,9 @@
     /* Nothing has happened yet, so the useful thing is who they are. */
     if (!hist.length && a && camp) {
       return {
-        text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) + ' staff, and this ' +
+        text: (accKnown(a)
+          ? esc(indLabel(a)) + ' at ' + esc(headLabel(a))
+          : esc(a.name) + ', and nobody has filled in who they are yet') + ', and this ' +
           'campaign sells ' + esc(SELL[camp.sells[0]].name) + ' on ' +
           esc(SELL[camp.sells[0]].blurb) + '.',
         from: 'the account and the campaign',
@@ -3116,7 +3132,7 @@
     return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i, 8) + '">' +
       '<span class="b-dc-name">' + esc(c.name) + '</span>' +
-      '<span class="b-dc-co">' + esc(a ? a.name : 'No company') + '</span>' +
+      '<span class="b-dc-co">' + esc(a ? a.name : 'No company named') + '</span>' +
       '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
       '<span class="b-dc-amt">' + esc(euro(amountOf(c))) + '</span>' +
     '</button>';
@@ -3816,8 +3832,8 @@
     const said = aimySays(c, true);
     const specific = said && ROSTER_QUIET.indexOf(said.from) < 0;
     const facts = [
-      a ? esc(a.city) : null,
-      a ? esc(INDUSTRY[a.industry].label) : null,
+      a && a.city ? esc(a.city) : null,
+      a && INDUSTRY[a.industry] ? esc(indLabel(a)) : null,
       c.email ? esc(c.email) : null,
       c.phone ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>' : null,
     ].filter(Boolean);
@@ -3839,7 +3855,7 @@
           : '') +
       '</span>' +
       '<span class="s-brow-side">' +
-        '<span class="s-brow-fig">' + (a ? commas(a.size) + ' staff' : '—') + '</span>' +
+        '<span class="s-brow-fig">' + (a && a.size ? commas(a.size) + ' staff' : '—') + '</span>' +
         '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
         /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The rung is a state:
            a dot in its tone and the word, quiet. The only pill on the row
@@ -5928,8 +5944,8 @@
       backHere() +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Company · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
-          esc(a.city) + ', ' + esc(a.country) + '</span>' +
+        '<span class="s-rec-kind">Company · ' + esc(indLabel(a)) + ' · ' +
+          esc(whereLabel(a)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
@@ -5939,7 +5955,7 @@
              ring — the numbers that decide whether this company is worth
              the afternoon. */
           '<div>' +
-            '<span><b>' + commas(a.size) + ' staff</b></span>' +
+            '<span><b>' + esc(headLabel(a)) + '</b></span>' +
             '<span>' + esc(plural(people.length, 'person')) + ' here</span>' +
             '<span>' + (ring.length
               ? '<b>' + commas(ring.length) + '</b> you can ring now'
@@ -6111,8 +6127,9 @@
     }
     /* Nothing has happened, so the useful thing is who they are. */
     const ring = people.filter(callable).length;
-    return { text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) +
-      ' staff in ' + esc(a.city) + ', and ' + (ring
+    return { text: (accKnown(a)
+      ? esc(indLabel(a)) + ' at ' + esc(headLabel(a)) + ' in ' + esc(cityLabel(a))
+      : esc(a.name) + ', and nobody has filled in who they are') + ', and ' + (ring
         ? plural(ring, 'person') + ' here can be rung today'
         : 'nobody here has a number you can ring') + '.',
       from: 'the account itself' };
@@ -6152,7 +6169,7 @@
     return '<section class="s-block s-block-wide" aria-label="The deal">' +
       '<div class="b-cmeta">' +
         cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — modelled ' +
-          'from ' + esc(sells) + ' at ' + (a ? commas(a.size) + ' staff' : 'their size') +
+          'from ' + esc(sells) + ' at ' + (a && a.size ? esc(headLabel(a)) : 'their size') +
           ', not read off a proposal.</p>') +
         cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
           (dealLive(c)
@@ -6211,9 +6228,9 @@
             '<span>' + esc(c.title) + '</span>' +
             (a ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
               '">' + esc(a.name) + '</button></span>' +
-              '<span>' + esc(INDUSTRY[a.industry].label) + '</span>' +
-              '<span>' + esc(a.city) + ', ' + esc(a.country) + '</span>' +
-              '<span>' + commas(a.size) + ' staff</span>' : '') +
+              '<span>' + esc(indLabel(a)) + '</span>' +
+              '<span>' + esc(whereLabel(a)) + '</span>' +
+              '<span>' + esc(headLabel(a)) + '</span>' : '') +
           '</div>' +
           '<div>' +
             (c.phone
@@ -6760,7 +6777,7 @@
       say: plural(all.length, 'lead') + ' at this company',
       root: {
         name: a.name,
-        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        sub: indLabel(a) + ' · ' + cityLabel(a) + ' · ' + headLabel(a),
         attr: 'data-acc="' + esc(a.id) + '"',
       },
       limbs: ['<div class="b-map-row">' + shown.map((x) =>
@@ -6836,7 +6853,7 @@
       say: plural(people.length, 'lead') + ' and ' + plural(ids.length, 'campaign'),
       root: {
         name: a.name,
-        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        sub: indLabel(a) + ' · ' + cityLabel(a) + ' · ' + headLabel(a),
         attr: 'data-acc="' + esc(a.id) + '"',
       },
       limbs: limbs,
@@ -6991,7 +7008,7 @@
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
         ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
-      cite: a.city + ' · ' + INDUSTRY[a.industry].label,
+      cite: cityLabel(a) + ' · ' + indLabel(a),
     };
   }
   /* The hand-over from the company page: the furthest person, once warm. */
@@ -9087,8 +9104,8 @@
        repeating it as the first of nine facts spent the loudest line on the
        one thing the reader had just read. */
     body += '<p class="b-prep-id">' + esc(c.title) +
-      (a ? ' · ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
-        commas(a.size) + ' staff' : '') + '</p>';
+      (a ? ' · ' + esc(a.name) + (accKnown(a)
+        ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
 
     /* ── 1. where they stand, and what is owed ── */
     body += '<div class="b-prep-state">' +
