@@ -947,7 +947,7 @@
     const touch = [];
 
     /* ── Campaigns ── 40, and 14 of them are mine. */
-    const CAMP_N = 40;
+    const CAMP_N = 10;
     const usedNames = Object.create(null);
     for (let i = 0; i < CAMP_N; i++) {
       const ind = pick(r, INDUSTRIES);
@@ -1076,7 +1076,7 @@
     });
 
     /* ── Accounts ── */
-    const ACC_N = 2500;
+    const ACC_N = 200;
     const usedCo = Object.create(null);
     for (let i = 0; i < ACC_N; i++) {
       const ind = pick(r, INDUSTRIES);
@@ -1099,7 +1099,7 @@
     }
 
     /* ── Contacts ── people, spread over the accounts. */
-    const CON_N = 6000;
+    const CON_N = 560;
     for (let i = 0; i < CON_N; i++) {
       const a = acc[Math.floor(r() * ACC_N)];
       /* Reachability is not universal, and that is the point of enrichment:
@@ -1152,7 +1152,7 @@
       (byCell[cell] || (byCell[cell] = [])).push(p);
     });
     camp.forEach((c) => {
-      const want = between(r, 120, 400);
+      const want = between(r, 30, 70);
       const cell = byCell[c.region + '|' + c.industry] || [];
       const region = byRegion[c.region] || con;
       for (let j = 0; j < want; j++) {
@@ -1175,17 +1175,24 @@
        no campaign, and most contacts with no number, never get here at all —
        so a 0.50 not-called share reads as 0.64 of all six thousand once those
        are counted in. Measured, and tuned against the measurement. */
+    /* ══ TWO DESKS BOTH NEED SOMETHING TO WORK ═════════════════════════
+       These shares were a real book's, where a hand-over is one lead in a
+       hundred — fine across six thousand people, and across three hundred it
+       leaves the manager with three deals and no board worth opening. The
+       book is a demo's size now, so the hand-over share is what a demo
+       needs: a hundred or so still to ring on one desk, forty-odd deals on
+       the other. */
     const START = [
-      ['not-called', 0.26],
-      ['no-answer', 0.19],
-      ['callback', 0.05],
+      ['not-called', 0.33],
+      ['no-answer', 0.20],
+      ['callback', 0.06],
       ['answered', 0.10],
-      ['meeting-set', 0.045],
-      ['showed-up', 0.02],
-      ['interested', 0.015],
-      ['handed-over', 0.01],
-      ['declined', 0.045],
-      ['wrong-number', 0.015],
+      ['meeting-set', 0.06],
+      ['showed-up', 0.03],
+      ['interested', 0.02],
+      ['handed-over', 0.13],
+      ['declined', 0.04],
+      ['wrong-number', 0.02],
       ['do-not-call', 0.01],
     ];
     /* ══ NORMALISED, BECAUSE THE FIRST CUT WAS NOT AND IT HID A CHANGE ══════
@@ -1462,7 +1469,7 @@
        answered "QA managers at software companies in the Netherlands with 200
        to 1,000 staff" with exactly one. A builder whose Generate button says
        1 has not been demonstrated, it has been apologised for. */
-    for (let i = 0; i < 12000; i++) {
+    for (let i = 0; i < 2000; i++) {
       const ind = pick(r, INDUSTRIES);
       const city = pick(r, CITIES);
       const known = chance(r, 0.12);
