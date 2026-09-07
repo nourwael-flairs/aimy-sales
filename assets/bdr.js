@@ -434,18 +434,16 @@
   const REGION = Object.create(null);
   REGIONS.forEach((x) => (REGION[x.k] = x));
 
-  /* The cast. Four BDRs and two managers is enough to make ownership mean
-     something without pretending this is a directory. */
+  /* The cast. Four callers and one manager: ownership means something on the
+     calling side, where a lead has an owner and a queue is somebody's, and on
+     the other side of the hand-over there is one desk. `pick` draws once
+     whatever the length, so shortening this does not move the generator. */
   const REPS = [
     { id: 'engy',   name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
     { id: 'habeba', name: 'Sally Tarek',   initials: 'ST', fn: 'bdr' },
     { id: 'omar',   name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
     { id: 'sara',   name: 'Sara Nabil',    initials: 'SN', fn: 'bdr' },
     { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
-    { id: 'ahmed',  name: 'Ahmed Mohamed', initials: 'AM', fn: 'sales-manager' },
-    { id: 'nadia',  name: 'Nadia Rahman',  initials: 'NR', fn: 'sales-manager' },
-    { id: 'karim',  name: 'Karim Fouad',   initials: 'KF', fn: 'sales-manager' },
-    { id: 'yasmin', name: 'Yasmin Adel',   initials: 'YA', fn: 'sales-manager' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -509,8 +507,7 @@
      rather than nine broken-image marks across the masthead. */
   const AV_PIC = {
     engy: 'women/44', habeba: 'women/68', omar: 'men/32', sara: 'women/26',
-    lina: 'women/65', ahmed: 'men/75', nadia: 'women/12', karim: 'men/41',
-    yasmin: 'women/33',
+    lina: 'women/65',
   };
   function faceOf(id, px) {
     const h = Math.abs(hash(String(id) + ':face'));
@@ -2755,6 +2752,13 @@
   }
 
   function mgrMenu(conId, label) {
+    /* WHICH MANAGER IS ONLY A QUESTION IF THERE ARE SEVERAL. With one desk
+       on the other side the menu would open on a single row, which is a
+       question with one answer — so the verb does the thing instead. */
+    if (MANAGERS.length === 1) {
+      return '<button class="b-ghost" type="button" ' +
+        'data-handto="' + esc(conId + ':' + MANAGERS[0].id) + '">' + esc(label) + '</button>';
+    }
     return '<span class="b-menu-wrap">' +
       /* THE SHAPE OF THE WAY OUT, WITHOUT ITS TONE. Handing somebody over
          is the other thing on this row that ends a caller's part in a lead,
@@ -2936,10 +2940,14 @@
     byId('userName').textContent = p.name;
     byId('userRole').textContent = JOB[p.fn];
     byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
+      /* A TICK IS FOR THINGS YOU CHOOSE SEVERAL OF. This is one desk at a
+         time — you are either at it or you are not — so the row you are on
+         is lit the way the switcher's current tab is lit, and nothing on it
+         suggests you could be two people at once. */
       REPS.map((r) =>
-        '<button class="b-menu-item" type="button" role="menuitem" ' +
+        '<button class="b-menu-item' + (r.id === p.id ? ' is-on' : '') + '" type="button" ' +
+        'role="menuitemradio" aria-checked="' + (r.id === p.id) + '" ' +
         'data-as="' + esc(r.id) + '">' +
-          '<span class="b-menu-tick' + (r.id === p.id ? ' is-on' : '') + '"></span>' +
           faceOf(r.id, 24) +
           '<span class="b-menu-line">' +
             '<span class="b-menu-name">' + esc(r.name) + '</span>' +

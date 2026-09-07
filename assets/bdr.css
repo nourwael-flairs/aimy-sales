@@ -2150,3 +2150,14 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--d300); margin-right: 2px;
 }
+
+/* ══ 68. THE DESK YOU ARE AT, IN A MENU THAT SWITCHES ══════════════════════
+   The people menu wore the tick the multi-select assign menu wears, which
+   says "choose as many as you like" about a control where you are exactly
+   one person. Lit like the switcher's current tab instead: the ground says
+   where you are, and the hover still says where you could go. */
+.b-menu-item.is-on {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--d50);
+}
+.b-menu-item.is-on:hover { background: rgba(var(--accent-rgb), 0.22); }
