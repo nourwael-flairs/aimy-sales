@@ -2228,3 +2228,166 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-dealcard { animation: none; transition: none; }
   .b-dealcard:active { transform: none; }
 }
+
+/* ══ 70. THE DIARY ═════════════════════════════════════════════════════════
+   A month of dots over one day in full. The reference this is built from is
+   a light-only component with its own type scale, its own greys and a
+   four-layer drop shadow; what is kept is the SHAPE — a panel inside a card,
+   a 7×6 grid of pressable days each carrying up to three dots, a hairline,
+   then the day's agenda — and everything that made it look like somebody
+   else's product is replaced with ours.
+
+   The one colour decision: five kinds of thing land in a diary and the dot
+   is the only place they are told apart, so this is the one surface in the
+   build that spends five hues. They are the tones the product already owns —
+   the same five that tag anything else — rather than a new palette. */
+.b-cal { margin-top: 16px; max-width: 560px; }
+.b-cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 0 2px 14px;
+}
+.b-cal-month {
+  display: flex; align-items: center; gap: 10px; margin: 0;
+  font-size: var(--t-h3); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: -0.02em;
+}
+.b-cal-count {
+  min-width: 24px; text-align: center; padding: 3px 8px; border-radius: var(--r-pill);
+  font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--d200);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  font-variant-numeric: tabular-nums;
+}
+.b-cal-nav { display: flex; align-items: center; gap: 8px; }
+.b-cal-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex: none;
+  border-radius: var(--r-pill); cursor: pointer;
+  color: var(--d200); background: none; border: 1px solid var(--card-border);
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  transition: color var(--t-fast), border-color var(--t-fast),
+    background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-cal-btn.is-word { width: auto; padding: 0 14px; }
+.b-cal-btn svg { width: 16px; height: 16px; }
+.b-cal-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.b-cal-btn:active { transform: scale(0.96); }
+.b-cal-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.b-cal-panel {
+  padding: 8px; border-radius: var(--r-lg);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-cal-week { display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px 0 6px; }
+.b-cal-wd {
+  text-align: center; font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--d200);
+}
+.b-cal-wd.is-end { color: var(--d300); }
+.b-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+/* A day is a stack: the ground that lights, the number, and the dots. The
+   ground is a child rather than the button's own background so it can scale
+   from 0.9 without taking the number with it. */
+.b-cal-day {
+  position: relative; height: 54px; padding: 0; border: 0; background: none;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; border-radius: var(--r-md);
+  font-family: inherit;
+}
+.b-cal-day:focus { outline: none; }
+.b-cal-bg {
+  position: absolute; inset: 2px 4px; border-radius: var(--r-md);
+  opacity: 0; transform: scale(0.9);
+  background: rgba(var(--accent-rgb), 0.12);
+  transition: opacity 160ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.b-cal-day:hover .b-cal-bg { opacity: 1; transform: none; }
+.b-cal-day.is-sel .b-cal-bg,
+.b-cal-day.is-sel:hover .b-cal-bg {
+  opacity: 1; transform: none; background: rgba(var(--accent-rgb), 0.22);
+}
+.b-cal-day:focus-visible .b-cal-bg {
+  opacity: 1; transform: none; background: none;
+  box-shadow: inset 0 0 0 2px var(--brand);
+}
+.b-cal-num {
+  position: relative; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d100); font-variant-numeric: tabular-nums;
+}
+.b-cal-day.is-out .b-cal-num { color: var(--d300); }
+.b-cal-day.is-end .b-cal-num { color: var(--d200); }
+.b-cal-day.is-sel .b-cal-num { color: var(--d50); font-weight: var(--fw-bold); }
+/* Today is stated in a ring rather than a fill, because the fill means "the
+   day you are reading" and two fills would be two answers to one question. */
+.b-cal-day.is-today .b-cal-num::after {
+  content: ""; position: absolute; left: 50%; bottom: -7px; width: 3px; height: 3px;
+  margin-left: -1.5px; border-radius: var(--r-pill); background: var(--accent);
+}
+.b-cal-day.is-today.is-sel .b-cal-num::after { display: none; }
+.b-cal-dots { position: relative; display: flex; gap: 3px; height: 5px; align-items: center; }
+.b-cal-dot { width: 5px; height: 5px; border-radius: var(--r-pill); flex: none; }
+.b-cal-day.is-out .b-cal-dot { opacity: 0.4; }
+.k-meeting { background: var(--accent); }
+.k-demo { background: var(--info); }
+.k-dinner { background: var(--warn); }
+.k-held { background: var(--ok); }
+.k-owed { background: var(--d300); }
+
+.b-cal-rule { height: 1px; margin: 10px 6px 0; background: var(--card-border); }
+.b-cal-cap {
+  margin: 0; padding: 16px 8px 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-cal-agenda { display: flex; flex-direction: column; }
+.b-cal-ev {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 9px 8px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-cal-ev:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-cal-ev:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-cal-ev .b-cal-dot { width: 8px; height: 8px; }
+.b-cal-etime {
+  width: 48px; flex: none; font-size: var(--t-micro); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-cal-ename {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-cal-ewhat { font-size: var(--t-micro); font-weight: var(--fw-medium); color: var(--d200); }
+.b-cal-ev .tag { flex: none; }
+.b-cal-none { margin: 0; padding: 4px 8px 8px; font-size: var(--t-body); color: var(--d200); }
+
+.b-cal-add {
+  display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 4px;
+  padding: 9px 8px; border: 0; background: none; border-radius: var(--r-md);
+  cursor: pointer; font-family: inherit;
+  font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-cal-add:hover { background: rgba(var(--accent-rgb), 0.10); color: var(--d50); }
+.b-cal-add:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-cal-plus {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 24px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); color: inherit;
+  transition: transform 200ms var(--ease-out), border-color var(--t-fast);
+}
+.b-cal-plus svg { width: 13px; height: 13px; }
+.b-cal-add:hover .b-cal-plus { transform: rotate(90deg); border-color: var(--card-border-hover); }
+
+@media (max-width: 560px) {
+  .b-cal-day { height: 48px; }
+  .b-cal-etime { width: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-cal-bg, .b-cal-plus, .b-cal-btn { transition: none; }
+  .b-cal-ev { animation: none; }
+  .b-cal-btn:active { transform: none; }
+  .b-cal-add:hover .b-cal-plus { transform: none; }
+}

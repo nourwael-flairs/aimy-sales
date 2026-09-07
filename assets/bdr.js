@@ -1854,7 +1854,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'cal'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -2027,6 +2027,7 @@
          reached the lists surface through on — so saving a list landed on the
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
+      : S.on === 'cal' ? calPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -2949,6 +2950,7 @@
     /* A deal opened from the board goes back to the board: `on` rides
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
+    if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     return backBtn('data-back', 'Back to the briefing');
   }
 
@@ -2971,7 +2973,9 @@
     return '<h2 class="b-switch">' +
       (isMgr()
         ? one('today', 'Today', null, cleared()) +
-          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' }))
+          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          one('cal', 'Diary', meetings(TODAY_ISO, dayAdd(30)).length,
+            Object.assign(cleared(), { on: 'cal' }))
         : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
@@ -3188,6 +3192,129 @@
                 : '<p class="b-col-none">Nothing here</p>') +
             '</div>';
           }).join('') +
+        '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ══ A MONTH OF DOTS, AND ONE DAY IN FULL ══════════════════════════════
+     A manager is in meetings seven tenths of the week and travelling for
+     the rest, so the question the diary answers is "what is coming" long
+     before it is "what is at three o'clock". A month answers that in one
+     look — where the week is heavy, which days are empty — and the day you
+     press answers the second question underneath it.
+
+     An hour grid would answer the second question seven times over and the
+     first one not at all.
+
+     One URL key holds the day the agenda is showing, and the month is read
+     off it: two keys would let the grid and the agenda point at different
+     months, which is a state nobody asked for and somebody has to reconcile. */
+  const WD_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'August', 'September', 'October', 'November', 'December'];
+  /* Written out rather than composed, so the audit can pair every one of
+     these to the rule that colours it. */
+  const DOT_CLASS = { meeting: 'b-cal-dot k-meeting', demo: 'b-cal-dot k-demo',
+    dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', owed: 'b-cal-dot k-owed' };
+  const calDay = () => (S.cal && /^\d{4}-\d{2}-\d{2}$/.test(S.cal) ? S.cal : TODAY_ISO);
+  /* The same day next month, or the last of it — 31 January plus a month is
+     not 3 March. */
+  function monthStep(iso, step) {
+    const d = new Date(iso + 'T00:00:00');
+    const want = d.getDate();
+    const t = new Date(d.getFullYear(), d.getMonth() + step, 1);
+    const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    return isoDay(new Date(t.getFullYear(), t.getMonth(), Math.min(want, last)));
+  }
+
+  function calPage() {
+    const sel = calDay();
+    const d = new Date(sel + 'T00:00:00');
+    const y = d.getFullYear(), mo = d.getMonth();
+    /* Monday first: the book is EMEA and so is everybody reading this. */
+    const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
+    const start = new Date(y, mo, 1 - lead);
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      cells.push({ iso: isoDay(dt), day: dt.getDate(), out: dt.getMonth() !== mo,
+        end: dt.getDay() === 0 || dt.getDay() === 6 });
+    }
+    const all = meetings(cells[0].iso, cells[41].iso);
+    const byDay = Object.create(null);
+    all.forEach((m) => (byDay[m.iso] || (byDay[m.iso] = [])).push(m));
+    const inMonth = all.filter((m) => {
+      const c = new Date(m.iso + 'T00:00:00');
+      return c.getMonth() === mo && c.getFullYear() === y;
+    }).length;
+    const today = meetingsOn(sel);
+
+    const grid = cells.map((c, i) => {
+      const on = byDay[c.iso] || [];
+      return '<button class="' +
+        ('b-cal-day' + (c.out ? ' is-out' : '') + (c.iso === sel ? ' is-sel' : '') +
+          (c.iso === TODAY_ISO ? ' is-today' : '') + (c.end ? ' is-end' : '')) +
+        '" type="button" data-cal="' + esc(c.iso) + '" ' +
+        'aria-label="' + esc(sayDay(c.iso) + ', ' + plural(on.length, 'thing')) + '"' +
+        (c.iso === sel ? ' aria-current="date"' : '') + ' style="--i:' + (i % 7) + '">' +
+        '<span class="b-cal-bg"></span>' +
+        '<span class="b-cal-num">' + c.day + '</span>' +
+        '<span class="b-cal-dots">' +
+          on.slice(0, 3).map((m) => '<span class="' + DOT_CLASS[m.kind] + '"></span>').join('') +
+        '</span>' +
+      '</button>';
+    }).join('');
+
+    const agenda = today.length
+      ? today.map((m, i) => {
+        const k = MEET_KIND[m.kind];
+        return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+          '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+          '<span class="b-cal-ename">' + esc(m.con.name) +
+            '<span class="b-cal-ewhat">' + esc(m.title) +
+              (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+          '</span>' +
+          '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+        '</button>';
+      }).join('')
+      : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
+        'somebody and it lands here.</p>';
+
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The diary">' +
+        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
+        '<div class="b-cal">' +
+          '<div class="b-cal-head">' +
+            '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
+              '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
+            '<div class="b-cal-nav">' +
+              '<button class="b-cal-btn is-word" type="button" data-cal="' + esc(TODAY_ISO) +
+                '">Today</button>' +
+              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, -1)) +
+                '" aria-label="The month before">' + chIcon('back') + '</button>' +
+              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, 1)) +
+                '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="b-cal-panel">' +
+            '<div class="b-cal-week">' +
+              WD_SHORT.map((w, i) => '<span class="' +
+                (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+            '</div>' +
+            '<div class="b-cal-grid" role="grid" aria-label="' +
+              esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
+            '<div class="b-cal-rule"></div>' +
+            '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
+              ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
+            '<div class="b-cal-agenda">' + agenda + '</div>' +
+            '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
+              '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
+              'Put something in the diary</button>' +
+          '</div>' +
         '</div>' +
       '</section>' +
     '</div>';
@@ -7815,6 +7942,9 @@
     play: '<path d="M7 4l12 8-12 8z"/>',
     pause: '<path d="M9 5v14M15 5v14"/>',
     phone: '<path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/>',
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    fwd: '<path d="M9 5l7 7-7 7"/>',
+    plus: '<path d="M12 6v12M6 12h12"/>',
     hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
   };
   const chIcon = (k) =>
@@ -10277,6 +10407,9 @@
       if (c) callPrep(c);
       return;
     }
+
+    const cal = t.closest('[data-cal]');
+    if (cal) { go({ on: 'cal', cal: cal.getAttribute('data-cal') }); return; }
 
     const dl = t.closest('[data-deal]');
     if (dl) {
