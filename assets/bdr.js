@@ -2572,11 +2572,14 @@
     const n = daysBetween(iso.slice(0, 10), TODAY_ISO);
     return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : sayDay(iso);
   };
-  function feedBlock(items, emptyHtml) {
+  /* A campaign's feed is a glance — the last eight things, and the campaign
+     is what you came for. A page OF the feed is the thing you came for, so
+     it pages properly rather than stopping at eight with no way on. */
+  function feedBlock(items, emptyHtml, pageIt, noun) {
     if (!items.length) {
       return '<p class="b-vfoot">' + (emptyHtml || 'Nothing has happened on this campaign yet.') + '</p>';
     }
-    const pg = peek(items);
+    const pg = pageIt ? paged(items) : peek(items);
     let day = '';
     return '<div class="b-feed">' + pg.rows.map((t) => {
       const d = t.at.slice(0, 10);
@@ -2584,7 +2587,8 @@
       day = d;
       return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
     /* the feed carries hand-moves, profiles and the director's meetings */
-    }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
+    }).join('') + '</div>' +
+      (pageIt ? pager(pg, noun || 'touchpoint') : peekFoot(pg, noun || 'touchpoint'));
   }
 
   const timeOf = (iso) => {
@@ -3190,7 +3194,7 @@
           '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
         '</div>' +
         feedBlock(all, 'You have not written anything down yet. Say what happened ' +
-          'in the bar — or hold the mic — and it lands here.') +
+          'in the bar — or hold the mic — and it lands here.', true, 'note') +
       '</section>' +
     '</div>';
   }
