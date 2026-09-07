@@ -7976,6 +7976,16 @@
      to, what is being said, somewhere to write, and the four shapes every
      telephone has.
 
+     AND IT IS THE SAME RAIL IN A RUN. Skip was still in the handset row, and
+     because End and Start take the full width of that row it wrapped to a
+     line of its own — so a bulk run's rail was a row taller than a single
+     call's, the notes field sat higher, and the two did not read as the same
+     column. The build had already ruled on this one: the run's controls left
+     this panel because in here they have no visible object, and they live on
+     the brief in the canvas under a sentence naming the run, where Skip this
+     one and Stop the run sit together. The counter stays, because "1 of 15"
+     is something the rail knows rather than something it does.
+
      THE BRIEF IS NOT HERE. It is preparation, and preparation belongs in the
      canvas beside the rest of it — copying three of its lines into this
      column made a second, shorter, differently-worded version of a block six
@@ -8074,14 +8084,6 @@
             (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
             (dialing ? 'Stop' : 'End') + '</button>') +
 
-        /* Deciding not to ring somebody is a decision you make reading their
-           brief, not while their phone rings — so Skip holds in `ready`. */
-        /* Skip belongs to a RUN. Outside one there is nothing to skip to,
-           and V3 draws exactly one control here: Start call. A second button
-           beside it broke the full-width primary the whole column ends on. */
-        (ready && sess
-          ? '<button class="call-tool call-tool-word" type="button" data-callskip>Skip</button>'
-          : '') +
       '</div>';
   }
 
@@ -10238,7 +10240,10 @@
         if (note) { e.preventDefault(); note.focus(); }
         return;
       }
-      if (e.key === 's' || e.key === 'S' && DB.call) { e.preventDefault(); skipCall(); return; }
+      /* `&&` binds tighter than `||`, so the guard only ever applied to the
+         capital: a lowercase s with no call swallowed the key and did
+         nothing. It is the only way to skip without the canvas now. */
+      if ((e.key === 's' || e.key === 'S') && DB.call) { e.preventDefault(); skipCall(); return; }
     }
 
     /* Moving through the cards, and opening or ringing the one you are on.

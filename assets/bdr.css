@@ -94,12 +94,9 @@
    again — AiMY proposes what it heard and you agree or correct it — so the
    row and its rules are gone with it.
 
-   The one thing the rail still needs that the library does not ship: Skip
-   sits in the handset row and is a word rather than a shape, because it is
-   not one of the four everybody already knows. */
-.call-tool.call-tool-word {
-  width: auto; padding: 0 12px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
-}
+   Skip was styled here as a word among the round handset shapes. It has gone
+   back to the canvas with the rest of the run's controls, so the rule goes
+   with it — a run's rail and a single call's rail are now the same column. */
 
 /* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
    A row of counts, stated rather than linked. These are RUNGS, and the queue
