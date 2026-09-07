@@ -2161,3 +2161,73 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--d50);
 }
 .b-menu-item.is-on:hover { background: rgba(var(--accent-rgb), 0.22); }
+
+/* ══ 69. THE BOARD ═════════════════════════════════════════════════════════
+   Six columns that scroll inside their own container, so a board wider than
+   the window never makes the page move sideways. Each column's list scrolls
+   inside itself, which leaves the heading — the count and the sum, the two
+   things a column exists to tell you — standing still above it without a
+   sticky rule that would have nothing to stick to.
+
+   The boundary between columns is a hairline, not a gap: a gap between
+   groups of cards reads as more cards missing. */
+.b-board {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(232px, 1fr);
+  overflow-x: auto; overscroll-behavior-x: contain;
+  margin-top: 16px; padding-bottom: 4px;
+}
+.b-col {
+  min-width: 0; display: flex; flex-direction: column; gap: 12px;
+  padding: 0 14px; border-right: 1px solid var(--card-border);
+}
+.b-col:first-child { padding-left: 0; }
+.b-col:last-child { border-right: 0; padding-right: 0; }
+/* Won and Lost are read, not worked, so they take less of the width. */
+.b-col.is-end { grid-column: span 1; }
+.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(232px, 1fr); }
+
+.b-col-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.b-col-cap {
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.b-col-n { font-variant-numeric: tabular-nums; color: var(--d300); margin-left: 6px; }
+.b-col-sum {
+  margin-left: auto; flex: none;
+  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d100);
+  font-variant-numeric: tabular-nums;
+}
+.b-col-none { margin: 0; font-size: var(--t-small); color: var(--d300); }
+.b-col-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 58svh; overflow-y: auto; overscroll-behavior-y: contain;
+  padding-right: 2px;
+}
+
+.b-dealcard {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
+  font-family: inherit; cursor: pointer;
+  padding: 11px 12px; border-radius: var(--r-md);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), background-color var(--t-fast),
+    transform 160ms var(--ease-out);
+  animation: b-surface-in 200ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
+}
+.b-dealcard:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
+.b-dealcard:active { transform: scale(0.99); }
+.b-dealcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-dc-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-dc-co { font-size: var(--t-micro); color: var(--d200); }
+.b-dc-why {
+  font-size: var(--t-micro); color: var(--d200); line-height: 1.45;
+  margin-top: 3px; text-wrap: pretty;
+}
+.b-dc-amt {
+  margin-top: 6px; font-size: var(--t-ui); font-weight: var(--fw-bold);
+  color: var(--d100); font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-dealcard { animation: none; transition: none; }
+  .b-dealcard:active { transform: none; }
+}

@@ -327,7 +327,11 @@
     data: [15000, 39000, 84000],  back: [18000, 45000, 96000],
   };
   const priceBand = (n) => (n < 200 ? 0 : n < 1000 ? 1 : 2);
-  const euro = (n) => '€' + (n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
+  /* Thousands to a whole number, millions to one decimal. A book worth two
+     and a quarter million read as €2256k, which is a figure you have to
+     count the digits of to take in. */
+  const euro = (n) => '€' + (n >= 1000000 ? (Math.round(n / 100000) / 10) + 'm'
+    : n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
   const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
@@ -1980,6 +1984,7 @@
          reached the lists surface through on — so saving a list landed on the
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
+      : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
     mountLists();
@@ -2879,6 +2884,9 @@
     if (k) return backBtn('data-back', 'Back to ' + cap(k.name));
     const l = S.list && DB.byList[S.list];
     if (l) return backBtn('data-back', 'Back to ' + cap(l.name));
+    /* A deal opened from the board goes back to the board: `on` rides
+       through the navigation, so the only thing missing was the word. */
+    if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
     return backBtn('data-back', 'Back to the briefing');
   }
 
@@ -2889,13 +2897,20 @@
         '<path d="M15 18l-6-6 6-6"/></svg>' + esc(label) + '</button>';
 
   function switcher(here) {
+    /* Every tab but one counts a set. Today is not a set — it is a moment —
+       so it carries no figure rather than borrowing one that means something
+       else two tabs along. */
     const one = (k, label, n, over) =>
       '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
       'data-go="' + esc(JSON.stringify(over)) + '"' +
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
-      '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span></button>';
+      (n === null ? '' :
+        '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
-      one('calls', isMgr() ? 'Deals' : 'Calls', queue().length, cleared()) +
+      (isMgr()
+        ? one('today', 'Today', null, cleared()) +
+          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' }))
+        : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
@@ -2972,6 +2987,110 @@
     return '<div class="s-home">' +
       topBrief('calls') +
       queueBlock(all, counts) +
+    '</div>';
+  }
+
+  /* ══ WHAT THE BOARD ADDS UP TO, BEFORE THE BOARD ═══════════════════════
+     A board is chronological by nature — six columns you read left to right
+     — and a chronology with no takeaway above it makes the reader do the
+     arithmetic. The figure is what is still open; the sentence is the thing
+     about it worth knowing today. */
+  function dealsTake() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const comm = live.filter((c) => stageOf(c) === 'commercial');
+    const cold = live.filter((c) => stageOf(c) === 'qual');
+    const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
+    const bits = [];
+    if (comm.length) {
+      /* No comma inside a clause: the join turns the last comma into 'and',
+         and a clause carrying its own comma steals it. */
+      bits.push('<b>' + esc(euro(sum(comm))) + '</b> of it sits in ' +
+        plural(comm.length, 'commercial deal') + ' with the price already on the table');
+    }
+    if (late.length) {
+      bits.push('<b>' + commas(late.length) + '</b> ' + (late.length === 1 ? 'is' : 'are') +
+        ' past the date they should have landed');
+    }
+    if (cold.length) {
+      bits.push('<b>' + commas(cold.length) + '</b> ' + (cold.length === 1 ? 'has' : 'have') +
+        ' been handed to you and never warm-called');
+    }
+    const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), { q: q }))) + '">' + esc(label) + '</button>';
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where the book stands">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">Read off the record</span>' +
+      '</div>' +
+      '<div class="s-lead-line">' +
+        '<span class="s-lead-n">' + esc(euro(sum(live))) + '</span>' +
+        '<span class="s-lead-say">still open, across <span class="s-lead-of">' +
+          commas(live.length) + '</span> deals you are running.</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' +
+        (bits.length ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.'
+          : 'Nothing is late and nothing is waiting on a first call.') + '</p>' +
+      '<div class="s-lead-acts">' +
+        (cold.length ? door('Show the ' + commas(cold.length) + ' never called', 'qual') : '') +
+        (comm.length ? door('Show the ' + commas(comm.length) + ' in commercial', 'commercial') : '') +
+      '</div>' +
+    '</section>';
+  }
+
+  /* ══ SIX COLUMNS, THREE FACTS A CARD ═══════════════════════════════════
+     What a manager scans a board for is where the money is and what is
+     stuck, so a card carries the name, one line of why it is where it is,
+     and what it is worth — and nothing else. Eight labelled fields a card
+     is a spreadsheet somebody drew borders on.
+
+     The columns scroll inside their own container and each list scrolls
+     inside itself, so the page never moves sideways and the headings — the
+     count and the sum, which is what the column is for — stay put. */
+  function dealCard(c, i) {
+    const a = accOf(c);
+    return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-dc-name">' + esc(c.name) + '</span>' +
+      '<span class="b-dc-co">' + esc(a ? a.name : 'No company') + '</span>' +
+      '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
+      '<span class="b-dc-amt">' + esc(euro(amountOf(c))) + '</span>' +
+    '</button>';
+  }
+
+  function dealsPage() {
+    const all = queue(null, 'all').filter((c) => matches(conHay(c)));
+    const by = Object.create(null);
+    DEAL_STAGES.forEach((st) => (by[st.k] = []));
+    all.forEach((c) => by[stageOf(c)].push(c));
+    /* No briefing strip here. Today is a surface of its own one tab along,
+       and repeating its heading and its four verbs above a board is the
+       page telling you twice where you are. The takeaway is the head. */
+    return '<div class="s-home">' +
+      dealsTake() +
+      '<section class="s-block s-block-wide" aria-label="The board">' +
+        '<div class="s-camp-list-head">' + switcher('deals') +
+          findBox('Find a name, a company, a campaign') + '</div>' +
+        '<div class="b-board">' +
+          DEAL_STAGES.map((st) => {
+            const rows = by[st.k];
+            const sum = rows.reduce((n, c) => n + amountOf(c), 0);
+            const end = st.k === 'won' || st.k === 'lost';
+            return '<div class="' + (end ? 'b-col is-end' : 'b-col') + '">' +
+              '<div class="b-col-head">' +
+                '<span class="b-col-cap">' + esc(st.label) +
+                  '<span class="b-col-n">' + commas(rows.length) + '</span></span>' +
+                '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' +
+              '</div>' +
+              (rows.length
+                ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
+                : '<p class="b-col-none">Nothing here</p>') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</section>' +
     '</div>';
   }
 
@@ -3280,8 +3399,9 @@
          nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp
-          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting' : 'To call') + '</h2>'
-          : switcher('calls')) +
+          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting'
+            : isMgr() ? 'The deals on it' : 'To call') + '</h2>'
+          : switcher(isMgr() ? 'today' : 'calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
