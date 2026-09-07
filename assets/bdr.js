@@ -416,6 +416,11 @@
   const MANAGERS = REPS.filter((r) => r.fn === 'sales-manager');
   const DEFAULT_ME = 'engy';
   const me = () => REP[S.as] || REP[DEFAULT_ME];
+  /* Two jobs work this product and they want opposite halves of it: a caller
+     works a queue of people nobody has spoken to, a manager works the leads
+     that queue has already produced. One predicate, read everywhere, so no
+     surface has to be told twice which desk it is being read from. */
+  const isMgr = () => me().fn === 'sales-manager';
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -1556,6 +1561,7 @@
     byList: Object.create(null),
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
+    byMgr: Object.create(null),
     call: null,
   };
 
@@ -1619,6 +1625,7 @@
     DB.touchesOf = Object.create(null);
     DB.membersOf = Object.create(null);
     DB.consOf = Object.create(null);
+    DB.byMgr = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
@@ -1626,6 +1633,12 @@
       DB.byCon[c.id] = c;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
+      /* Whose desk it landed on. Only handed-over leads are on one — before
+         that the lead is the caller's and no manager has it yet. */
+      if (c.checkpoint === 'handed-over') {
+        const m = mgrOf(c);
+        (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
+      }
     });
     DB.touch.forEach((t) => {
       indexTouch(t);
@@ -1709,7 +1722,12 @@
     return out.sort((a, b) => (a.at > b.at ? -1 : 1));
   };
   const campsOf = (c) => c.camps.map((k) => DB.byCamp[k]).filter(Boolean);
-  const mine = (c) => c.crew.indexOf(me().id) >= 0;
+  /* A BDR is on a campaign; a manager owns it. The same word, because it is
+     the same question — is this mine to work — and every surface that asks it
+     (the switcher's count, the campaign list, the guard on a campaign page,
+     the tag a queue card carries) gets the right answer without knowing who
+     is asking. */
+  const mine = (c) => (isMgr() ? c.owner === me().id : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
   /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
      Whatever its state says — the seed's dates drift as real days pass. A
@@ -2828,7 +2846,7 @@
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
       '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span></button>';
     return '<h2 class="b-switch">' +
-      one('calls', 'Calls', queue().length, cleared()) +
+      one('calls', isMgr() ? 'Deals' : 'Calls', queue().length, cleared()) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
@@ -3006,6 +3024,12 @@
         (parked ? ', and <b>' + plural(parked, 'of them is', 'of them are') +
           '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
             : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
+    }
+    if (isMgr()) {
+      return all.length
+        ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
+          ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
+        : 'Nothing has been handed to you yet.';
     }
     return openerText(counts, all, camps);
   }
@@ -3214,11 +3238,15 @@
          of the heading's row, which is where a section's actions live —
          so the one figure the chips add up to read as a control. */
       (S.camp
-        ? '<p class="b-tocall">' + (S.q === 'after'
-            ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
-            : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
+        ? '<p class="b-tocall">' + (isMgr()
+            ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
+            : S.q === 'after'
+              ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
+              : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
         : '') +
-      cuts(counts, all, ring) +
+      /* The cuts are the callable rungs, and none of them apply to a lead
+         that is past them. The manager's own cuts arrive with the ladder. */
+      (isMgr() ? '' : cuts(counts, all, ring)) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
@@ -6667,7 +6695,19 @@
 
   /* The ranked queue. Stated once and read everywhere, so home, the campaign
      page and the composer cannot disagree about who is next. */
+  /* The leads on your desk. A manager's queue is not built from who is
+     callable — everyone on it has already been spoken to, by somebody else —
+     it is simply what was handed over and has not finished. */
+  function dealQueue(campId) {
+    let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
+    /* newest hand-over first, until the ranking arrives with the ladder */
+    out.sort((a, b) => ((b.checkpointAt || '') > (a.checkpointAt || '') ? 1 : -1));
+    return UI.cap ? out.slice(0, UI.cap) : out;
+  }
+
   function queue(campId, bucket) {
+    if (isMgr()) return dealQueue(campId);
     const meId = me().id;
     const mineCamps = Object.create(null);
     myCampaigns().filter(campOpen).forEach((c) => (mineCamps[c.id] = 1));
@@ -7213,6 +7253,19 @@
   }
 
   /* The director a lead is handed to: the owner of the campaign it is on. */
+  /* ══ WHOSE DESK, AS A FACT RATHER THAN A POINT OF VIEW ══════════════════
+     `directorOf` answers this for the person reading — it runs through
+     `campFor`, which prefers a campaign the reader is on — and that is right
+     for a sentence on a page and wrong for an index, which would be rebuilt
+     differently for every viewer. This reads the first campaign, which is
+     the one the seed itself used when it wrote "Handed to …" on the record,
+     so the index and the note cannot disagree. */
+  function mgrOf(c) {
+    if (c && c.manager && REP[c.manager]) return c.manager;
+    const k = c && c.camps.length ? DB.byCamp[c.camps[0]] : null;
+    return k && k.owner ? k.owner : MANAGERS[0].id;
+  }
+
   function directorOf(c) {
     /* whoever it was handed to, else whoever owns the campaign it is on */
     if (c && c.manager && REP[c.manager]) return REP[c.manager];
