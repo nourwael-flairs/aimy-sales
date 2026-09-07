@@ -421,6 +421,14 @@
     { k: 'industry',    label: 'Manufacturing' },
     { k: 'hospitality', label: 'Hotels & hospitality' },
   ];
+  const regionOfCC = (cc) => {
+    const r = REGIONS.filter((x) => x.cc.indexOf(cc) >= 0)[0];
+    return r ? r.k : null;
+  };
+  const regionLabel = (k) => {
+    const r = REGIONS.filter((x) => x.k === k)[0];
+    return r ? r.label : k;
+  };
   const INDUSTRY = Object.create(null);
   INDUSTRIES.forEach((i) => (INDUSTRY[i.k] = i));
 
@@ -1649,7 +1657,7 @@
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [], meet: Object.create(null) };
+    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [] };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -1745,10 +1753,17 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [], meet: {} }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [] }, d);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
+          /* Campaigns you made come back FIRST, and the accounts and people
+             a saved list minted next, because a contact patch putting
+             somebody on a campaign needs both to exist to land on. This ran
+             before DELTA had been read from storage the first time, so it
+             concatenated the empty default and every campaign made in the
+             browser vanished on reload. */
+          DB.camp = DB.camp.concat(DELTA.camp || []);
           (DELTA.made || []).forEach((m) => {
             DB.acc = DB.acc.concat(m.acc);
             DB.con = DB.con.concat(m.con);
@@ -3405,6 +3420,10 @@
       topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
         '<div class="s-camp-list-head">' + switcher('camps') +
+          (isMgr()
+            ? '<button class="s-insight-lnk primary" type="button" data-start="newcamp">' +
+              'New campaign</button>'
+            : '') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
         /* The count is on the switcher, the order is visible in the order,
            and what each card says is said by the card. */
@@ -9061,6 +9080,7 @@
                  attribute whose name only exists while the page is running
                  is one the audit cannot pair with its handler. */
               (t.spent ? 'disabled'
+                : t.step === 'cbuild' ? 'data-cb="' + esc(o.k) + '"'
                 : t.step === 'meetlog' ? 'data-meetlog="' + esc(o.k) + '"'
                 : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
@@ -9362,6 +9382,25 @@
       if (callLogCorrect(t)) return;
       PENDING.note = t;
       toast('I could not read a disposition out of that. Say it another way.');
+      return;
+    }
+
+    if (CBUILD) {
+      if (CBUILD.step === 'who') { cbuildWho(t); return; }
+      if (CBUILD.step === 'many') {
+        const m = cbuildReadMany(t);
+        cbuildMany(m.n, m.weeks);
+        return;
+      }
+      if (CBUILD.step === 'name') {
+        CBUILD.name = t.slice(0, 60);
+        cbuildMake();
+        return;
+      }
+      /* A sentence where a choice was asked for is said back rather than
+         swallowed: the chips above are still the answer. */
+      say('you', esc(t));
+      cbuildPush('Pick one of the options above and I will carry on.', [], '');
       return;
     }
 
@@ -10147,6 +10186,189 @@
      build there — streaming, then the set with its offers and its reading.
      The conversation does not grow a second preview of its own. */
 
+  /* ══ A CAMPAIGN IS FIVE ANSWERS ════════════════════════════════════════
+     The V3 build had this as a conversation and the argument for it holds:
+     a wizard whose likeliest outcome is no change is a form with extra
+     steps, so every turn here changes something and the last one lands you
+     on a campaign that has an offering, an audience, a number and a date.
+
+     What does NOT carry over is its shape. That build's campaign had a
+     description, a plan, a service and a set of criteria; this one has a
+     target, a persona, a pitch, objections and resources, and its builder
+     had a step for none of them. So the questions are this record's, and
+     the parts nobody should be made to type — the pitch, the agreed answers
+     to the objections, the one-pager — are derived exactly the way the seed
+     derives them, because they are the same facts about the same offering.
+
+     Two bugs in the original are not carried: it counted its audience
+     through the LEAD builder's draft rather than its own criteria, so with
+     no draft open every row matched and it imported the whole index; and it
+     minted keys as 'c' + length, which after an undo reuses the key of the
+     campaign just removed and attaches the next one's members to it. Keys
+     here come from the clock and never go backwards. */
+  let CBUILD = null;
+
+  function cbuildPush(text, opts, hint) {
+    lbuildSpend();
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '', step: 'cbuild' });
+    paintThread();
+  }
+
+  function cbuildStart() {
+    if (!isMgr()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
+    LBUILD = null;
+    DRAFT = null;
+    CBUILD = { step: 'sell', sell: null, industry: null, region: null,
+      who: null, noun: null, n: null, weeks: null, name: null };
+    TURNS.length = 0;
+    openCanvas();
+    cbuildPush('A new campaign. What are we selling on this one?',
+      SELLS.map((x) => ({ k: 'sell-' + x.k, label: x.name })),
+      'Everything else follows from this — what we say, what they push back on, and who to ask for.');
+  }
+
+  function cbuildSell(k) {
+    const x = SELL[k];
+    if (!x) return;
+    CBUILD.sell = k;
+    CBUILD.step = 'who';
+    cbuildPush('<b>' + esc(x.name) + '</b> — ' + esc(x.blurb) + '. ' +
+      'Who are we after? A sector and a country at least.',
+      [], 'Something like \u201clogistics companies in the Netherlands\u201d.');
+  }
+
+  function cbuildWho(text) {
+    const pairs = readSaid(text, 'acc');
+    const ind = pairs.filter((p) => p[0] === 'industry')[0];
+    const cc = pairs.filter((p) => p[0] === 'where')[0];
+    if (!ind && !cc) {
+      cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
+        '\u201chealthcare in Belgium\u201d — and I will take it from there.', [], '');
+      return;
+    }
+    CBUILD.industry = ind ? ind[1] : null;
+    CBUILD.region = cc ? regionOfCC(cc[1]) : null;
+    CBUILD.step = 'win';
+    const said = [CBUILD.industry ? INDUSTRY[CBUILD.industry].label : null,
+      CBUILD.region ? regionLabel(CBUILD.region) : null].filter(Boolean).join(' in ');
+    cbuildPush('<b>' + esc(said) + '</b>. What counts as a win on this one?',
+      [{ k: 'win-meeting', label: 'A meeting in the diary' },
+        { k: 'win-conversation', label: 'A real conversation' }],
+      'It is what the campaign gets measured against, so it is the thing a caller is asking for.');
+  }
+
+  function cbuildWin(noun) {
+    CBUILD.noun = noun;
+    CBUILD.step = 'many';
+    cbuildPush('How many ' + esc(noun) + 's, and how long have we got?',
+      [{ k: 'many-12', label: '20 in 12 weeks' }, { k: 'many-8', label: '12 in 8 weeks' }],
+      'Or say it \u2014 \u201c30 by the end of November\u201d.');
+  }
+
+  function cbuildMany(n, weeks) {
+    CBUILD.n = n;
+    CBUILD.weeks = weeks;
+    CBUILD.step = 'name';
+    CBUILD.name = cbuildAutoName();
+    cbuildPush('<b>' + commas(n) + ' ' + esc(CBUILD.noun) + 's</b> in ' +
+      esc(plural(weeks, 'week')) + ', so it closes <b>' + esc(sayDay(dayAdd(weeks * 7))) +
+      '</b>. Call it \u201c' + esc(CBUILD.name) + '\u201d?',
+      [{ k: 'make', label: 'Make it' }],
+      'Or type a different name and I will use that.');
+  }
+
+  /* Read a count and a length out of one sentence. Neither is required —
+     a number with no weeks keeps the default quarter. */
+  function cbuildReadMany(text) {
+    const n = (text.match(/\b(\d{1,3})\b/) || [])[1];
+    const w = text.match(/\b(\d{1,2})\s*(week|month)/i);
+    let weeks = 12;
+    if (w) weeks = /month/i.test(w[2]) ? Number(w[1]) * 4 : Number(w[1]);
+    return { n: n ? Number(n) : 20, weeks: Math.max(1, Math.min(52, weeks)) };
+  }
+
+  function cbuildAutoName() {
+    const x = SELL[CBUILD.sell];
+    const bits = [x ? x.name : 'New campaign'];
+    if (CBUILD.industry) bits.push(INDUSTRY[CBUILD.industry].label);
+    else if (CBUILD.region) bits.push(regionLabel(CBUILD.region));
+    return bits.join(' \u2014 ');
+  }
+
+  /* ══ THE ONLY WRITE IN THE FLOW ════════════════════════════════════════
+     And it makes the thing whole: an offering, an audience, a number, a
+     date, the pitch and the answers a caller needs when somebody pushes
+     back. What it does not make is members — a campaign with nobody on it
+     is exactly what the finder on its own page is for, and inventing an
+     audience here would be a second list builder in a worse place. */
+  function cbuildMake() {
+    const b = CBUILD;
+    if (!b || !b.sell) return;
+    const x = SELL[b.sell];
+    const ind = INDUSTRY[b.industry];
+    const regL = b.region ? regionLabel(b.region) : 'the region';
+    const id = 'k' + Date.now().toString(36);
+    const h = Math.abs(hash(id + ':camp'));
+    const pool = OBJECTIONS.slice();
+    const objs = [];
+    for (let i = 0; i < 3 && pool.length; i++) {
+      const o = pool.splice((h >> (i * 3)) % pool.length, 1)[0];
+      objs.push({ k: o.k, say: ANSWERS[o.k] });
+    }
+    const askFor = ASK_OF[b.sell];
+    const k = {
+      id: id, name: b.name || cbuildAutoName(), client: null,
+      target: { n: b.n, noun: b.noun },
+      persona: { who: askFor,
+        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
+        why: WHY_NOW[b.sell] },
+      goal: b.noun === 'meeting'
+        ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
+        : 'A real conversation with ' + askFor + ' about what this is costing them today',
+      pitch: 'They are in ' + regL + ', and they are running this with people rather than with ' +
+        'a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them today, not on ' +
+        'what we do.',
+      sells: [b.sell],
+      objections: objs,
+      resources: [
+        { name: x.name + ' \u2014 one pager', kind: 'deck' },
+        { name: 'What it costs, and against what', kind: 'pricing' },
+      ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
+      from: TODAY_ISO, to: dayAdd(b.weeks * 7),
+      owner: me().id,
+      /* Somebody has to work it, and there is one desk that rings. */
+      crew: BDRS.map((r) => r.id),
+      state: 'running',
+      industry: b.industry || INDUSTRIES[0].k,
+      region: b.region || REGIONS[0].k,
+    };
+    CBUILD = null;
+    DB.camp.push(k);
+    DELTA.camp.push(k);
+    reindex();
+    saveNow();
+    lbuildSpend();
+    hideCanvas();
+    go(Object.assign(cleared(), { camp: id }));
+    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+      DB.camp = DB.camp.filter((c) => c.id !== id);
+      DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
+      reindex();
+      saveNow();
+      go(Object.assign(cleared(), { on: 'camps' }));
+    });
+  }
+
+  function cbuildOpt(key) {
+    if (!CBUILD) return;
+    if (key.indexOf('sell-') === 0) { cbuildSell(key.slice(5)); return; }
+    if (key === 'win-meeting') { cbuildWin('meeting'); return; }
+    if (key === 'win-conversation') { cbuildWin('conversation'); return; }
+    if (key === 'many-12') { cbuildMany(20, 12); return; }
+    if (key === 'many-8') { cbuildMany(12, 8); return; }
+    if (key === 'make') { cbuildMake(); return; }
+  }
+
   let LBUILD = null;
 
   /* ══ THE WAY OUT IS NOT ONE OF THE ANSWERS ════════════════════════════
@@ -10559,6 +10781,7 @@
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
       if (k === 'lead') { fillBar('Add a lead: '); return; }
+      if (k === 'newcamp') { cbuildStart(); return; }
       if (k === 'prep') {
         const top = queue(null, S.q)[0];
         if (top) callPrep(top); else toast('Nothing to prepare for yet.');
@@ -10627,6 +10850,9 @@
       if (DB.call) { DB.call.held = !DB.call.held; paintCall(); }
       return;
     }
+    const cb = t.closest('[data-cb]');
+    if (cb) { cbuildOpt(cb.getAttribute('data-cb')); return; }
+
     const ml = t.closest('[data-meetlog]');
     if (ml) {
       if (ml.getAttribute('data-meetlog') === 'go') meetCommit();
