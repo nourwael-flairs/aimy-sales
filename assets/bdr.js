@@ -5931,6 +5931,37 @@
      and what has been said, grouped by month. The last thing on the action
      row is the next person in the queue, because a finished record is one
      press from the next call and should not need the briefing in between. */
+  /* ══ THE DEAL, IN FOUR FACTS ═══════════════════════════════════════════
+     What it is worth, when it should land, what we are selling them and who
+     found them. The first two are modelled and say so — no number has been
+     typed on any of these records, and a figure presented as read when it
+     was guessed is the one thing this record must never do. */
+  function dealBlock(c) {
+    const a = accOf(c);
+    const k = dealCamp(c);
+    const sells = k && k.sells && k.sells.length
+      ? listSay(k.sells.map((x) => (SELL[x] || {}).name || x)) : 'nothing named yet';
+    const owner = c.owner ? actor(c.owner) : null;
+    const days = daysBetween(TODAY_ISO, closeBy(c));
+    return '<section class="s-block s-block-wide" aria-label="The deal">' +
+      '<div class="b-cmeta">' +
+        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — modelled ' +
+          'from ' + esc(sells) + ' at ' + (a ? commas(a.size) + ' staff' : 'their size') +
+          ', not read off a proposal.</p>') +
+        cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
+          (dealLive(c)
+            ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
+              : 'about ' + plural(days, 'day') + ' out, counted from the last meeting.')
+            : 'it is already decided.') + '</p>') +
+        cmPart('What we sell them', '<p class="b-cmeta-p">' + esc(sells) +
+          (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
+        cmPart('Found by', '<p class="b-cmeta-p">' +
+          (owner ? '<b>' + esc(owner.name) + '</b> rang them cold and got them warm.'
+            : 'Nobody is named as the caller.') + '</p>') +
+      '</div>' +
+    '</section>';
+  }
+
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
@@ -5944,8 +5975,12 @@
     const a = accOf(c);
     const camps = campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
+    /* Past the hand-over the rung has stopped moving — every deal reads
+       "Handed over" for ever — so at the manager's desk the status is the
+       stage, which is the thing that is actually still moving. */
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const rg = (isMgr() && c.checkpoint === 'handed-over')
+      ? DEAL_STAGE[stageOf(c)] : (RUNG[c.checkpoint] || RUNG['not-called']);
     const n = (DB.touchesOf[c.id] || []).length;
 
     /* THE WAY BACK AND THE WAY OUT SHARE A ROW. One leaves the record, the
@@ -5987,13 +6022,18 @@
               : (a ? '<span>the only person here</span>' : '')) +
             /* WHO IS MANAGING THEM NOW. The one fact about this record that
                is not the BDR's to act on, so it sits with the facts. */
-            (c.manager && REP[c.manager]
+            /* Not at the manager's own desk: "Managed by Lina Haddad" read
+               by Lina is the page telling her who she is. Where it came from
+               is the useful provenance there, and the deal block carries it. */
+            (!isMgr() && c.manager && REP[c.manager]
               ? '<span class="b-managed">Managed by <b>' + esc(REP[c.manager].name) + '</b></span>'
               : '') +
           '</div>' +
         '</div>' +
         actionsRow(c) +
       '</section>' +
+
+      (isMgr() && c.checkpoint === 'handed-over' ? dealBlock(c) : '') +
 
       storyBlock(storyOf(c)) +
 
@@ -6031,23 +6071,34 @@
      The question is a popover, on the same machinery as every other menu
      here — so a click anywhere else or Escape is the way back, and the row
      underneath does not grow a second state to hold it. */
+  /* One control, two endings. A caller ends a lead nobody could sell to; a
+     manager ends a deal that was on the table and came off it. Same shape,
+     same gate, same undo — only the words differ, because the two acts are
+     the same act at different points of the same story. */
   function endGate(c) {
-    const endable = !isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
-      rank(c.checkpoint) >= rank('callback');
+    const mgr = isMgr() && c.checkpoint === 'handed-over';
+    const endable = mgr ? dealLive(c)
+      : (!isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
+        rank(c.checkpoint) >= rank('callback'));
     if (!endable) return '';
+    const word = mgr ? 'We lost it' : 'They said no';
+    const say = mgr
+      ? 'The deal closes as lost and leaves the board. Undo on the toast is the way back.'
+      : 'They leave your queue and nothing is owed. Undo on the toast is the way back.';
+    const yes = mgr ? 'Yes, we lost it' : 'Yes, they said no';
+    const doIt = mgr ? 'data-deal="' + esc(c.id + ':lost') + '"' : 'data-move="declined"';
     return '<span class="b-menu-wrap b-end">' +
       '<button class="b-ghost b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
         '<svg class="b-end-mark" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
           'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
           '<circle cx="12" cy="12" r="8.75"/><path d="M5.8 18.2 18.2 5.8"/></svg>' +
-        '<span class="b-end-word">They said no</span></button>' +
+        '<span class="b-end-word">' + esc(word) + '</span></button>' +
       '<div class="b-menu b-end-pop" id="noGate" role="menu" hidden>' +
         '<span class="b-menu-cap">End it here</span>' +
-        '<p class="b-end-say">They leave your queue and nothing is owed. ' +
-          'Undo on the toast is the way back.</p>' +
+        '<p class="b-end-say">' + esc(say) + '</p>' +
         '<div class="b-end-acts">' +
-          '<button class="b-ghost b-end-go" type="button" role="menuitem" data-move="declined">' +
-            'Yes, they said no</button>' +
+          '<button class="b-ghost b-end-go" type="button" role="menuitem" ' + doIt + '>' +
+            esc(yes) + '</button>' +
           '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
         '</div>' +
       '</div>' +
@@ -6096,8 +6147,11 @@
       const fin = ph.length ? ph[ph.length - 1] : null;
       if (isMgr()) {
         /* It is on this desk, so the phone is the verb rather than a note
-           about who has it. A decided deal keeps the sentence and loses it. */
-        list = dealLive(c) && call ? [call] : [];
+           about who has it. A decided deal keeps the sentence and loses it.
+           The brief stands beside the phone because a manager walks into a
+           meeting far more often than they dial. */
+        const prep = { html: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' };
+        list = dealLive(c) ? (call ? [call, prep] : [prep]) : [];
         quiet = dealLive(c) ? [] : call ? [call] : [];
         say = dealLive(c) ? ''
           : 'They ' + (stageOf(c) === 'won' ? 'signed' : 'said no') + ' ' +
@@ -6424,17 +6478,26 @@
   function dealLine(c) {
     const d = directorOf(c);
     const ph = phasesOf(c);
+    /* Whose it is depends on who is reading. To the caller who produced it
+       the news is that somebody else is running it; to the manager running
+       it the news is which meeting comes next. */
+    const who = isMgr() ? 'You have it' : d.name + ' has it';
+    const had = isMgr() ? 'You had it' : d.name + ' had it';
+    const notYours = isMgr() ? '' : ', and none of them are yours';
     /* the ladder line above already carries the date */
-    if (!ph.length) return d.name + ' has it. Discovery is the first of four meetings, and none of them are yours.';
+    if (!ph.length) {
+      return who + '. Discovery is the first of four meetings' + notYours + '.';
+    }
     const done = ph.map((t) => (PHASE[t.phase] || {}).label + ' ' + sayDay(t.at)).join(' · ');
     const last = ph[ph.length - 1];
     if (last.decision) {
-      return d.name + ' had it. ' + done + '. ' +
+      return had + '. ' + done + '. ' +
         (last.decision === 'won' ? 'They signed ' : 'They said no ') + sayWhen(last.at.slice(0, 10)) + '. Done.';
     }
     const nextPh = PHASES[ph.length];
-    return d.name + ' has it. ' + done + '. Next: ' +
-      (nextPh ? nextPh.label.toLowerCase() : 'resolution') + ', and it is not yours.';
+    return who + '. ' + done + '. Next: ' +
+      (nextPh ? nextPh.label.toLowerCase() : 'resolution') +
+      (isMgr() ? '.' : ', and it is not yours.');
   }
 
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
@@ -9766,6 +9829,13 @@
       return;
     }
 
+
+    const prp = t.closest('[data-prep]');
+    if (prp) {
+      const c = DB.byCon[prp.getAttribute('data-prep')];
+      if (c) callPrep(c);
+      return;
+    }
 
     const dl = t.closest('[data-deal]');
     if (dl) {
