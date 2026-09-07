@@ -429,6 +429,49 @@
     const r = REGIONS.filter((x) => x.k === k)[0];
     return r ? r.label : k;
   };
+  /* ══ WHAT WE HAVE ALREADY DONE, IN THEIR OWN INDUSTRY ══════════════════
+     The managers were plain about this: the first thing a room wants is
+     evidence you know their business, and it has to be their business —
+     "we do a lot of logistics" is worth nothing to a hospital.
+
+     One per sector, each naming a customer, what we ran and the one number
+     that moved. Authored, not generated: a case study with an invented
+     figure in it is worse than no case study, and this is the one place in
+     the product where somebody is going to repeat the sentence out loud. */
+  const STORIES = [
+    { ind: 'software', sell: 'test', who: 'Vanteq',
+      say: 'We took over their regression suite and kept it green through four releases; the release that used to take a week now takes a day.' },
+    { ind: 'banking', sell: 'qa', who: 'Meridiaan Group',
+      say: 'Every advisory call is scored now instead of a sample of twelve a week, and the complaints that used to surface at audit surface the same day.' },
+    { ind: 'logistics', sell: 'voice', who: 'Kernhaven',
+      say: 'The out-of-hours line is answered by AiMY Voice and books the callback itself; nothing sat in a voicemail box over a weekend again.' },
+    { ind: 'health', sell: 'support', who: 'Sint-Aurelius',
+      say: 'We run their first line in Dutch and French; first response went from nine hours to under one, with the same headcount.' },
+    { ind: 'retail', sell: 'support', who: 'Halbert & Co',
+      say: 'We carried their peak — November through January — without them hiring a single seasonal agent.' },
+    { ind: 'energy', sell: 'know', who: 'Nordwerk',
+      say: 'Field engineers stopped ringing the office to ask what the procedure was; the answer is one search and it is the same answer every time.' },
+    { ind: 'public', sell: 'know', who: 'Gemeente Aalsdijk',
+      say: 'The same question was getting three different answers from three desks. One answer surface, and the escalations halved.' },
+    { ind: 'telecom', sell: 'voice', who: 'Brennan Telecom',
+      say: 'AiMY Voice qualifies and books before anybody picks up, and the team it feeds now spends its day on calls that were already worth having.' },
+    { ind: 'industry', sell: 'eng', who: 'Rijnstaal',
+      say: 'Four engineers embedded on EU hours for eighteen months; they shipped the line-monitoring rebuild they had deferred twice.' },
+    { ind: 'hospitality', sell: 'support', who: 'Norbury Hospitality',
+      say: 'We ran guest support across four properties through a season; first-response time fell by a third and the front desks stopped taking it.' },
+  ];
+  /* Their sector first, because that is the claim being made; what we sell
+     them second, because a story about the right product in the wrong
+     industry still says we have done this before. Two at most — a third is
+     a brochure, and nobody recites a brochure in a room. */
+  function storiesFor(a, sells) {
+    const want = (sells || [])[0];
+    const ind = a ? a.industry : null;
+    const hit = STORIES.filter((x) => x.ind === ind);
+    const near = STORIES.filter((x) => x.ind !== ind && want && x.sell === want);
+    return hit.concat(near).slice(0, 2);
+  }
+
   const INDUSTRY = Object.create(null);
   INDUSTRIES.forEach((i) => (INDUSTRY[i.k] = i));
 
@@ -9836,6 +9879,112 @@
 
      What they push back on sits between the second and the third, because
      it is the only part of the campaign's material that arrives mid-call. */
+  /* ══ BEFORE A ROOM, NOT BEFORE A DIAL ══════════════════════════════════
+     The caller's brief opens with the rung and the phone, because that is
+     what the next sixty seconds are. A manager's opens with proof: they
+     walk in cold to somebody who wants to know we have done this before,
+     and the sentence they say first is the one that decides whether the
+     rest of the meeting is a conversation or a pitch.
+
+     Then who they are and what the caller got out of them, then what has
+     already happened, then what they will push back on with the answer the
+     team agreed. Same blocks as the caller's brief, in the order a room
+     needs them rather than the order a phone does. */
+  function meetPrep(c) {
+    const a = accOf(c);
+    const camp = dealCamp(c);
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const ph = phasesOf(c);
+    const st = DEAL_STAGE[stageOf(c)];
+    const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
+    const stories = storiesFor(a, camp ? camp.sells : []);
+    const cases = camp ? camp.resources.filter((r) => r.kind === 'case') : [];
+
+    let body = '<div class="b-prep">';
+    body += '<p class="b-prep-id">' + esc(c.title) +
+      (a ? ' · ' + esc(a.name) + (accKnown(a)
+        ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
+
+    /* ── 1. the proof, first ── */
+    if (stories.length) {
+      body += '<h3 class="b-brief-cap">Say this first</h3>' +
+        '<div class="b-story">' + stories.map((x) =>
+          '<div class="b-story-row">' +
+            '<span class="b-story-who">' + esc(x.who) + '</span>' +
+            '<p class="b-story-say">' + esc(x.say) + '</p>' +
+          '</div>').join('') +
+        (cases.length
+          ? '<p class="b-prep-refp"><b>On paper</b> <span class="b-docs">' +
+            cases.map((r) => docChip(camp.id, camp.resources.indexOf(r), r)).join('') +
+            '</span></p>'
+          : '') +
+        '</div>';
+    }
+
+    /* ── 2. where the deal stands ── */
+    body += '<div class="b-prep-state">' +
+      '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
+      '<span class="b-prep-owed">' + esc(dealLive(c)
+        ? 'worth ' + euro(amountOf(c)) + ', expected ' + sayDay(closeBy(c))
+        : 'decided') + '</span>' +
+      (c.next
+        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
+          esc(sayWhen(c.next.due)) + '</span>'
+        : '') +
+    '</div>';
+
+    /* ── 3. what is already known ── */
+    const know = [];
+    know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
+      'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
+    if (c.owner) {
+      const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
+      know.push(['How it started', esc(actor(c.owner).name) + ' rang them cold' +
+        (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
+    }
+    if (ph.length) {
+      const l = ph[ph.length - 1];
+      know.push(['Last time', esc((PHASE[l.phase] || {}).label || 'A meeting') + ' on ' +
+        esc(sayDay(l.at.slice(0, 10))) + '. ' + esc(l.note)]);
+    } else {
+      know.push(['Last time', 'Nothing since the hand-over. This is the first time in a room.']);
+    }
+    if (c.remember) {
+      know.push(['Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+        esc(actor(c.remember.by).name) + '</span>']);
+    }
+    body += '<div class="b-prep-know">' + know.map((x) =>
+      '<p class="b-prep-line"><b>' + esc(x[0]) + '</b> ' + x[1] + '</p>').join('') + '</div>';
+
+    /* ── 4. what comes back ── */
+    if (camp && camp.objections.length) {
+      const obj = objectionLikely(c, camp);
+      body += '<h3 class="b-brief-cap">If they push back</h3>' +
+        (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
+        '<div class="b-back">' + camp.objections.map((o) =>
+          '<div class="b-back-row">' +
+            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<p class="b-back-v">' + esc(o.say) + '</p>' +
+          '</div>').join('') + '</div>';
+    }
+
+    /* ── 5. the offering, quietest ── */
+    if (camp) {
+      body += '<div class="b-prep-ref">' +
+        '<p class="b-prep-refp"><b>Selling</b> ' + esc(camp.sells.map((x) =>
+          SELL[x].name + ' — ' + SELL[x].blurb).join('; ')) + '</p>' +
+        '<p class="b-prep-refp"><b>Why now</b> ' + esc(camp.persona.why) + '</p>' +
+      '</div>';
+    }
+    body += '</div>';
+
+    openCanvas();
+    say('aimy', answerBlock('Before you meet ' + c.name, body,
+      ph.length ? plural(ph.length, 'meeting') + ' behind this one'
+        : 'nothing in a room yet'));
+    paintThread();
+  }
+
   function callPrep(c) {
     const a = accOf(c);
     const camp = DB.byCamp[campFor(c)];
@@ -10852,8 +11001,13 @@
       if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
       if (k === 'prep') {
-        const top = queue(null, S.q)[0];
-        if (top) callPrep(top); else toast('Nothing to prepare for yet.');
+        /* The next thing in the diary, else the top of the queue: a manager
+           prepares for the room he is walking into, not for the deal that
+           happens to rank first. */
+        const soon = isMgr() ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed')[0] : null;
+        const top = soon ? soon.con : queue(null, S.q)[0];
+        if (!top) { toast('Nothing to prepare for yet.'); return; }
+        if (isMgr() && top.checkpoint === 'handed-over') meetPrep(top); else callPrep(top);
         return;
       }
       if (k === 'callnext') {
@@ -11012,7 +11166,7 @@
     const prp = t.closest('[data-prep]');
     if (prp) {
       const c = DB.byCon[prp.getAttribute('data-prep')];
-      if (c) callPrep(c);
+      if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
       return;
     }
 

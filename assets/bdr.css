@@ -2441,3 +2441,23 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .voice-wave { flex: 1; justify-content: center; }
 .voice-timer { flex: none; }
 .overlay-input[hidden] { display: none !important; }
+
+/* ══ 73. THE PROOF GOES FIRST ══════════════════════════════════════════════
+   Two sentences somebody is going to say out loud in a room, so they are set
+   as sentences rather than as fields: the customer's name over the claim,
+   at reading size, with nothing else competing on the line. */
+.b-story { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 18px; }
+.b-story-row {
+  padding: 12px 14px; border-radius: var(--r-md);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+}
+.b-story-who {
+  display: block; margin-bottom: 4px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
+}
+.b-story-say {
+  margin: 0; font-size: var(--t-body); color: var(--d50);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
