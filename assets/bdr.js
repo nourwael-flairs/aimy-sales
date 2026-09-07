@@ -84,6 +84,7 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   };
   const dayAdd = (n) => isoDay(dayOf(n));
+  const isoAdd = (iso, n) => isoDay(new Date(new Date(iso + 'T00:00:00').getTime() + n * DAY_MS));
   const TODAY_ISO = isoDay(TODAY);
   const daysBetween = (isoA, isoB) =>
     Math.round((new Date(isoB + 'T00:00:00') - new Date(isoA + 'T00:00:00')) / DAY_MS);
@@ -291,6 +292,42 @@
   ];
   const PHASE = Object.create(null);
   PHASES.forEach((x) => (PHASE[x.k] = x));
+
+  /* ══ THE STAGES ARE THOSE MEETINGS, PLUS THE TWO ENDS ═══════════════════
+     Not a second ladder — the same four meetings, named as the places a deal
+     stands between them, with Qualification for a lead that has been handed
+     over and not yet spoken to, and the resolution split into its two
+     answers because an outcome is not a stage you pass through.
+
+     THE LIVE STAGES ARE ALL NEUTRAL. Every CRM gives each stage its own
+     hue, and five colours mean nothing until they have been learnt; the tone
+     is spent on the two things that are already a good or a bad outcome
+     everywhere else in this product. */
+  const DEAL_STAGES = [
+    { k: 'qual',       label: 'Qualification', tone: 'neutral' },
+    { k: 'discovery',  label: 'Discovery',     tone: 'neutral' },
+    { k: 'proof',      label: 'Proof',         tone: 'neutral' },
+    { k: 'commercial', label: 'Commercial',    tone: 'neutral' },
+    { k: 'won',        label: 'Won',           tone: 'ok' },
+    { k: 'lost',       label: 'Lost',          tone: 'err' },
+  ];
+  const DEAL_STAGE = Object.create(null);
+  DEAL_STAGES.forEach((x, i) => { DEAL_STAGE[x.k] = x; x.n = i; });
+  const stageRank = (k) => (DEAL_STAGE[k] ? DEAL_STAGE[k].n : 0);
+
+  /* What a deal is worth, from what the campaign sells and how big they are.
+     Stated as modelled wherever it is shown: nobody has typed a number on
+     these records, and a figure with no basis is the invention this build
+     refuses everywhere else. Off the id, so it is the same on every
+     machine and never moves under a repaint. */
+  const PRICE = {
+    voice: [18000, 42000, 90000], qa: [15000, 36000, 78000],
+    know: [12000, 30000, 66000],  support: [24000, 60000, 132000],
+    test: [21000, 48000, 105000], eng: [36000, 84000, 180000],
+    data: [15000, 39000, 84000],  back: [18000, 45000, 96000],
+  };
+  const priceBand = (n) => (n < 200 ? 0 : n < 1000 ? 1 : 2);
+  const euro = (n) => '€' + (n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
   const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
@@ -1984,7 +2021,9 @@
   function qcard(c, i) {
     const a = accOf(c);
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
-    const r = RUNG[c.checkpoint] || RUNG['not-called'];
+    /* At the caller's desk the tag is the rung; at the manager's it is the
+       stage, because the rung stopped moving at the hand-over. */
+    const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (RUNG[c.checkpoint] || RUNG['not-called']);
     const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
@@ -2007,7 +2046,7 @@
       (a ? '<p class="b-qcard-where">' + esc(a.name) + ' · ' +
         esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
         ' · ' + commas(a.size) + ' staff</p>' : '') +
-      '<div class="b-qcard-why">' + whyLine(c) + '</div>' +
+      '<div class="b-qcard-why">' + (isMgr() ? dealWhy(c) : whyLine(c)) + '</div>' +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
          exists to stop. */
@@ -2016,12 +2055,18 @@
         : '') +
       aimyBlock(aimySays(c)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">' + (c.phone ? esc(c.phone) : 'No number') + '</span>' +
+        /* What it is worth, where the number to ring sits on the caller's
+           card: the one figure a manager scans a list of deals for. */
+        '<span class="b-qcard-num">' +
+          (isMgr() ? esc(euro(amountOf(c))) : c.phone ? esc(c.phone) : 'No number') + '</span>' +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
-        (afterMeeting(c)
+        (isMgr()
+          ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+            '" type="button" data-con="' + esc(c.id) + '">Open</button>'
+          : afterMeeting(c)
           /* the decision, inline, on the card: the meeting is the fact, the
              two answers are the whole of the job on this cut */
           ? '<span class="b-qcard-decide">' +
@@ -2913,7 +2958,7 @@
     const all = queue(null, 'all');
     const camps = myCampaigns();
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(null, 'after').length;
 
     return '<div class="s-home">' +
@@ -2959,7 +3004,7 @@
   function topBrief(here) {
     const all = queue(null, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(null, 'after').length;
     const camps = myCampaigns();
     return '<section class="slv s-block-wide" aria-label="Today">' +
@@ -3149,7 +3194,7 @@
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
-      BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
+      (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
       ((ring && ring.length)
         ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
           esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
@@ -3244,9 +3289,7 @@
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
               : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
         : '') +
-      /* The cuts are the callable rungs, and none of them apply to a lead
-         that is past them. The manager's own cuts arrive with the ladder. */
-      (isMgr() ? '' : cuts(counts, all, ring)) +
+      cuts(counts, all, ring) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
@@ -4872,7 +4915,7 @@
 
     const all = queue(k.id, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(k.id, 'after').length;
     const members = membersOf(k.id);
     const left = daysBetween(TODAY_ISO, k.to);
@@ -6028,8 +6071,13 @@
        nobody in particular; the campaign's owner is who gets them. */
     /* "They said no" is not one of these: it ends the lead, so it is out
        of the row of ordinary verbs and behind a gate of its own. */
-    const moves = movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
-      .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
+    /* The same row, asking the question this desk answers: a caller records
+       what a rung did, a manager records what a meeting did. */
+    const moves = (isMgr() && c.checkpoint === 'handed-over')
+      ? dealMoves(c).map((m) => ({ html: esc(m.label),
+        attr: 'data-deal="' + esc(c.id + ':' + m.k) + '"' }))
+      : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
+        .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
     /* ══ THE HAND-OVER IS A CHOICE OF MANAGER ════════════════════════════
        Once somebody is warm the sales manager takes them, and which
        manager is a decision — so the verb opens the list rather than
@@ -6044,14 +6092,24 @@
     let quiet = [];
     let say = '';
     if (c.checkpoint === 'handed-over') {
-      list = [];
-      quiet = call ? [call] : [];
-      /* the same tense as the ladder line: decided is past */
       const ph = phasesOf(c);
       const fin = ph.length ? ph[ph.length - 1] : null;
-      say = fin && fin.decision
-        ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
-        : directorOf(c).name + ' has it now.';
+      if (isMgr()) {
+        /* It is on this desk, so the phone is the verb rather than a note
+           about who has it. A decided deal keeps the sentence and loses it. */
+        list = dealLive(c) && call ? [call] : [];
+        quiet = dealLive(c) ? [] : call ? [call] : [];
+        say = dealLive(c) ? ''
+          : 'They ' + (stageOf(c) === 'won' ? 'signed' : 'said no') + ' ' +
+            sayWhen(fin.at.slice(0, 10)) + '.';
+      } else {
+        list = [];
+        quiet = call ? [call] : [];
+        /* the same tense as the ladder line: decided is past */
+        say = fin && fin.decision
+          ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
+          : directorOf(c).name + ' has it now.';
+      }
     } else if (c.checkpoint === 'wrong-number') {
       /* the ladder says nothing is owed until somebody finds a number that
          is theirs; that is the one thing to press, and Call is not */
@@ -6253,6 +6311,116 @@
     return (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
       .filter((t) => t && t.outcome === 'phase').sort((x, y) => (x.at < y.at ? -1 : 1));
   }
+  /* ══ THE DEAL IS THE LEAD, AFTER THE HAND-OVER ══════════════════════════
+     There is no deal record and there should not be one: a deal is a person
+     at a company we are trying to sell to, which is a contact and an account,
+     and the manager's half of its history is already on the record as the
+     phase touchpoints the seed wrote. Stage is read off the last of them the
+     way every other state here is read off its events, so moving a deal is
+     writing one touchpoint and nothing has two answers. */
+  function stageOf(c) {
+    const ph = phasesOf(c);
+    if (!ph.length) return 'qual';
+    const last = ph[ph.length - 1];
+    if (last.phase !== 'resolution') return last.phase;
+    return last.decision === 'lost' ? 'lost' : 'won';
+  }
+  const dealLive = (c) => stageOf(c) !== 'won' && stageOf(c) !== 'lost';
+  /* The campaign the deal belongs to, read the same way the index and the
+     seed's own hand-over note read it, rather than through `campFor`, which
+     answers for whoever is looking. */
+  const dealCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+
+  function amountOf(c) {
+    const a = accOf(c);
+    const k = dealCamp(c);
+    const sell = (k && k.sells && k.sells.length ? k.sells[0] : 'qa');
+    const band = (PRICE[sell] || PRICE.qa)[priceBand(a ? a.size : 300)];
+    const j = (Math.abs(hash(c.id + ':amt')) % 45) - 22;
+    return Math.round((band * (1 + j / 100)) / 500) * 500;
+  }
+  /* When it should land, counted from the last thing that happened rather
+     than from today: a deal that has sat still for a month is late, and a
+     date that walks forward with the clock would never say so. */
+  function closeBy(c) {
+    const ph = phasesOf(c);
+    const from = ph.length ? ph[ph.length - 1].at.slice(0, 10)
+      : (c.checkpointAt || TODAY.toISOString()).slice(0, 10);
+    const st = stageOf(c);
+    return isoAdd(from, st === 'qual' ? 60 : st === 'discovery' ? 45 : st === 'proof' ? 28 : 14);
+  }
+
+  /* One line of why this deal is where it is — the last meeting held, and
+     what it left owed. The card and the column read the same string. */
+  function dealWhy(c) {
+    const ph = phasesOf(c);
+    const st = stageOf(c);
+    const last = ph.length ? ph[ph.length - 1] : null;
+    if (st === 'won') return 'They signed <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
+    if (st === 'lost') return 'They said no <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
+    if (!last) {
+      return 'Handed to you <b>' + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
+        '</b>, and nobody has warm-called them';
+    }
+    const owed = c.next
+      ? esc(c.next.what) + ' <b>' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') +
+        esc(sayWhen(c.next.due)) + '</b>'
+      : '';
+    return esc((PHASE[last.phase] || {}).label || last.phase) + ' <b>' +
+      esc(sayWhen(last.at.slice(0, 10))) + '</b>' + (owed ? ' · ' + owed : '');
+  }
+
+  /* ══ MOVING A DEAL IS WRITING WHAT HAPPENED ═════════════════════════════
+     The same act as a rung move and the same shape: one touchpoint, one
+     patch, a toast that undoes both. The words are what a manager would say
+     about the meeting, not the name of a column they dragged it into. */
+  const DEAL_MOVES = [
+    { k: 'discovery',  label: 'We spoke' },
+    { k: 'proof',      label: 'We met' },
+    { k: 'commercial', label: 'Proposal sent' },
+    { k: 'won',        label: 'They signed' },
+    { k: 'lost',       label: 'They passed' },
+  ];
+  function dealMoves(c) {
+    const at = stageRank(stageOf(c));
+    if (at >= stageRank('won')) return [];
+    return DEAL_MOVES.filter((m) => stageRank(m.k) > at);
+  }
+  /* What each stage leaves owed. An ended deal owes nothing and says so by
+     clearing the field, the way a finished rung does. */
+  function nextForStage(k) {
+    if (k === 'discovery') return { what: 'Meeting with them', due: dayAdd(7) };
+    if (k === 'proof') return { what: 'Proposal to them', due: dayAdd(7) };
+    if (k === 'commercial') return { what: 'Chase the proposal', due: dayAdd(5) };
+    return null;
+  }
+  function setStage(conId, k) {
+    const c = DB.byCon[conId];
+    const st = DEAL_STAGE[k];
+    if (!c || !st) return;
+    const before = { checkpointAt: c.checkpointAt, next: c.next };
+    const now = new Date().toISOString();
+    const ended = k === 'won' || k === 'lost';
+    const t = {
+      id: 'd' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
+      outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
+      proposals: [], objections: [], openings: [],
+      note: k === 'won' ? 'They signed on the terms agreed.'
+        : k === 'lost' ? 'They decided against it.'
+        : (PHASE[k] || {}).label + ' held.',
+      lines: [], next: null, moved: null, rung: 'handed-over',
+    };
+    patchCon(c, { checkpointAt: now, next: nextForStage(k) });
+    addTouch(t);
+    paint();
+    toast(c.name.split(' ')[0] + ' → ' + st.label, () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+  }
+
   function dealLine(c) {
     const d = directorOf(c);
     const ph = phasesOf(c);
@@ -6631,6 +6799,10 @@
     { k: 'after',      label: 'After meeting' },
   ];
   const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
+  /* A cut is a rung at one desk and a stage at the other, and it is exactly
+     one per person either way — which is what lets the chips add up to All. */
+  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
+  const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
 
@@ -6698,16 +6870,27 @@
   /* The leads on your desk. A manager's queue is not built from who is
      callable — everyone on it has already been spoken to, by somebody else —
      it is simply what was handed over and has not finished. */
-  function dealQueue(campId) {
+  /* Late first, then the ones nobody has warm-called, then what is running,
+     then what is decided — the order a manager would work them in, and the
+     same order the chips are counted in. */
+  function dealRank(c) {
+    const st = stageOf(c);
+    if (st === 'won' || st === 'lost') return 4;
+    if (c.next && daysBetween(TODAY_ISO, c.next.due) < 0) return 0;
+    if (st === 'qual') return 1;
+    if (c.next && daysBetween(TODAY_ISO, c.next.due) === 0) return 2;
+    return 3;
+  }
+  function dealQueue(campId, bucket) {
     let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
     if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
-    /* newest hand-over first, until the ranking arrives with the ladder */
-    out.sort((a, b) => ((b.checkpointAt || '') > (a.checkpointAt || '') ? 1 : -1));
+    if (bucket && bucket !== 'all') out = out.filter((c) => stageOf(c) === bucket);
+    out.sort((a, b) => dealRank(a) - dealRank(b) || (closeBy(a) < closeBy(b) ? -1 : 1));
     return UI.cap ? out.slice(0, UI.cap) : out;
   }
 
   function queue(campId, bucket) {
-    if (isMgr()) return dealQueue(campId);
+    if (isMgr()) return dealQueue(campId, bucket);
     const meId = me().id;
     const mineCamps = Object.create(null);
     myCampaigns().filter(campOpen).forEach((c) => (mineCamps[c.id] = 1));
@@ -8371,7 +8554,7 @@
     const q = text.toLowerCase();
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(S.camp || null, 'after').length;
     const door = (label, over) =>
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
@@ -9583,6 +9766,13 @@
       return;
     }
 
+
+    const dl = t.closest('[data-deal]');
+    if (dl) {
+      const p = dl.getAttribute('data-deal').split(':');
+      setStage(p[0], p[1]);
+      return;
+    }
 
     const dc = t.closest('[data-decide]');
     if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
