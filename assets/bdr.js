@@ -6235,6 +6235,94 @@
      chip beside the name), what AiMY makes of the company with a door, the
      people — the ones who have picked up first — then where they all stand,
      then what has been said into the company by anyone, by day. */
+  /* ══ WHAT ELSE FITS, AND WHY ═══════════════════════════════════════════
+     A customer we have already sold to is the easiest deal in the book and
+     the one nobody is looking at, because the whole product is pointed at
+     people who have never heard of us. This is the other direction.
+
+     EVERY EDGE STATES ITS REASON. A grid of what-goes-with-what is a
+     recommendation engine wearing a table, and a manager who is told to
+     sell QA to a Voice customer with no reason will not say it out loud in
+     a room. The reason is the sentence they repeat.
+
+     AND IT IS TIMED. Cross-sell lands after delivery has started, not at
+     signature — going back a fortnight after they signed reads as a company
+     that wanted a bigger number, not one that noticed something. Ninety
+     days, counted from the day the deal closed. */
+  const SVC_NEXT = {
+    voice: { to: 'qa', why: 'the agent is taking calls nobody is scoring, and the person ' +
+      'who signed for the agent is the person who owns quality' },
+    qa: { to: 'voice', why: 'they are already measuring every conversation, which is the ' +
+      'argument for letting an agent take the first one' },
+    know: { to: 'support', why: 'the answers are in one place now, so the team giving them ' +
+      'is the part that has not changed' },
+    support: { to: 'qa', why: 'we are running the conversations, and nobody outside our own ' +
+      'team can see how good they are' },
+    test: { to: 'eng', why: 'the suite is green and the backlog it was hiding is still ' +
+      'there, which is a team problem rather than a testing one' },
+    eng: { to: 'test', why: 'they are shipping faster than they can check, and the people ' +
+      'checking are the ones they just hired to build' },
+    data: { to: 'know', why: 'the labelled data is theirs and the documentation around it ' +
+      'is still three answers to one question' },
+    back: { to: 'support', why: 'month-end runs itself now, and the queue that was ' +
+      'competing for the same people never went away' },
+  };
+  const RIPE = 90;
+
+  /* Every deal we won, what it bought them, and what sits next to it. */
+  function expansionsOf(accId) {
+    const out = [];
+    const seen = Object.create(null);
+    DB.con.forEach((c) => {
+      if (c.checkpoint !== 'handed-over') return;
+      if (accId && c.acc !== accId) return;
+      if (stageOf(c) !== 'won') return;
+      const k = dealCamp(c);
+      const bought = k && k.sells.length ? k.sells[0] : null;
+      const edge = bought ? SVC_NEXT[bought] : null;
+      if (!edge) return;
+      const a = accOf(c);
+      if (!a) return;
+      /* Not what they already have. A won deal on the same service at the
+         same company means this is a renewal conversation, not a new one. */
+      const already = DB.con.some((y) => y.acc === a.id && y.checkpoint === 'handed-over' &&
+        stageOf(y) === 'won' && (dealCamp(y) || { sells: [] }).sells[0] === edge.to);
+      if (already) return;
+      const key = a.id + '|' + edge.to;
+      if (seen[key]) return;
+      seen[key] = 1;
+      const ph = phasesOf(c);
+      const closed = ph.length ? ph[ph.length - 1].at.slice(0, 10) : c.checkpointAt.slice(0, 10);
+      const days = daysBetween(closed, TODAY_ISO);
+      out.push({ con: c, acc: a, bought: bought, next: edge.to, why: edge.why,
+        closed: closed, days: days, ripe: days >= RIPE });
+    });
+    return out.sort((x, y) => y.days - x.days);
+  }
+
+  function fitBlock(a) {
+    const rows = expansionsOf(a.id);
+    if (!rows.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="What else fits">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What else fits</h2>' +
+        '<span class="s-block-say">they are already a customer</span>' +
+      '</div>' +
+      '<div class="b-exp">' + rows.map((x, i) =>
+        '<div class="b-exp-row" style="--i:' + Math.min(i, 8) + '">' +
+          '<div class="b-exp-head">' +
+            '<span class="b-exp-next">' + esc(SELL[x.next].name) + '</span>' +
+            '<span class="' + (x.ripe ? 'tag tag-ok' : 'tag tag-neutral') + '">' +
+              (x.ripe ? 'ready now' : 'ready in ' + plural(RIPE - x.days, 'day')) + '</span>' +
+          '</div>' +
+          '<p class="b-exp-why">They bought <b>' + esc(SELL[x.bought].name) + '</b> ' +
+            esc(sayWhen(x.closed)) + ', and ' + esc(x.why) + '.</p>' +
+          '<button class="s-inline-btn b-exp-go" type="button" data-fill="' +
+            esc('Add a lead: , at ' + x.acc.name) + '">Put somebody on it</button>' +
+        '</div>').join('') + '</div>' +
+    '</section>';
+  }
+
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -6337,6 +6425,7 @@
 
       storyBlock(accStory(a, people, hist)) +
       accLead(a, people, hist, ring, free) +
+      (isMgr() ? fitBlock(a) : '') +
       accMap(a, people) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
@@ -8884,6 +8973,14 @@
         body: plural(cold.length, 'lead') + ' been on your desk two days or more without a ' +
           'warm call: ' + listSay(cold.slice(0, 3).map((c) => c.name)) + '.',
         cta: 'Show them', ask: 'How do my deals stand?' });
+    }
+    const ripe = expansionsOf(null).filter((x) => x.ripe);
+    if (ripe.length) {
+      tasks.push({ id: 'expand', sev: 'p3', type: 'Customers', when: plural(ripe.length, 'account'),
+        body: plural(ripe.length, 'customer') + ' past ninety days on what they bought, ' +
+          'starting with ' + ripe[0].acc.name + ' — ' + SELL[ripe[0].next].name +
+          ' is the one that fits.',
+        cta: 'Show me', ask: ripe[0].acc.name });
     }
     const quiet = live.filter((c) => {
       if (stageOf(c) !== 'commercial') return false;

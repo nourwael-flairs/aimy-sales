@@ -2461,3 +2461,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin: 0; font-size: var(--t-body); color: var(--d50);
   line-height: var(--lh-base); text-wrap: pretty;
 }
+
+/* ══ 74. WHAT ELSE FITS ════════════════════════════════════════════════════
+   The reason is the point, so it gets the body size and the room; the
+   service is a label over it and the timing is a chip, because "ready in
+   nineteen days" is a fact about the row rather than a thing to read. */
+.b-exp { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.b-exp-row {
+  padding: 13px 15px; border-radius: var(--r-md);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-exp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.b-exp-next {
+  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
+}
+.b-exp-why {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); text-wrap: pretty; max-width: 62ch;
+}
+.b-exp-go { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .b-exp-row { animation: none; } }
