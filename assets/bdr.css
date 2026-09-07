@@ -2391,3 +2391,40 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-cal-btn:active { transform: none; }
   .b-cal-add:hover .b-cal-plus { transform: none; }
 }
+
+/* ══ 71. THE LOOP NOBODY CLOSED ════════════════════════════════════════════
+   Under the diary, and deliberately not another card: it is the same
+   surface's unfinished business, so it reads as the bottom of the diary
+   rather than as a second thing to do. */
+.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); max-width: 560px; }
+.b-loop-cap {
+  margin: 0 0 6px; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d300);
+}
+.b-loop-say {
+  margin: 0 0 10px; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+.b-loop-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 9px 10px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-loop-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-loop-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-loop-when { width: 84px; flex: none; font-size: var(--t-micro); color: var(--d200); }
+.b-loop-who {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-loop-what { font-size: var(--t-micro); font-weight: var(--fw-medium); color: var(--d200); }
+.b-loop-go {
+  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent);
+}
+/* Today's three sit in a block rather than in the diary's panel, so they
+   carry the panel's padding themselves. */
+.b-day { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }

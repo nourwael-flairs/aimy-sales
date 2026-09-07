@@ -3050,6 +3050,50 @@
 
      So Today answers one question — what wants me today — with the handful
      that do, and the board one tab along holds the rest. */
+  /* Today's diary, at the top of today. Three at most and a door — a month
+     grid inside a briefing is the block that ate two thirds of the page. */
+  function dayBlock() {
+    const on = meetingsOn(TODAY_ISO);
+    const un = unrecorded().length;
+    if (!on.length) {
+      return '<section class="s-block s-block-wide" aria-label="Your day">' +
+        '<h2 class="s-block-h">Your day</h2>' +
+        '<p class="s-block-sub">Nothing in the diary today.' +
+          (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
+            ' still unrecorded.' : '') + ' ' +
+          '<button class="s-inline-btn" type="button" data-go="' +
+            esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">Open the diary</button>' +
+        '</p>' +
+      '</section>';
+    }
+    return '<section class="s-block s-block-wide" aria-label="Your day">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Your day</h2>' +
+        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the diary</span>' +
+      '</div>' +
+      '<div class="b-cal-agenda b-day">' +
+        on.slice(0, 3).map((m, i) => {
+          const k = MEET_KIND[m.kind];
+          return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+            'style="--i:' + Math.min(i, 8) + '">' +
+            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+            '<span class="b-cal-ename">' + esc(m.con.name) +
+              '<span class="b-cal-ewhat">' + esc(m.title) +
+                (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+            '</span>' +
+            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>' +
+      (on.length > 3
+        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">The other ' +
+          commas(on.length - 3) + ' in the diary</button></div>'
+        : '') +
+    '</section>';
+  }
+
   function mgrHome() {
     const all = queue(null, 'all');
     const live = all.filter(dealLive);
@@ -3060,6 +3104,7 @@
     const more = now.length - rows.length;
     return '<div class="s-home">' +
       topBrief('today') +
+      dayBlock() +
       '<section class="s-block s-block-wide" aria-label="What wants you today">' +
         '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
         (rows.length
@@ -3316,7 +3361,34 @@
               'Put something in the diary</button>' +
           '</div>' +
         '</div>' +
+        openLoop() +
       '</section>' +
+    '</div>';
+  }
+
+  /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
+     A meeting is committed, it happens, and then nothing — the record never
+     hears how it went, so the deal sits where it was and the diary keeps a
+     date that has been and gone. It is the one gap that sends a manager back
+     to pen and paper, so it is stated on the diary itself rather than only
+     in the bell, and each row hands over the words rather than a form. */
+  function openLoop() {
+    const un = unrecorded();
+    if (!un.length) return '';
+    return '<div class="b-loop">' +
+      '<h4 class="b-loop-cap">Never written down</h4>' +
+      '<p class="b-loop-say">' + plural(un.length, 'meeting') +
+        (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
+        'Say how it went in a sentence and AiMY moves the deal.</p>' +
+      un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
+        'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
+        'style="--i:' + Math.min(i, 8) + '">' +
+        '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
+        '<span class="b-loop-who">' + esc(m.con.name) +
+          '<span class="b-loop-what">' + esc(m.title) + ' at ' + esc(clockOf(m)) + '</span>' +
+        '</span>' +
+        '<span class="b-loop-go">Say how it went</span>' +
+      '</button>').join('') +
     '</div>';
   }
 
@@ -8641,13 +8713,87 @@
     });
     return Object.keys(by).map((k) => by[k]).sort((x, y) => (x.sig.at < y.sig.at ? 1 : -1));
   }
+  /* ══ WHAT IS WAITING ON THE OTHER DESK ═════════════════════════════════
+     The caller's rows are all about the phone. None of them is the manager's
+     work, and the one that matters most to him has no equivalent at all: he
+     walked out of a room and the record never heard about it. That is the
+     reason they still carry a notebook, so it is the first row and it is the
+     only p1 the desk has. */
+  function mgrTasks() {
+    const tasks = [];
+    unrecorded().slice(0, 4).forEach((m) => {
+      const days = -daysBetween(TODAY_ISO, m.iso);
+      tasks.push({
+        id: 'met:' + m.con.id + ':' + m.iso,
+        sev: 'p1', type: MEET_KIND[m.kind].label,
+        when: days === 1 ? 'yesterday' : plural(days, 'day') + ' ago',
+        body: 'Your ' + clockOf(m) + ' with ' + m.con.name + ' has been and gone, and ' +
+          'nothing on the record says how it went.',
+        cta: 'Say how it went',
+        /* The words, not the answer — he is the only one who knows it. */
+        ask: 'fill:Had a ' + m.kind + ' with ' + m.con.name + ', ',
+      });
+    });
+    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
+    if (soon.length) {
+      tasks.push({ id: 'diary-today', sev: 'p2', type: 'Today', when: clockOf(soon[0]),
+        body: plural(soon.length, 'thing') + ' in the diary today, the first with ' +
+          soon[0].con.name + '.',
+        cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
+    }
+    const live = queue(null, 'all').filter(dealLive);
+    const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
+    if (late.length) {
+      tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
+        body: plural(late.length, 'deal') + ' owed something before today: ' +
+          listSay(late.slice(0, 3).map((c) => c.name)) + (late.length > 3 ? ' and others' : '') + '.',
+        cta: 'Show the board', ask: 'How do my deals stand?' });
+    }
+    const cold = live.filter((c) => stageOf(c) === 'qual' &&
+      daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
+    if (cold.length) {
+      tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
+        body: plural(cold.length, 'lead') + ' been on your desk two days or more without a ' +
+          'warm call: ' + listSay(cold.slice(0, 3).map((c) => c.name)) + '.',
+        cta: 'Show them', ask: 'How do my deals stand?' });
+    }
+    const quiet = live.filter((c) => {
+      if (stageOf(c) !== 'commercial') return false;
+      const ph = phasesOf(c);
+      return ph.length && daysBetween(ph[ph.length - 1].at.slice(0, 10), TODAY_ISO) >= 7;
+    });
+    if (quiet.length) {
+      tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
+        body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
+          'for a week: ' + listSay(quiet.slice(0, 3).map((c) => c.name)) + '.',
+        cta: 'Show the board', ask: 'How do my deals stand?' });
+    }
+    return tasks;
+  }
+
   function refreshTasks() {
     AIMY_TASKS.length = 0;
-    bdrTasks().forEach((t) => AIMY_TASKS.push(t));
+    (isMgr() ? mgrTasks() : bdrTasks()).forEach((t) => AIMY_TASKS.push(t));
     if (window.aimyNtfRender) window.aimyNtfRender();
   }
+  /* ══ WHAT A ROW DOES WHEN YOU PRESS IT ═════════════════════════════════
+     Most rows are a question with one answer, and running it is right. Two
+     are not. "Say how it went" has to hand you the words and stop, because
+     submitting "Had a meeting with Ava Hall" as it stands would log a
+     meeting that says nothing about how it went — the whole point of the
+     row. And "Prepare me" opens a brief, which is not a sentence at all. */
+  function taskGo(q) {
+    if (typeof q !== 'string') return;
+    if (q.indexOf('fill:') === 0) { fillBar(q.slice(5)); return; }
+    if (q.indexOf('prep:') === 0) {
+      const c = DB.byCon[q.slice(5)];
+      if (c) callPrep(c);
+      return;
+    }
+    runInput(q);
+  }
   /* QA's hook. A row's question goes where a typed one goes. */
-  window.aimyOpenCanvas = function (q) { runInput(q); };
+  window.aimyOpenCanvas = taskGo;
 
 (function () {
   var bell   = document.getElementById('ntfBell');
@@ -9310,8 +9456,11 @@
        The bell's own footer asks it, and got the fallback. The bell's rows
        are already in order; the answer says so and hands each one on. */
     if (/do first|first and why|what should i do|where do i start|start with|priorit/.test(q)) {
-      const tasks = bdrTasks();
-      if (!tasks.length) return 'Nothing is waiting on you. Ring the next one.';
+      const tasks = isMgr() ? mgrTasks() : bdrTasks();
+      if (!tasks.length) {
+        return isMgr() ? 'Nothing is waiting on you. The diary is clear.'
+          : 'Nothing is waiting on you. Ring the next one.';
+      }
       const first = tasks[0];
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
         (tasks.length > 1 ? ' Then ' + tasks.slice(1, 3).map((t) => esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
@@ -10443,7 +10592,7 @@
 
     if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
-    if (ask) { runInput(ask.getAttribute('data-ask')); return; }
+    if (ask) { taskGo(ask.getAttribute('data-ask')); return; }
 
     /* ══ FILL THE BAR, DO NOT RUN IT ══════════════════════════════════════
        `data-ask` submits what it carries, which is right for a question with
