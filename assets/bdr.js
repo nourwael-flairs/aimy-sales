@@ -2618,8 +2618,25 @@
       };
     }
     const q = queue();
-    const back = q.filter((x) => x.checkpoint === 'callback').length;
     const camps = myCampaigns();
+    if (isMgr()) {
+      const live = q.filter(dealLive);
+      const now = live.filter((c) => dealRank(c) <= 2);
+      const worth = live.reduce((n, c) => n + amountOf(c), 0);
+      return {
+        eyebrow: 'Your book', subject: null,
+        card: {
+          state: now.length ? 'staged' : 'detected',
+          text: now.length
+            ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
+              ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
+            : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
+          evidence: [{ val: euro(worth), cap: 'open' }, { val: camps.length, cap: 'campaigns' }],
+          act: null, q: null,
+        },
+      };
+    }
+    const back = q.filter((x) => x.checkpoint === 'callback').length;
     return {
       eyebrow: 'Your book', subject: null,
       card: {
@@ -2984,7 +3001,44 @@
      the shell's own "Since your last visit" block; the ways to start are its
      own strip. Nothing else is on this page, because everything else was a
      different role's question. */
+  /* ══ THE MANAGER'S TODAY IS NOT A QUEUE ════════════════════════════════
+     A caller's home is the whole list because dialling down it IS the job.
+     A manager's is not: he takes the warm calls that matter, walks into
+     meetings, runs campaigns and builds lists, and a hundred-row queue with
+     six cuts and a pager is the caller's morning wearing his name.
+
+     So Today answers one question — what wants me today — with the handful
+     that do, and the board one tab along holds the rest. */
+  function mgrHome() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    /* Late, never warm-called, or owed something today. `dealRank` already
+       ranks exactly this, so the block and the board cannot disagree. */
+    const now = live.filter((c) => dealRank(c) <= 2);
+    const rows = now.slice(0, 6);
+    const more = now.length - rows.length;
+    return '<div class="s-home">' +
+      topBrief('today') +
+      '<section class="s-block s-block-wide" aria-label="What wants you today">' +
+        '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
+        (rows.length
+          ? '<p class="b-tocall"><b>' + commas(now.length) + '</b> of your ' +
+              commas(live.length) + ' deals want something today</p>' +
+            qgrid(rows) +
+            '<div class="b-acts b-acts-end">' +
+              '<button class="s-inline-btn" type="button" data-start="deals">' +
+                (more > 0
+                  ? 'The other ' + commas(more) + ', and the rest of the board'
+                  : 'Open the board') + '</button>' +
+            '</div>'
+          : '<p class="s-block-sub">Nothing is late and nothing is waiting on a first ' +
+            'call. The board has the ' + plural(live.length, 'deal') + ' you are running.</p>') +
+      '</section>' +
+    '</div>';
+  }
+
   function homePage() {
+    if (isMgr()) return mgrHome();
     const q = queue();
     const all = queue(null, 'all');
     const camps = myCampaigns();
@@ -3268,7 +3322,23 @@
         : 'the way anybody new reaches your queue' };
 
     let opens;
-    if (here === 'camps') {
+    if (isMgr()) {
+      /* Four verbs, and every one of them is something this desk actually
+         does: the phone for a warm call, the brief before a meeting, the
+         board for where the money is, and the builder — a manager sources
+         his own leads as well as taking the ones handed up. */
+      const top = all[0];
+      opens = [
+        { k: 'callnext', label: 'Warm-call the next one',
+          why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
+        { k: 'prep', label: 'Prepare me',
+          why: top ? 'the brief on ' + esc(top.name) + ' before you dial'
+            : 'nothing to prepare for yet' },
+        { k: 'deals', label: 'Open the board',
+          why: plural(all.filter(dealLive).length, 'deal') + ' still open' },
+        findLeads,
+      ];
+    } else if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       /* a door says "Work X", so X has to be open; the sentence above may
          still name the one that is past its date */
@@ -9830,10 +9900,21 @@
         return;
       }
       if (k === 'find') { lbuildStart(null); return; }
+      if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
+      if (k === 'prep') {
+        const top = queue(null, S.q)[0];
+        if (top) callPrep(top); else toast('Nothing to prepare for yet.');
+        return;
+      }
       if (k === 'callnext') {
-        const first = queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
+        /* A manager's next call is the deal at the top of his own ranking —
+           nobody on it is `callable`, because callable means the caller has
+           not finished with them, and on this desk they have. */
+        const first = isMgr()
+          ? queue(null, S.q).filter((c) => c.phone && !c.dnc && dealLive(c))[0]
+          : queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
-        else toast('Nobody in this cut has a number to ring.');
+        else toast(isMgr() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to ring.');
       } else if (k === 'lists') {
         go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
