@@ -255,7 +255,7 @@
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
-  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent' };
+  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand' };
 
   /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
      Four kinds of document sit behind a campaign. The name says which one
@@ -2548,10 +2548,10 @@
              with itself. */
           text: c.attempts
             ? 'Rung <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
-              '</b> — ' + esc(r.say) + '.'
+              '</b> — ' + esc(rungSay(c)) + '.'
             : n
               ? '<b>' + plural(n, 'touchpoint') + '</b> and no call yet, standing at <b>' + esc(r.label) +
-                '</b> — ' + esc(r.say) + '.'
+                '</b> — ' + esc(rungSay(c)) + '.'
               : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
           evidence: [{ val: c.attempts, cap: c.attempts === 1 ? 'call' : 'calls' },
             { val: n !== c.attempts ? n : 0, cap: n === 1 ? 'touchpoint' : 'touchpoints' }].filter((e) => e.val),
@@ -3350,8 +3350,11 @@
         { k: 'prep', label: 'Prepare me',
           why: top ? 'the brief on ' + esc(top.name) + ' before you dial'
             : 'nothing to prepare for yet' },
-        { k: 'deals', label: 'Open the board',
-          why: plural(all.filter(dealLive).length, 'deal') + ' still open' },
+        /* The board is already the tab beside this one and the door under
+           the cards; a third way in is not a way in. This slot goes to the
+           thing the desk could not do at all. */
+        { k: 'lead', label: 'Add a lead',
+          why: 'somebody you met, straight onto your board' },
         findLeads,
       ];
     } else if (here === 'camps') {
@@ -6168,9 +6171,11 @@
     const days = daysBetween(TODAY_ISO, closeBy(c));
     return '<section class="s-block s-block-wide" aria-label="The deal">' +
       '<div class="b-cmeta">' +
-        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — modelled ' +
-          'from ' + esc(sells) + ' at ' + (a && a.size ? esc(headLabel(a)) : 'their size') +
-          ', not read off a proposal.</p>') +
+        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — ' + (k
+          ? 'modelled from ' + esc(sells) + ' at ' +
+            (a && a.size ? esc(headLabel(a)) : 'their size') + ', not read off a proposal.'
+          : 'a placeholder. They are on no campaign, so nothing says what we would sell them.') +
+          '</p>') +
         cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
           (dealLive(c)
             ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
@@ -6180,6 +6185,7 @@
           (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
         cmPart('Found by', '<p class="b-cmeta-p">' +
           (owner ? '<b>' + esc(owner.name) + '</b> rang them cold and got them warm.'
+            : addedByHand(c) ? 'You did — added by hand, so only what you typed is known.'
             : 'Nobody is named as the caller.') + '</p>') +
       '</div>' +
     '</section>';
@@ -6374,7 +6380,9 @@
            The brief stands beside the phone because a manager walks into a
            meeting far more often than they dial. */
         const prep = { html: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' };
-        list = dealLive(c) ? (call ? [call, prep] : [prep]) : [];
+        /* A lead added by hand has no number, so the supplier is the verb
+           before the phone can be — the same door the caller's desk offers. */
+        list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
         quiet = dealLive(c) ? [] : call ? [call] : [];
         say = dealLive(c) ? ''
           : 'They ' + (stageOf(c) === 'won' ? 'signed' : 'said no') + ' ' +
@@ -6434,6 +6442,14 @@
       : '');
   }
   const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
+  /* ══ THE RUNG'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
+     Every rung says what it means TO THE PERSON RINGING, and the last one
+     says "with the director" — which is the news at that desk and nonsense
+     at the director's own, where it tells her a lead is with somebody else
+     when the somebody else is her. */
+  const rungSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
+    ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
+    : (RUNG[c.checkpoint] || {}).say || 'they have left the ladder');
 
   /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
      The card's punchline was the last line of the record's header, under
@@ -6603,6 +6619,10 @@
     return last.decision === 'lost' ? 'lost' : 'won';
   }
   const dealLive = (c) => stageOf(c) !== 'won' && stageOf(c) !== 'lost';
+  /* Nobody handed over a lead the manager met himself, and a record that
+     says they did is the page inventing a colleague. */
+  const addedByHand = (c) => (DB.touchesOf[c.id] || [])
+    .some((id) => TOUCH[id] && TOUCH[id].outcome === 'added');
   /* The campaign the deal belongs to, read the same way the index and the
      seed's own hand-over note read it, rather than through `campFor`, which
      answers for whoever is looking. */
@@ -6636,8 +6656,10 @@
     if (st === 'won') return 'They signed <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
     if (st === 'lost') return 'They said no <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
     if (!last) {
-      return 'Handed to you <b>' + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
-        '</b>, and nobody has warm-called them';
+      const when = esc(sayWhen((c.checkpointAt || '').slice(0, 10)));
+      return addedByHand(c)
+        ? 'You added them <b>' + when + '</b>, and nobody has rung them yet'
+        : 'Handed to you <b>' + when + '</b>, and nobody has warm-called them';
     }
     const owed = c.next
       ? esc(c.next.what) + ' <b>' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') +
@@ -6954,7 +6976,7 @@
     const due = c.next
       ? { what: c.next.what, when: (late ? 'was due ' : 'due ') + sayWhen(c.next.due), late: late }
       : null;
-    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rg.say) +
+    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rungSay(c)) +
       (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.';
     const quiet = quietUnderFour(c);
     /* the caption says "Next", so the sentence does not have to */
@@ -8715,6 +8737,77 @@
   const CALL_RE = /^(call|ring|dial)\b/i;
   const ASK_RE = /\?$|^(how|who|what|when|where|why|show|which)\b/i;
 
+  /* ══ A LEAD YOU MET, RATHER THAN ONE A SEARCH RETURNED ══════════════════
+     Every other lead in the book arrived from an index — described, run,
+     saved as a list. A manager's own arrive over dinner, and the product had
+     nowhere to put one. This is the same door everything else uses: you say
+     it, and what it heard is on the record.
+
+     Name first, then a title after a comma, then the company after "at".
+     Everything but the name is optional, because at the moment you type this
+     you are standing outside a restaurant. */
+  const ADD_RE = /^\s*(?:add|new)\s+(?:a\s+)?(?:lead|contact|person)\b\s*[:,-]?\s*(.*)$/i;
+  function readLead(rest) {
+    let t = String(rest || '').trim().replace(/[.\s]+$/, '');
+    if (!t) return null;
+    let co = null;
+    const at = t.match(/^(.*?)\s+(?:at|from|@)\s+([^,]+)$/i);
+    if (at) { t = at[1].trim(); co = at[2].trim(); }
+    const parts = t.split(',').map((x) => x.trim()).filter(Boolean);
+    if (!parts.length || !/[a-z]/i.test(parts[0])) return null;
+    return { name: parts[0], title: parts[1] || null, co: co };
+  }
+
+  /* The company is looked up before it is minted, so naming one already in
+     the book puts the person beside the colleagues we have rather than
+     starting a second copy of it. */
+  function addLead(f) {
+    const now = new Date().toISOString();
+    const key = Date.now().toString(36);
+    const tag = 'h' + key;
+    const lower = (f.co || '').toLowerCase();
+    let a = f.co ? DB.acc.filter((x) => x.name.toLowerCase() === lower)[0] : null;
+    const madeAcc = [];
+    if (f.co && !a) {
+      a = { id: 'x' + tag, name: f.co,
+        domain: f.co.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.com',
+        industry: null, city: null, country: null, region: null, size: null };
+      madeAcc.push(a);
+    }
+    /* It lands on the manager's own desk at Qualification: he found them, so
+       there is no caller to hand it over from and nothing to ring first. */
+    const c = {
+      id: 'y' + tag, acc: a ? a.id : null, name: f.name,
+      title: f.title || 'Title not known',
+      phone: null, email: null, camps: [], owner: null,
+      checkpoint: 'handed-over', checkpointAt: now,
+      attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
+      fate: SCENARIOS[0].k, enrichedAt: null, manager: me().id,
+    };
+    const t = {
+      id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
+      outcome: 'added', proposals: [], objections: [], openings: [],
+      note: 'Added by hand' + (f.co ? ', met at ' + f.co : '') + '.',
+      lines: [], next: null, moved: null, rung: 'handed-over',
+    };
+    DB.acc = DB.acc.concat(madeAcc);
+    DB.con = DB.con.concat([c]);
+    DELTA.made = (DELTA.made || []).concat([{ list: tag, acc: madeAcc, con: [c] }]);
+    reindex();
+    addTouch(t);
+    go({ con: c.id });
+    toast(esc(c.name) + ' is on your board' +
+      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said', () => {
+      dropTouch(t.id);
+      DB.con = DB.con.filter((x) => x.id !== c.id);
+      DB.acc = DB.acc.filter((x) => madeAcc.indexOf(x) < 0);
+      DELTA.made = (DELTA.made || []).filter((m) => m.list !== tag);
+      reindex();
+      save();
+      go(cleared());
+    });
+  }
+
   /* Who the sentence is about: a name in it on one of your campaigns, else
      whoever is open. Nobody: ask, and keep the sentence in the thread. */
   function logBySentence(text, read) {
@@ -8791,6 +8884,22 @@
         if (flat.indexOf(key) < 0) flat.push(key);
       });
       go({ bt: flat.join(',') });
+      return;
+    }
+
+    const addM = t.match(ADD_RE);
+    if (addM) {
+      const f = readLead(addM[1]);
+      if (!f) {
+        openCanvas();
+        say('you', esc(t));
+        say('aimy', answerBlock('Who am I adding?',
+          '<p class="s-block-sub">Give me a name at least — and a title and a company ' +
+          'if you have them. <b>Add a lead: Joseph Jones, Head of Operations at Puma</b>.</p>', ''));
+        return;
+      }
+      hideCanvas();
+      addLead(f);
       return;
     }
 
@@ -9918,6 +10027,7 @@
       }
       if (k === 'find') { lbuildStart(null); return; }
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
+      if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'prep') {
         const top = queue(null, S.q)[0];
         if (top) callPrep(top); else toast('Nothing to prepare for yet.');
@@ -10118,18 +10228,7 @@
        somewhere you cannot see and leaves the cursor in a box that is not
        there. */
     const fill = t.closest('[data-fill]');
-    if (fill) {
-      /* The canvas is open when it carries the class that opens it. It is
-         never marked hidden, so testing for that put the sentence into the
-         composer nobody was looking at. */
-      const over = byId('aimyOverlay');
-      const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
-      if (!el) return;
-      el.value = fill.getAttribute('data-fill');
-      el.focus();
-      try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
-      return;
-    }
+    if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
 
     const railToggle = t.closest('#railToggle');
     if (railToggle) {
@@ -10404,6 +10503,18 @@
   });
 
   /* A MENU CLOSES ON THE NEXT THING YOU DO. Anything outside it, or Esc. */
+  /* Whichever composer the reader is looking at. The canvas is open when it
+     carries the class that opens it — it is never marked hidden, so testing
+     for that put the sentence into the box nobody was looking at. */
+  function fillBar(text) {
+    const over = byId('aimyOverlay');
+    const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
+    if (!el) return;
+    el.value = text;
+    el.focus();
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
+  }
+
   function shutMenus(keep) {
     document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) m.hidden = true; });
   }
