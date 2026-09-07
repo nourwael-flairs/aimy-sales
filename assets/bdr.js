@@ -6913,7 +6913,7 @@
     if (k === 'commercial') return { what: 'Chase the proposal', due: dayAdd(5) };
     return null;
   }
-  function setStage(conId, k) {
+  function setStage(conId, k, said) {
     const c = DB.byCon[conId];
     const st = DEAL_STAGE[k];
     if (!c || !st) return;
@@ -6925,9 +6925,12 @@
       con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
       outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
       proposals: [], objections: [], openings: [],
-      note: k === 'won' ? 'They signed on the terms agreed.'
+      /* What was actually said, when there was something said. A record
+         that paraphrases you when it has your own words is a record you
+         stop trusting. */
+      note: said || (k === 'won' ? 'They signed on the terms agreed.'
         : k === 'lost' ? 'They decided against it.'
-        : (PHASE[k] || {}).label + ' held.',
+        : (PHASE[k] || {}).label + ' held.'),
       lines: [], next: null, moved: null, rung: 'handed-over',
     };
     patchCon(c, { checkpointAt: now, next: nextForStage(k) });
@@ -9058,6 +9061,7 @@
                  attribute whose name only exists while the page is running
                  is one the audit cannot pair with its handler. */
               (t.spent ? 'disabled'
+                : t.step === 'meetlog' ? 'data-meetlog="' + esc(o.k) + '"'
                 : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
@@ -9103,6 +9107,136 @@
       if (!hit && q.length > 4 && n.indexOf(q) >= 0) hit = c;
     }
     return hit ? { con: hit } : null;
+  }
+
+  /* ══ WHAT A MANAGER SAYS AFTER A MEETING ═══════════════════════════════
+     The caller's reader answers "what happened on the phone" — a
+     disposition, a proposal, an objection. None of those is what comes out
+     of a room. What a manager says is which step the deal reached, what was
+     asked for next, and when.
+
+     The endings are tested first on purpose: "signed the proposal" is a
+     signature, not a proposal, and a lexicon ordered by anything but
+     finality reads it backwards. */
+  const MEET_SAID = [
+    { k: 'lost', re: /\b(lost it|they passed|passed on it|went with|turned us down|not going ahead|said no|no from them)\b/i },
+    { k: 'won', re: /\b(signed|we won|closed it|they agreed|go ahead|it is ours|they are in)\b/i },
+    { k: 'commercial', re: /\b(proposal|quote|quoted|pricing|priced|the numbers|contract|terms|sow|statement of work)\b/i },
+    { k: 'proof', re: /\b(demo|proof|showed them|walked them through|pilot|poc)\b/i },
+    { k: 'discovery', re: /\b(discovery|first meeting|intro|introductory|scoping|got into what)\b/i },
+  ];
+  /* What they asked for next, if they asked for anything. */
+  const NEXT_SAID = /\b(?:want|wants|wanted|asked for|asking for|set up|booked|book|scheduled|schedule|arranged|arrange|next)\b[^.]{0,40}?\b(demo|meeting|dinner|proposal|call)\b/i;
+  const NEXT_WHAT = { demo: 'Demo for them', meeting: 'Meeting with them',
+    dinner: 'Dinner with them', proposal: 'Proposal to them', call: 'Meeting with them' };
+
+  /* An hour, if one was said. Nothing is inferred here — no hour is a
+     perfectly good answer and the diary already knows how to draw one. */
+  function readClock(text) {
+    const m = text.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i) ||
+      text.match(/\b(?:at\s+)?(\d{1,2}):(\d{2})\b/);
+    if (!m) return null;
+    let h = Number(m[1]);
+    const mi = m[2] ? Number(m[2]) : 0;
+    const ap = (m[3] || '').toLowerCase();
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    if (h > 23 || mi > 59) return null;
+    return { h: h, m: mi };
+  }
+
+  function readMeet(text, fallback) {
+    /* Only your own deals, and the longest name that appears — "Kate" must
+       not beat "Kate Jones" when both are in the book. */
+    const lower = ' ' + text.toLowerCase() + ' ';
+    let con = null;
+    queue(null, 'all').forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(n) >= 0 && (!con || n.length > con.name.length)) con = c;
+    });
+    /* A correction names nobody — it is about the deal already in hand —
+       and a record open on screen is who you are talking about. */
+    if (!con && fallback) con = fallback;
+    if (!con && S.con && DB.byCon[S.con] && DB.byCon[S.con].checkpoint === 'handed-over') {
+      con = DB.byCon[S.con];
+    }
+    if (!con) return null;
+    const nx = text.match(NEXT_SAID);
+    /* ══ WHAT HAPPENED IS NOT WHAT WAS ASKED FOR ═══════════════════════
+       "had a demo, they want a proposal" read as Commercial, because the
+       word proposal is in the sentence — and then put a proposal in the
+       diary as the thing still owed, so the deal was simultaneously past
+       the proposal and yet to send one. The clause naming the next step is
+       cut out before the stage is read, the same way the caller's reader
+       only takes a date from the next-step clause. */
+    const past = nx ? text.replace(nx[0], ' ') : text;
+    let stage = null;
+    for (let i = 0; i < MEET_SAID.length; i++) {
+      if (MEET_SAID[i].re.test(past)) { stage = MEET_SAID[i].k; break; }
+    }
+    return {
+      con: con, stage: stage, guessed: !stage,
+      next: nx ? NEXT_WHAT[nx[1].toLowerCase()] : null,
+      when: readWhen(text), clock: readClock(text),
+    };
+  }
+
+  /* ══ THE READ-BACK, AND ONE PRESS ══════════════════════════════════════
+     The same shape a logged call ends on: what I heard, what I am about to
+     write, and a correction is another sentence rather than a form. */
+  function meetPropose(text, f) {
+    const c = f.con;
+    const at = stageRank(stageOf(c));
+    /* Nothing said which step it reached, so it moves one — and says that
+       is what it did, because a stage asserted from silence is the
+       invention this record must never make. */
+    const to = f.stage || (DEAL_STAGES[at + 1] ? DEAL_STAGES[at + 1].k : null);
+    if (!to || stageRank(to) <= at) {
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', 'That reads as <b>' + esc(DEAL_STAGE[to || stageOf(c)].label) +
+        '</b>, which is where ' + esc(c.name) + ' already stands. Say what came of it ' +
+        'and I will move it on.');
+      return true;
+    }
+    PENDING = { kind: 'meet', con: c.id, to: to, guessed: f.guessed, next: f.next,
+      when: f.when, clock: f.clock, note: text };
+    openCanvas();
+    say('you', esc(text));
+    lbuildSpend();
+    const bits = ['Moving <b>' + esc(c.name) + '</b> to <b>' + esc(DEAL_STAGE[to].label) + '</b>'];
+    if (f.next) bits.push('and putting <b>' + esc(f.next.toLowerCase()) + '</b> in the diary for <b>' +
+      esc(sayWhen(dayAdd(f.when))) + '</b>' + (f.clock ? ' at <b>' + f.clock.h + ':' +
+        String(f.clock.m).padStart(2, '0') + '</b>' : ''));
+    TURNS.push({
+      who: 'aimy',
+      html: bits.join(', ') + '.' + (f.guessed
+        ? ' Nothing in that said which step it reached, so I have moved it on by one.'
+        : ''),
+      hint: 'Or say what I got wrong — "it was only a demo", "they signed", "no meeting yet".',
+      step: 'meetlog',
+      opts: [{ k: 'go', label: 'Log it' }, { k: 'drop', label: 'Leave it', quiet: true }],
+    });
+    paintThread();
+    return true;
+  }
+
+  function meetCommit() {
+    const p = PENDING;
+    if (!p || p.kind !== 'meet') return;
+    const c = DB.byCon[p.con];
+    PENDING = null;
+    if (!c) { paintThread(); return; }
+    setStage(c.id, p.to, p.note);
+    if (p.next) {
+      const due = dayAdd(p.when);
+      patchCon(c, { next: { what: p.next, due: due } });
+      if (p.clock) {
+        DELTA.meet[c.id] = { h: p.clock.h, m: p.clock.m };
+        saveNow();
+      }
+    }
+    paint();
   }
 
   const CALL_RE = /^(call|ring|dial)\b/i;
@@ -9209,6 +9343,21 @@
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
+    if (PENDING && PENDING.kind === 'meet') {
+      /* A correction re-reads the sentence alone, the same rule the call's
+         read-back follows: the newest thing you said wins outright. The
+         person carries over, because "it was only a demo" names nobody. */
+      const held = DB.byCon[PENDING.con];
+      const again = readMeet(t, held);
+      PENDING = null;
+      if (again && (again.stage || again.next)) { meetPropose(t, again); return; }
+      openCanvas();
+      say('you', esc(t));
+      say('aimy', 'I could not read a step out of that, so nothing was written. ' +
+        'Say it again with what came of the meeting in it.');
+      paintThread();
+      return;
+    }
     if (PENDING) {
       if (callLogCorrect(t)) return;
       PENDING.note = t;
@@ -9303,6 +9452,14 @@
          The bar promises "log a touchpoint" and this said "open the call
          panel". The sentence names who, or whoever is open is who; the
          read-back is the same card a call ends on, agreed in a word. */
+      /* At the manager's desk a sentence about a room outranks a sentence
+         about a phone: "had a demo with Kate, they want pricing" is a
+         meeting, and reading it as a call would write a touchpoint that
+         says a phone rang. */
+      if (isMgr()) {
+        const mt = readMeet(t);
+        if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
+      }
       const read = readCall(t);
       if (read.disp || read.props.length || read.objs.length) {
         if (logBySentence(t, read)) return;
@@ -10470,6 +10627,13 @@
       if (DB.call) { DB.call.held = !DB.call.held; paintCall(); }
       return;
     }
+    const ml = t.closest('[data-meetlog]');
+    if (ml) {
+      if (ml.getAttribute('data-meetlog') === 'go') meetCommit();
+      else { PENDING = null; lbuildSpend(); say('aimy', 'Left as it was.'); paintThread(); }
+      return;
+    }
+
     const cl = t.closest('[data-calllog]');
     if (cl) {
       const how = cl.getAttribute('data-calllog');
