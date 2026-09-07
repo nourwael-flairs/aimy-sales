@@ -2026,6 +2026,7 @@
     });
   }
   function paint() {
+    if (VOICE) micStop();
     const pre = prePaint();
     SAID_SIGNAL = null;
     dropLists();
@@ -2034,6 +2035,7 @@
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
+    paintMicIcons();
     byId('wbStage').innerHTML = S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
@@ -3030,6 +3032,13 @@
      the role under the name was the string 'BDR' whoever you were. It is
      on the menus' own machinery now — one open at a time, Escape and an
      outside click come free — and the job is read off the person. */
+  function paintMicIcons() {
+    ['floatMic', 'overlayMic'].forEach((id) => {
+      const el = byId(id);
+      if (el && !el.firstChild) el.innerHTML = chIcon('mic');
+    });
+  }
+
   function paintWho() {
     const p = me();
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
@@ -8032,6 +8041,7 @@
   const ICONS = {
     dot: '<circle cx="12" cy="12" r="6"/>',
     mic: '<path d="M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/>',
+    stop: '<rect x="7" y="7" width="10" height="10" rx="2"/>',
     'mic-off': '<path d="M15 9V6a3 3 0 00-5.9-.7M9 9v3a3 3 0 004.6 2.5"/><path d="M5 11a7 7 0 0011.5 5.4M19 11a7 7 0 01-.3 2M12 18v3M9 21h6"/><path d="M3 3l18 18"/>',
     play: '<path d="M7 4l12 8-12 8z"/>',
     pause: '<path d="M9 5v14M15 5v14"/>',
@@ -10994,6 +11004,8 @@
        while the canvas is up. Writing into the wrong one puts your sentence
        somewhere you cannot see and leaves the cursor in a box that is not
        there. */
+    if (t.closest('[data-mic]')) { micStart(); return; }
+
     const fill = t.closest('[data-fill]');
     if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
 
@@ -11280,6 +11292,107 @@
     el.value = text;
     el.focus();
     try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
+  }
+
+  /* ══ THE BAR BECOMES THE RECORDER ══════════════════════════════════════
+     A manager gets out of a dinner and has one hand and thirty seconds.
+     Typing is what sends them back to the notebook, so the bar takes
+     dictation — and the words land in the bar itself rather than in a panel
+     of their own, because the last step is reading them back and changing
+     the one AiMY misheard before anything is written.
+
+     THE CAPTURE IS SIMULATED AND THE READING IS NOT. There is no speech
+     engine here; the transcript is a fixture chosen off whoever you are
+     looking at, revealed a word at a time the way the call panel reveals a
+     line at a time. Everything after it — what it reads out of the
+     sentence, what it writes, the undo — is the real path a typed sentence
+     takes, because it IS that path. */
+  const VOICE_SAY = {
+    mgr: [
+      'Had a demo with {name}, it went well and they want a proposal next week',
+      'Met {name} at {co}, good conversation, we set a demo for Thursday at 3pm',
+      'Dinner with {name} last night and they signed',
+      '{name} passed, they went with someone else',
+      'Saw {name} today, they asked to move the meeting to next Tuesday at 2pm',
+      'Proposal is with {name} now, they want it priced against headcount',
+    ],
+    bdr: [
+      'Spoke to {name}, they want a demo next week',
+      'Rang {name} again, no answer',
+      '{name} asked me to call back on Thursday',
+      'Got {name} on the phone, the price came up straight away',
+      'Reception would not put me through to {name}',
+      '{name} is not interested, they have just signed with someone else',
+    ],
+  };
+  let VOICE = null;
+  let VOICE_TICK = null;
+
+  /* Whoever the words are most likely about: the record on screen, else the
+     meeting that has been and gone without a word, else the top of the
+     queue. */
+  function voiceSubject() {
+    if (S.con && DB.byCon[S.con]) return DB.byCon[S.con];
+    if (isMgr()) {
+      const u = unrecorded()[0];
+      if (u) return u.con;
+    }
+    return queue()[0] || null;
+  }
+  function voiceScript(c) {
+    const pool = VOICE_SAY[isMgr() ? 'mgr' : 'bdr'];
+    const a = c ? accOf(c) : null;
+    const pick2 = pool[Math.abs(hash((c ? c.id : 'none') + ':voice')) % pool.length];
+    return pick2.split('{name}').join(c ? c.name : 'them')
+      .split('{co}').join(a ? a.name : 'their office');
+  }
+  /* Whichever bar the reader is looking at — the same test `fillBar` makes. */
+  function micBars() {
+    const over = byId('aimyOverlay');
+    const on = over && over.classList.contains('open');
+    return on
+      ? { input: byId('overlayInput'), wave: byId('overlayWave'),
+        timer: byId('overlayTimer'), btn: byId('overlayMic') }
+      : { input: byId('floatInput'), wave: byId('floatWave'),
+        timer: byId('floatTimer'), btn: byId('floatMic') };
+  }
+  function micPaint(b, on, secs) {
+    if (b.btn) b.btn.classList.toggle('recording', on);
+    if (b.wave) b.wave.hidden = !on;
+    if (b.timer) { b.timer.hidden = !on; b.timer.textContent = fmtClock(secs || 0); }
+    if (b.input) b.input.hidden = on;
+  }
+  function micStart() {
+    if (VOICE) { micStop(); return; }
+    const c = voiceSubject();
+    const bars = micBars();
+    if (!bars.input) return;
+    VOICE = { words: voiceScript(c).split(' '), shown: 0, secs: 0, ticks: 0, bars: bars };
+    micPaint(bars, true, 0);
+    VOICE_TICK = setInterval(micTick, 240);
+  }
+  function micTick() {
+    if (!VOICE) return;
+    VOICE.ticks++;
+    VOICE.secs = Math.floor((VOICE.ticks * 240) / 1000);
+    VOICE.shown++;
+    if (VOICE.bars.timer) VOICE.bars.timer.textContent = fmtClock(VOICE.secs);
+    /* It stops itself at the end of the sentence, the way a short dictation
+       does. Pressing the mic again stops it earlier and keeps what was said. */
+    if (VOICE.shown >= VOICE.words.length) micStop();
+  }
+  function micStop() {
+    if (!VOICE) return;
+    const v = VOICE;
+    VOICE = null;
+    if (VOICE_TICK) { clearInterval(VOICE_TICK); VOICE_TICK = null; }
+    micPaint(v.bars, false, 0);
+    const text = v.words.slice(0, Math.max(1, Math.min(v.shown, v.words.length))).join(' ');
+    if (v.bars.input) {
+      v.bars.input.value = text;
+      v.bars.input.focus();
+      try { v.bars.input.setSelectionRange(text.length, text.length); } catch (e) { /* not a text input */ }
+    }
   }
 
   function shutMenus(keep) {

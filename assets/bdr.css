@@ -2428,3 +2428,16 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    carry the panel's padding themselves. */
 .b-day { margin-top: 10px; }
 @media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
+
+/* ══ 72. THE BAR TAKES DICTATION ═══════════════════════════════════════════
+   The control ships in the library and nothing had ever used it. What it
+   does not ship is where the wave and the clock sit once the input has got
+   out of the way, which is the bar's own business. */
+.voice-btn { flex: none; width: 30px; height: 30px; }
+.voice-btn svg { width: 15px; height: 15px; }
+/* `display` on a class beats the browser's own [hidden], so a wave that
+   says it is hidden would be drawn anyway. */
+.voice-wave[hidden], .voice-timer[hidden], .aimy-float-input[hidden] { display: none !important; }
+.voice-wave { flex: 1; justify-content: center; }
+.voice-timer { flex: none; }
+.overlay-input[hidden] { display: none !important; }

@@ -44,7 +44,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=197" />
+  <link rel="stylesheet" href="assets/sales.css?v=199" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -56,9 +56,9 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=197" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=197" />
-  <script src="assets/aimy-viewport.js?v=197"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=199" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=199" />
+  <script src="assets/aimy-viewport.js?v=199"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -354,9 +354,16 @@
           <span class="float-badge" hidden aria-label="unread in the canvas">0</span>
           <svg width="18" height="20" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
         </button>
+        <!-- Dictation. The bar becomes the recorder rather than opening one:
+             the words land where you would have typed them, and you can
+             change them before anything is written. -->
+        <button class="voice-btn" id="floatMic" type="button" data-mic
+                aria-label="Say it instead of typing"></button>
         <input class="aimy-float-input" id="floatInput" type="text"
                placeholder="Ask, filter, name a lead, or log a touchpoint…"
                autocomplete="off" spellcheck="false" aria-label="Drive the surface" />
+        <span class="voice-wave" id="floatWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+        <span class="voice-timer" id="floatTimer" hidden>0:00</span>
         <span class="aimy-float-hint">Enter to run</span>
         <button class="aimy-float-send" id="floatSend" aria-label="Run">
           <svg class="send-icon" viewBox="0 0 14 14" fill="none" width="14" height="14">
@@ -425,6 +432,10 @@
                 <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
+            <button class="voice-btn" id="overlayMic" type="button" data-mic
+                    aria-label="Say it instead of typing"></button>
+            <span class="voice-wave" id="overlayWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="voice-timer" id="overlayTimer" hidden>0:00</span>
           </div>
         </div>
       </div><!-- /.overlay-main -->
@@ -492,6 +503,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=197"></script>
+<script src="assets/bdr.js?v=199"></script>
 </body>
 </html>
