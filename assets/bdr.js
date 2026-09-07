@@ -1393,11 +1393,13 @@
         mineT[n - 1].note = 'Handed to ' + REP[dirId].name + '.';
         const hp = Math.abs(hash(c.id + ':phase'));
         let when = new Date(mineT[n - 1].at);
+        let decided = false;
         for (let pi = 0; pi < PHASES.length; pi++) {
           when = new Date(when.getTime() + (pi === 0 ? 3 + hp % 8 : 6 + ((hp >> (3 * pi)) % 9)) * DAY_MS);
           if (when.getTime() > TODAY.getTime()) break;
           const ph = PHASES[pi];
           const decision = ph.k === 'resolution' ? (((hp >> 12) % 3) === 0 ? 'lost' : 'won') : null;
+          if (decision) decided = true;
           touch.push({
             id: 't' + tId++, con: c.id, camp: camps[0], by: dirId, at: when.toISOString(), secs: 0,
             outcome: 'phase', phase: ph.k, decision: decision,
@@ -1407,6 +1409,25 @@
               : ph.label + ' held. ' + REP[dirId].name.split(' ')[0] + ' ' + ph.did + '.',
             lines: [], next: null, moved: null, rung: 'handed-over',
           });
+        }
+        /* ══ AND WHAT IS IN THE DIARY NEXT ═══════════════════════════════
+           A hand-over clears the next step, so every deal on the manager's
+           desk owed nothing and there was no diary to draw. The meetings
+           behind a deal are on the record already as phases; the one in
+           front of it was the thing missing. Off the hash, so the generator
+           does not move — and never on a deal already decided, because a
+           signed deal with a demo on Thursday is the record contradicting
+           itself. */
+        if (!decided) {
+          const hd = Math.abs(hash(c.id + ':diary'));
+          if (hd % 100 < 72) {
+            const kk2 = (hd >> 7) % 4;
+            c.next = {
+              what: kk2 === 0 ? 'Dinner with them' : kk2 === 1 ? 'Demo for them'
+                : kk2 === 2 ? 'Meeting with them' : 'Proposal to them',
+              due: dayAdd(((hd >> 3) % 22) - 9),
+            };
+          }
         }
       }
 
@@ -1628,7 +1649,7 @@
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [] };
+    dismissed: [], read: [], made: [], meet: Object.create(null) };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -1724,7 +1745,7 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [] }, d);
+            dismissed: [], read: [], made: [], meet: {} }, d);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
@@ -6745,6 +6766,80 @@
       (isMgr() ? '.' : ', and it is not yours.');
   }
 
+  /* ══ THE DIARY ═════════════════════════════════════════════════════════
+     Not a table. "We met them" is already answered by the phase touchpoints
+     and "we are meeting them" by the next step, and a meetings table beside
+     those would be a second place to look and a second answer when they
+     disagreed. So the diary is a reading of the two.
+
+     THE DAY IS ON THE RECORD; THE HOUR IS NOT. `next.due` is a bare
+     YYYY-MM-DD and is compared as a string in a dozen places, so a time can
+     never go into it. The hour is derived from the id — the same every time
+     it is asked, on every machine — until somebody sets one, and a derived
+     hour is drawn as a guess rather than as a booking. */
+  const MEET_KINDS = [
+    { k: 'meeting', label: 'Meeting', tone: 'accent' },
+    { k: 'demo',    label: 'Demo',    tone: 'info' },
+    { k: 'dinner',  label: 'Dinner',  tone: 'warn' },
+    { k: 'held',    label: 'Held',    tone: 'ok' },
+    { k: 'owed',    label: 'Owed',    tone: 'neutral' },
+  ];
+  const MEET_KIND = Object.create(null);
+  MEET_KINDS.forEach((x) => (MEET_KIND[x.k] = x));
+  const kindOfNext = (what) => (/dinner/i.test(what) ? 'dinner'
+    : /demo/i.test(what) ? 'demo'
+    : /meeting/i.test(what) ? 'meeting' : 'owed');
+
+  /* Mornings and afternoons for a meeting; a dinner is at dinner time. */
+  const MEET_SLOTS = [9, 10, 11, 14, 15, 16];
+  const DINNER_SLOTS = [19, 20];
+  function slotOf(key, kind) {
+    const h = Math.abs(hash(key + ':slot'));
+    const pool = kind === 'dinner' ? DINNER_SLOTS : MEET_SLOTS;
+    return { h: pool[h % pool.length], m: ((h >> 5) % 2) ? 30 : 0 };
+  }
+  function meetTime(conId, iso, kind) {
+    const set = DELTA.meet && DELTA.meet[conId];
+    if (set) return { h: set.h, m: set.m, set: true };
+    const t = slotOf(conId + '|' + iso, kind);
+    return { h: t.h, m: t.m, set: false };
+  }
+  const clockOf = (m) => (m.h == null ? '' : m.h + ':' + String(m.m).padStart(2, '0'));
+
+  /* Everything between two days, held and planned, in the order it happens. */
+  function meetings(from, to) {
+    const out = [];
+    queue(null, 'all').forEach((c) => {
+      phasesOf(c).forEach((t) => {
+        const iso = t.at.slice(0, 10);
+        if (iso < from || iso > to) return;
+        const d = new Date(t.at);
+        out.push({ con: c, iso: iso, h: d.getHours(), m: d.getMinutes(), set: true,
+          kind: 'held', held: true, title: (PHASE[t.phase] || {}).label || 'Meeting' });
+      });
+      if (c.next && c.next.due >= from && c.next.due <= to) {
+        const k = kindOfNext(c.next.what);
+        /* Something owed that is not a meeting has a day and no hour, and
+           drawing it at an invented ten o'clock is the diary asserting what
+           it was never told. */
+        const t = k === 'owed' ? { h: null, m: null, set: false } : meetTime(c.id, c.next.due, k);
+        out.push({ con: c, iso: c.next.due, h: t.h, m: t.m, set: t.set,
+          kind: k, held: false, title: c.next.what });
+      }
+    });
+    return out.sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1
+      : (a.h == null ? 1e4 : a.h * 60 + a.m) - (b.h == null ? 1e4 : b.h * 60 + b.m)));
+  }
+  const meetingsOn = (iso) => meetings(iso, iso);
+
+  /* A meeting whose day has passed with nothing recorded on or after it.
+     This is the whole reason the loop needs closing: the manager walks out
+     of the room and the record never hears about it. */
+  function unrecorded() {
+    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.held && m.kind !== 'owed' &&
+      !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
+  }
+
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
      A record read top to bottom is a profile; a profile read as prose is a
      story. It was five sentences of prose, which is a paragraph to read
@@ -10602,6 +10697,7 @@
        itself rather than wait for a frame that is not coming. */
     vlists: VLISTS,
     read: readCall,
+    meetings: meetings, unrecorded: unrecorded,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,
