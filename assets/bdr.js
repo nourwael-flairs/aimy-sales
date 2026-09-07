@@ -438,15 +438,12 @@
   const REGION = Object.create(null);
   REGIONS.forEach((x) => (REGION[x.k] = x));
 
-  /* The cast. Four callers and one manager: ownership means something on the
-     calling side, where a lead has an owner and a queue is somebody's, and on
-     the other side of the hand-over there is one desk. `pick` draws once
-     whatever the length, so shortening this does not move the generator. */
+  /* The cast: one caller and one manager, the two desks a lead passes
+     between. Every draw below stays a draw whatever the length of what it
+     draws from — the generator is a single cursor, and a call skipped here
+     moves every account, contact and touchpoint after it. */
   const REPS = [
     { id: 'engy',   name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
-    { id: 'habeba', name: 'Sally Tarek',   initials: 'ST', fn: 'bdr' },
-    { id: 'omar',   name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
-    { id: 'sara',   name: 'Sara Nabil',    initials: 'SN', fn: 'bdr' },
     { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
   ];
   const REP = Object.create(null);
@@ -510,8 +507,7 @@
      the image collapses and the face that was always there shows through,
      rather than nine broken-image marks across the masthead. */
   const AV_PIC = {
-    engy: 'women/44', habeba: 'women/68', omar: 'men/32', sara: 'women/26',
-    lina: 'women/65',
+    engy: 'women/44', lina: 'women/65',
   };
   function faceOf(id, px) {
     const h = Math.abs(hash(String(id) + ':face'));
@@ -1063,15 +1059,20 @@
        because a finished campaign is not work. The rest exist so the product
        has to answer what happens when you open one you are not on. */
     const running = camp.filter((c) => c.state === 'running');
+    /* With one caller there is nobody else to add, so every draw below picks
+       her — but it still DRAWS. `others` empty would throw on `pick`, and
+       guarding by skipping the call instead would shift the cursor and
+       reshuffle the whole corpus behind it. */
     const others = BDRS.filter((b) => b.id !== DEFAULT_ME);
+    const pool = others.length ? others : BDRS;
     running.slice(0, 14).forEach((c) => c.crew.push(DEFAULT_ME));
     camp.forEach((c) => {
       const extra = between(r, 0, 2);
       for (let j = 0; j < extra; j++) {
-        const b = pick(r, others);
+        const b = pick(r, pool);
         if (c.crew.indexOf(b.id) < 0) c.crew.push(b.id);
       }
-      if (!c.crew.length) c.crew.push(pick(r, others).id);
+      if (!c.crew.length) c.crew.push(pick(r, pool).id);
     });
 
     /* ── Accounts ── */
