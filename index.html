@@ -44,7 +44,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=173" />
+  <link rel="stylesheet" href="assets/sales.css?v=174" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -56,9 +56,9 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=173" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=173" />
-  <script src="assets/aimy-viewport.js?v=173"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=174" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=174" />
+  <script src="assets/aimy-viewport.js?v=174"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -236,7 +236,7 @@
          The chevron used to be decorative; it opens the thing it promises. -->
     <div class="ntf-anchor">
       <button class="topnav-user" id="asBtn" type="button"
-              aria-haspopup="dialog" aria-expanded="false" aria-controls="asPanel">
+              data-pickopen="asPanel" aria-haspopup="menu" aria-controls="asPanel">
         <span class="topnav-avatar" id="userAvatar">NW</span>
         <span class="topnav-user-info">
           <span class="topnav-user-name" id="userName">Nour Wael</span>
@@ -244,16 +244,9 @@
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="ntf-panel as-panel" id="asPanel" hidden role="dialog" aria-label="Looking as">
-        <div class="ntf-head">
-          <b>Looking as</b>
-        </div>
-        <ul class="ntf-list" id="asList"></ul>
-        <div class="ntf-foot">
-          <span class="as-note">In a real deployment this comes from your sign-in. It is a
-            control here so every tier can be seen without five accounts.</span>
-        </div>
-      </div>
+      <!-- Filled by paintWho. A menu, so one-at-a-time, Escape and the
+           outside click are the machinery every other menu here uses. -->
+      <div class="b-menu" id="asPanel" role="menu" hidden></div>
     </div>
   </div>
 </div>
@@ -499,6 +492,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=173"></script>
+<script src="assets/bdr.js?v=174"></script>
 </body>
 </html>

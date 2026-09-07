@@ -2861,11 +2861,28 @@
       '</div>';
   }
 
+  /* ══ THE PILL IS THE DOOR TO THE OTHER DESK ════════════════════════════
+     The panel was drawn in the markup and wired to nothing: the button
+     claimed aria-expanded="false" for ever, the list was never filled, and
+     the role under the name was the string 'BDR' whoever you were. It is
+     on the menus' own machinery now — one open at a time, Escape and an
+     outside click come free — and the job is read off the person. */
   function paintWho() {
     const p = me();
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
-    byId('userRole').textContent = 'BDR';
+    byId('userRole').textContent = JOB[p.fn];
+    byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
+      REPS.map((r) =>
+        '<button class="b-menu-item" type="button" role="menuitem" ' +
+        'data-as="' + esc(r.id) + '">' +
+          '<span class="b-menu-tick' + (r.id === p.id ? ' is-on' : '') + '"></span>' +
+          faceOf(r.id, 24) +
+          '<span class="b-menu-line">' +
+            '<span class="b-menu-name">' + esc(r.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(JOB[r.fn]) + '</span>' +
+          '</span>' +
+        '</button>').join('');
   }
 
   /* ══ HOME — the two things a BDR opens this to see ══════════════════════
@@ -6918,9 +6935,10 @@
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Looking as</div>' +
-        REPS.filter((x) => x.fn === 'bdr').map((x) =>
+        REPS.map((x) =>
           '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
-          esc(x.name) + (x.id === me().id ? ' — you' : '') + '</button>').join('') +
+          esc(x.name) + ' · ' + esc(JOB[x.fn]) +
+          (x.id === me().id ? ' — you' : '') + '</button>').join('') +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Queue</div>' +
@@ -9586,7 +9604,11 @@
     if (cap) { UI.cap = Number(cap.getAttribute('data-cap')) || 0; saveUI(); paint(); return; }
 
     const as = t.closest('[data-as]');
-    if (as) { go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') }); return; }
+    if (as) {
+      shutMenus(null);
+      go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') });
+      return;
+    }
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
