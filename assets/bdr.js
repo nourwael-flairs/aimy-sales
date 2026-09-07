@@ -2044,6 +2044,7 @@
          reached the lists surface through on — so saving a list landed on the
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
+      : S.on === 'notes' ? notesPage()
       : S.on === 'cal' ? calPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
@@ -2968,6 +2969,7 @@
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
+    if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
   }
 
@@ -3118,6 +3120,56 @@
     '</section>';
   }
 
+  /* ══ WHAT YOU SAID, BY THE DAY YOU SAID IT ═════════════════════════════
+     The notebook these managers still carry is not a filing system — it is
+     a running page of what happened, and its whole advantage is that you
+     can look back at what you wrote rather than at what somebody's software
+     decided you meant. So the sentences are kept as sentences and grouped
+     by day, with what AiMY did with each one standing over it: your words
+     underneath, the step they moved the deal to on top.
+
+     Nothing new renders them. A campaign's own feed is already this — a run
+     of touchpoints under day headings — and a second one would be the same
+     block with a different name. */
+  function notesOf() {
+    const meId = me().id;
+    return DB.touch.filter((t) => t.by === meId && t.note)
+      .sort((a, b) => (a.at < b.at ? 1 : -1));
+  }
+
+  function notesPage() {
+    const all = notesOf();
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Your notes">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Your notes</h2>' +
+          '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
+        '</div>' +
+        feedBlock(all, 'You have not written anything down yet. Say what happened ' +
+          'in the bar — or hold the mic — and it lands here.') +
+      '</section>' +
+    '</div>';
+  }
+
+  /* The last three days on Today, and the door. */
+  function notesBlock() {
+    const since = dayAdd(-3);
+    const recent = notesOf().filter((t) => t.at.slice(0, 10) >= since);
+    if (!recent.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="What you said">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What you said</h2>' +
+        '<span class="s-block-say">the last three days</span>' +
+      '</div>' +
+      feedBlock(recent.slice(0, 5), '') +
+      '<div class="b-acts b-acts-end">' +
+        '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) + '">All of them</button>' +
+      '</div>' +
+    '</section>';
+  }
+
   function mgrHome() {
     const all = queue(null, 'all');
     const live = all.filter(dealLive);
@@ -3144,6 +3196,7 @@
           : '<p class="s-block-sub">Nothing is late and nothing is waiting on a first ' +
             'call. The board has the ' + plural(live.length, 'deal') + ' you are running.</p>') +
       '</section>' +
+      notesBlock() +
     '</div>';
   }
 
@@ -9156,9 +9209,15 @@
     { k: 'discovery', re: /\b(discovery|first meeting|intro|introductory|scoping|got into what)\b/i },
   ];
   /* What they asked for next, if they asked for anything. */
-  const NEXT_SAID = /\b(?:want|wants|wanted|asked for|asking for|set up|booked|book|scheduled|schedule|arranged|arrange|next)\b[^.]{0,40}?\b(demo|meeting|dinner|proposal|call)\b/i;
+  const NEXT_SAID = /\b(?:want|wants|wanted|asked for|asking for|set up|booked|book|scheduled|schedule|arranged|arrange|next)\b[^.]{0,40}?\b(demo|meeting|dinner|proposal|pricing|price|quote|numbers|call)\b/i;
   const NEXT_WHAT = { demo: 'Demo for them', meeting: 'Meeting with them',
-    dinner: 'Dinner with them', proposal: 'Proposal to them', call: 'Meeting with them' };
+    dinner: 'Dinner with them', proposal: 'Proposal to them', call: 'Meeting with them',
+    /* Asking for the price is asking for the proposal. It read as the stage
+       instead, so "walked them through it and they want pricing" put the
+       deal at Commercial — past the proposal, on the strength of somebody
+       asking for one. */
+    pricing: 'Proposal to them', price: 'Proposal to them',
+    quote: 'Proposal to them', numbers: 'Proposal to them' };
 
   /* An hour, if one was said. Nothing is inferred here — no hour is a
      perfectly good answer and the diary already knows how to draw one. */
