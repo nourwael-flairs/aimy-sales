@@ -2505,3 +2505,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .tc-type.b-fact > svg { width: 11px; height: 11px; }
 .b-dc-co.b-fact > svg { width: 11px; height: 11px; }
 .b-node-name.b-fact > svg { width: 12px; height: 12px; }
+
+/* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
+   Smaller than on a record, because the line they sit on is smaller: a
+   13px mark beside 12px type is the loudest thing in the corner of a card,
+   which is the opposite of what a mark is for. The facts line becomes a
+   wrapping row so a long company name takes its mark with it. */
+.b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.b-qcard-where .b-fact > svg { width: 12px; height: 12px; }
+.b-qcard-num.b-fact > svg { width: 12px; height: 12px; }

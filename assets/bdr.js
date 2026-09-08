@@ -2151,9 +2151,15 @@
          company is context you read once — and one paragraph holding both
          forced them to the same size, weight and ink. */
       '<p class="tc-summary b-qcard-role">' + esc(c.title) + '</p>' +
-      (a ? '<p class="b-qcard-where">' + esc(a.name) + ' · ' +
-        esc(indLabel(a)) + ' · ' + esc(cityLabel(a)) +
-        ' · ' + esc(headLabel(a)) + '</p>' : '') +
+      /* THE IDENTITY BLOCK KEEPS NO MARKS. The name and the job above this
+         are who they are, and a mark beside either competes with the name
+         for the loudest thing on the card. This line is the facts, and the
+         facts are four different kinds of thing. */
+      (a ? '<p class="b-qcard-where">' +
+        fact('company', esc(a.name)) +
+        fact('industry', esc(indLabel(a))) +
+        fact('where', esc(cityLabel(a))) +
+        fact('staff', esc(headLabel(a))) + '</p>' : '') +
       '<div class="b-qcard-why">' + (isMgr() ? dealWhy(c) : whyLine(c)) + '</div>' +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
@@ -2165,8 +2171,13 @@
       '<div class="tc-gov b-qcard-foot">' +
         /* What it is worth, where the number to call sits on the caller's
            card: the one figure a manager scans a list of deals for. */
-        '<span class="b-qcard-num">' +
-          (isMgr() ? esc(euro(amountOf(c))) : c.phone ? esc(c.phone) : 'No number') + '</span>' +
+        /* The amount takes no mark: on the manager's cards it is the only
+           figure and it is already the boldest thing in the row. A number
+           to ring is one of several kinds of fact a foot can hold. */
+        (isMgr()
+          ? '<span class="b-qcard-num">' + esc(euro(amountOf(c))) + '</span>'
+          : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
+            (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
@@ -2439,7 +2450,8 @@
           '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
       aimyBlock(campSays(k, q, back, fresh, left)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">' + esc(actor(k.owner).name) + '</span>' +
+        '<span class="b-qcard-num b-fact">' + chIcon('user') +
+          '<span>' + esc(actor(k.owner).name) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' + (campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
@@ -2518,7 +2530,8 @@
         commas(call) + '</b> of them ringable</div>' +
       aimyBlock(listSays(l, people, call, camp)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">built ' + esc(sayWhen(l.at)) + '</span>' +
+        '<span class="b-qcard-num b-fact">' + chIcon('calendar') +
+          '<span>built ' + esc(sayWhen(l.at)) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
           '" type="button" data-list="' + esc(l.id) + '">Open</button>' +
       '</div>' +
@@ -8309,6 +8322,7 @@
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
      line without the mark drifting off the first line of a wrapped fact. */
