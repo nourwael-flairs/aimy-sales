@@ -1172,37 +1172,37 @@
     .progress-bar-track.thick { height: 10px; border-radius: var(--r-sm); }
 
     /* ═══════════════════════════════════════════════
-       SCORE RING (SVG circular progress)
+       SCORE call (SVG circular progress)
     ═══════════════════════════════════════════════ */
-    .score-ring-wrap {
+    .score-call-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
-    .score-ring { position: relative; display: inline-flex; }
-    .score-ring svg { transform: rotate(-90deg); }
-    .score-ring-track { fill: none; stroke: rgba(255,255,255,0.07); }
+    .score-call { position: relative; display: inline-flex; }
+    .score-call svg { transform: rotate(-90deg); }
+    .score-call-track { fill: none; stroke: rgba(255,255,255,0.07); }
     /* stroke-dashoffset is the only way to draw an SVG arc, but the
        300ms ceiling still applies — 800ms read as sluggish. */
-    .score-ring-fill  { fill: none; stroke-linecap: round;
+    .score-call-fill  { fill: none; stroke-linecap: round;
       transition: stroke-dashoffset var(--t-slow) var(--ease-out);
     }
-    .score-ring-fill.ok   { stroke: var(--ok); }
-    .score-ring-fill.warn { stroke: var(--warn); }
-    .score-ring-fill.err  { stroke: var(--err); }
-    .score-ring-fill.brand{ stroke: var(--brand); }
-    .score-ring-center {
+    .score-call-fill.ok   { stroke: var(--ok); }
+    .score-call-fill.warn { stroke: var(--warn); }
+    .score-call-fill.err  { stroke: var(--err); }
+    .score-call-fill.brand{ stroke: var(--brand); }
+    .score-call-center {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
     }
-    .score-ring-number {
+    .score-call-number {
       font-size: 22px; font-weight: 800;
       letter-spacing: -0.03em; line-height: 1;
     }
-    .score-ring-label {
+    .score-call-label {
       font-size: 9px; font-weight: 700; color: var(--d500);
       letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px;
     }
-    .score-ring-wrap .score-ring-title {
+    .score-call-wrap .score-call-title {
       font-size: 11px; font-weight: 700; color: var(--d300); text-align: center;
     }
 
@@ -3017,7 +3017,7 @@
     .mem-what { color: var(--d300); }
     .mem-foot { display: flex; gap: 8px; padding: 0 13px 12px; }
 
-    /* ── Governance change request card (§3.1 rung 3, §6.2) ── */
+    /* ── Governance change request card (§3.1 called 3, §6.2) ── */
     .gov-cr-card {
       max-width: 520px; border-radius: var(--r-lg); overflow: hidden;
       background: var(--card-bg); border: 1px solid rgba(247,144,9,0.3);
@@ -3263,7 +3263,7 @@
        CITATION PREVIEW & PER-CITATION FEEDBACK
        (Knowledge v2 · D2)
 
-       The intermediate verification rung. Rungs 1 (inline
+       The intermediate verification called. Rungs 1 (inline
        marker) and 4 (full source) already existed; this is
        the one that carries most verification traffic.
 
@@ -3810,7 +3810,7 @@
       /* Shimmer becomes a flat placeholder tone */
       .skeleton { animation: none !important; background: rgba(255,255,255,0.07) !important; }
       :root[data-theme="light"] .skeleton { background: rgba(16,24,40,0.08) !important; }
-      /* Spinners still need to read as "in progress" — hold a partial ring */
+      /* Spinners still need to read as "in progress" — hold a partial call */
       .think-spinner,
       .loading-spinner,
       .agent-step .mini-spin { animation: none !important; }
@@ -4580,7 +4580,7 @@
     <tbody>
       <tr><td>--r-xs</td><td><code>4px</code></td><td>Finding icon, badge icon, rank badge, checkbox</td></tr>
       <tr><td>--r-sm</td><td><code>6px</code></td><td>Buttons (sm), code block label, modal close btn</td></tr>
-      <tr><td>--r-md</td><td><code>8px</code></td><td>Buttons, nav items, inputs, filter tray cells, focus ring</td></tr>
+      <tr><td>--r-md</td><td><code>8px</code></td><td>Buttons, nav items, inputs, filter tray cells, focus call</td></tr>
       <tr><td>--r-lg</td><td><code>10px</code></td><td>Token swatches, callouts, AFS strip, source connection card</td></tr>
       <tr><td>--r-xl</td><td><code>12px</code></td><td>Surface cards, template cards, code blocks, modals</td></tr>
       <tr><td>--r-2xl</td><td><code>16px</code></td><td>Briefing cards, narrative cards, KPI brief, score cards</td></tr>
@@ -4604,7 +4604,7 @@
       <tr><td>--t-base</td><td><code>200ms</code></td><td>Transform, box-shadow — card lifts, nav state changes, expand toggles</td></tr>
       <tr><td>--t-slow</td><td><code>300ms</code></td><td>Panel slides, modal entrance, filter tray expand</td></tr>
       <tr><td>--ease-out</td><td><code>cubic-bezier(0.22,1,0.36,1)</code></td><td>All enter/appear animations — strong deceleration</td></tr>
-      <tr><td>--ease-spring</td><td><code>cubic-bezier(0.34,1.56,0.64,1)</code></td><td>Chip pop, score ring fill, toggle thumb — slight overshoot</td></tr>
+      <tr><td>--ease-spring</td><td><code>cubic-bezier(0.34,1.56,0.64,1)</code></td><td>Chip pop, score call fill, toggle thumb — slight overshoot</td></tr>
       <tr><td>hover lift sm</td><td><code>translateY(-1px)</code></td><td>Surface cards, subtle tier-primary bcard</td></tr>
       <tr><td>hover lift md</td><td><code>translateY(-2px)</code></td><td>Standard briefing card hover, modal card hover</td></tr>
       <tr><td>glassShimmer</td><td><code>keyframes, 2× on mount</code></td><td>Top-edge shine on filter tray and active-filter-strip</td></tr>
@@ -4916,7 +4916,7 @@
       <tr><td><code>.p2</code></td><td><code>rgba(247,144,9,0.18)</code></td><td>warn tint</td></tr>
       <tr><td><code>.p3</code></td><td><code>rgba(23,178,106,0.15)</code></td><td>ok tint</td></tr>
       <tr><td><code>.ai</code></td><td>brand tint</td><td>—</td></tr>
-      <tr><td><code>.tier-primary</code></td><td><code>--card-border</code> (base) + accent double-ring <code>box-shadow</code></td><td>—</td></tr>
+      <tr><td><code>.tier-primary</code></td><td><code>--card-border</code> (base) + accent double-call <code>box-shadow</code></td><td>—</td></tr>
     </tbody>
   </table>
 
@@ -5870,7 +5870,7 @@
     <thead><tr><th>Element</th><th>Class</th><th>Notes</th></tr></thead>
     <tbody>
       <tr><td>Badge</td><td><code>.work-state</code> + <code>.ws-*</code></td><td>9px/700 uppercase pill. Always carries <code>data-work-state</code> with one of the six canonical values</td></tr>
-      <tr><td>Dot</td><td><code>.ws-dot</code></td><td>6px. Filled for states AiMY has committed to (<code>recommended</code>, <code>staged</code>, <code>completed</code>, <code>failed</code>); hollow ring for observational states (<code>detected</code>, <code>drafted</code>)</td></tr>
+      <tr><td>Dot</td><td><code>.ws-dot</code></td><td>6px. Filled for states AiMY has committed to (<code>recommended</code>, <code>staged</code>, <code>completed</code>, <code>failed</code>); hollow call for observational states (<code>detected</code>, <code>drafted</code>)</td></tr>
       <tr><td>Pipeline</td><td><code>.ws-track</code></td><td>Steps are <code>.ws-step</code> with <code>.is-past</code> / <code>.is-current</code>; separators are <code>.ws-sep</code></td></tr>
     </tbody>
   </table>
@@ -7040,9 +7040,9 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
     <thead><tr><th>Element</th><th>Class</th><th>Notes</th></tr></thead>
     <tbody>
       <tr><td>Wrapper</td><td><code>.donut-wrap</code></td><td>100×100px, <code>position:relative</code>. SVG rotated <code>-90deg</code> so arcs start at 12 o'clock</td></tr>
-      <tr><td>Track</td><td>inline <code>&lt;circle&gt;</code></td><td><code>stroke:rgba(255,255,255,0.06); stroke-width:10</code> — the dim background ring</td></tr>
+      <tr><td>Track</td><td>inline <code>&lt;circle&gt;</code></td><td><code>stroke:rgba(255,255,255,0.06); stroke-width:10</code> — the dim background call</td></tr>
       <tr><td>Arc</td><td><code>.donut-arc</code></td><td><code>fill:none; stroke-width:10; stroke-linecap:butt; pointer-events:none</code>. Active state adds <code>.active-pass / .active-border / .active-fail</code></td></tr>
-      <tr><td>Hit ring</td><td><code>.donut-hit</code></td><td><code>fill:none; stroke:transparent; stroke-width:28</code> — fat invisible ring matching the arc. Fires <code>onmouseenter/leave</code></td></tr>
+      <tr><td>Hit call</td><td><code>.donut-hit</code></td><td><code>fill:none; stroke:transparent; stroke-width:28</code> — fat invisible call matching the arc. Fires <code>onmouseenter/leave</code></td></tr>
       <tr><td>Center</td><td><code>.donut-center</code></td><td><code>position:absolute; inset:0</code> flex column, centered. <code>pointer-events:none</code></td></tr>
       <tr><td>Percentage</td><td><code>.donut-pct</code></td><td>20px/800, <code>--d50</code>, <code>letter-spacing:-0.03em</code>. Updated by JS on hover</td></tr>
       <tr><td>Label</td><td><code>.donut-label</code></td><td>9px/600, <code>--d400</code>, uppercase. Updated by JS on hover</td></tr>
@@ -7243,79 +7243,79 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 </div>
 
 <!-- ══════════════════════════════════════════════
-     DATA VIZ — SCORE RING & PROGRESS BARS
+     DATA VIZ — SCORE call & PROGRESS BARS
 ══════════════════════════════════════════════ -->
 <div class="ds-section">
   <span class="ds-section-anchor" id="dataviz"></span>
   <div class="ds-h2">Data Viz</div>
-  <p class="ds-desc">Two primitives: the SVG score ring and horizontal KPI progress bars.</p>
+  <p class="ds-desc">Two primitives: the SVG score call and horizontal KPI progress bars.</p>
 
-  <div class="ds-h3">Score Ring</div>
+  <div class="ds-h3">Score call</div>
   <div class="ds-preview">
     <div class="demo-row" style="align-items:flex-start;gap:28px">
 
-      <!-- Pass ring -->
-      <div class="score-ring-wrap">
-        <div class="score-ring">
+      <!-- Pass call -->
+      <div class="score-call-wrap">
+        <div class="score-call">
           <svg width="88" height="88" viewBox="0 0 88 88">
-            <circle class="score-ring-track" cx="44" cy="44" r="36" stroke-width="7"/>
-            <circle class="score-ring-fill ok" cx="44" cy="44" r="36" stroke-width="7"
+            <circle class="score-call-track" cx="44" cy="44" r="36" stroke-width="7"/>
+            <circle class="score-call-fill ok" cx="44" cy="44" r="36" stroke-width="7"
               stroke-dasharray="226.2" stroke-dashoffset="27.1"/>
           </svg>
-          <div class="score-ring-center">
-            <div class="score-ring-number" style="color:var(--ok)">88%</div>
-            <div class="score-ring-label">Score</div>
+          <div class="score-call-center">
+            <div class="score-call-number" style="color:var(--ok)">88%</div>
+            <div class="score-call-label">Score</div>
           </div>
         </div>
-        <div class="score-ring-title">Pass</div>
+        <div class="score-call-title">Pass</div>
       </div>
 
-      <!-- Borderline ring -->
-      <div class="score-ring-wrap">
-        <div class="score-ring">
+      <!-- Borderline call -->
+      <div class="score-call-wrap">
+        <div class="score-call">
           <svg width="88" height="88" viewBox="0 0 88 88">
-            <circle class="score-ring-track" cx="44" cy="44" r="36" stroke-width="7"/>
-            <circle class="score-ring-fill warn" cx="44" cy="44" r="36" stroke-width="7"
+            <circle class="score-call-track" cx="44" cy="44" r="36" stroke-width="7"/>
+            <circle class="score-call-fill warn" cx="44" cy="44" r="36" stroke-width="7"
               stroke-dasharray="226.2" stroke-dashoffset="62.7"/>
           </svg>
-          <div class="score-ring-center">
-            <div class="score-ring-number" style="color:var(--warn)">72%</div>
-            <div class="score-ring-label">Score</div>
+          <div class="score-call-center">
+            <div class="score-call-number" style="color:var(--warn)">72%</div>
+            <div class="score-call-label">Score</div>
           </div>
         </div>
-        <div class="score-ring-title">Borderline</div>
+        <div class="score-call-title">Borderline</div>
       </div>
 
-      <!-- Fail ring -->
-      <div class="score-ring-wrap">
-        <div class="score-ring">
+      <!-- Fail call -->
+      <div class="score-call-wrap">
+        <div class="score-call">
           <svg width="88" height="88" viewBox="0 0 88 88">
-            <circle class="score-ring-track" cx="44" cy="44" r="36" stroke-width="7"/>
-            <circle class="score-ring-fill err" cx="44" cy="44" r="36" stroke-width="7"
+            <circle class="score-call-track" cx="44" cy="44" r="36" stroke-width="7"/>
+            <circle class="score-call-fill err" cx="44" cy="44" r="36" stroke-width="7"
               stroke-dasharray="226.2" stroke-dashoffset="110.8"/>
           </svg>
-          <div class="score-ring-center">
-            <div class="score-ring-number" style="color:var(--err)">51%</div>
-            <div class="score-ring-label">Score</div>
+          <div class="score-call-center">
+            <div class="score-call-number" style="color:var(--err)">51%</div>
+            <div class="score-call-label">Score</div>
           </div>
         </div>
-        <div class="score-ring-title">Fail</div>
+        <div class="score-call-title">Fail</div>
       </div>
 
-      <!-- Brand ring (trend) -->
-      <div class="score-ring-wrap">
-        <div class="score-ring">
+      <!-- Brand call (trend) -->
+      <div class="score-call-wrap">
+        <div class="score-call">
           <svg width="88" height="88" viewBox="0 0 88 88">
-            <circle class="score-ring-track" cx="44" cy="44" r="36" stroke-width="7"/>
-            <circle class="score-ring-fill brand" cx="44" cy="44" r="36" stroke-width="7"
+            <circle class="score-call-track" cx="44" cy="44" r="36" stroke-width="7"/>
+            <circle class="score-call-fill brand" cx="44" cy="44" r="36" stroke-width="7"
               stroke-dasharray="226.2" stroke-dashoffset="45.2"/>
           </svg>
-          <div class="score-ring-center">
-            <div class="score-ring-number" style="color:var(--brand)">80%</div>
-            <div class="score-ring-label">Avg</div>
+          <div class="score-call-center">
+            <div class="score-call-number" style="color:var(--brand)">80%</div>
+            <div class="score-call-label">Avg</div>
           </div>
         </div>
-        <div class="score-ring-title">Team avg</div>
+        <div class="score-call-title">Team avg</div>
       </div>
 
     </div>
@@ -7384,22 +7384,22 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   </div>
 
   <div class="ds-code-wrap">
-    <button class="copy-btn" data-copy-code="ring-html">
+    <button class="copy-btn" data-copy-code="call-html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy HTML
     </button>
-    <pre class="ds-code" id="ring-html"><span class="cm">&lt;!-- Score ring (r=36, circumference≈226.2) --&gt;</span>
-<span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-ring"</span><span class="ct">&gt;</span>
+    <pre class="ds-code" id="call-html"><span class="cm">&lt;!-- Score call (r=36, circumference≈226.2) --&gt;</span>
+<span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-call"</span><span class="ct">&gt;</span>
   <span class="ct">&lt;svg</span> <span class="ck">width</span>=<span class="cs">"88"</span> <span class="ck">height</span>=<span class="cs">"88"</span> <span class="ck">viewBox</span>=<span class="cs">"0 0 88 88"</span><span class="ct">&gt;</span>
-    <span class="ct">&lt;circle</span> <span class="ck">class</span>=<span class="cs">"score-ring-track"</span>
+    <span class="ct">&lt;circle</span> <span class="ck">class</span>=<span class="cs">"score-call-track"</span>
       <span class="ck">cx</span>=<span class="cs">"44"</span> <span class="ck">cy</span>=<span class="cs">"44"</span> <span class="ck">r</span>=<span class="cs">"36"</span> <span class="ck">stroke-width</span>=<span class="cs">"7"</span><span class="ct">/&gt;</span>
-    <span class="ct">&lt;circle</span> <span class="ck">class</span>=<span class="cs">"score-ring-fill ok"</span>
+    <span class="ct">&lt;circle</span> <span class="ck">class</span>=<span class="cs">"score-call-fill ok"</span>
       <span class="ck">cx</span>=<span class="cs">"44"</span> <span class="ck">cy</span>=<span class="cs">"44"</span> <span class="ck">r</span>=<span class="cs">"36"</span> <span class="ck">stroke-width</span>=<span class="cs">"7"</span>
       <span class="ck">stroke-dasharray</span>=<span class="cs">"226.2"</span>
       <span class="ck">stroke-dashoffset</span>=<span class="cs">"27.1"</span><span class="ct">/&gt;</span> <span class="cm">&lt;!-- 88% --&gt;</span>
   <span class="ct">&lt;/svg&gt;</span>
-  <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-ring-center"</span><span class="ct">&gt;</span>
-    <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-ring-number"</span><span class="ct">&gt;</span>88%<span class="ct">&lt;/div&gt;</span>
-    <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-ring-label"</span><span class="ct">&gt;</span>Score<span class="ct">&lt;/div&gt;</span>
+  <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-call-center"</span><span class="ct">&gt;</span>
+    <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-call-number"</span><span class="ct">&gt;</span>88%<span class="ct">&lt;/div&gt;</span>
+    <span class="ct">&lt;div</span> <span class="ck">class</span>=<span class="cs">"score-call-label"</span><span class="ct">&gt;</span>Score<span class="ct">&lt;/div&gt;</span>
   <span class="ct">&lt;/div&gt;</span>
 <span class="ct">&lt;/div&gt;</span>
 
@@ -7417,12 +7417,12 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   </div>
 
   <table class="ds-table">
-    <thead><tr><th>Score range</th><th>Ring class</th><th>Bar class</th><th>Label</th></tr></thead>
+    <thead><tr><th>Score range</th><th>call class</th><th>Bar class</th><th>Label</th></tr></thead>
     <tbody>
-      <tr><td>≥ 80%</td><td><code>score-ring-fill ok</code></td><td><code>progress-bar-fill ok</code></td><td>Pass — green</td></tr>
-      <tr><td>60–79%</td><td><code>score-ring-fill warn</code></td><td><code>progress-bar-fill warn</code></td><td>Borderline — amber</td></tr>
-      <tr><td>&lt; 60%</td><td><code>score-ring-fill err</code></td><td><code>progress-bar-fill err</code></td><td>Fail — red</td></tr>
-      <tr><td>Team avg</td><td><code>score-ring-fill brand</code></td><td><code>progress-bar-fill brand</code></td><td>Reference line — blue</td></tr>
+      <tr><td>≥ 80%</td><td><code>score-call-fill ok</code></td><td><code>progress-bar-fill ok</code></td><td>Pass — green</td></tr>
+      <tr><td>60–79%</td><td><code>score-call-fill warn</code></td><td><code>progress-bar-fill warn</code></td><td>Borderline — amber</td></tr>
+      <tr><td>&lt; 60%</td><td><code>score-call-fill err</code></td><td><code>progress-bar-fill err</code></td><td>Fail — red</td></tr>
+      <tr><td>Team avg</td><td><code>score-call-fill brand</code></td><td><code>progress-bar-fill brand</code></td><td>Reference line — blue</td></tr>
     </tbody>
   </table>
 </div>
@@ -7907,7 +7907,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 
   <!-- Focus rings -->
   <div class="ds-h3">Focus Rings</div>
-  <p class="ds-desc" style="margin-bottom:14px">Tab through the elements below to see the focus ring. Always <code>--brand</code> blue — never the product accent, so focus is consistent across every Aimy product.</p>
+  <p class="ds-desc" style="margin-bottom:14px">Tab through the elements below to see the focus call. Always <code>--brand</code> blue — never the product accent, so focus is consistent across every Aimy product.</p>
   <div class="ds-preview">
     <div class="demo-row" style="gap:12px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-brand">Primary CTA</button>
@@ -7916,7 +7916,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
       <div class="v2-dropdown"><button class="v2-dropdown-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Select option"><span class="dd-label-text">Select option</span><svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button><div class="v2-dropdown-panel" role="listbox"><div class="v2-dropdown-option selected" role="option" aria-selected="true" data-value="Select option">Select option</div></div></div>
       <a href="#accessibility" class="ds-nav-link" style="position:static;max-width:fit-content">Nav link</a>
     </div>
-    <div style="margin-top:12px;font-size:11px;color:var(--d500)">Tab through elements above — focus ring: <code style="font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px">2px solid var(--brand), offset 2px</code></div>
+    <div style="margin-top:12px;font-size:11px;color:var(--d500)">Tab through elements above — focus call: <code style="font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px">2px solid var(--brand), offset 2px</code></div>
   </div>
 
   <div class="ds-code-wrap">
@@ -8011,7 +8011,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
       <tr><td>Nav sidebar</td><td><code>role="navigation"</code>, <code>aria-label="Main navigation"</code></td><td>Active link: add <code>aria-current="page"</code></td></tr>
       <tr><td>Modal</td><td><code>role="dialog"</code>, <code>aria-modal="true"</code>, <code>aria-labelledby="modal-title-id"</code></td><td>Move focus to first focusable element on open. Return focus to trigger on close. Trap focus inside.</td></tr>
       <tr><td>Toggle switch</td><td>Use native <code>&lt;input type="checkbox"&gt;</code></td><td>Label via visible <code>&lt;label&gt;</code> or <code>aria-label</code>. Never use a <code>&lt;div&gt;</code> alone.</td></tr>
-      <tr><td>Score ring</td><td><code>role="img"</code> on outer div, <code>aria-label="Score: 88%, Pass"</code></td><td>SVG is decorative — mark <code>aria-hidden="true"</code> on both circles.</td></tr>
+      <tr><td>Score call</td><td><code>role="img"</code> on outer div, <code>aria-label="Score: 88%, Pass"</code></td><td>SVG is decorative — mark <code>aria-hidden="true"</code> on both circles.</td></tr>
       <tr><td>Progress bar</td><td><code>role="progressbar"</code>, <code>aria-valuenow</code>, <code>aria-valuemin="0"</code>, <code>aria-valuemax="100"</code></td><td>Include <code>aria-label</code> with category name.</td></tr>
       <tr><td>Icon-only button</td><td><code>aria-label="descriptive action"</code></td><td>Never rely on a tooltip alone to convey the action.</td></tr>
       <tr><td>Live signal badge</td><td><code>role="status"</code>, <code>aria-live="polite"</code></td><td>Only use <code>aria-live="assertive"</code> for critical alerts (P1 disputes).</td></tr>
@@ -8024,7 +8024,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   <div class="ds-h3">Reduced Motion</div>
   <div class="ds-callout info">
     <div class="ds-callout-icon">ℹ</div>
-    <div>All animations and transitions must respect <code>prefers-reduced-motion</code>. The skeleton shimmer, signal dot blink, score ring fill, and card hover lifts are all animated — include the override below in your global stylesheet.</div>
+    <div>All animations and transitions must respect <code>prefers-reduced-motion</code>. The skeleton shimmer, signal dot blink, score call fill, and card hover lifts are all animated — include the override below in your global stylesheet.</div>
   </div>
   <div class="ds-code-wrap">
     <button class="copy-btn" data-copy-code="reduced-motion-css">
@@ -8042,7 +8042,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 
   <div class="ds-callout info" style="margin-top:0">
     <div class="ds-callout-icon">ℹ</div>
-    <div><strong>Re-theming the accent:</strong> When a product overrides <code>--accent</code>, re-check focus-ring contrast against <code>--body-bg</code> and <code>--card-bg</code> in <em>both</em> light and dark. The default purple (#8b4ff4) passes AA — any replacement must too.</div>
+    <div><strong>Re-theming the accent:</strong> When a product overrides <code>--accent</code>, re-check focus-call contrast against <code>--body-bg</code> and <code>--card-bg</code> in <em>both</em> light and dark. The default purple (#8b4ff4) passes AA — any replacement must too.</div>
   </div>
 </div>
 
@@ -8482,11 +8482,11 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
     </div>
   </div>
 
-  <div class="ds-h3">Confirmation rung</div>
-  <p class="ds-desc" style="margin-bottom:14px">Set-scope operations are multi-entity by definition, so they start at <a class="link" href="#confirmation-ladder">rung 2</a> and climb with consequence. The primary button names the operation and its count — never "Apply" or "Confirm".</p>
+  <div class="ds-h3">Confirmation called</div>
+  <p class="ds-desc" style="margin-bottom:14px">Set-scope operations are multi-entity by definition, so they start at <a class="link" href="#confirmation-ladder">called 2</a> and climb with consequence. The primary button names the operation and its count — never "Apply" or "Confirm".</p>
 
   <table class="ds-table">
-    <thead><tr><th>Operation</th><th>Rung</th><th>Surface</th></tr></thead>
+    <thead><tr><th>Operation</th><th>called</th><th>Surface</th></tr></thead>
     <tbody>
       <tr><td>Retag, add to collection — reversible, no retrieval effect</td><td>2</td><td>Inline confirm in the bar</td></tr>
       <tr><td>Reassign ownership, request verification</td><td>2</td><td>Effect preview + inline confirm</td></tr>
@@ -8925,7 +8925,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="progress-circle"></span>
   <div class="ds-h2">Progress Circle</div>
-  <p class="ds-desc">Compact ring for task or sync completion.</p>
+  <p class="ds-desc">Compact call for task or sync completion.</p>
   <div class="ds-preview">
     <div class="demo-row" style="gap:28px;flex-wrap:wrap">
       <div class="pcircle-wrap"><svg class="pcircle" width="36" height="36" viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="94.2" stroke-dashoffset="61.2"/></svg><span class="pcircle-label">35% synced</span></div>
@@ -9173,8 +9173,8 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   <table class="ds-table">
     <thead><tr><th>Class</th><th>State</th><th>Effect</th></tr></thead>
     <tbody>
-      <tr><td><code>.ds-field</code></td><td>Default</td><td>Brand-blue focus ring</td></tr>
-      <tr><td><code>.ds-field.is-error</code></td><td>Invalid</td><td><code>--err</code> border + ring, red help text</td></tr>
+      <tr><td><code>.ds-field</code></td><td>Default</td><td>Brand-blue focus call</td></tr>
+      <tr><td><code>.ds-field.is-error</code></td><td>Invalid</td><td><code>--err</code> border + call, red help text</td></tr>
       <tr><td><code>.ds-field.is-success</code></td><td>Valid</td><td><code>--ok</code> border, green help text</td></tr>
     </tbody>
   </table>
@@ -9219,7 +9219,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="search-field"></span>
   <div class="ds-h2">Search Field</div>
-  <p class="ds-desc">Pill input with a leading icon and brand focus ring.</p>
+  <p class="ds-desc">Pill input with a leading icon and brand focus call.</p>
 
   <div class="ds-preview">
     <div class="search-field">
@@ -9518,7 +9518,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
       <tr><td>Formal dispute, appeal, or approval with a required record</td><td>Modal wizard</td><td>Ordered inputs, validation, and an artefact that outlives the thread</td></tr>
       <tr><td>Bulk edit across many rows</td><td>Structured workflow</td><td>Dense comparison and multi-select need dedicated controls</td></tr>
       <tr><td>Single reversible change</td><td>Neither — direct action</td><td>Act in place and offer Undo</td></tr>
-      <tr><td>Compliance-governed configuration</td><td>Wizard + <a class="link" href="#confirm-destructive">Type-to-Confirm</a></td><td>Top rung of the confirmation ladder</td></tr>
+      <tr><td>Compliance-governed configuration</td><td>Wizard + <a class="link" href="#confirm-destructive">Type-to-Confirm</a></td><td>Top called of the confirmation ladder</td></tr>
     </tbody>
   </table>
 
@@ -9539,7 +9539,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="confirmation-ladder"></span>
   <div class="ds-h2">Confirmation Ladder</div>
-  <p class="ds-desc">How much friction an action earns. Confirmation is proportional to consequence — over-confirming a reversible click trains people to dismiss dialogs, and under-confirming a governed change makes the dismissal habit expensive. Pick the rung from the blast radius, then use the component bound to it.</p>
+  <p class="ds-desc">How much friction an action earns. Confirmation is proportional to consequence — over-confirming a reversible click trains people to dismiss dialogs, and under-confirming a governed change makes the dismissal habit expensive. Pick the called from the blast radius, then use the component bound to it.</p>
 
   <table class="ds-table">
     <thead><tr><th>#</th><th>Consequence</th><th>Confirmation</th><th>Component</th></tr></thead>
@@ -9574,28 +9574,28 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   <div class="ds-preview">
     <div class="demo-row" style="gap:20px;align-items:flex-start">
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-        <span class="entry-mode-tag">Rung 1</span>
+        <span class="entry-mode-tag">called 1</span>
         <button class="entry-action em-direct">
           <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
           Dismiss suggestion
         </button>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-        <span class="entry-mode-tag">Rung 2</span>
+        <span class="entry-mode-tag">called 2</span>
         <button class="entry-action em-direct">
           <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
           Reassign 18 tickets
         </button>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-        <span class="entry-mode-tag">Rung 3</span>
+        <span class="entry-mode-tag">called 3</span>
         <button class="entry-action em-review">
           <svg class="em-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-2 6h4z"/><path d="M19 7l-2 6h4z"/></svg>
           Change P1 SLA
         </button>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-        <span class="entry-mode-tag">Rung 4</span>
+        <span class="entry-mode-tag">called 4</span>
         <button class="btn btn-err btn-sm" style="padding:8px 14px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
           Reset scoring weights
@@ -9605,7 +9605,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   </div>
 
   <div class="ds-callout err">
-    <strong>The ladder runs one way.</strong> An action may be confirmed more heavily than its rung requires when the domain demands it, but never less. Where a rung's component does not yet exist for a given surface, the action does not ship — it is escalated as a gap.
+    <strong>The ladder runs one way.</strong> An action may be confirmed more heavily than its called requires when the domain demands it, but never less. Where a called's component does not yet exist for a given surface, the action does not ship — it is escalated as a gap.
   </div>
 </div>
 
@@ -9651,7 +9651,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="otp"></span>
   <div class="ds-h2">OTP Input</div>
-  <p class="ds-desc">One-time-code boxes; the active box carries the brand ring.</p>
+  <p class="ds-desc">One-time-code boxes; the active box carries the brand call.</p>
   <div class="ds-preview">
     <div class="otp">
       <input maxlength="1" value="4"><input maxlength="1" value="8"><input maxlength="1" value="2"><input maxlength="1" class="is-focus" value=""><input maxlength="1" value=""><input maxlength="1" value="">
@@ -10115,7 +10115,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="cite-preview"></span>
   <div class="ds-h2">Citation Preview</div>
-  <p class="ds-desc">The middle rung of citation depth. Verification is layered so a reader skimming and a reader auditing can use the same answer without either being taxed: <strong>1</strong> inline marker → <strong>2</strong> source list → <strong>3</strong> <em>this</em> — the cited passage in context, without navigating away → <strong>4</strong> full source view. Rung 3 carries the most verification traffic, because it answers "does the source actually say that" at the cost of a hover.</p>
+  <p class="ds-desc">The middle called of citation depth. Verification is layered so a reader skimming and a reader auditing can use the same answer without either being taxed: <strong>1</strong> inline marker → <strong>2</strong> source list → <strong>3</strong> <em>this</em> — the cited passage in context, without navigating away → <strong>4</strong> full source view. called 3 carries the most verification traffic, because it answers "does the source actually say that" at the cost of a hover.</p>
 
   <div class="ds-preview">
     <div style="font-size:13px;color:var(--d200);line-height:1.9;max-width:470px;padding-top:120px">
@@ -10169,7 +10169,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
   </div>
 
   <div class="ds-callout info">
-    A preview reachable only by mouse is not a verification affordance. The marker is focusable and the panel opens on <code>:focus-within</code>, so keyboard and screen-reader users get the same rung — which is why <code>aria-describedby</code> is required, not optional.
+    A preview reachable only by mouse is not a verification affordance. The marker is focusable and the panel opens on <code>:focus-within</code>, so keyboard and screen-reader users get the same called — which is why <code>aria-describedby</code> is required, not optional.
   </div>
 </div>
 
@@ -10639,11 +10639,11 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
 <div class="ds-section">
   <span class="ds-section-anchor" id="canvas-float"></span>
   <div class="ds-h2">Float Input Bar</div>
-  <p class="ds-desc">The primary AiMY interaction point. Lives absolutely at the bottom of <code>.app-main</code>. Pill-shaped, max 760px wide, centered. On focus it gains a <code>--accent</code> glow ring and slides up the filter tray. On send it enters a "thinking" spinner state.</p>
+  <p class="ds-desc">The primary AiMY interaction point. Lives absolutely at the bottom of <code>.app-main</code>. Pill-shaped, max 760px wide, centered. On focus it gains a <code>--accent</code> glow call and slides up the filter tray. On send it enters a "thinking" spinner state.</p>
 
   <div class="ds-callout info">
     <div class="ds-callout-icon">ℹ</div>
-    <div>The float bar is <strong>not</strong> a standard <code>.input</code> field — it uses a bare <code>&lt;input&gt;</code> with <code>.aimy-float-input</code> so the caret matches <code>--accent</code> and no default focus ring appears. Focus feedback is entirely on the outer <code>.aimy-float-bar</code> wrapper.</div>
+    <div>The float bar is <strong>not</strong> a standard <code>.input</code> field — it uses a bare <code>&lt;input&gt;</code> with <code>.aimy-float-input</code> so the caret matches <code>--accent</code> and no default focus call appears. Focus feedback is entirely on the outer <code>.aimy-float-bar</code> wrapper.</div>
   </div>
 
   <div class="ds-h3">Anatomy</div>
@@ -10889,7 +10889,7 @@ dd.<span class="ck">addEventListener</span>(<span class="cs">'dd:change'</span>,
       <tr><td>.overlay-thread</td><td>max-width 720px, flex column, gap 16px, scroll</td><td>Padded top 80px to clear badge. <code>aria-live="polite"</code> for screen readers.</td></tr>
       <tr><td>.overlay-suggestions</td><td>flex wrap, gap 7px, centered</td><td>Visible only when thread is empty. Hide with JS once first message appears.</td></tr>
       <tr><td>.overlay-sugg-chip</td><td>12px/600, pill, hover accent tint</td><td>Clicking pre-fills the input and triggers a send.</td></tr>
-      <tr><td>.overlay-input-bar</td><td>max-width 720px, pill, same bg as float bar</td><td>Gains accent glow ring on :focus-within.</td></tr>
+      <tr><td>.overlay-input-bar</td><td>max-width 720px, pill, same bg as float bar</td><td>Gains accent glow call on :focus-within.</td></tr>
     </tbody>
   </table>
 </div>

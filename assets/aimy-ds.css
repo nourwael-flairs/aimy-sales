@@ -2529,7 +2529,7 @@
     .mem-what { color: var(--d300); }
     .mem-foot { display: flex; gap: 8px; padding: 0 13px 12px; }
 
-    /* ── Governance change request card (§3.1 rung 3, §6.2) ── */
+    /* ── Governance change request card (§3.1 called 3, §6.2) ── */
     .gov-cr-card {
       max-width: 520px; border-radius: var(--r-lg); overflow: hidden;
       background: var(--card-bg); border: 1px solid rgba(247,144,9,0.3);
@@ -2777,7 +2777,7 @@
        CITATION PREVIEW & PER-CITATION FEEDBACK
        (Knowledge v2 · D2)
 
-       The intermediate verification rung. Rungs 1 (inline
+       The intermediate verification called. Rungs 1 (inline
        marker) and 4 (full source) already existed; this is
        the one that carries most verification traffic.
 
@@ -3331,7 +3331,7 @@
       /* Shimmer becomes a flat placeholder tone */
       .skeleton { animation: none !important; background: rgba(255,255,255,0.07) !important; }
       :root[data-theme="light"] .skeleton { background: rgba(16,24,40,0.08) !important; }
-      /* Spinners still need to read as "in progress" — hold a partial ring */
+      /* Spinners still need to read as "in progress" — hold a partial call */
       .think-spinner,
       .loading-spinner,
       .agent-step .mini-spin { animation: none !important; }

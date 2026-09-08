@@ -224,7 +224,7 @@ html {
    from its neighbour in at least two of {step, weight, ink}. One axis of
    difference is what a flat page looks like from the inside.
 
-   Every role resolves THROUGH a `--d*` rung rather than to a hex, so the
+   Every role resolves THROUGH a `--d*` called rather than to a hex, so the
    light-mode inversion at `aimy-ds.css:200-261` carries them for free. There
    is no light fork below, and there must not be one. */
 :root {
@@ -826,7 +826,7 @@ body {
        keyboard. The visual is identical.
      · V1's dialer is not here. A call changes one contact and the record of
        it belongs on that contact — and the contact is the only thing that
-       knows which number to ring.
+       knows which number to call.
 ═══════════════════════════════════════════════ */
 .app-topnav {
   height: var(--topbar-height);
@@ -2120,7 +2120,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-variant-numeric: tabular-nums; line-height: var(--lh-tight);
 }
 .s-sess-lab { font-size: var(--fs-xs); line-height: 16px; }
-/* The way back off a skip. It names them, because "Ring these 3" over three
+/* The way back off a skip. It names them, because "call these 3" over three
    people nobody can see is a control asking to be trusted. */
 .s-sess-skips { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 
@@ -4511,7 +4511,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-listrow-name::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 /* Focus rings the CARD, because the card is what the name now covers — and
    it is drawn on the stretched pseudo-element rather than through `:has()`,
-   which this file has twice had stop matching silently. A ring on the button
+   which this file has twice had stop matching silently. A call on the button
    itself would circle one line of text and claim a target that is 210px
    tall. */
 .s-listrow-name:focus-visible { outline: none; }
@@ -4549,11 +4549,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
   text-align: left; cursor: pointer; min-height: 24px;
 }
 .s-listrow-name:hover { color: var(--ai-text); }
-/* No ring on the button. The rule below `.s-listrow-name::after` already
-   draws the focus ring on the stretched pseudo-element, because that is what
+/* No call on the button. The rule below `.s-listrow-name::after` already
+   draws the focus call on the stretched pseudo-element, because that is what
    the target actually is — and a second `:focus-visible` rule further down
    this file was overriding it back onto one line of text, which is the whole
-   defect that comment was written to prevent. One ring, on the card. */
+   defect that comment was written to prevent. One call, on the card. */
 /* ── WHAT IT COLLECTS ──
    A subtitle, so it sits tight under the name rather than floating as its
    own paragraph: the card's gap is 4px and only the beats below it buy
@@ -4914,7 +4914,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-qrow-because { min-width: 0; }
 /* What last happened to them, beside why they are ranked — two halves of one
-   answer to "should I ring this one next", so they share a step and a line
+   answer to "should I call this one next", so they share a step and a line
    and are told apart by the row's own gap. */
 .s-qrow-last { min-width: 0; }
 /* WHETHER there is a line, not what it says — and attributed, because
@@ -5139,7 +5139,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    Knowledge's widgets file states the rule this violates outright: related
    things are separated by SURFACE STEP and space, never by a drawn line, and
    the only borders that earn their place are a card's outer edge and the
-   focus ring. It was in the research for this pass and got ignored.
+   focus call. It was in the research for this pass and got ignored.
 
    So the separation is 48px above a section and 24px under its head, against
    16px between the rows inside it — three to one, which is a boundary the
@@ -5575,7 +5575,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-call-out { font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
 /* Pushed to the far end: it qualifies the date and is the least of the four,
    so it neither competes for the left edge nor crowds the outcome. */
-/* Who was rung. First in the closed line and the only bold thing in it,
+/* Who was called. First in the closed line and the only bold thing in it,
    because on an account it is what tells two calls apart. */
 .s-call-who { font-weight: var(--fw-semibold); color: var(--d100); }
 .s-call-ago { margin-left: auto; font-size: var(--fs-2xs); color: var(--d500); }
@@ -6188,28 +6188,28 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    and the hand goes to one column. Divided rather than carded: six people
    compared on one axis is a list, and six rectangles would make each of them
    a decision of its own. */
-.s-ring { display: flex; flex-direction: column; }
+.s-call { display: flex; flex-direction: column; }
 /* The session control sits under the six it will work through, not over
    them: you read who is in the queue and then decide to work it, which is
    the order the block is already written in. */
-.s-ring-foot { display: flex; margin-top: 12px; }
-.s-ring-row {
+.s-call-foot { display: flex; margin-top: 12px; }
+.s-call-row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; gap: 4px 12px;
   padding: 8px 0; border-bottom: 1px solid var(--hairline);
 }
-.s-ring-row:last-child { border-bottom: 0; }
-.s-ring-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.s-call-row:last-child { border-bottom: 0; }
+.s-call-who { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
 /* The reason spans the name column only, under it — a why that sat beside
    the name pushed the phone off the row at the canvas's width. */
-.s-ring-why {
+.s-call-why {
   grid-column: 1; font-size: var(--fs-xs); color: var(--d400);
   line-height: var(--lh-base); min-width: 0;
 }
 /* The phone spans both rows, so it is one target beside the person rather
    than one per line. */
-.s-ring-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
-.s-ring-go svg { width: 13px; height: 13px; }
+.s-call-go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.s-call-go svg { width: 13px; height: 13px; }
 .s-ans-go { flex-shrink: 0; }
 
 /* `.s-ans-hit` and `.s-ans-bar` are gone with the campaign's status spread.
@@ -6956,12 +6956,12 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 }
 .s-assign-chip:hover { border-color: var(--d600); }
 /* KEYBOARD ONLY. `:focus-within` fires for a mouse click too — the chip's
-   hidden checkbox takes focus and the ring stays until you click somewhere
+   hidden checkbox takes focus and the call stays until you click somewhere
    else, so a chip you had just picked showed a `--brand` outline AND the
    `--accent` checked fill at once: two states drawn for one fact, and the
    one that lingers is the one that means nothing.
 
-   `:has(input:focus-visible)` leaves the ring for the people who need it —
+   `:has(input:focus-visible)` leaves the call for the people who need it —
    the input is `opacity: 0` but still in the tab order, so Tab reaches it and
    the browser sets `:focus-visible` — and leaves a mouse click showing only
    what it changed. Every other focus style in this file is already
@@ -7909,11 +7909,11 @@ body.is-figures .filter-tray { display: none; }
 
      · `.s-door` and `.s-camp-row` are clickable. Both carry
        `cursor: pointer`, a `:hover` that changes background or border, and
-       a `:focus-visible` ring — and both are `<button>` elements.
+       a `:focus-visible` call — and both are `<button>` elements.
      · `.s-metric` is a panel. Filled, bordered, and none of those three.
 
    So these follow `.s-metric`: a fill to group, no hover, no pointer, no
-   focus ring, and a `<div>` rather than a `<button>` — which means they are
+   focus call, and a `<div>` rather than a `<button>` — which means they are
    not in the tab order either. A keyboard user is already told the truth;
    the visual now says the same thing.
 
@@ -7961,7 +7961,7 @@ body.is-figures .filter-tray { display: none; }
 
    The rule was never "panels are inert". It was "the signals tell the
    truth", and here the truth is the other way round: a `<button>`, a
-   pointer, a hover and a focus ring, exactly the three marks `.s-door` and
+   pointer, a hover and a focus call, exactly the three marks `.s-door` and
    `.s-camp-row` carry. Everything else about it is the same component. */
 .s-pan-go {
   text-align: left; width: 100%; font-family: inherit; border: 0;

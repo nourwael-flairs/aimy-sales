@@ -227,7 +227,7 @@ Each doctrine responsibility maps to named entries in `design-doc.html`. **Use t
 | Previously cited as missing | Status | Resolves to |
 |---|---|---|
 | **Suggestion Review** | ✅ Implemented | `#ai-suggestion` — `.ai-suggestion` with `del`/`ins` diff and Accept / Reject / Edit |
-| **Type-to-Confirm** | ✅ Implemented | `#confirm-destructive` — modal + gated destructive button. The top rung of §3.1 is no longer blocked |
+| **Type-to-Confirm** | ✅ Implemented | `#confirm-destructive` — modal + gated destructive button. The top called of §3.1 is no longer blocked |
 | **Context Chips** | ✅ Implemented | `#context-chips` — `.ctx-chips` / `.ctx-chip`, removable |
 | **Stat Card** | ✅ Implemented | `#stat-card` — `.stat-card`, `.stat-delta.up/.down` |
 | **Response Actions** | ✅ Implemented | `#ai-actions` — copy / regenerate / thumbs |

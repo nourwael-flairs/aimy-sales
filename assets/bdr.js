@@ -84,6 +84,7 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   };
   const dayAdd = (n) => isoDay(dayOf(n));
+  const isoAdd = (iso, n) => isoDay(new Date(new Date(iso + 'T00:00:00').getTime() + n * DAY_MS));
   const TODAY_ISO = isoDay(TODAY);
   const daysBetween = (isoA, isoB) =>
     Math.round((new Date(isoB + 'T00:00:00') - new Date(isoA + 'T00:00:00')) / DAY_MS);
@@ -172,9 +173,9 @@
      and every stored checkpoint below it keeps its NAME and changes its
      POSITION — so add at the end, or renumber deliberately. */
   const LADDER = [
-    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has rung them yet' },
-    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'rung, nobody picked up' },
-    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be rung back' },
+    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
+    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
+    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
     { k: 'answered',    label: 'Answered',     tone: 'ok',      say: 'you got them on the phone' },
     { k: 'meeting-set', label: 'Meeting set',  tone: 'ok',      say: 'time in a diary' },
     { k: 'showed-up',   label: 'Showed up',    tone: 'ok',      say: 'they came to the meeting' },
@@ -187,12 +188,12 @@
     { k: 'wrong-number', label: 'Wrong number',  tone: 'warn',    say: 'the number is not theirs' },
     { k: 'do-not-call',  label: 'Do not call',   tone: 'err',     say: 'they opted out' },
   ];
-  const RUNG = Object.create(null);
-  LADDER.forEach((x, i) => (RUNG[x.k] = Object.assign({ n: i }, x)));
-  EXITS.forEach((x) => (RUNG[x.k] = Object.assign({ n: -1 }, x)));
-  const rank = (k) => (RUNG[k] ? RUNG[k].n : 0);
+  const called = Object.create(null);
+  LADDER.forEach((x, i) => (called[x.k] = Object.assign({ n: i }, x)));
+  EXITS.forEach((x) => (called[x.k] = Object.assign({ n: -1 }, x)));
+  const rank = (k) => (called[k] ? called[k].n : 0);
   const isExit = (k) => rank(k) < 0;
-  const rungLabel = (k) => (RUNG[k] ? RUNG[k].label : k);
+  const rungLabel = (k) => (called[k] ? called[k].label : k);
 
   /* ══ WHAT HAPPENED ON A CALL ═══════════════════════════════════════════
      Seven, and the keys are the V3 build's so every ported lexicon still
@@ -254,7 +255,7 @@
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
      slot where every other row says how a call went. */
-  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent' };
+  const KINDS = { checkpoint: 'Moved by hand', sent: 'Profile sent', added: 'Added by hand' };
 
   /* ══ WHAT IS IN THE CORPUS, AND WHEN IT GOES OUT ══════════════════════
      Four kinds of document sit behind a campaign. The name says which one
@@ -291,6 +292,46 @@
   ];
   const PHASE = Object.create(null);
   PHASES.forEach((x) => (PHASE[x.k] = x));
+
+  /* ══ THE STAGES ARE THOSE MEETINGS, PLUS THE TWO ENDS ═══════════════════
+     Not a second ladder — the same four meetings, named as the places a deal
+     stands between them, with Qualification for a lead that has been handed
+     over and not yet spoken to, and the resolution split into its two
+     answers because an outcome is not a stage you pass through.
+
+     THE LIVE STAGES ARE ALL NEUTRAL. Every CRM gives each stage its own
+     hue, and five colours mean nothing until they have been learnt; the tone
+     is spent on the two things that are already a good or a bad outcome
+     everywhere else in this product. */
+  const DEAL_STAGES = [
+    { k: 'qual',       label: 'Qualification', tone: 'neutral' },
+    { k: 'discovery',  label: 'Discovery',     tone: 'neutral' },
+    { k: 'proof',      label: 'Proof',         tone: 'neutral' },
+    { k: 'commercial', label: 'Commercial',    tone: 'neutral' },
+    { k: 'won',        label: 'Won',           tone: 'ok' },
+    { k: 'lost',       label: 'Lost',          tone: 'err' },
+  ];
+  const DEAL_STAGE = Object.create(null);
+  DEAL_STAGES.forEach((x, i) => { DEAL_STAGE[x.k] = x; x.n = i; });
+  const stageRank = (k) => (DEAL_STAGE[k] ? DEAL_STAGE[k].n : 0);
+
+  /* What a deal is worth, from what the campaign sells and how big they are.
+     Stated as modelled wherever it is shown: nobody has typed a number on
+     these records, and a figure with no basis is the invention this build
+     refuses everywhere else. Off the id, so it is the same on every
+     machine and never moves under a repaint. */
+  const PRICE = {
+    voice: [18000, 42000, 90000], qa: [15000, 36000, 78000],
+    know: [12000, 30000, 66000],  support: [24000, 60000, 132000],
+    test: [21000, 48000, 105000], eng: [36000, 84000, 180000],
+    data: [15000, 39000, 84000],  back: [18000, 45000, 96000],
+  };
+  const priceBand = (n) => (n < 200 ? 0 : n < 1000 ? 1 : 2);
+  /* Thousands to a whole number, millions to one decimal. A book worth two
+     and a quarter million read as €2256k, which is a figure you have to
+     count the digits of to take in. */
+  const euro = (n) => '€' + (n >= 1000000 ? (Math.round(n / 100000) / 10) + 'm'
+    : n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
   const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
     : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
@@ -380,8 +421,73 @@
     { k: 'industry',    label: 'Manufacturing' },
     { k: 'hospitality', label: 'Hotels & hospitality' },
   ];
+  const regionOfCC = (cc) => {
+    const r = REGIONS.filter((x) => x.cc.indexOf(cc) >= 0)[0];
+    return r ? r.k : null;
+  };
+  const regionLabel = (k) => {
+    const r = REGIONS.filter((x) => x.k === k)[0];
+    return r ? r.label : k;
+  };
+  /* ══ WHAT WE HAVE ALREADY DONE, IN THEIR OWN INDUSTRY ══════════════════
+     The managers were plain about this: the first thing a room wants is
+     evidence you know their business, and it has to be their business —
+     "we do a lot of logistics" is worth nothing to a hospital.
+
+     One per sector, each naming a customer, what we ran and the one number
+     that moved. Authored, not generated: a case study with an invented
+     figure in it is worse than no case study, and this is the one place in
+     the product where somebody is going to repeat the sentence out loud. */
+  const STORIES = [
+    { ind: 'software', sell: 'test', who: 'Vanteq',
+      say: 'We took over their regression suite and kept it green through four releases; the release that used to take a week now takes a day.' },
+    { ind: 'banking', sell: 'qa', who: 'Meridiaan Group',
+      say: 'Every advisory call is scored now instead of a sample of twelve a week, and the complaints that used to surface at audit surface the same day.' },
+    { ind: 'logistics', sell: 'voice', who: 'Kernhaven',
+      say: 'The out-of-hours line is answered by AiMY Voice and books the callback itself; nothing sat in a voicemail box over a weekend again.' },
+    { ind: 'health', sell: 'support', who: 'Sint-Aurelius',
+      say: 'We run their first line in Dutch and French; first response went from nine hours to under one, with the same headcount.' },
+    { ind: 'retail', sell: 'support', who: 'Halbert & Co',
+      say: 'We carried their peak — November through January — without them hiring a single seasonal agent.' },
+    { ind: 'energy', sell: 'know', who: 'Nordwerk',
+      say: 'Field engineers stopped ringing the office to ask what the procedure was; the answer is one search and it is the same answer every time.' },
+    { ind: 'public', sell: 'know', who: 'Gemeente Aalsdijk',
+      say: 'The same question was getting three different answers from three desks. One answer surface, and the escalations halved.' },
+    { ind: 'telecom', sell: 'voice', who: 'Brennan Telecom',
+      say: 'AiMY Voice qualifies and books before anybody picks up, and the team it feeds now spends its day on calls that were already worth having.' },
+    { ind: 'industry', sell: 'eng', who: 'Rijnstaal',
+      say: 'Four engineers embedded on EU hours for eighteen months; they shipped the line-monitoring rebuild they had deferred twice.' },
+    { ind: 'hospitality', sell: 'support', who: 'Norbury Hospitality',
+      say: 'We ran guest support across four properties through a season; first-response time fell by a third and the front desks stopped taking it.' },
+  ];
+  /* Their sector first, because that is the claim being made; what we sell
+     them second, because a story about the right product in the wrong
+     industry still says we have done this before. Two at most — a third is
+     a brochure, and nobody recites a brochure in a room. */
+  function storiesFor(a, sells) {
+    const want = (sells || [])[0];
+    const ind = a ? a.industry : null;
+    const hit = STORIES.filter((x) => x.ind === ind);
+    const near = STORIES.filter((x) => x.ind !== ind && want && x.sell === want);
+    return hit.concat(near).slice(0, 2);
+  }
+
   const INDUSTRY = Object.create(null);
   INDUSTRIES.forEach((i) => (INDUSTRY[i.k] = i));
+
+  /* ══ A COMPANY SOMEBODY TYPED KNOWS ONLY ITS NAME ═══════════════════════
+     Every company in the seed arrives complete — industry, city, headcount —
+     so a dozen surfaces read those straight off the record and print them.
+     A company named at a dinner has none of it, and a page that prints
+     "null staff" or "0 staff" has invented a fact rather than admitted a
+     gap. These say what is not known, and `accKnown` lets a sentence that
+     only works with the facts step aside for one that does not. */
+  const indLabel = (a) => (a && INDUSTRY[a.industry] ? INDUSTRY[a.industry].label : 'Industry not known');
+  const cityLabel = (a) => (a && a.city ? a.city : 'Location not known');
+  const headLabel = (a) => (a && a.size ? commas(a.size) + ' staff' : 'headcount not known');
+  const whereLabel = (a) => (a && a.city
+    ? a.city + (a.country ? ', ' + a.country : '') : 'Location not known');
+  const accKnown = (a) => !!(a && INDUSTRY[a.industry] && a.size);
 
   const REGIONS = [
     { k: 'nl',     label: 'Netherlands',  cc: ['NL'] },
@@ -397,18 +503,13 @@
   const REGION = Object.create(null);
   REGIONS.forEach((x) => (REGION[x.k] = x));
 
-  /* The cast. Four BDRs and two managers is enough to make ownership mean
-     something without pretending this is a directory. */
+  /* The cast: one caller and one manager, the two desks a lead passes
+     between. Every draw below stays a draw whatever the length of what it
+     draws from — the generator is a single cursor, and a call skipped here
+     moves every account, contact and touchpoint after it. */
   const REPS = [
     { id: 'engy',   name: 'Engy Saleh',    initials: 'ES', fn: 'bdr' },
-    { id: 'habeba', name: 'Sally Tarek',   initials: 'ST', fn: 'bdr' },
-    { id: 'omar',   name: 'Omar Fathy',    initials: 'OF', fn: 'bdr' },
-    { id: 'sara',   name: 'Sara Nabil',    initials: 'SN', fn: 'bdr' },
     { id: 'lina',   name: 'Lina Haddad',   initials: 'LH', fn: 'sales-manager' },
-    { id: 'ahmed',  name: 'Ahmed Mohamed', initials: 'AM', fn: 'sales-manager' },
-    { id: 'nadia',  name: 'Nadia Rahman',  initials: 'NR', fn: 'sales-manager' },
-    { id: 'karim',  name: 'Karim Fouad',   initials: 'KF', fn: 'sales-manager' },
-    { id: 'yasmin', name: 'Yasmin Adel',   initials: 'YA', fn: 'sales-manager' },
   ];
   const REP = Object.create(null);
   REPS.forEach((r) => (REP[r.id] = r));
@@ -416,6 +517,11 @@
   const MANAGERS = REPS.filter((r) => r.fn === 'sales-manager');
   const DEFAULT_ME = 'engy';
   const me = () => REP[S.as] || REP[DEFAULT_ME];
+  /* Two jobs work this product and they want opposite halves of it: a caller
+     works a queue of people nobody has spoken to, a manager works the leads
+     that queue has already produced. One predicate, read everywhere, so no
+     surface has to be told twice which desk it is being read from. */
+  const isMgr = () => me().fn === 'sales-manager';
 
   const AIMY = { id: 'aimy', name: 'AiMY', initials: 'AI' };
   const actor = (id) => REP[id] || (id === 'aimy' ? AIMY : { id: id, name: id, initials: '?' });
@@ -466,9 +572,7 @@
      the image collapses and the face that was always there shows through,
      rather than nine broken-image marks across the masthead. */
   const AV_PIC = {
-    engy: 'women/44', habeba: 'women/68', omar: 'men/32', sara: 'women/26',
-    lina: 'women/65', ahmed: 'men/75', nadia: 'women/12', karim: 'men/41',
-    yasmin: 'women/33',
+    engy: 'women/44', lina: 'women/65',
   };
   function faceOf(id, px) {
     const h = Math.abs(hash(String(id) + ':face'));
@@ -541,11 +645,11 @@
      `TAX` states about its own lists, and for the same reason: a ranking has
      to live somewhere, and a lexicon sorted by accident ranks by accident. */
   const READ_DISP = [
-    [/\b(do not call|do not ring|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
+    [/\b(do not call|do not call|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
     [/\b(wrong number|wrong extension|number is wrong|not her number|not his number|not their number|no longer in service|dead line)\b/, 'wrong-number'],
     [/\b(gatekeeper|reception|receptionist|switchboard|front desk|secretary|assistant|pa|screened|not put me through|get past|take a message|who is calling|put you through|she is in|he is in|in workshops|in meetings all)\b/, 'gatekeeper'],
     [/\b(no answer|no one answered|nobody answered|nobody picked up|did not answer|did not pick up|voicemail|voice mail|answerphone|answering machine|rang out|busy tone|engaged tone|left a message|no show|no-show|did not show)\b/, 'no-answer'],
-    [/\b(call back|called back|callback|call me back|ring back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
+    [/\b(call back|called back|callback|call me back|call back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
     [/\b(not interested|no thanks|not for us|not a fit|declined|hung up|brushed me off|no appetite)\b/, 'not-interested'],
     [/\b(spoke|talked|chatted|got through|reached her|reached him|reached them|good|good chat|good conversation|went well|positive|keen|interested|promising|receptive|open to)\b/, 'reached'],
   ];
@@ -574,7 +678,7 @@
     [/\b(demo|demonstration|walkthrough|walk through|show them|see it working)\b/, 'demo'],
     [/\b(proposal|quote|quotation|statement of work|sow|rate card)\b/, 'proposal'],
     [/\b(deck|case study|one pager|one-pager|brochure|price list|pricing page|materials|send the|send her|send him|send them|send it|send over|email over|forward it|send me|send us|email me|email us)\b/, 'info'],
-    [/\b(call back|callback|ring back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
+    [/\b(call back|callback|call back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
   ];
 
   const READ_OBJ = [
@@ -676,7 +780,7 @@
        contain the words that name one. "Do not call again" carries "call
        again"; a wrong number is a call that never reached anybody to ask
        anything of. Read literally, the first was recording that the rep had
-       proposed another call to somebody who had just told them never to ring
+       proposed another call to somebody who had just told them never to call
        back — a chip that contradicts the disposition beside it, ticked by the
        same sentence that set it. */
     if (disp === 'do-not-call' || disp === 'wrong-number') props.length = 0;
@@ -708,7 +812,7 @@
        follow-up and its day in one clause, and the read-back was putting it
        down for tomorrow. Only the clause that asks — a call back, a
        meeting, a demo — is read for a day, never a fact about her diary. */
-    const ask = when == null && raw.match(/\b(?:call(?:ing)?|ring|phone)\s+(?:her|him|them|me)?\s*back\b[^.,;—–]*|\bcallback\b[^.,;—–]*|\b(?:meeting|demo)\b[^.,;—–]*/i);
+    const ask = when == null && raw.match(/\b(?:call(?:ing)?|call|phone)\s+(?:her|him|them|me)?\s*back\b[^.,;—–]*|\bcallback\b[^.,;—–]*|\b(?:meeting|demo)\b[^.,;—–]*/i);
     const whenAsk = ask && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(ask[0])
       ? readWhen(ask[0].toLowerCase()) : null;
     let next = null;
@@ -747,7 +851,7 @@
          reading contradicting itself in the same breath.
 
        · NOTHING OPENS ON A CALL THAT REACHED NOBODY, and nothing is asked for
-         on one that ended in "never ring again". Both are the same rule the
+         on one that ended in "never call again". Both are the same rule the
          proposal guard above states: a chip that contradicts the disposition
          beside it is worse than an empty axis. */
     const said = {};
@@ -908,7 +1012,7 @@
     const touch = [];
 
     /* ── Campaigns ── 40, and 14 of them are mine. */
-    const CAMP_N = 40;
+    const CAMP_N = 10;
     const usedNames = Object.create(null);
     for (let i = 0; i < CAMP_N; i++) {
       const ind = pick(r, INDUSTRIES);
@@ -1020,19 +1124,24 @@
        because a finished campaign is not work. The rest exist so the product
        has to answer what happens when you open one you are not on. */
     const running = camp.filter((c) => c.state === 'running');
+    /* With one caller there is nobody else to add, so every draw below picks
+       her — but it still DRAWS. `others` empty would throw on `pick`, and
+       guarding by skipping the call instead would shift the cursor and
+       reshuffle the whole corpus behind it. */
     const others = BDRS.filter((b) => b.id !== DEFAULT_ME);
+    const pool = others.length ? others : BDRS;
     running.slice(0, 14).forEach((c) => c.crew.push(DEFAULT_ME));
     camp.forEach((c) => {
       const extra = between(r, 0, 2);
       for (let j = 0; j < extra; j++) {
-        const b = pick(r, others);
+        const b = pick(r, pool);
         if (c.crew.indexOf(b.id) < 0) c.crew.push(b.id);
       }
-      if (!c.crew.length) c.crew.push(pick(r, others).id);
+      if (!c.crew.length) c.crew.push(pick(r, pool).id);
     });
 
     /* ── Accounts ── */
-    const ACC_N = 2500;
+    const ACC_N = 200;
     const usedCo = Object.create(null);
     for (let i = 0; i < ACC_N; i++) {
       const ind = pick(r, INDUSTRIES);
@@ -1055,7 +1164,7 @@
     }
 
     /* ── Contacts ── people, spread over the accounts. */
-    const CON_N = 6000;
+    const CON_N = 560;
     for (let i = 0; i < CON_N; i++) {
       const a = acc[Math.floor(r() * ACC_N)];
       /* Reachability is not universal, and that is the point of enrichment:
@@ -1108,7 +1217,7 @@
       (byCell[cell] || (byCell[cell] = [])).push(p);
     });
     camp.forEach((c) => {
-      const want = between(r, 120, 400);
+      const want = between(r, 30, 70);
       const cell = byCell[c.region + '|' + c.industry] || [];
       const region = byRegion[c.region] || con;
       for (let j = 0; j < want; j++) {
@@ -1126,22 +1235,29 @@
 
     /* ── History ── where each contact stands, and the calls that got them
        there. The shares are what a real book looks like after a quarter: most
-       of it has never been rung. */
+       of it has never been called. */
     /* THESE SHARES ARE OF THE REACHABLE BOOK, NOT OF EVERYBODY. Contacts on
        no campaign, and most contacts with no number, never get here at all —
        so a 0.50 not-called share reads as 0.64 of all six thousand once those
        are counted in. Measured, and tuned against the measurement. */
+    /* ══ TWO DESKS BOTH NEED SOMETHING TO WORK ═════════════════════════
+       These shares were a real book's, where a hand-over is one lead in a
+       hundred — fine across six thousand people, and across three hundred it
+       leaves the manager with three deals and no board worth opening. The
+       book is a demo's size now, so the hand-over share is what a demo
+       needs: a hundred or so still to call on one desk, forty-odd deals on
+       the other. */
     const START = [
-      ['not-called', 0.26],
-      ['no-answer', 0.19],
-      ['callback', 0.05],
+      ['not-called', 0.33],
+      ['no-answer', 0.20],
+      ['callback', 0.06],
       ['answered', 0.10],
-      ['meeting-set', 0.045],
-      ['showed-up', 0.02],
-      ['interested', 0.015],
-      ['handed-over', 0.01],
-      ['declined', 0.045],
-      ['wrong-number', 0.015],
+      ['meeting-set', 0.06],
+      ['showed-up', 0.03],
+      ['interested', 0.02],
+      ['handed-over', 0.13],
+      ['declined', 0.04],
+      ['wrong-number', 0.02],
       ['do-not-call', 0.01],
     ];
     /* ══ NORMALISED, BECAUSE THE FIRST CUT WAS NOT AND IT HID A CHANGE ══════
@@ -1169,7 +1285,7 @@
     const NOTE = {
       reached: ['Good conversation, they want a demo.', 'Spoke to them, keen but the price came up.',
         'Talked it through. They asked me to send the case study.', 'Got through. Timing is the problem, not the fit.'],
-      callback: ['Asked me to call back next week.', 'Bad moment, ring back Thursday.', 'Call them back after the board meeting.'],
+      callback: ['Asked me to call back next week.', 'Bad moment, call back Thursday.', 'Call them back after the board meeting.'],
       gatekeeper: ['Reception would not put me through.', 'Screened. Assistant took a message.', 'Front desk again, they are in workshops all week.'],
       'no-answer': ['No answer.', 'Rang out.', 'Left a voicemail.', 'Straight to answerphone.'],
       'not-interested': ['Not interested, they have just signed with someone.', 'No appetite this year.', 'Brushed me off.'],
@@ -1179,15 +1295,15 @@
 
     con.forEach((c) => {
       c.fate = FATES[Math.abs(hash(c.id)) % FATES.length];
-      if (!c.camps.length) return;              // not on a campaign, never rung
+      if (!c.camps.length) return;              // not on a campaign, never called
       if (!c.phone && chance(r, 0.8)) return;   // no number, mostly untouched
-      const rung = rollRung();
-      if (rung === 'not-called') return;
+      const called = rollRung();
+      if (called === 'not-called') return;
 
-      c.checkpoint = rung;
-      const climbed = isExit(rung) ? between(r, 1, 4) : rank(rung);
+      c.checkpoint = called;
+      const climbed = isExit(called) ? between(r, 1, 4) : rank(called);
       /* Further up the ladder means more calls behind it. A meeting is not
-         set on the first ring, and a cold number is rung five or six times
+         set on the first call, and a cold number is called five or six times
          before anybody gives up on it. */
       const n = Math.max(1, between(r, 2 + climbed, 6 + climbed * 2));
       const camps = c.camps;
@@ -1196,8 +1312,8 @@
         const daysAgo = between(r, 1, 120) + (n - j) * 2;
         const at = dayOf(-daysAgo);
         at.setHours(between(r, 9, 17), between(r, 0, 59), 0, 0);
-        const oc = j === n - 1 && isExit(rung)
-          ? (rung === 'declined' ? 'not-interested' : rung)
+        const oc = j === n - 1 && isExit(called)
+          ? (called === 'declined' ? 'not-interested' : called)
           : pick(r, ['no-answer', 'no-answer', 'gatekeeper', 'reached', 'callback']);
         const props = [];
         const objs = [];
@@ -1247,11 +1363,11 @@
          generator, so nothing else in the corpus moves. */
       const mineT = touch.slice(-n).sort((x, y) => (x.at < y.at ? -1 : 1));
       const hc = Math.abs(hash(c.id + ':climb'));
-      const steps = isExit(rung)
-        ? LADDER.slice(1, 1 + climbed).map((x) => x.k).concat([rung])
-        : LADDER.slice(1, 1 + rank(rung)).map((x) => x.k);
+      const steps = isExit(called)
+        ? LADDER.slice(1, 1 + climbed).map((x) => x.k).concat([called])
+        : LADDER.slice(1, 1 + rank(called)).map((x) => x.k);
       const use = steps.slice(Math.max(0, steps.length - n));
-      const top = isExit(rung) ? rank(use[use.length - 2] || 'not-called') : rank(rung);
+      const top = isExit(called) ? rank(use[use.length - 2] || 'not-called') : rank(called);
       /* A history that never got past no-answer holds no connected call,
          and one that never got past no-answer holds no callback either. */
       mineT.forEach((t, i) => {
@@ -1311,28 +1427,30 @@
       });
       /* the rung each touchpoint left them on, for "stays at" */
       prevRung = 'not-called';
-      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.rung = prevRung; });
+      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.called = prevRung; });
       const calls = mineT.filter((t) => t.outcome !== 'checkpoint');
       c.attempts = calls.length;
       c.lastCallAt = calls.length ? calls[calls.length - 1].at : last;
       c.checkpointAt = mineT[n - 1].at;
-      if (rung === 'do-not-call') c.dnc = true;
+      if (called === 'do-not-call') c.dnc = true;
       /* ══ WHAT THE DIRECTOR HAS DONE WITH IT SINCE ═══════════════════════
          A handed-over lead's history ended at the hand-over. The director's
          meetings land on the record as touchpoints by the director, dated
          off the hand-over up to today; a resolution carries the decision.
          Off the hash, so the generator is untouched. */
-      if (rung === 'handed-over') {
+      if (called === 'handed-over') {
         const kk = camp.filter((x) => x.id === camps[0])[0];
         const dirId = kk && kk.owner ? kk.owner : MANAGERS[0].id;
         mineT[n - 1].note = 'Handed to ' + REP[dirId].name + '.';
         const hp = Math.abs(hash(c.id + ':phase'));
         let when = new Date(mineT[n - 1].at);
+        let decided = false;
         for (let pi = 0; pi < PHASES.length; pi++) {
           when = new Date(when.getTime() + (pi === 0 ? 3 + hp % 8 : 6 + ((hp >> (3 * pi)) % 9)) * DAY_MS);
           if (when.getTime() > TODAY.getTime()) break;
           const ph = PHASES[pi];
           const decision = ph.k === 'resolution' ? (((hp >> 12) % 3) === 0 ? 'lost' : 'won') : null;
+          if (decision) decided = true;
           touch.push({
             id: 't' + tId++, con: c.id, camp: camps[0], by: dirId, at: when.toISOString(), secs: 0,
             outcome: 'phase', phase: ph.k, decision: decision,
@@ -1340,26 +1458,45 @@
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
               : ph.label + ' held. ' + REP[dirId].name.split(' ')[0] + ' ' + ph.did + '.',
-            lines: [], next: null, moved: null, rung: 'handed-over',
+            lines: [], next: null, moved: null, called: 'handed-over',
           });
+        }
+        /* ══ AND WHAT IS IN THE DIARY NEXT ═══════════════════════════════
+           A hand-over clears the next step, so every deal on the manager's
+           desk owed nothing and there was no diary to draw. The meetings
+           behind a deal are on the record already as phases; the one in
+           front of it was the thing missing. Off the hash, so the generator
+           does not move — and never on a deal already decided, because a
+           signed deal with a demo on Thursday is the record contradicting
+           itself. */
+        if (!decided) {
+          const hd = Math.abs(hash(c.id + ':diary'));
+          if (hd % 100 < 72) {
+            const kk2 = (hd >> 7) % 4;
+            c.next = {
+              what: kk2 === 0 ? 'Dinner with them' : kk2 === 1 ? 'Demo for them'
+                : kk2 === 2 ? 'Meeting with them' : 'Proposal to them',
+              due: dayAdd(((hd >> 3) % 22) - 9),
+            };
+          }
         }
       }
 
       /* What is owed next, and when. Only the rungs that owe something. */
-      if (rung === 'callback') {
+      if (called === 'callback') {
         c.next = { what: 'Call them back', due: dayAdd(between(r, -9, 6)) };
-      } else if (rung === 'meeting-set') {
+      } else if (called === 'meeting-set') {
         c.next = { what: pick(r, ['Meeting with them', 'Demo for them']), due: dayAdd(between(r, -6, 14)) };
         /* the call that set it asked for the thing in the diary */
         const setBy = mineT[n - 1];
         if (/Demo/.test(c.next.what)) { setBy.proposals = ['demo']; setBy.note = 'Got through. They will take a demo.'; }
-      } else if (rung === 'answered' && chance(r, 0.45)) {
+      } else if (called === 'answered' && chance(r, 0.45)) {
         c.next = { what: pick(r, ['Send what was promised', 'Call them back']), due: dayAdd(between(r, -8, 9)) };
-      } else if (rung === 'showed-up') {
-        /* ONE NEXT STEP PER RUNG. Showed up owes the interest question; the
+      } else if (called === 'showed-up') {
+        /* ONE NEXT STEP PER called. Showed up owes the interest question; the
            hand-over is owed by Interested. The page said both at once. */
         c.next = { what: 'Say whether they are interested', due: dayAdd(between(r, -3, 8)) };
-      } else if (rung === 'interested') {
+      } else if (called === 'interested') {
         c.next = { what: 'Hand to the director', due: dayAdd(between(r, -3, 8)) };
       }
       if (chance(r, 0.18)) {
@@ -1418,7 +1555,7 @@
        answered "QA managers at software companies in the Netherlands with 200
        to 1,000 staff" with exactly one. A builder whose Generate button says
        1 has not been demonstrated, it has been apologised for. */
-    for (let i = 0; i < 12000; i++) {
+    for (let i = 0; i < 2000; i++) {
       const ind = pick(r, INDUSTRIES);
       const city = pick(r, CITIES);
       const known = chance(r, 0.12);
@@ -1476,7 +1613,7 @@
       });
       const mineCamps = camp.filter((k) => k.crew.indexOf(DEFAULT_ME) >= 0);
       const SPEC = [
-        { ind: 'software',   band: '200 to 1,000',  who: 'QA managers',        via: 'Apollo',        ago: 46, on: 0 },
+        { ind: 'software',   band: '200 to 1,000',  who: 'QA managers',        via: 'LinkedIn Sales Navigator', ago: 46, on: 0 },
         { ind: 'industry', band: '1,000+',     who: 'Heads of support',   via: 'ZoomInfo',      ago: 31, on: 1 },
         { ind: 'banking',    band: '200 to 1,000',  who: 'Operations leads',   via: 'Apollo',        ago: 17, on: -1 },
         { ind: 'logistics',  band: '1,000+',        who: 'Support directors',  via: 'Exa / Serper',  ago: 6,  on: -1 },
@@ -1556,13 +1693,14 @@
     byList: Object.create(null),
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
+    byMgr: Object.create(null),
     call: null,
   };
 
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [] };
+    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [] };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -1619,6 +1757,7 @@
     DB.touchesOf = Object.create(null);
     DB.membersOf = Object.create(null);
     DB.consOf = Object.create(null);
+    DB.byMgr = Object.create(null);
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
@@ -1626,6 +1765,12 @@
       DB.byCon[c.id] = c;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
       c.camps.forEach((k) => DB.membersOf[k] && DB.membersOf[k].push(c.id));
+      /* Whose desk it landed on. Only handed-over leads are on one — before
+         that the lead is the caller's and no manager has it yet. */
+      if (c.checkpoint === 'handed-over') {
+        const m = mgrOf(c);
+        (DB.byMgr[m] || (DB.byMgr[m] = [])).push(c.id);
+      }
     });
     DB.touch.forEach((t) => {
       indexTouch(t);
@@ -1651,10 +1796,17 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [] }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [] }, d);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
+          /* Campaigns you made come back FIRST, and the accounts and people
+             a saved list minted next, because a contact patch putting
+             somebody on a campaign needs both to exist to land on. This ran
+             before DELTA had been read from storage the first time, so it
+             concatenated the empty default and every campaign made in the
+             browser vanished on reload. */
+          DB.camp = DB.camp.concat(DELTA.camp || []);
           (DELTA.made || []).forEach((m) => {
             DB.acc = DB.acc.concat(m.acc);
             DB.con = DB.con.concat(m.con);
@@ -1709,13 +1861,18 @@
     return out.sort((a, b) => (a.at > b.at ? -1 : 1));
   };
   const campsOf = (c) => c.camps.map((k) => DB.byCamp[k]).filter(Boolean);
-  const mine = (c) => c.crew.indexOf(me().id) >= 0;
+  /* A BDR is on a campaign; a manager owns it. The same word, because it is
+     the same question — is this mine to work — and every surface that asks it
+     (the switcher's count, the campaign list, the guard on a campaign page,
+     the tag a queue card carries) gets the right answer without knowing who
+     is asking. */
+  const mine = (c) => (isMgr() ? c.owner === me().id : c.crew.indexOf(me().id) >= 0);
   const myCampaigns = () => DB.camp.filter((c) => mine(c) && c.state !== 'done');
   /* ══ PAST ITS END DATE IS CLOSED ═══════════════════════════════════════
      Whatever its state says — the seed's dates drift as real days pass. A
      closed campaign stays yours to read, and stops feeding your queue: the
      surface said "past its end date" over a card that said "Work it" and
-     84 people to ring. */
+     84 people to call. */
   const campOpen = (k) => k.state !== 'done' && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
@@ -1728,8 +1885,8 @@
      with the buckets that were their only readers. A derivation nothing calls
      is a claim nothing checks. */
 
-  /* Who a BDR may ring: a number, not opted out, and still on the part of
-     the ladder that is rung. ONCE A MEETING IS BOOKED THEY LEAVE THE QUEUE —
+  /* Who a BDR may call: a number, not opted out, and still on the part of
+     the ladder that is called. ONCE A MEETING IS BOOKED THEY LEAVE THE QUEUE —
      the BDR's part is done until it happens, and a caller working a list
      does not want the people they have already closed in it. A callback with
      a date in the future is parked until that date. */
@@ -1755,7 +1912,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'cal'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -1912,6 +2069,7 @@
     });
   }
   function paint() {
+    if (VOICE) micStop();
     const pre = prePaint();
     SAID_SIGNAL = null;
     dropLists();
@@ -1920,6 +2078,7 @@
     byId('filterBar').innerHTML = '';
     byId('chipBar').innerHTML = '';
     paintWho();
+    paintMicIcons();
     byId('wbStage').innerHTML = S.con ? contactPage()
       : S.acc ? accPage()
       : S.camp ? campPage()
@@ -1928,6 +2087,9 @@
          reached the lists surface through on — so saving a list landed on the
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
+      : S.on === 'notes' ? notesPage()
+      : S.on === 'cal' ? calPage()
+      : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
     mountLists();
@@ -1966,7 +2128,9 @@
   function qcard(c, i) {
     const a = accOf(c);
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
-    const r = RUNG[c.checkpoint] || RUNG['not-called'];
+    /* At the caller's desk the tag is the rung; at the manager's it is the
+       stage, because the rung stopped moving at the hand-over. */
+    const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
@@ -1977,7 +2141,8 @@
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
-        (camp ? '<span class="tc-type">' + esc(camp.name) + '</span>' : '') +
+        (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
+          '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
         esc(c.name) + '</button>' +
@@ -1986,10 +2151,20 @@
          company is context you read once — and one paragraph holding both
          forced them to the same size, weight and ink. */
       '<p class="tc-summary b-qcard-role">' + esc(c.title) + '</p>' +
-      (a ? '<p class="b-qcard-where">' + esc(a.name) + ' · ' +
-        esc(INDUSTRY[a.industry].label) + ' · ' + esc(a.city) +
-        ' · ' + commas(a.size) + ' staff</p>' : '') +
-      '<div class="b-qcard-why">' + whyLine(c) + '</div>' +
+      /* THE IDENTITY BLOCK KEEPS NO MARKS. The name and the job above this
+         are who they are, and a mark beside either competes with the name
+         for the loudest thing on the card. This line is the facts, and the
+         facts are four different kinds of thing. */
+      (a ? '<p class="b-qcard-where">' +
+        fact('company', esc(a.name)) +
+        fact('industry', esc(indLabel(a))) +
+        fact('where', esc(cityLabel(a))) +
+        fact('staff', esc(headLabel(a))) + '</p>' : '') +
+      /* An empty why is an empty row of padding, not an empty string. */
+      (function () {
+        const why = isMgr() ? dealWhy(c) : whyLine(c);
+        return why ? '<div class="b-qcard-why">' + why + '</div>' : '';
+      })() +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
          exists to stop. */
@@ -1998,12 +2173,23 @@
         : '') +
       aimyBlock(aimySays(c)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">' + (c.phone ? esc(c.phone) : 'No number') + '</span>' +
+        /* What it is worth, where the number to call sits on the caller's
+           card: the one figure a manager scans a list of deals for. */
+        /* The amount takes no mark: on the manager's cards it is the only
+           figure and it is already the boldest thing in the row. A number
+           to ring is one of several kinds of fact a foot can hold. */
+        (isMgr()
+          ? '<span class="b-qcard-num">' + esc(euro(amountOf(c))) + '</span>'
+          : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
+            (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is
            fifteen recommendations, which is none — the list is already
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
-        (afterMeeting(c)
+        (isMgr()
+          ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
+            '" type="button" data-con="' + esc(c.id) + '">Open</button>'
+          : afterMeeting(c)
           /* the decision, inline, on the card: the meeting is the fact, the
              two answers are the whole of the job on this cut */
           ? '<span class="b-qcard-decide">' +
@@ -2013,7 +2199,7 @@
           : callable(c)
             ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
               '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>'
-            /* NO CALL ON SOMEBODY YOU CANNOT RING. A do-not-call, a hand-over, a
+            /* NO CALL ON SOMEBODY YOU CANNOT call. A do-not-call, a hand-over, a
                person with no number — the card offered Call on all of them. */
             : !c.phone && !c.dnc && !isExit(c.checkpoint)
               ? '<button class="s-inline-btn" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
@@ -2092,7 +2278,7 @@
   }
 
   /* ══ FOUR TOUCHES BEFORE YOU LET GO ════════════════════════════════════
-     The notes' rule. Somebody rung or reached, under four touchpoints,
+     The notes' rule. Somebody called or reached, under four touchpoints,
      quiet for a week, nothing owed: the rule says touch them again. Returns
      the touches so far when the rule applies, otherwise nothing. */
   const TOUCH_RULE = 4;
@@ -2117,7 +2303,7 @@
     const last = hist[0];
     const a = accOf(c);
 
-    /* A WAY OUT READS AS WHAT IT IS. The hour reading and "ring the mobile"
+    /* A WAY OUT READS AS WHAT IT IS. The hour reading and "call the mobile"
        were being offered on a number that is not theirs. */
     if (c.checkpoint === 'wrong-number') {
       return { text: 'The number is not theirs. Nothing on it counts until somebody finds one that is.',
@@ -2163,7 +2349,7 @@
         from: h ? 'every call on the record' : 'the call before this one',
       };
     }
-    /* Rung and rung and nothing. That is a fact about the number. */
+    /* called and called and nothing. That is a fact about the number. */
     if (c.attempts >= 3 && c.checkpoint === 'no-answer') {
       return { text: plural(c.attempts, 'attempt') + ' and nobody has picked up. ' +
         'The number may not be the one they answer.', from: 'this record’s own history' };
@@ -2174,7 +2360,9 @@
     /* Nothing has happened yet, so the useful thing is who they are. */
     if (!hist.length && a && camp) {
       return {
-        text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) + ' staff, and this ' +
+        text: (accKnown(a)
+          ? esc(indLabel(a)) + ' at ' + esc(headLabel(a))
+          : esc(a.name) + ', and nobody has filled in who they are yet') + ', and this ' +
           'campaign sells ' + esc(SELL[camp.sells[0]].name) + ' on ' +
           esc(SELL[camp.sells[0]].blurb) + '.',
         from: 'the account and the campaign',
@@ -2251,21 +2439,23 @@
       '<div class="tc-head">' +
         '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
-        '<span class="tc-type">' + esc(SELL[k.sells[0]].name) + '</span>' +
+        '<span class="tc-type b-fact">' + chIcon('industry') +
+          '<span>' + esc(SELL[k.sells[0]].name) + '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
       '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
-          plural(members.length, 'person') + ' to ring' +
+          plural(members.length, 'person') + ' to call' +
           (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
-          (fresh ? ', <b>' + commas(fresh) + '</b> never rung' : '') + '</div>'
+          (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '') + '</div>'
         : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
-          '</b> of its ' + plural(members.length, 'person') + ' never rung when it closed</div>') +
+          '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
       aimyBlock(campSays(k, q, back, fresh, left)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">' + esc(actor(k.owner).name) + '</span>' +
+        '<span class="b-qcard-num b-fact">' + chIcon('user') +
+          '<span>' + esc(actor(k.owner).name) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
           '" type="button" data-camp="' + esc(k.id) + '">' + (campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
@@ -2296,7 +2486,7 @@
        redundant once stops reading it everywhere.
 
        So it says what the numbers cannot: what this audience pushes back on,
-       whether the window is about to close on people nobody has rung, and
+       whether the window is about to close on people nobody has called, and
        how often the calls here actually connect. */
 
     /* What this audience actually pushes back on, counted. */
@@ -2312,7 +2502,7 @@
       };
     }
     if (left > 0 && left < 21 && fresh) {
-      return { text: '<b>' + commas(fresh) + '</b> have never been rung and it closes in ' +
+      return { text: '<b>' + commas(fresh) + '</b> have never been called and it closes in ' +
         plural(left, 'day') + '.', from: 'the window and the roster' };
     }
     const got = mine2.filter((t) => t.outcome === 'reached').length;
@@ -2327,23 +2517,25 @@
   function lcard(l, i) {
     const camp = l.for && DB.byCamp[l.for];
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
-    const ring = people.filter(callable).length;
+    const call = people.filter(callable).length;
     return '<article class="type-card s-card b-qcard" data-open="list:' + esc(l.id) + '">' +
       '<div class="tc-head">' +
         /* The tag says WHICH campaign. "On a campaign" told you the state
            and made you open the card to learn the one fact that matters. */
         '<span class="tag tag-' + (camp ? 'ok' : 'warn') + '">' +
           (camp ? 'On ' + esc(camp.name) : 'Not on a campaign') + '</span>' +
-        '<span class="tc-type">' + esc(l.via) + '</span>' +
+        '<span class="tc-type b-fact">' + chIcon('web') +
+          '<span>' + esc(l.via) + '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
       '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
-        commas(ring) + '</b> of them ringable</div>' +
-      aimyBlock(listSays(l, people, ring, camp)) +
+        commas(call) + '</b> of them ringable</div>' +
+      aimyBlock(listSays(l, people, call, camp)) +
       '<div class="tc-gov b-qcard-foot">' +
-        '<span class="b-qcard-num">built ' + esc(sayWhen(l.at)) + '</span>' +
+        '<span class="b-qcard-num b-fact">' + chIcon('calendar') +
+          '<span>built ' + esc(sayWhen(l.at)) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
           '" type="button" data-list="' + esc(l.id) + '">Open</button>' +
       '</div>' +
@@ -2357,7 +2549,7 @@
     return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
   }
 
-  function listSays(l, people, ring, camp) {
+  function listSays(l, people, call, camp) {
     if (!camp) {
       /* the facts above say "7 on AiMY Knowledge"; the lead cannot then say
          nobody is in the queue */
@@ -2376,10 +2568,10 @@
     const gap = people.filter((c) => !c.phone).length;
     if (gap) {
       return { text: '<b>' + commas(gap) + '</b> of them came back without a number, so they ' +
-        'cannot be rung.', from: l.via + ' filled the rest' };
+        'cannot be called.', from: l.via + ' filled the rest' };
     }
     const done = people.filter((c) => c.checkpoint !== 'not-called').length;
-    return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been rung.',
+    return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been called.',
       from: 'their own records' };
   }
 
@@ -2400,11 +2592,14 @@
     const n = daysBetween(iso.slice(0, 10), TODAY_ISO);
     return n === 0 ? 'Today' : n === 1 ? 'Yesterday' : sayDay(iso);
   };
-  function feedBlock(items, emptyHtml) {
+  /* A campaign's feed is a glance — the last eight things, and the campaign
+     is what you came for. A page OF the feed is the thing you came for, so
+     it pages properly rather than stopping at eight with no way on. */
+  function feedBlock(items, emptyHtml, pageIt, noun) {
     if (!items.length) {
       return '<p class="b-vfoot">' + (emptyHtml || 'Nothing has happened on this campaign yet.') + '</p>';
     }
-    const pg = peek(items);
+    const pg = pageIt ? paged(items) : peek(items);
     let day = '';
     return '<div class="b-feed">' + pg.rows.map((t) => {
       const d = t.at.slice(0, 10);
@@ -2412,7 +2607,8 @@
       day = d;
       return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
     /* the feed carries hand-moves, profiles and the director's meetings */
-    }).join('') + '</div>' + peekFoot(pg, 'touchpoint');
+    }).join('') + '</div>' +
+      (pageIt ? pager(pg, noun || 'touchpoint') : peekFoot(pg, noun || 'touchpoint'));
   }
 
   const timeOf = (iso) => {
@@ -2448,22 +2644,22 @@
     const c = S.con && DB.byCon[S.con];
     if (c) {
       const n = (DB.touchesOf[c.id] || []).length;
-      const r = RUNG[c.checkpoint];
+      const r = called[c.checkpoint];
       return {
         eyebrow: 'This person', subject: c.name,
         card: {
           state: 'reading',
           /* CALLS ARE CALLS. A hand-over settled by hand and the director's
-             meetings are touchpoints, not rings; "Rung 19 times" over a
+             meetings are touchpoints, not rings; "called 19 times" over a
              ladder that said 12 attempts was the same record disagreeing
              with itself. */
           text: c.attempts
-            ? 'Rung <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
-              '</b> — ' + esc(r.say) + '.'
+            ? 'called <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
+              '</b> — ' + esc(rungSay(c)) + '.'
             : n
               ? '<b>' + plural(n, 'touchpoint') + '</b> and no call yet, standing at <b>' + esc(r.label) +
-                '</b> — ' + esc(r.say) + '.'
-              : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
+                '</b> — ' + esc(rungSay(c)) + '.'
+              : 'Nobody has called them yet. The campaign is the only thing that knows anything about them.',
           evidence: [{ val: c.attempts, cap: c.attempts === 1 ? 'call' : 'calls' },
             { val: n !== c.attempts ? n : 0, cap: n === 1 ? 'touchpoint' : 'touchpoints' }].filter((e) => e.val),
           act: c.next ? esc(c.next.what) + ' ' + esc(sayWhen(c.next.due)) : null,
@@ -2479,7 +2675,7 @@
           state: 'completed',
           text: 'It closed <b>' + esc(sayWhen(k.to)) + '</b>. Nothing on it is dialled now.',
           evidence: [{ val: commas(members.length), cap: 'on it' },
-            { val: commas(members.filter((c) => c.checkpoint === 'not-called').length), cap: 'never rung' }],
+            { val: commas(members.filter((c) => c.checkpoint === 'not-called').length), cap: 'never called' }],
           act: null, q: null,
         },
       };
@@ -2492,8 +2688,8 @@
         card: {
           state: cback ? 'staged' : 'detected',
           text: cback
-            ? '<b>' + plural(cback, 'person') + '</b> on this campaign asked to be rung back.'
-            : '<b>' + commas(cq.length) + '</b> people here are waiting to be rung.',
+            ? '<b>' + plural(cback, 'person') + '</b> on this campaign asked to be called back.'
+            : '<b>' + commas(cq.length) + '</b> people here are waiting to be called.',
           evidence: [{ val: commas(cq.length), cap: 'to call' },
             { val: commas(membersOf(k.id).length), cap: 'on it' }],
           act: cback ? 'Show the ' + cback : null,
@@ -2507,7 +2703,7 @@
     const a = S.acc && DB.byAcc[S.acc];
     if (a) {
       const people = consAt(a.id);
-      const ring = people.filter(callable);
+      const call = people.filter(callable);
       const sig = signalOf(a);
       return {
         eyebrow: 'This company', subject: a.name,
@@ -2516,8 +2712,8 @@
           text: sig
             ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '.'
             : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
-              (ring.length ? '<b>' + commas(ring.length) + '</b> you can ring now.' : 'nobody you can ring now.'),
-          evidence: [{ val: people.length, cap: 'here' }, { val: ring.length, cap: 'to call' }].filter((e) => e.val),
+              (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.'),
+          evidence: [{ val: people.length, cap: 'here' }, { val: call.length, cap: 'to call' }].filter((e) => e.val),
           act: null, q: null,
         },
       };
@@ -2545,16 +2741,33 @@
       };
     }
     const q = queue();
-    const back = q.filter((x) => x.checkpoint === 'callback').length;
     const camps = myCampaigns();
+    if (isMgr()) {
+      const live = q.filter(dealLive);
+      const now = live.filter((c) => dealRank(c) <= 2);
+      const worth = live.reduce((n, c) => n + amountOf(c), 0);
+      return {
+        eyebrow: 'Your book', subject: null,
+        card: {
+          state: now.length ? 'staged' : 'detected',
+          text: now.length
+            ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
+              ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
+            : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
+          evidence: [{ val: euro(worth), cap: 'open' }, { val: camps.length, cap: 'campaigns' }],
+          act: null, q: null,
+        },
+      };
+    }
+    const back = q.filter((x) => x.checkpoint === 'callback').length;
     return {
       eyebrow: 'Your book', subject: null,
       card: {
         state: back ? 'staged' : 'detected',
         text: back
-          ? '<b>' + plural(back, 'person') + '</b> asked to be rung back, across your ' +
+          ? '<b>' + plural(back, 'person') + '</b> asked to be called back, across your ' +
             plural(camps.length, 'campaign') + '.'
-          : '<b>' + commas(q.length) + '</b> people are waiting to be rung across your ' +
+          : '<b>' + commas(q.length) + '</b> people are waiting to be called across your ' +
             plural(camps.length, 'campaign') + '.',
         evidence: [{ val: commas(q.length), cap: 'to call' }, { val: camps.length, cap: 'campaigns' }],
         act: back ? 'Show the ' + back : null,
@@ -2573,7 +2786,7 @@
      The one you are on is the heading, at heading weight. The other two sit
      beside it, quiet, and press to become the heading. */
   /* ══ FINDING ONE THING IN NINE HUNDRED ═════════════════════════════════
-     The cuts narrow by rung and the pager walks fifteen at a time, and
+     The cuts narrow by called and the pager walks fifteen at a time, and
      neither answers "where is Sofie". Nine hundred and seventy-six people
      across sixty-six pages is a list you have already failed to search.
 
@@ -2677,7 +2890,7 @@
       '<div class="b-menu" id="coMenu" role="menu" hidden>' +
         '<span class="b-menu-cap">Also at ' + esc(a.name) + '</span>' +
         shown.map((x) => {
-          const rg = RUNG[x.checkpoint] || RUNG['not-called'];
+          const rg = called[x.checkpoint] || called['not-called'];
           return '<button class="b-menu-item" type="button" role="menuitem" data-con="' + esc(x.id) + '">' +
             '<span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') + '"></span>' +
             '<span class="b-menu-line"><span class="b-menu-name">' + esc(x.name) + '</span>' +
@@ -2692,6 +2905,13 @@
   }
 
   function mgrMenu(conId, label) {
+    /* WHICH MANAGER IS ONLY A QUESTION IF THERE ARE SEVERAL. With one desk
+       on the other side the menu would open on a single row, which is a
+       question with one answer — so the verb does the thing instead. */
+    if (MANAGERS.length === 1) {
+      return '<button class="b-ghost" type="button" ' +
+        'data-handto="' + esc(conId + ':' + MANAGERS[0].id) + '">' + esc(label) + '</button>';
+    }
     return '<span class="b-menu-wrap">' +
       /* THE SHAPE OF THE WAY OUT, WITHOUT ITS TONE. Handing somebody over
          is the other thing on this row that ends a caller's part in a lead,
@@ -2774,7 +2994,7 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
       note: 'Handed to ' + m.name + '.',
-      lines: [], next: null, moved: [c.checkpoint, 'handed-over'], rung: 'handed-over',
+      lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
     patchCon(c, { checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id });
     addTouch(t);
@@ -2812,6 +3032,11 @@
     if (k) return backBtn('data-back', 'Back to ' + cap(k.name));
     const l = S.list && DB.byList[S.list];
     if (l) return backBtn('data-back', 'Back to ' + cap(l.name));
+    /* A deal opened from the board goes back to the board: `on` rides
+       through the navigation, so the only thing missing was the word. */
+    if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
+    if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
+    if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
   }
 
@@ -2822,13 +3047,22 @@
         '<path d="M15 18l-6-6 6-6"/></svg>' + esc(label) + '</button>';
 
   function switcher(here) {
+    /* Every tab but one counts a set. Today is not a set — it is a moment —
+       so it carries no figure rather than borrowing one that means something
+       else two tabs along. */
     const one = (k, label, n, over) =>
       '<button class="b-switch-btn' + (here === k ? ' is-on' : '') + '" type="button" ' +
       'data-go="' + esc(JSON.stringify(over)) + '"' +
       (here === k ? ' aria-current="page"' : '') + '>' + esc(label) +
-      '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span></button>';
+      (n === null ? '' :
+        '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
-      one('calls', 'Calls', queue().length, cleared()) +
+      (isMgr()
+        ? one('today', 'Today', null, cleared()) +
+          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          one('cal', 'Diary', meetings(TODAY_ISO, dayAdd(30)).length,
+            Object.assign(cleared(), { on: 'cal' }))
+        : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
@@ -2861,11 +3095,39 @@
       '</div>';
   }
 
+  /* ══ THE PILL IS THE DOOR TO THE OTHER DESK ════════════════════════════
+     The panel was drawn in the markup and wired to nothing: the button
+     claimed aria-expanded="false" for ever, the list was never filled, and
+     the role under the name was the string 'BDR' whoever you were. It is
+     on the menus' own machinery now — one open at a time, Escape and an
+     outside click come free — and the job is read off the person. */
+  function paintMicIcons() {
+    ['floatMic', 'overlayMic'].forEach((id) => {
+      const el = byId(id);
+      if (el && !el.firstChild) el.innerHTML = chIcon('mic');
+    });
+  }
+
   function paintWho() {
     const p = me();
     byId('userAvatar').innerHTML = faceOf(p.id, 28);
     byId('userName').textContent = p.name;
-    byId('userRole').textContent = 'BDR';
+    byId('userRole').textContent = JOB[p.fn];
+    byId('asPanel').innerHTML = '<span class="b-menu-cap">Looking as</span>' +
+      /* A TICK IS FOR THINGS YOU CHOOSE SEVERAL OF. This is one desk at a
+         time — you are either at it or you are not — so the row you are on
+         is lit the way the switcher's current tab is lit, and nothing on it
+         suggests you could be two people at once. */
+      REPS.map((r) =>
+        '<button class="b-menu-item' + (r.id === p.id ? ' is-on' : '') + '" type="button" ' +
+        'role="menuitemradio" aria-checked="' + (r.id === p.id) + '" ' +
+        'data-as="' + esc(r.id) + '">' +
+          faceOf(r.id, 24) +
+          '<span class="b-menu-line">' +
+            '<span class="b-menu-name">' + esc(r.name) + '</span>' +
+            '<span class="b-menu-sub">' + esc(JOB[r.fn]) + '</span>' +
+          '</span>' +
+        '</button>').join('');
   }
 
   /* ══ HOME — the two things a BDR opens this to see ══════════════════════
@@ -2873,17 +3135,408 @@
      the shell's own "Since your last visit" block; the ways to start are its
      own strip. Nothing else is on this page, because everything else was a
      different role's question. */
+  /* ══ THE MANAGER'S TODAY IS NOT A QUEUE ════════════════════════════════
+     A caller's home is the whole list because dialling down it IS the job.
+     A manager's is not: he takes the warm calls that matter, walks into
+     meetings, runs campaigns and builds lists, and a hundred-row queue with
+     six cuts and a pager is the caller's morning wearing his name.
+
+     So Today answers one question — what wants me today — with the handful
+     that do, and the board one tab along holds the rest. */
+  /* Today's diary, at the top of today. Three at most and a door — a month
+     grid inside a briefing is the block that ate two thirds of the page. */
+  function dayBlock() {
+    const on = meetingsOn(TODAY_ISO);
+    const un = unrecorded().length;
+    if (!on.length) {
+      return '<section class="s-block s-block-wide" aria-label="Your day">' +
+        '<h2 class="s-block-h">Your day</h2>' +
+        '<p class="s-block-sub">Nothing in the diary today.' +
+          (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
+            ' still unrecorded.' : '') + ' ' +
+          '<button class="s-inline-btn" type="button" data-go="' +
+            esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">Open the diary</button>' +
+        '</p>' +
+      '</section>';
+    }
+    return '<section class="s-block s-block-wide" aria-label="Your day">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">Your day</h2>' +
+        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the diary</span>' +
+      '</div>' +
+      '<div class="b-cal-agenda b-day">' +
+        on.slice(0, 3).map((m, i) => {
+          const k = MEET_KIND[m.kind];
+          return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+            'style="--i:' + Math.min(i, 8) + '">' +
+            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+            '<span class="b-cal-ename">' + esc(m.con.name) +
+              '<span class="b-cal-ewhat">' + esc(m.title) +
+                (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+            '</span>' +
+            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>' +
+      (on.length > 3
+        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">The other ' +
+          commas(on.length - 3) + ' in the diary</button></div>'
+        : '') +
+    '</section>';
+  }
+
+  /* ══ WHAT YOU SAID, BY THE DAY YOU SAID IT ═════════════════════════════
+     The notebook these managers still carry is not a filing system — it is
+     a running page of what happened, and its whole advantage is that you
+     can look back at what you wrote rather than at what somebody's software
+     decided you meant. So the sentences are kept as sentences and grouped
+     by day, with what AiMY did with each one standing over it: your words
+     underneath, the step they moved the deal to on top.
+
+     Nothing new renders them. A campaign's own feed is already this — a run
+     of touchpoints under day headings — and a second one would be the same
+     block with a different name. */
+  function notesOf() {
+    const meId = me().id;
+    return DB.touch.filter((t) => t.by === meId && t.note)
+      .sort((a, b) => (a.at < b.at ? 1 : -1));
+  }
+
+  function notesPage() {
+    const all = notesOf();
+    return '<div class="s-home">' +
+      '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
+      '<section class="s-block s-block-wide" aria-label="Your notes">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">Your notes</h2>' +
+          '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
+        '</div>' +
+        feedBlock(all, 'You have not written anything down yet. Say what happened ' +
+          'in the bar — or hold the mic — and it lands here.', true, 'note') +
+      '</section>' +
+    '</div>';
+  }
+
+  /* The last three days on Today, and the door. */
+  function notesBlock() {
+    const since = dayAdd(-3);
+    const recent = notesOf().filter((t) => t.at.slice(0, 10) >= since);
+    if (!recent.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="What you said">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What you said</h2>' +
+        '<span class="s-block-say">the last three days</span>' +
+      '</div>' +
+      feedBlock(recent.slice(0, 5), '') +
+      '<div class="b-acts b-acts-end">' +
+        '<button class="s-inline-btn" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) + '">All of them</button>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function mgrHome() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    /* Late, never warm-called, or owed something today. `dealRank` already
+       ranks exactly this, so the block and the board cannot disagree. */
+    const now = live.filter((c) => dealRank(c) <= 2);
+    const rows = now.slice(0, 6);
+    const more = now.length - rows.length;
+    return '<div class="s-home">' +
+      topBrief('today') +
+      dayBlock() +
+      '<section class="s-block s-block-wide" aria-label="What wants you today">' +
+        '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
+        (rows.length
+          ? '<p class="b-tocall"><b>' + commas(now.length) + '</b> of your ' +
+              commas(live.length) + ' deals want something today</p>' +
+            qgrid(rows) +
+            '<div class="b-acts b-acts-end">' +
+              '<button class="s-inline-btn" type="button" data-start="deals">' +
+                (more > 0
+                  ? 'The other ' + commas(more) + ', and the rest of the board'
+                  : 'Open the board') + '</button>' +
+            '</div>'
+          : '<p class="s-block-sub">Nothing is late and nothing is waiting on a first ' +
+            'call. The board has the ' + plural(live.length, 'deal') + ' you are running.</p>') +
+      '</section>' +
+      notesBlock() +
+    '</div>';
+  }
+
   function homePage() {
+    if (isMgr()) return mgrHome();
     const q = queue();
     const all = queue(null, 'all');
     const camps = myCampaigns();
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(null, 'after').length;
 
     return '<div class="s-home">' +
       topBrief('calls') +
       queueBlock(all, counts) +
+    '</div>';
+  }
+
+  /* ══ WHAT THE BOARD ADDS UP TO, BEFORE THE BOARD ═══════════════════════
+     A board is chronological by nature — six columns you read left to right
+     — and a chronology with no takeaway above it makes the reader do the
+     arithmetic. The figure is what is still open; the sentence is the thing
+     about it worth knowing today. */
+  function dealsTake() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const comm = live.filter((c) => stageOf(c) === 'commercial');
+    const cold = live.filter((c) => stageOf(c) === 'qual');
+    const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
+    const bits = [];
+    if (comm.length) {
+      /* No comma inside a clause: the join turns the last comma into 'and',
+         and a clause carrying its own comma steals it. */
+      bits.push('<b>' + esc(euro(sum(comm))) + '</b> of it sits in ' +
+        plural(comm.length, 'commercial deal') + ' with the price already on the table');
+    }
+    if (late.length) {
+      bits.push('<b>' + commas(late.length) + '</b> ' + (late.length === 1 ? 'is' : 'are') +
+        ' past the date they should have landed');
+    }
+    if (cold.length) {
+      bits.push('<b>' + commas(cold.length) + '</b> ' + (cold.length === 1 ? 'has' : 'have') +
+        ' been handed to you and never warm-called');
+    }
+    const door = (label, q) => '<button class="s-insight-lnk" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), { q: q }))) + '">' + esc(label) + '</button>';
+    return '<section class="s-insight is-lead s-block-wide" aria-label="Where the book stands">' +
+      '<div class="s-lead-mark">' +
+        '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
+          '<use href="#aimy-logo-small"/></svg>' +
+        '<span class="work-state ws-detected" data-work-state="detected">Read off the record</span>' +
+      '</div>' +
+      '<div class="s-lead-line">' +
+        '<span class="s-lead-n">' + esc(euro(sum(live))) + '</span>' +
+        '<span class="s-lead-say">still open, across <span class="s-lead-of">' +
+          commas(live.length) + '</span> deals you are running.</span>' +
+      '</div>' +
+      '<p class="s-lead-deck">' +
+        (bits.length ? bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.'
+          : 'Nothing is late and nothing is waiting on a first call.') + '</p>' +
+      '<div class="s-lead-acts">' +
+        (cold.length ? door('Show the ' + commas(cold.length) + ' never called', 'qual') : '') +
+        (comm.length ? door('Show the ' + commas(comm.length) + ' in commercial', 'commercial') : '') +
+      '</div>' +
+    '</section>';
+  }
+
+  /* ══ SIX COLUMNS, THREE FACTS A CARD ═══════════════════════════════════
+     What a manager scans a board for is where the money is and what is
+     stuck, so a card carries the name, one line of why it is where it is,
+     and what it is worth — and nothing else. Eight labelled fields a card
+     is a spreadsheet somebody drew borders on.
+
+     The columns scroll inside their own container and each list scrolls
+     inside itself, so the page never moves sideways and the headings — the
+     count and the sum, which is what the column is for — stay put. */
+  function dealCard(c, i) {
+    const a = accOf(c);
+    return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-dc-name">' + esc(c.name) + '</span>' +
+      '<span class="b-dc-co b-fact">' + chIcon('company') +
+        '<span>' + esc(a ? a.name : 'No company named') + '</span></span>' +
+      '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
+      /* No mark. Every card on the board carries an amount, in the same
+         place, bold and in tabular figures — a mark on all of them tells
+         one from another not at all, which is the whole job of a mark. */
+      '<span class="b-dc-amt">' + esc(euro(amountOf(c))) + '</span>' +
+    '</button>';
+  }
+
+  function dealsPage() {
+    const all = queue(null, 'all').filter((c) => matches(conHay(c)));
+    const by = Object.create(null);
+    DEAL_STAGES.forEach((st) => (by[st.k] = []));
+    all.forEach((c) => by[stageOf(c)].push(c));
+    /* No briefing strip here. Today is a surface of its own one tab along,
+       and repeating its heading and its four verbs above a board is the
+       page telling you twice where you are. The takeaway is the head. */
+    return '<div class="s-home">' +
+      dealsTake() +
+      '<section class="s-block s-block-wide" aria-label="The board">' +
+        '<div class="s-camp-list-head">' + switcher('deals') +
+          findBox('Find a name, a company, a campaign') + '</div>' +
+        '<div class="b-board">' +
+          DEAL_STAGES.map((st) => {
+            const rows = by[st.k];
+            const sum = rows.reduce((n, c) => n + amountOf(c), 0);
+            const end = st.k === 'won' || st.k === 'lost';
+            return '<div class="' + (end ? 'b-col is-end' : 'b-col') + '">' +
+              '<div class="b-col-head">' +
+                '<span class="b-col-cap">' + esc(st.label) +
+                  '<span class="b-col-n">' + commas(rows.length) + '</span></span>' +
+                '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' +
+              '</div>' +
+              (rows.length
+                ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
+                : '<p class="b-col-none">Nothing here</p>') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ══ A MONTH OF DOTS, AND ONE DAY IN FULL ══════════════════════════════
+     A manager is in meetings seven tenths of the week and travelling for
+     the rest, so the question the diary answers is "what is coming" long
+     before it is "what is at three o'clock". A month answers that in one
+     look — where the week is heavy, which days are empty — and the day you
+     press answers the second question underneath it.
+
+     An hour grid would answer the second question seven times over and the
+     first one not at all.
+
+     One URL key holds the day the agenda is showing, and the month is read
+     off it: two keys would let the grid and the agenda point at different
+     months, which is a state nobody asked for and somebody has to reconcile. */
+  const WD_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'August', 'September', 'October', 'November', 'December'];
+  /* Written out rather than composed, so the audit can pair every one of
+     these to the rule that colours it. */
+  const DOT_CLASS = { meeting: 'b-cal-dot k-meeting', demo: 'b-cal-dot k-demo',
+    dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', owed: 'b-cal-dot k-owed' };
+  const calDay = () => (S.cal && /^\d{4}-\d{2}-\d{2}$/.test(S.cal) ? S.cal : TODAY_ISO);
+  /* The same day next month, or the last of it — 31 January plus a month is
+     not 3 March. */
+  function monthStep(iso, step) {
+    const d = new Date(iso + 'T00:00:00');
+    const want = d.getDate();
+    const t = new Date(d.getFullYear(), d.getMonth() + step, 1);
+    const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    return isoDay(new Date(t.getFullYear(), t.getMonth(), Math.min(want, last)));
+  }
+
+  function calPage() {
+    const sel = calDay();
+    const d = new Date(sel + 'T00:00:00');
+    const y = d.getFullYear(), mo = d.getMonth();
+    /* Monday first: the book is EMEA and so is everybody reading this. */
+    const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
+    const start = new Date(y, mo, 1 - lead);
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      cells.push({ iso: isoDay(dt), day: dt.getDate(), out: dt.getMonth() !== mo,
+        end: dt.getDay() === 0 || dt.getDay() === 6 });
+    }
+    const all = meetings(cells[0].iso, cells[41].iso);
+    const byDay = Object.create(null);
+    all.forEach((m) => (byDay[m.iso] || (byDay[m.iso] = [])).push(m));
+    const inMonth = all.filter((m) => {
+      const c = new Date(m.iso + 'T00:00:00');
+      return c.getMonth() === mo && c.getFullYear() === y;
+    }).length;
+    const today = meetingsOn(sel);
+
+    const grid = cells.map((c, i) => {
+      const on = byDay[c.iso] || [];
+      return '<button class="' +
+        ('b-cal-day' + (c.out ? ' is-out' : '') + (c.iso === sel ? ' is-sel' : '') +
+          (c.iso === TODAY_ISO ? ' is-today' : '') + (c.end ? ' is-end' : '')) +
+        '" type="button" data-cal="' + esc(c.iso) + '" ' +
+        'aria-label="' + esc(sayDay(c.iso) + ', ' + plural(on.length, 'thing')) + '"' +
+        (c.iso === sel ? ' aria-current="date"' : '') + ' style="--i:' + (i % 7) + '">' +
+        '<span class="b-cal-bg"></span>' +
+        '<span class="b-cal-num">' + c.day + '</span>' +
+        '<span class="b-cal-dots">' +
+          on.slice(0, 3).map((m) => '<span class="' + DOT_CLASS[m.kind] + '"></span>').join('') +
+        '</span>' +
+      '</button>';
+    }).join('');
+
+    const agenda = today.length
+      ? today.map((m, i) => {
+        const k = MEET_KIND[m.kind];
+        return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+          'style="--i:' + Math.min(i, 8) + '">' +
+          '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+          '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+          '<span class="b-cal-ename">' + esc(m.con.name) +
+            '<span class="b-cal-ewhat">' + esc(m.title) +
+              (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+          '</span>' +
+          '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+        '</button>';
+      }).join('')
+      : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
+        'somebody and it lands here.</p>';
+
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The diary">' +
+        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
+        '<div class="b-cal">' +
+          '<div class="b-cal-head">' +
+            '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
+              '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
+            '<div class="b-cal-nav">' +
+              '<button class="b-cal-btn is-word" type="button" data-cal="' + esc(TODAY_ISO) +
+                '">Today</button>' +
+              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, -1)) +
+                '" aria-label="The month before">' + chIcon('back') + '</button>' +
+              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, 1)) +
+                '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="b-cal-panel">' +
+            '<div class="b-cal-week">' +
+              WD_SHORT.map((w, i) => '<span class="' +
+                (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+            '</div>' +
+            '<div class="b-cal-grid" role="grid" aria-label="' +
+              esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
+            '<div class="b-cal-rule"></div>' +
+            '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
+              ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
+            '<div class="b-cal-agenda">' + agenda + '</div>' +
+            '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
+              '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
+              'Put something in the diary</button>' +
+          '</div>' +
+        '</div>' +
+        openLoop() +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
+     A meeting is committed, it happens, and then nothing — the record never
+     hears how it went, so the deal sits where it was and the diary keeps a
+     date that has been and gone. It is the one gap that sends a manager back
+     to pen and paper, so it is stated on the diary itself rather than only
+     in the bell, and each row hands over the words rather than a form. */
+  function openLoop() {
+    const un = unrecorded();
+    if (!un.length) return '';
+    return '<div class="b-loop">' +
+      '<h4 class="b-loop-cap">Never written down</h4>' +
+      '<p class="b-loop-say">' + plural(un.length, 'meeting') +
+        (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
+        'Say how it went in a sentence and AiMY moves the deal.</p>' +
+      un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
+        'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
+        'style="--i:' + Math.min(i, 8) + '">' +
+        '<span class="b-loop-when">' + esc(sayWhen(m.iso)) + '</span>' +
+        '<span class="b-loop-who">' + esc(m.con.name) +
+          '<span class="b-loop-what">' + esc(m.title) + ' at ' + esc(clockOf(m)) + '</span>' +
+        '</span>' +
+        '<span class="b-loop-go">Say how it went</span>' +
+      '</button>').join('') +
     '</div>';
   }
 
@@ -2900,6 +3553,10 @@
       topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
         '<div class="s-camp-list-head">' + switcher('camps') +
+          (isMgr()
+            ? '<button class="s-insight-lnk primary" type="button" data-start="newcamp">' +
+              'New campaign</button>'
+            : '') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
         /* The count is on the switcher, the order is visible in the order,
            and what each card says is said by the card. */
@@ -2924,7 +3581,7 @@
   function topBrief(here) {
     const all = queue(null, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(null, 'after').length;
     const camps = myCampaigns();
     return '<section class="slv s-block-wide" aria-label="Today">' +
@@ -2968,9 +3625,9 @@
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
-      if (!camps.length) return 'You are on no campaign, so there is nobody to ring.';
+      if (!camps.length) return 'You are on no campaign, so there is nobody to call.';
       return plural(camps.length, 'campaign') + ' are yours. <b>' + esc(busiest.name) +
-        '</b> has the most left to ring at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
+        '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
     if (here === 'lists') {
@@ -2990,23 +3647,29 @@
           '</b> on no campaign, so ' + (off.all ? 'nobody on ' + (parked === 1 ? 'it' : 'them') + ' is in your queue'
             : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
     }
+    if (isMgr()) {
+      return all.length
+        ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
+          ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
+        : 'Nothing has been handed to you yet.';
+    }
     return openerText(counts, all, camps);
   }
 
   function openerText(counts, all, camps) {
     const bits = [];
     if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
-      '</b> asked to be rung back');
+      '</b> asked to be called back');
     if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
-      '</b> have never been rung');
+      '</b> have never been called');
     if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
       '</b> did not pick up last time');
     if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
       (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
-    if (!bits.length) bits.push('there is nobody left to ring');
+    if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
     return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
-      '</b> people on them can be rung. ' +
+      '</b> people on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
   }
@@ -3047,14 +3710,33 @@
         : 'the way anybody new reaches your queue' };
 
     let opens;
-    if (here === 'camps') {
+    if (isMgr()) {
+      /* Four verbs, and every one of them is something this desk actually
+         does: the phone for a warm call, the brief before a meeting, the
+         board for where the money is, and the builder — a manager sources
+         his own leads as well as taking the ones handed up. */
+      const top = all[0];
+      opens = [
+        { k: 'callnext', label: 'Warm-call the next one',
+          why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
+        { k: 'prep', label: 'Prepare me',
+          why: top ? 'the brief on ' + esc(top.name) + ' before you dial'
+            : 'nothing to prepare for yet' },
+        /* The board is already the tab beside this one and the door under
+           the cards; a third way in is not a way in. This slot goes to the
+           thing the desk could not do at all. */
+        { k: 'lead', label: 'Add a lead',
+          why: 'somebody you met, straight onto your board' },
+        findLeads,
+      ];
+    } else if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       /* a door says "Work X", so X has to be open; the sentence above may
          still name the one that is past its date */
       const soonest = camps.filter((k) => k.to >= TODAY_ISO).sort((a, b) => (a.to < b.to ? -1 : 1))[0];
       opens = [
         busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
-          why: plural(queue(busiest.id).length, 'person') + ' left to ring on it' } : null,
+          why: plural(queue(busiest.id).length, 'person') + ' left to call on it' } : null,
         soonest && soonest.id !== (busiest && busiest.id)
           ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name, why: closesIn(soonest) }
           : null,
@@ -3078,15 +3760,15 @@
         { k: 'callnext', label: 'Call the next one',
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         { k: 'callback', label: 'Work the callbacks',
-          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
+          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be called back'
             : 'nobody asked for one' },
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
           ? { k: 'after', label: 'Say what happened',
               why: plural(counts.after, 'meeting') + ' passed without a word' }
-          : { k: 'not-called', label: 'Ring somebody new',
-              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
+          : { k: 'not-called', label: 'call somebody new',
+              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
                 : 'everyone has been tried' },
         findLeads,
       ];
@@ -3100,7 +3782,7 @@
 
   /* The queue, cut by state. The cuts are always visible and their counts sum
      to All, so the row of chips is also the shape of the day. */
-  function cuts(counts, all, ring) {
+  function cuts(counts, all, call) {
     const on = S.q || 'all';
     const chip = (k, label, n) =>
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
@@ -3108,10 +3790,10 @@
     /* The run sits at the end of the row it acts on: these cuts, this page.
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
-      BUCKETS.map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
-      ((ring && ring.length)
+      (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
+      ((call && call.length)
         ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
-          esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
+          esc(call.map((c) => c.id).join(',')) + '">Call these ' + call.length + '</button>'
         : '') + '</div>';
   }
 
@@ -3122,7 +3804,7 @@
      place, and gets no sense of having finished anything.
 
      So the queue is worked a PAGE at a time. Fifteen is a screenful — you
-     see the whole of what is in front of you without scrolling, ring through
+     see the whole of what is in front of you without scrolling, call through
      it, and press once for the next fifteen. The total is stated on every
      page, so bounding what is drawn never hides how much there is.
 
@@ -3171,7 +3853,7 @@
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
-    const ring = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
+    const call = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -3186,8 +3868,9 @@
          nothing above them. */
       '<div class="s-camp-list-head">' +
         (S.camp
-          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting' : 'To call') + '</h2>'
-          : switcher('calls')) +
+          ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting'
+            : isMgr() ? 'The deals on it' : 'To call') + '</h2>'
+          : switcher(isMgr() ? 'today' : 'calls')) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
@@ -3197,11 +3880,13 @@
          of the heading's row, which is where a section's actions live —
          so the one figure the chips add up to read as a control. */
       (S.camp
-        ? '<p class="b-tocall">' + (S.q === 'after'
-            ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
-            : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
+        ? '<p class="b-tocall">' + (isMgr()
+            ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
+            : S.q === 'after'
+              ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
+              : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
         : '') +
-      cuts(counts, all, ring) +
+      cuts(counts, all, call) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
@@ -3243,7 +3928,19 @@
      three third-party APIs and something the page could not say. `down` is a
      fixture here; in a real build it is whatever the last call to them
      returned. */
+  /* ══ WHERE THESE LEADS ACTUALLY COME FROM ══════════════════════════════
+     Every seller we spoke to named LinkedIn first and the data brokers
+     afterwards, and the builder listed the brokers and not LinkedIn at all.
+     It goes first because that is the order the work happens in.
+
+     Its numbers are the shape of the source rather than a better version of
+     the others: almost everybody is on it, so the title and the company are
+     as good as they get, and almost nobody has a direct line on it — you
+     leave with a name and an email and you still have to find the phone.
+     A broker is the opposite trade. Listing it first without saying that
+     would be a recommendation dressed as an ordering. */
   const FINDERS = [
+    { k: 'linkedin', name: 'LinkedIn Sales Navigator', phone: 0.21, email: 0.68, down: false },
     { k: 'apollo', name: 'Apollo', phone: 0.74, email: 0.86, down: false },
     { k: 'zoom', name: 'ZoomInfo', phone: 0.58, email: 0.79, down: false },
     { k: 'serper', name: 'Exa / Serper', phone: 0.41, email: 0.62, down: true },
@@ -3255,7 +3952,7 @@
      the kind survived only because a draft happened to be in memory — reload
      that URL and the builder was collecting neither companies nor people.
      A supplier preference for one run is not where a page is. */
-  let FINDER = 'apollo';
+  let FINDER = 'linkedin';
 
   const BUILD_AXES = [
     { k: 'industry', label: 'Industry', of: (n) => n.industry,
@@ -3378,30 +4075,30 @@
 
   /* ══ ONE LIST, AS A JOURNEY ═════════════════════════════════════════════
      You open a list to decide one thing: is it on a campaign yet, and if it
-     is, who on it is left to ring. The page answered with the name in the
+     is, who on it is left to call. The page answered with the name in the
      caption gutter, the criteria and the counts in one grey sentence, and
      no Call action at all — a list of forty-six people, thirty-two of them
      ringable, and nowhere to press.
 
      Now: the masthead with the one chip that matters beside the name, what
      AiMY makes of the list with a door, the action row decided by state,
-     the people never-rung first, where they all stand, and what has been
+     the people never-called first, where they all stand, and what has been
      said to them. */
   function listPage(l) {
     const camp = l.for && DB.byCamp[l.for];
-    /* NEVER-RUNG FIRST. A list exists to bring new people in; the ones
+    /* NEVER-called FIRST. A list exists to bring new people in; the ones
        nobody has tried lead, the rest follow up the ladder, exits last. */
     const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean)
       .sort((x, y) => (order(x) - order(y)) || qTie(x, y));
-    const ring = people.filter(callable);
+    const call = people.filter(callable);
     const hist = [];
     people.forEach((c) => (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) hist.push(TOUCH[id]); }));
     hist.sort((a, b) => (a.at > b.at ? -1 : 1));
     const chip = camp
       ? { label: 'On ' + camp.name, tone: 'ok' }
       : { label: 'Not on a campaign yet', tone: 'warn' };
-    const first = ring[0];
+    const first = call[0];
     const callFirst = first
       ? '<button class="s-inline-btn" type="button" data-call="' + esc(first.id) + '">Call ' +
         esc(first.name.split(' ')[0]) + '</button>'
@@ -3413,12 +4110,12 @@
       ? (first
           ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
               '">Call the next one on this list</button>' +
-            (ring.length > 1
+            (call.length > 1
               ? '<button class="s-inline-btn" type="button" data-callall="' +
-                esc(ring.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
-                Math.min(PAGE, ring.length) + '</button>'
+                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
+                Math.min(PAGE, call.length) + '</button>'
               : '')
-          : '<span class="s-block-sub">Nobody on it has a number you can ring now.</span>') +
+          : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
           'Open ' + esc(camp.name) + '</button>'
       : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
@@ -3439,8 +4136,8 @@
           /* [4] HOW MANY OF IT EACH CAMPAIGN HOLDS — V3's fact — and [2] the
              gap, with its door. */
           '<div>' +
-            '<span>' + (ring.length
-              ? '<b>' + commas(ring.length) + '</b> ringable'
+            '<span>' + (call.length
+              ? '<b>' + commas(call.length) + '</b> ringable'
               : 'nobody ringable') + '</span>' +
             (function () {
               const by = Object.create(null);
@@ -3476,12 +4173,12 @@
         '<div class="s-rec-actions">' + actions + '</div>' +
       '</section>' +
 
-      listLead(l, people, ring, camp) +
+      listLead(l, people, call, camp) +
 
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
           '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · never rung first, then by rung</span></div>' +
+          ' · never called first, then by called</span></div>' +
         rosterBlock(paged(people).rows) +
         pager(paged(people), 'person') +
       '</section>' +
@@ -3511,58 +4208,19 @@
      dead number. Fifteen rows each wearing the mark to say "software, 260
      staff" is the one-block-per-row defect V3's own note spends a paragraph
      on. The verb sits at the foot of the right column, where the eye ends. */
-  const ROSTER_QUIET = ['the account and the campaign', 'the touchpoint before this one'];
-  function rosterRow(c) {
-    const a = accOf(c);
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
-    const camp = campsOf(c).filter(mine)[0] || campsOf(c)[0];
-    const sell = camp && SELL[camp.sells[0]];
-    const slug = String(c.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const li = 'linkedin.com/in/' + slug;
-    const said = aimySays(c, true);
-    const specific = said && ROSTER_QUIET.indexOf(said.from) < 0;
-    const facts = [
-      a ? esc(a.city) : null,
-      a ? esc(INDUSTRY[a.industry].label) : null,
-      c.email ? esc(c.email) : null,
-      c.phone ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>' : null,
-    ].filter(Boolean);
-    return '<div class="s-brow">' +
-      '<span class="s-brow-nopick"></span>' +
-      '<span class="s-brow-main">' +
-        '<button class="s-brow-name" type="button" data-con="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
-        '<span class="s-brow-desc">' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + '</span>' +
-        '<span class="s-brow-facts">' + (facts.length ? facts.join(' · ')
-          : '<i>no email and no phone number</i>') + '</span>' +
-        '<span class="s-brow-links">' +
-          '<a class="s-brow-link" href="https://www.' + esc(li) + '" target="_blank" rel="noopener">' + esc(li) + '</a>' +
-          (a ? '<a class="s-brow-link" href="https://' + esc(a.domain) + '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>' : '') +
-        '</span>' +
-        (specific
-          ? '<span class="s-brow-ops b-roster-ai">' +
-              '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-              '<span>' + said.text + '</span></span>'
-          : '') +
-      '</span>' +
-      '<span class="s-brow-side">' +
-        '<span class="s-brow-fig">' + (a ? commas(a.size) + ' staff' : '—') + '</span>' +
-        '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
-        /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The rung is a state:
-           a dot in its tone and the word, quiet. The only pill on the row
-           is the one you press. */
-        '<span class="b-rstate"><span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') +
-          '"></span>' + esc(rg.label) + '</span>' +
-        (c.phone && callable(c)
-          ? '<button class="s-insight-lnk b-roster-call" type="button" data-call="' + esc(c.id) + '">Call</button>'
-          : !c.phone && !c.dnc && !isExit(c.checkpoint)
-            ? '<button class="s-inline-btn b-roster-call" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
-            : '') +
-      '</span>' +
-    '</div>';
-  }
+  /* ══ A LIST'S PEOPLE ARE PEOPLE ════════════════════════════════════════
+     This was the one surface in the build that drew a person as a table
+     row — six columns of facts, two link fields and a state pill — while
+     the queue, the campaign, the company and the search all drew the same
+     person as a card. A reader who has learnt one shape should not have to
+     learn a second for the same thing in a different room.
+
+     The table shape survives where it is still the right one: the builder's
+     preview draws rows out of the index through `netRow`, and those are not
+     records — they are candidates you are comparing before any of them
+     exists. Comparing wants columns. Working wants a card. */
   function rosterBlock(rows) {
-    if (!rows.length) return '<p class="b-vfoot">Nobody is on this list.</p>';
-    return '<div class="s-brows b-roster">' + rows.map(rosterRow).join('') + '</div>';
+    return qgrid(rows, 'Nobody is on this list.');
   }
 
   /* The criteria a saved list carries, parsed the way the builder parses
@@ -3610,12 +4268,12 @@
 
   /* [3] What AiMY makes of the list, with a door. The card's two readings
      that mean something — it is on no campaign, or people came back without
-     a number — get the block. The fallback, how many have been rung, is what
+     a number — get the block. The fallback, how many have been called, is what
      the funnel two sections down shows, and is not drawn as a panel. */
-  function listLead(l, people, ring, camp) {
-    const said = listSays(l, people, ring.length, camp);
+  function listLead(l, people, call, camp) {
+    const said = listSays(l, people, call.length, camp);
     if (!said || said.from === 'their own records') return '';
-    const first = ring[0];
+    const first = call[0];
     /* The missing-number reading gets V3's verb; the no-campaign reading
        gets the phone anyway. */
     const door = /without a number/.test(said.text)
@@ -3812,10 +4470,18 @@
               /* A percentage, because that is the unit a fill rate is quoted
                  in everywhere else a caller meets one. "7 in 10 with a
                  number" made you work out both what the ratio was and what
-                 it was a ratio OF. */
+                 it was a ratio OF.
+
+                 BOTH NUMBERS, since LinkedIn joined the list. A listing whose
+                 only figure is the phone rate says the source these sellers
+                 actually use is the worst of the four, when what is true is
+                 that it trades a number for a name — and the row underneath
+                 offering to fill the gaps only makes sense once you can see
+                 which gap each one leaves. */
               '<span class="b-src-v">' + (x.down
                 ? 'not answering since ' + esc(sayDay(dayAdd(-2)))
-                : Math.round(x.phone * 100) + '% came with a phone number') +
+                : Math.round(x.phone * 100) + '% with a number · ' +
+                  Math.round(x.email * 100) + '% with an email') +
               '</span>' +
             '</span>').join('') +
         '</div>' +
@@ -3975,7 +4641,7 @@
            not, and "in Netherlands" is the kind of seam that makes a
            sentence read as assembled rather than written. */
         say: '<b>' + esc(k.name) + '</b> has ' + esc(plural(short.left, 'person')) +
-          ' left to ring and is after ' + esc(INDUSTRY[k.industry].label.toLowerCase()) +
+          ' left to call and is after ' + esc(INDUSTRY[k.industry].label.toLowerCase()) +
           ' in ' + (reg ? (THE_REGION[reg.k] ? 'the ' : '') + esc(reg.label) : 'its region') + '.',
         act: 'Look for those' });
     }
@@ -3995,7 +4661,7 @@
           act: 'Add those sectors' });
       }
     }
-    /* Where you actually get through. A country you have rung enough times
+    /* Where you actually get through. A country you have called enough times
        for the rate to mean anything, and which beats your own average. */
     if (!has('where')) {
       const mineT = DB.touch.filter((t2) => t2.by === me().id && OUTCOME[t2.outcome]);
@@ -4032,7 +4698,7 @@
       const live = mine2.filter(callable);
       out.push({ k: 'have', take: mine2.map((c) => c.id),
         say: '<b>' + commas(mine2.length) + '</b> you already hold match this' +
-          (live.length ? ', and <b>' + commas(live.length) + '</b> can be rung' : '') + '.',
+          (live.length ? ', and <b>' + commas(live.length) + '</b> can be called' : '') + '.',
         act: 'Bring ' + (mine2.length === 1 ? 'it' : 'them') + ' in' });
     }
     /* A concentration worth narrowing to. A third or better, or it is a fact
@@ -4064,14 +4730,14 @@
       }
     }
     /* Where the callable ones are. A criterion that narrows to people you can
-       actually ring is worth more than one that narrows to more people. */
+       actually call is worth more than one that narrows to more people. */
     if (buildKind() === 'con' && found.length > 3 && anyCrit(t)) {
       const f2 = finderOf();
       const dead = found.filter((r) => r.seedPhone >= f2.phone).length;
       if (dead && dead / found.length >= 0.25) {
         out.push({ k: 'phone', terms: [['only', 'phone']],
           say: '<b>' + commas(dead) + ' of the ' + commas(found.length) +
-            '</b> will come back without a number, so they cannot be rung.',
+            '</b> will come back without a number, so they cannot be called.',
           act: 'Only ones with a number' });
       }
     }
@@ -4134,16 +4800,25 @@
      with a different supplier — so the footer holds both: the way to what
      came back, and the other suppliers. */
   let PIPE = null;
+  /* The four steps of a run, from the same set as everything else. */
   const PIPE_ICON = {
-    read: '<path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/><path d="M20.2 19.2 22 21"/>',
-    ask: '<path d="M12 20v-8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 14.2a6 6 0 0 1 0-8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 17a10 10 0 0 1 0-14M19 3a10 10 0 0 1 0 14"/>',
-    fill: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
-    known: '<path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/><path d="M4 4v19M18 20H7a3 3 0 0 0-3 3"/>',
+    read: '<circle cx="11" cy="11" r="8"/> <path d="m21 21-4.3-4.3"/>',
+    ask: '<path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9"/> <path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5"/> <circle cx="12" cy="9" r="2"/> <path d="M16.2 4.8c2 2 2.26 5.11.8 7.47"/> <path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1"/> <path d="M9.5 18h5"/> <path d="m8 22 4-11 4 11"/>',
+    fill: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/> <path d="M14.05 2a9 9 0 0 1 8 7.94"/> <path d="M14.05 6A5 5 0 0 1 18 10"/>',
+    known: '<rect width="8" height="18" x="3" y="3" rx="1"/> <path d="M7 3v18"/> <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>',
   };
   const pipeIcon = (k) =>
     '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
-      'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       PIPE_ICON[k] + '</svg>';
+  /* ══ THE TWO MARKS THAT ARE NOT ICONS ══════════════════════════════════
+     This tick and the spinner below it keep their own heavier strokes and
+     stay out of the set on purpose. Both are drawn at eleven and twelve
+     pixels, where a two-pixel stroke on a twenty-four grid is under one
+     device pixel and reads as grey; and this one carries `pathLength="1"`
+     so it can draw itself, which is a property of this path rather than of
+     a check mark. They are animation primitives that happen to be shaped
+     like symbols. */
   const pipeCheck = (size) =>
     '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" ' +
       'stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" ' +
@@ -4413,7 +5088,7 @@
      says what has been staged, and Save is still the one press that commits.
 
      ASSIGN TAKES SEVERAL. Five hundred leads and one caller is a queue
-     nobody finishes; a list is split between the people who will ring it,
+     nobody finishes; a list is split between the people who will call it,
      so the menu toggles and stays open until you look away from it. */
   const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
     ? DRAFT.assign : [me().id]);
@@ -4611,7 +5286,7 @@
         .sort((a, b) => b.phone - a.phone)[0];
       out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
         attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
-        say: 'came back without a number, so they cannot be rung. ' +
+        say: 'came back without a number, so they cannot be called. ' +
           (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
             '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
             : esc(f.name) + ' is the best of ' + ofThem + ' for numbers.') });
@@ -4629,7 +5304,7 @@
       out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
         say: verbFor(known.length, 'is') + ' already in your book, so saving ' +
           (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
-          'of somebody you may already have rung.' });
+          'of somebody you may already have called.' });
     }
     return out;
   }
@@ -4697,7 +5372,7 @@
     const crit = describeSentence(t, buildKind());
     /* The people you brought in from your own book join the list without
        being minted again — they are already records, and a second copy of
-       somebody you have already rung is the worst thing a list can add. */
+       somebody you have already called is the worst thing a list can add. */
     const has = madeCon.map((c) => c.id).concat(bring.filter((id2) => DB.byCon[id2]));
     const l = {
       id: id, name: buildName(), kind: 'con', terms: S.bt || '', crit: crit,
@@ -4827,17 +5502,17 @@
 
     const all = queue(k.id, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(k.id, 'after').length;
     const members = membersOf(k.id);
     const left = daysBetween(TODAY_ISO, k.to);
-    const ring = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
+    const call = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
 
     /* ══ THE ORDER IS THE JOB ══════════════════════════════════════════════
        It opened with the name in a 132px caption gutter — a slot built for
        the word `Calls`, not for `Engineering teams — Banking & finance`,
        which stacked over three lines and read as a label rather than as the
-       thing you had opened. Under it: two paragraphs, a button row, ten rung
+       thing you had opened. Under it: two paragraphs, a button row, ten called
        counts in one flat run, three AiMY panels, and then the pitch. The
        queue — the entire reason a BDR opens a campaign — was the fifth thing
        on the page and roughly a screen and a half down.
@@ -4852,8 +5527,11 @@
       backBtn('data-home', 'Back to the briefing') +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Campaign · ' + esc(INDUSTRY[k.industry].label) + ' · ' +
-          esc(REGION[k.region].label) + ' · ' + esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to)) +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('campaign', 'Campaign') +
+          fact('industry', esc(INDUSTRY[k.industry].label)) +
+          fact('where', esc(REGION[k.region].label)) +
+          fact('calendar', esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to))) +
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
@@ -4877,7 +5555,7 @@
         '</div>' +
       '</section>' +
 
-      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO RING. A caller who
+      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO call. A caller who
          opens straight onto a worklist never learns how the campaign is
          doing, because nobody scrolls past their own queue to find out. */
       campLead(k) +
@@ -4888,7 +5566,7 @@
           '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2>' +
             '<span class="s-block-say">nothing — it closed ' + esc(sayWhen(k.to)) + '</span></div>' +
           '<p class="b-vfoot"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) + '</b> of its ' +
-            esc(plural(members.length, 'person')) + ' were never rung. Where they stand is below.</p>' +
+            esc(plural(members.length, 'person')) + ' were never called. Where they stand is below.</p>' +
         '</section>') +
 
       /* The detail behind the headline, under the doing of it. */
@@ -4916,7 +5594,7 @@
   /* ══ WHAT A CAMPAIGN IS ════════════════════════════════════════════════
      The masthead carried one unlabelled sentence and two counts: the goal
      with nothing saying it was the goal, how many people are on it, and how
-     many of those are yours to ring. Both counts were already stated below
+     many of those are yours to call. Both counts were already stated below
      — the roster count heads Where it stands, and the ringable count sits
      under To call — so the masthead was spending its whole width repeating
      the page while five things a caller has to know before dialling were
@@ -5011,7 +5689,7 @@
 
   /* ══ THE ONE THING THE PAGE IS ABOUT, BEFORE THE WORK ══════════════════
      A campaign page opened straight onto a queue, which tells a caller who
-     to ring and nothing about whether the ringing is working. The numbers
+     to call and nothing about whether the ringing is working. The numbers
      that answer that were below the queue, in a flat run of ten counts, and
      nobody scrolls past their own worklist to find out how they are doing.
 
@@ -5027,7 +5705,7 @@
     const st = campStand(k);
     const all = queue(k.id, 'all');
     /* ══ A BUTTON COUNTS WHAT IT OPENS ═════════════════════════════════════
-       These read the rung tally at first — 14 callbacks, 102 never rung — and
+       These read the rung tally at first — 14 callbacks, 102 never called — and
        the cuts they open show 9 and 58, because the queue drops anyone whose
        follow-up is still in the future and anyone without a number. A door
        labelled with a different number from the room behind it is worse than
@@ -5052,7 +5730,7 @@
       : '';
 
     const deck = fresh0
-      ? 'You have not rung anyone on this campaign yet. Call the next one — what to say comes up with it.'
+      ? 'You have not called anyone on this campaign yet. Call the next one — what to say comes up with it.'
       : !st.target
       ? 'This one has no number in its goal, so there is nothing to measure it against.'
       : !st.need
@@ -5087,10 +5765,10 @@
         (back && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
-          'Show the ' + commas(fresh) + ' never rung</button>' : '') +
+          'Show the ' + commas(fresh) + ' never called</button>' : '') +
         (all.length || !campOpen(k) ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
-          '">Nobody left to ring — find more</button>') +
+          '">Nobody left to call — find more</button>') +
       '</div>' +
     '</section>';
   }
@@ -5138,7 +5816,7 @@
     }
 
     /* People on the ladder that nobody has touched in a fortnight. Not the
-       never-rung — those are on the numbers line above — but the ones that
+       never-called — those are on the numbers line above — but the ones that
        were being worked and stopped, which no count on this page shows. */
     const cold = members.filter((c) => !isExit(c.checkpoint) &&
       c.checkpoint !== 'not-called' && c.lastCallAt &&
@@ -5151,7 +5829,7 @@
            here would have to point at one rung and quietly lose the rest, or
            add an overlapping cut and break the arithmetic under it. */
         text: '<b>' + commas(cold.length) + '</b> were being worked and have not been ' +
-          'rung in a fortnight. They are spread across the cuts below.',
+          'called in a fortnight. They are spread across the cuts below.',
         from: 'the last call on each of their records',
       });
     }
@@ -5215,7 +5893,7 @@
   }
 
   /* Where the campaign's people stand. Informational: these are rungs, and
-     the queue below cuts by what is OWED, not by rung — so a door here would
+     the queue below cuts by what is OWED, not by called — so a door here would
      open a filter that does not exist. Stated, not linked, rather than
      pretending to be pressable. */
   /* ══ WHERE IT STANDS, AS A NARROWING ══════════════════════════════════
@@ -5223,7 +5901,7 @@
      callback · 7 answered · 9 meeting set · 1 interested · 4 handed over ·
      13 declined · 6 wrong number · 2 do not call` — is a sentence you have
      to read word by word to find anything in, and it hid the one shape a
-     campaign has: it narrows. Two hundred people rung, forty answered, nine
+     campaign has: it narrows. Two hundred people called, forty answered, nine
      with a meeting. The narrowing IS the finding.
 
      So four figures for what a BDR acts on, then the ladder as bars drawn
@@ -5232,7 +5910,7 @@
      climb to `declined`, it leaves. */
   /* ══ THE LADDER AS A NARROWING ═════════════════════════════════════════
      Every bar is drawn against the WHOLE roster rather than against the
-     largest rung, because the narrowing is the finding: two hundred rung,
+     largest called, because the narrowing is the finding: two hundred called,
      forty answered, nine with a meeting. Scaled to the biggest bar instead,
      every campaign looks the same shape and the one fact this block exists
      to show disappears.
@@ -5249,7 +5927,7 @@
   const FN_TONE = { ok: 'tone-ok', warn: 'tone-warn', neutral: 'tone-neutral',
     err: 'tone-warn' };
 
-  /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT RUNG ═════════════
+  /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT called ═════════════
      It drew how many people STAND on each rung today, scaled to the
      biggest — which says where the book is piled up and nothing about
      whether the ringing works. A funnel answers the other question: of the
@@ -5292,7 +5970,7 @@
     const rows = FUNNEL_STEPS.map((k) => {
       const n = ever[k];
       if (!n && k !== 'not-called') return '';
-      const rg = RUNG[k];
+      const rg = called[k];
       const pct = Math.max(1, Math.round((n / total) * 100));
       const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
       prev = n;
@@ -5351,7 +6029,7 @@
     /* ══ THE TILE IS THE DOOR ═══════════════════════════════════════════
        Two of the four figures map onto a cut of the queue. The tile shows
        the roster count — the fact — and its sub-line says how many of them
-       you can ring now, which is the number on the other side of the door.
+       you can call now, which is the number on the other side of the door.
        So the door is labelled with the room behind it. */
     const fig = (cap, val, sub, tone, q) => {
       const inner =
@@ -5372,11 +6050,11 @@
         ' on this campaign</span></div>' +
 
       '<div class="s-afs">' +
-        fig('Never rung', n['not-called'] || 0,
-          ringNew ? commas(ringNew) + ' of them you can ring now →' : 'none of them callable now',
+        fig('Never called', n['not-called'] || 0,
+          ringNew ? commas(ringNew) + ' of them you can call now →' : 'none of them callable now',
           null, ringNew ? 'not-called' : null) +
-        fig('Rung, no answer', n['no-answer'] || 0,
-          ringNo ? commas(ringNo) + ' of them you can ring now →' : 'none of them callable now',
+        fig('called, no answer', n['no-answer'] || 0,
+          ringNo ? commas(ringNo) + ' of them you can call now →' : 'none of them callable now',
           null, ringNo ? 'no-answer' : null) +
         fig('Reached', st.reached, 'you got them on the phone', 'ok') +
         fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
@@ -5398,7 +6076,7 @@
      Two kinds of obstacle, and they are not the same kind of thing. What
      they SAY — counted off the calls, not scripted, so it is what this
      audience actually raises rather than what somebody expected them to.
-     And what stops the call happening at all: no number, reception, rung
+     And what stops the call happening at all: no number, reception, called
      four times and never picked up.
 
      Every one is paired with what beats it. For a spoken objection that is
@@ -5462,10 +6140,10 @@
     if (stuck) {
       const h = hourOf(here);
       stops.push({
-        n: stuck, of: members.length, unit: 'person', name: 'Rung four times, never picked up',
+        n: stuck, of: members.length, unit: 'person', name: 'called four times, never picked up',
         sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
-          'Try that hour, or open their company and ring somebody else there.',
+          'Try that hour, or open their company and call somebody else there.',
         door: { attr: 'data-q="no-answer"', say: 'Show the no-answers' },
       });
     }
@@ -5474,7 +6152,7 @@
       stops.push({
         n: passed, of: members.length, unit: 'person', name: 'Meeting passed, nothing logged',
         sub: 'The meeting was the whole point and nobody said what happened.',
-        beats: 'Ring them and settle it — showed up, did not show, or interested.',
+        beats: 'call them and settle it — showed up, did not show, or interested.',
         door: { attr: 'data-q="after"', say: 'Work the ' + commas(passed) },
       });
     }
@@ -5569,7 +6247,7 @@
   /* ══ ONE COMPANY, AS A JOURNEY ══════════════════════════════════════════
      You come here from a person's record — "2 others at Velvik Institute" —
      or from AiMY's door when a number is dead, with one question: who else
-     here can I ring, and has anyone here already been reached. The page
+     here can I call, and has anyone here already been reached. The page
      answered it with the name in a 132px caption slot, the one thing it
      knows that nothing else does at the bottom of the header, and a row of
      campaign chips above the people they act on.
@@ -5578,6 +6256,94 @@
      chip beside the name), what AiMY makes of the company with a door, the
      people — the ones who have picked up first — then where they all stand,
      then what has been said into the company by anyone, by day. */
+  /* ══ WHAT ELSE FITS, AND WHY ═══════════════════════════════════════════
+     A customer we have already sold to is the easiest deal in the book and
+     the one nobody is looking at, because the whole product is pointed at
+     people who have never heard of us. This is the other direction.
+
+     EVERY EDGE STATES ITS REASON. A grid of what-goes-with-what is a
+     recommendation engine wearing a table, and a manager who is told to
+     sell QA to a Voice customer with no reason will not say it out loud in
+     a room. The reason is the sentence they repeat.
+
+     AND IT IS TIMED. Cross-sell lands after delivery has started, not at
+     signature — going back a fortnight after they signed reads as a company
+     that wanted a bigger number, not one that noticed something. Ninety
+     days, counted from the day the deal closed. */
+  const SVC_NEXT = {
+    voice: { to: 'qa', why: 'the agent is taking calls nobody is scoring, and the person ' +
+      'who signed for the agent is the person who owns quality' },
+    qa: { to: 'voice', why: 'they are already measuring every conversation, which is the ' +
+      'argument for letting an agent take the first one' },
+    know: { to: 'support', why: 'the answers are in one place now, so the team giving them ' +
+      'is the part that has not changed' },
+    support: { to: 'qa', why: 'we are running the conversations, and nobody outside our own ' +
+      'team can see how good they are' },
+    test: { to: 'eng', why: 'the suite is green and the backlog it was hiding is still ' +
+      'there, which is a team problem rather than a testing one' },
+    eng: { to: 'test', why: 'they are shipping faster than they can check, and the people ' +
+      'checking are the ones they just hired to build' },
+    data: { to: 'know', why: 'the labelled data is theirs and the documentation around it ' +
+      'is still three answers to one question' },
+    back: { to: 'support', why: 'month-end runs itself now, and the queue that was ' +
+      'competing for the same people never went away' },
+  };
+  const RIPE = 90;
+
+  /* Every deal we won, what it bought them, and what sits next to it. */
+  function expansionsOf(accId) {
+    const out = [];
+    const seen = Object.create(null);
+    DB.con.forEach((c) => {
+      if (c.checkpoint !== 'handed-over') return;
+      if (accId && c.acc !== accId) return;
+      if (stageOf(c) !== 'won') return;
+      const k = dealCamp(c);
+      const bought = k && k.sells.length ? k.sells[0] : null;
+      const edge = bought ? SVC_NEXT[bought] : null;
+      if (!edge) return;
+      const a = accOf(c);
+      if (!a) return;
+      /* Not what they already have. A won deal on the same service at the
+         same company means this is a renewal conversation, not a new one. */
+      const already = DB.con.some((y) => y.acc === a.id && y.checkpoint === 'handed-over' &&
+        stageOf(y) === 'won' && (dealCamp(y) || { sells: [] }).sells[0] === edge.to);
+      if (already) return;
+      const key = a.id + '|' + edge.to;
+      if (seen[key]) return;
+      seen[key] = 1;
+      const ph = phasesOf(c);
+      const closed = ph.length ? ph[ph.length - 1].at.slice(0, 10) : c.checkpointAt.slice(0, 10);
+      const days = daysBetween(closed, TODAY_ISO);
+      out.push({ con: c, acc: a, bought: bought, next: edge.to, why: edge.why,
+        closed: closed, days: days, ripe: days >= RIPE });
+    });
+    return out.sort((x, y) => y.days - x.days);
+  }
+
+  function fitBlock(a) {
+    const rows = expansionsOf(a.id);
+    if (!rows.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="What else fits">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What else fits</h2>' +
+        '<span class="s-block-say">they are already a customer</span>' +
+      '</div>' +
+      '<div class="b-exp">' + rows.map((x, i) =>
+        '<div class="b-exp-row" style="--i:' + Math.min(i, 8) + '">' +
+          '<div class="b-exp-head">' +
+            '<span class="b-exp-next">' + esc(SELL[x.next].name) + '</span>' +
+            '<span class="' + (x.ripe ? 'tag tag-ok' : 'tag tag-neutral') + '">' +
+              (x.ripe ? 'ready now' : 'ready in ' + plural(RIPE - x.days, 'day')) + '</span>' +
+          '</div>' +
+          '<p class="b-exp-why">They bought <b>' + esc(SELL[x.bought].name) + '</b> ' +
+            esc(sayWhen(x.closed)) + ', and ' + esc(x.why) + '.</p>' +
+          '<button class="s-inline-btn b-exp-go" type="button" data-fill="' +
+            esc('Add a lead: , at ' + x.acc.name) + '">Put somebody on it</button>' +
+        '</div>').join('') + '</div>' +
+    '</section>';
+  }
+
   function accPage() {
     const a = DB.byAcc[S.acc];
     if (!a) {
@@ -5594,7 +6360,7 @@
     const reached = (c) => (!isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered')) ? 1 : 0;
     const people = consAt(a.id).sort((x, y) =>
       (reached(y) - reached(x)) || (qRank(x) - qRank(y)) || qTie(x, y));
-    const ring = people.filter(callable);
+    const call = people.filter(callable);
     const hist = touchesAt(a.id);
     const camps = [];
     people.forEach((c) => campsOf(c).forEach((k) => {
@@ -5614,7 +6380,7 @@
     SAID_SIGNAL = signalOf(a) ? a.id : null;
     const everReached = hist.some((t) => t.outcome === 'reached');
     const chip = top && rank(top.checkpoint) >= rank('answered')
-      ? { label: rungLabel(top.checkpoint) + ' here', tone: (RUNG[top.checkpoint] || {}).tone || 'ok' }
+      ? { label: rungLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
         ? { label: 'Reached before', tone: 'ok' }
         : { label: 'Nobody reached yet', tone: 'neutral' };
@@ -5625,37 +6391,41 @@
             label: 'Put everybody here on a campaign', cap: 'Put them on', go: 'acc:' + a.id }) +
         '</div>'
       : '';
-    const callFirst = ring.length
-      ? '<button class="s-inline-btn" type="button" data-call="' + esc(ring[0].id) + '">Call ' +
-        esc(ring[0].name.split(' ')[0]) + '</button>'
+    const callFirst = call.length
+      ? '<button class="s-inline-btn" type="button" data-call="' + esc(call[0].id) + '">Call ' +
+        esc(call[0].name.split(' ')[0]) + '</button>'
       : '';
 
     return '<div class="s-home">' +
       backHere() +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Company · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
-          esc(a.city) + ', ' + esc(a.country) + '</span>' +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('company', 'Company') +
+          fact('industry', esc(indLabel(a))) +
+          fact('where', esc(whereLabel(a))) +
+        '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
-             ring — the numbers that decide whether this company is worth
+             call — the numbers that decide whether this company is worth
              the afternoon. */
           '<div>' +
-            '<span><b>' + commas(a.size) + ' staff</b></span>' +
-            '<span>' + esc(plural(people.length, 'person')) + ' here</span>' +
-            '<span>' + (ring.length
-              ? '<b>' + commas(ring.length) + '</b> you can ring now'
-              : 'nobody with a number you can ring now') + '</span>' +
+            fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
+            fact('role', esc(plural(people.length, 'person')) + ' here') +
+            fact('phone', (call.length
+              ? '<b>' + commas(call.length) + '</b> you can call now'
+              : 'nobody with a number you can call now')) +
           '</div>' +
           /* Rank two: our record of them. */
           '<div>' +
-            '<span>' + esc(a.domain) + '</span>' +
-            (REGION[a.region] ? '<span>' + esc(REGION[a.region].label) + '</span>' : '') +
-            (signalOf(a) ? '<span><b>' + esc(a.signal.text) + '</b> · seen ' + esc(sayWhen(a.signal.at)) + '</span>' : '') +
+            fact('web', esc(a.domain)) +
+            (REGION[a.region] ? fact('where', esc(REGION[a.region].label)) : '') +
+            (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
+              esc(sayWhen(a.signal.at))) : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
@@ -5665,12 +6435,12 @@
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' +
-          (ring.length
+          (call.length
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
-                esc(ring[0].id) + '">Call ' + esc(ring[0].name.split(' ')[0]) + '</button>' +
-              (ring.length > 1
+                esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>' +
+              (call.length > 1
                 ? '<button class="s-inline-btn" type="button" data-callall="' +
-                  esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
+                  esc(call.map((c) => c.id).join(',')) + '">Call all ' + call.length +
                   ' here</button>'
                 : '')
             : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
@@ -5679,13 +6449,14 @@
       '</section>' +
 
       storyBlock(accStory(a, people, hist)) +
-      accLead(a, people, hist, ring, free) +
+      accLead(a, people, hist, call, free) +
+      (isMgr() ? fitBlock(a) : '') +
       accMap(a, people) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
           '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · who has picked up first, then by rung</span></div>' +
+          ' · who has picked up first, then by called</span></div>' +
         qgrid(paged(people).rows, 'Nobody on the record at this company.') +
         pager(paged(people), 'person') +
         chips +
@@ -5704,7 +6475,7 @@
          the campaign uses, under the day it happened. */
       '<section class="s-block s-block-wide" aria-label="What has been said here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2></div>' +
-        feedBlock(hist, 'Nobody has rung this company yet. ' + callFirst) +
+        feedBlock(hist, 'Nobody has called this company yet. ' + callFirst) +
       '</section>' +
     '</div>';
   }
@@ -5714,17 +6485,17 @@
      does — somebody already got through here, and to whom — was the last
      item in the header stack, under the funnel, with no door. It leads now,
      and the door follows the finding: the person who picked up, if they can
-     be rung; otherwise the best of the rest; otherwise a campaign. The
+     be called; otherwise the best of the rest; otherwise a campaign. The
      reader's fallback — size and place, which the masthead now states — is
      not worth a panel, so on that reading the block is not drawn. */
-  function accLead(a, people, hist, ring, free) {
+  function accLead(a, people, hist, call, free) {
     const said = accSays(a, people, hist);
     if (!said || said.from === 'the account itself') return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
     const who = got && DB.byCon[got.con];
     let door = '';
     /* THE DOOR FOLLOWS THE SENTENCE. The reading names who picked up; when
-       that person cannot be rung now — a meeting set, a hand-over — the
+       that person cannot be called now — a meeting set, a hand-over — the
        door opens their record rather than ringing somebody else under
        their name. */
     if (who && callable(who)) {
@@ -5733,9 +6504,9 @@
     } else if (who) {
       door = '<button class="s-insight-lnk" type="button" data-con="' + esc(who.id) + '">' +
         'Open ' + esc(who.name) + ' — ' + esc(rg2(who)) + '</button>';
-    } else if (ring[0]) {
-      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(ring[0].id) + '">' +
-        'Call ' + esc(ring[0].name.split(' ')[0]) + '</button>';
+    } else if (call[0]) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(call[0].id) + '">' +
+        'Call ' + esc(call[0].name.split(' ')[0]) + '</button>';
     } else if (free.length) {
       door = '<button class="s-insight-lnk" type="button" data-goto="accCamps">' +
         'Put them on a campaign</button>';
@@ -5754,8 +6525,8 @@
 
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
-  /* Why nobody at a company can be rung now. It said "no number" over two
-     people who had numbers and had simply gone past the rungs you ring. */
+  /* Why nobody at a company can be called now. It said "no number" over two
+     people who had numbers and had simply gone past the rungs you call. */
   function accIdle(people) {
     if (!people.length) return 'Nobody is on the record here.';
     const live = people.filter((c) => !c.dnc && !isExit(c.checkpoint));
@@ -5764,11 +6535,11 @@
     const noNum = live.filter((c) => !c.phone).length;
     const gone = people.length - live.length;
     const bits = [];
-    if (past) bits.push(plural(past, 'person') + ' past the rungs you ring');
+    if (past) bits.push(plural(past, 'person') + ' past the rungs you call');
     if (parked) bits.push(plural(parked, 'callback') + ' parked until its day');
     if (noNum) bits.push(plural(noNum, 'person') + ' with no number');
     if (gone) bits.push(plural(gone, 'person') + ' who left the ladder');
-    return 'Nobody here can be rung now: ' + bits.join(', ') + '.';
+    return 'Nobody here can be called now: ' + bits.join(', ') + '.';
   }
 
   /* The calls among a set of touchpoints. A hand-move, a profile going out
@@ -5809,18 +6580,19 @@
         ' here. ' + esc(OBJECTION[top].blurb),
         from: plural(callsIn(hist).length, 'call') + ' into this company' };
     }
-    /* Rung and rung and nothing, across the whole company. */
+    /* called and called and nothing, across the whole company. */
     if (callsIn(hist).length >= 3 && !got) {
       return { text: plural(callsIn(hist).length, 'call') + ' in and nobody here has picked up. ' +
         'It may be a switchboard rather than the people.',
         from: 'this company’s own history' };
     }
     /* Nothing has happened, so the useful thing is who they are. */
-    const ring = people.filter(callable).length;
-    return { text: esc(INDUSTRY[a.industry].label) + ' at ' + commas(a.size) +
-      ' staff in ' + esc(a.city) + ', and ' + (ring
-        ? plural(ring, 'person') + ' here can be rung today'
-        : 'nobody here has a number you can ring') + '.',
+    const call = people.filter(callable).length;
+    return { text: (accKnown(a)
+      ? esc(indLabel(a)) + ' at ' + esc(headLabel(a)) + ' in ' + esc(cityLabel(a))
+      : esc(a.name) + ', and nobody has filled in who they are') + ', and ' + (call
+        ? plural(call, 'person') + ' here can be called today'
+        : 'nobody here has a number you can call') + '.',
       from: 'the account itself' };
   }
 
@@ -5843,6 +6615,115 @@
      and what has been said, grouped by month. The last thing on the action
      row is the next person in the queue, because a finished record is one
      press from the next call and should not need the briefing in between. */
+  /* ══ THE DEAL, IN FOUR FACTS ═══════════════════════════════════════════
+     What it is worth, when it should land, what we are selling them and who
+     found them. The first two are modelled and say so — no number has been
+     typed on any of these records, and a figure presented as read when it
+     was guessed is the one thing this record must never do. */
+  function dealBlock(c) {
+    const a = accOf(c);
+    const k = dealCamp(c);
+    const sells = k && k.sells && k.sells.length
+      ? listSay(k.sells.map((x) => (SELL[x] || {}).name || x)) : 'nothing named yet';
+    const owner = c.owner ? actor(c.owner) : null;
+    const days = daysBetween(TODAY_ISO, closeBy(c));
+    return '<section class="s-block s-block-wide" aria-label="The deal">' +
+      '<div class="b-cmeta">' +
+        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — ' + (k
+          ? 'modelled from ' + esc(sells) + ' at ' +
+            (a && a.size ? esc(headLabel(a)) : 'their size') + ', not read off a proposal.'
+          : 'a placeholder. They are on no campaign, so nothing says what we would sell them.') +
+          '</p>') +
+        cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
+          (dealLive(c)
+            ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
+              : 'about ' + plural(days, 'day') + ' out, counted from the last meeting.')
+            : 'it is already decided.') + '</p>') +
+        cmPart('What we sell them', '<p class="b-cmeta-p">' + esc(sells) +
+          (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
+        cmPart('Found by', '<p class="b-cmeta-p">' +
+          (owner ? '<b>' + esc(owner.name) + '</b> rang them cold and got them warm.'
+            : addedByHand(c) ? 'You did — added by hand, so only what you typed is known.'
+            : 'Nobody is named as the caller.') + '</p>') +
+      '</div>' +
+    '</section>';
+  }
+
+  /* ══ WHO OF OURS HAS WORKED THIS ONE ═══════════════════════════════════
+     The campaign has a team and a lead did not, which left the two desks
+     invisible to each other on the record where they actually meet: a
+     caller could not see who the deal went to, and a manager could not see
+     who spent nine calls getting it warm.
+
+     THE ROLE SLOT SAYS WHAT THEY DID HERE, not what they do generally.
+     "BDR" under a face is a fact about the person; "BDR · 9 calls" is a
+     fact about this lead, and this is the lead's page. The order is the
+     order it happened in — whoever found them, then whoever has them.
+
+     AiMY is not on it. It enriches numbers and reads calls back, and a
+     section headed "the team" listing a piece of software next to two
+     people is the kind of thing that reads as a joke the second time. */
+  function conTeam(c) {
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const k = dealCamp(c);
+    const ids = [];
+    const add = (id) => { if (id && REP[id] && ids.indexOf(id) < 0) ids.push(id); };
+    /* ══ THE TEAM ON A LEAD IS THE CAMPAIGN'S TEAM ══════════════════════
+       A first cut showed only the people who had already touched the
+       record, so on a lead one caller had been working alone it was one
+       name — and it hid the answer to the question the section exists for.
+       The manager who owns the campaign is on this lead before anybody
+       hands it to them: they are who it goes to, and a caller wanting to
+       know that should not have to open the campaign to find out.
+
+       Whoever found them first, then the rest of the crew, then whoever
+       owns it — the order it reaches people in. */
+    add(c.owner);
+    if (k) k.crew.forEach(add);
+    add(c.manager || (k ? k.owner : null));
+    hist.forEach((t) => add(t.by));
+    if (!ids.length) return '';
+    return '<section class="s-block s-block-wide" aria-label="The team">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">The team</h2>' +
+        '<span class="s-block-say">' + esc(plural(ids.length, 'person')) +
+          ' on this lead</span>' +
+      '</div>' +
+      '<div class="b-team b-team-rec">' +
+        ids.map((id) => {
+          const you = id === me().id;
+          const theirs = hist.filter((t) => t.by === id);
+          const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
+          const mets = theirs.filter((t) => t.outcome === 'phase').length;
+          const bits = [];
+          if (calls) bits.push(plural(calls, 'call'));
+          if (mets) bits.push(plural(mets, 'meeting'));
+          /* Nothing done yet is not nothing to say: it is what they are
+             here for, which is the more useful half on a cold lead. */
+          if (!bits.length) {
+            bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
+              : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
+                ? 'has it now' : 'takes it at Interested')
+              : 'on the crew');
+          }
+          return '<div class="b-mate">' + faceOf(id, 32) +
+            '<span class="b-mate-t">' +
+              '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
+              '<span class="b-mate-role">' +
+                esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + ' · ' +
+                esc(bits.join(', ')) + '</span>' +
+            '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</section>';
+  }
+
+  /* A profile address, from the name. It went out with the roster row it
+     was written for; the record is what needs it now. */
+  const liSlug = (c) => String(c.name).toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
@@ -5856,8 +6737,12 @@
     const a = accOf(c);
     const camps = campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
+    /* Past the hand-over the rung has stopped moving — every deal reads
+       "Handed over" for ever — so at the manager's desk the status is the
+       stage, which is the thing that is actually still moving. */
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const rg = (isMgr() && c.checkpoint === 'handed-over')
+      ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     const n = (DB.touchesOf[c.id] || []).length;
 
     /* THE WAY BACK AND THE WAY OUT SHARE A ROW. One leaves the record, the
@@ -5870,36 +6755,57 @@
       '<div class="b-topbar s-block-wide">' + backHere() + endGate(c) + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Person' +
-          (mineCamp ? ' · on ' + esc(mineCamp.name) : ' · on no campaign') +
-          (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '') + '</span>' +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('role', 'Person') +
+          fact('campaign', mineCamp
+            ? esc(mineCamp.name) + (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '')
+            : 'On no campaign') +
+        '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
-            '<span>' + esc(c.title) + '</span>' +
-            (a ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
-              '">' + esc(a.name) + '</button></span>' +
-              '<span>' + esc(INDUSTRY[a.industry].label) + '</span>' +
-              '<span>' + esc(a.city) + ', ' + esc(a.country) + '</span>' +
-              '<span>' + commas(a.size) + ' staff</span>' : '') +
+            fact('role', esc(c.title)) +
+            (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
+                esc(a.id) + '">' + esc(a.name) + '</button>') +
+              fact('industry', esc(indLabel(a))) +
+              fact('where', esc(whereLabel(a))) +
+              fact('staff', esc(headLabel(a))) : '') +
           '</div>' +
           '<div>' +
-            (c.phone
-              ? '<span><a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
-                '">' + esc(c.phone) + '</a></span>'
-              : '<span>No number on file</span>') +
+            fact('phone', c.phone
+              ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
+                '">' + esc(c.phone) + '</a>'
+              : 'No number on file') +
             /* [7] A REASON TO OPEN THE COMPANY. A caller whose number rings
                out needs a colleague, not a company profile — so the fact that
                there are colleagues is on the record, with the door. */
+            /* ══ THE ADDRESS AND THE PROFILE LIVE HERE NOW ══════════════
+               Both of these existed in exactly one place in the product —
+               a row on the list page — so turning that row into the card
+               everything else uses would have taken them out of the build
+               altogether. They are facts about a person and this is the
+               person's page. It matters more since LinkedIn became what a
+               run asks first: it comes back with an address far more often
+               than a number, and a lead you can only email is still a lead
+               you can reach. */
+            (c.email ? fact('mail', '<a class="s-inline-btn" href="mailto:' +
+              esc(c.email) + '">' + esc(c.email) + '</a>') : '') +
+            fact('linkedin', '<a class="s-inline-btn" href="https://www.linkedin.com/in/' +
+              esc(liSlug(c)) + '" target="_blank" rel="noopener">' + esc(liSlug(c)) + '</a>') +
+            (a ? fact('web', '<a class="s-inline-btn" href="https://' + esc(a.domain) +
+              '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>') : '') +
             (others.length
-              ? '<span>' + coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name) + '</span>'
-              : (a ? '<span>the only person here</span>' : '')) +
+              ? fact('staff', coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name))
+              : (a ? fact('staff', 'the only person here') : '')) +
             /* WHO IS MANAGING THEM NOW. The one fact about this record that
                is not the BDR's to act on, so it sits with the facts. */
-            (c.manager && REP[c.manager]
+            /* Not at the manager's own desk: "Managed by Lina Haddad" read
+               by Lina is the page telling her who she is. Where it came from
+               is the useful provenance there, and the deal block carries it. */
+            (!isMgr() && c.manager && REP[c.manager]
               ? '<span class="b-managed">Managed by <b>' + esc(REP[c.manager].name) + '</b></span>'
               : '') +
           '</div>' +
@@ -5907,7 +6813,11 @@
         actionsRow(c) +
       '</section>' +
 
+      (isMgr() && c.checkpoint === 'handed-over' ? dealBlock(c) : '') +
+
       storyBlock(storyOf(c)) +
+
+      conTeam(c) +
 
       conMap(c) +
 
@@ -5923,7 +6833,7 @@
     '</div>';
   }
 
-  /* ══ ONE ROW, AND THE RUNG DECIDES WHICH IS FIRST ══════════════════════
+  /* ══ ONE ROW, AND THE called DECIDES WHICH IS FIRST ══════════════════════
      Call was always the primary, even on a lead with a meeting in a diary
      — where the one thing this page is waiting for is whether they turned
      up. The rung says what the next press is; the row puts it first and
@@ -5943,23 +6853,34 @@
      The question is a popover, on the same machinery as every other menu
      here — so a click anywhere else or Escape is the way back, and the row
      underneath does not grow a second state to hold it. */
+  /* One control, two endings. A caller ends a lead nobody could sell to; a
+     manager ends a deal that was on the table and came off it. Same shape,
+     same gate, same undo — only the words differ, because the two acts are
+     the same act at different points of the same story. */
   function endGate(c) {
-    const endable = !isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
-      rank(c.checkpoint) >= rank('callback');
+    const mgr = isMgr() && c.checkpoint === 'handed-over';
+    const endable = mgr ? dealLive(c)
+      : (!isExit(c.checkpoint) && c.checkpoint !== 'handed-over' &&
+        rank(c.checkpoint) >= rank('callback'));
     if (!endable) return '';
+    const word = mgr ? 'We lost it' : 'They said no';
+    const say = mgr
+      ? 'The deal closes as lost and leaves the board. Undo on the toast is the way back.'
+      : 'They leave your queue and nothing is owed. Undo on the toast is the way back.';
+    const yes = mgr ? 'Yes, we lost it' : 'Yes, they said no';
+    const doIt = mgr ? 'data-deal="' + esc(c.id + ':lost') + '"' : 'data-move="declined"';
     return '<span class="b-menu-wrap b-end">' +
       '<button class="b-ghost b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
         '<svg class="b-end-mark" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
           'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
           '<circle cx="12" cy="12" r="8.75"/><path d="M5.8 18.2 18.2 5.8"/></svg>' +
-        '<span class="b-end-word">They said no</span></button>' +
+        '<span class="b-end-word">' + esc(word) + '</span></button>' +
       '<div class="b-menu b-end-pop" id="noGate" role="menu" hidden>' +
         '<span class="b-menu-cap">End it here</span>' +
-        '<p class="b-end-say">They leave your queue and nothing is owed. ' +
-          'Undo on the toast is the way back.</p>' +
+        '<p class="b-end-say">' + esc(say) + '</p>' +
         '<div class="b-end-acts">' +
-          '<button class="b-ghost b-end-go" type="button" role="menuitem" data-move="declined">' +
-            'Yes, they said no</button>' +
+          '<button class="b-ghost b-end-go" type="button" role="menuitem" ' + doIt + '>' +
+            esc(yes) + '</button>' +
           '<button class="s-inline-btn" type="button" data-pickopen="noGate">Keep them</button>' +
         '</div>' +
       '</div>' +
@@ -5983,14 +6904,19 @@
        nobody in particular; the campaign's owner is who gets them. */
     /* "They said no" is not one of these: it ends the lead, so it is out
        of the row of ordinary verbs and behind a gate of its own. */
-    const moves = movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
-      .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
+    /* The same row, asking the question this desk answers: a caller records
+       what a rung did, a manager records what a meeting did. */
+    const moves = (isMgr() && c.checkpoint === 'handed-over')
+      ? dealMoves(c).map((m) => ({ html: esc(m.label),
+        attr: 'data-deal="' + esc(c.id + ':' + m.k) + '"' }))
+      : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
+        .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
     /* ══ THE HAND-OVER IS A CHOICE OF MANAGER ════════════════════════════
        Once somebody is warm the sales manager takes them, and which
        manager is a decision — so the verb opens the list rather than
        naming whoever happens to own the campaign. */
     /* From a callback up: a callback is a live thread — somebody asked to
-       be rung back — and a BDR can pass one across. Below that nobody has
+       be called back — and a BDR can pass one across. Below that nobody has
        spoken to them, and there is nothing to hand over. */
     const warm = rank(c.checkpoint) >= rank('callback') && !isExit(c.checkpoint) &&
       c.checkpoint !== 'handed-over';
@@ -5999,14 +6925,29 @@
     let quiet = [];
     let say = '';
     if (c.checkpoint === 'handed-over') {
-      list = [];
-      quiet = call ? [call] : [];
-      /* the same tense as the ladder line: decided is past */
       const ph = phasesOf(c);
       const fin = ph.length ? ph[ph.length - 1] : null;
-      say = fin && fin.decision
-        ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
-        : directorOf(c).name + ' has it now.';
+      if (isMgr()) {
+        /* It is on this desk, so the phone is the verb rather than a note
+           about who has it. A decided deal keeps the sentence and loses it.
+           The brief stands beside the phone because a manager walks into a
+           meeting far more often than they dial. */
+        const prep = { html: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' };
+        /* A lead added by hand has no number, so the supplier is the verb
+           before the phone can be — the same door the caller's desk offers. */
+        list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
+        quiet = dealLive(c) ? [] : call ? [call] : [];
+        say = dealLive(c) ? ''
+          : 'They ' + (stageOf(c) === 'won' ? 'signed' : 'said no') + ' ' +
+            sayWhen(fin.at.slice(0, 10)) + '.';
+      } else {
+        list = [];
+        quiet = call ? [call] : [];
+        /* the same tense as the ladder line: decided is past */
+        say = fin && fin.decision
+          ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
+          : directorOf(c).name + ' has it now.';
+      }
     } else if (c.checkpoint === 'wrong-number') {
       /* the ladder says nothing is owed until somebody finds a number that
          is theirs; that is the one thing to press, and Call is not */
@@ -6022,7 +6963,7 @@
          Four verbs stood in one line at two weights, and which of them led
          swapped as soon as a meeting date passed — so the button under the
          cursor changed from Call to They showed up without the page moving.
-         The row is what you DO with this record: ring them, hand them over,
+         The row is what you DO with this record: call them, hand them over,
          go to the next one. What happened at the meeting is a different
          kind of thing — a fact to record, not an action to take — and it
          gets its own line and the question it answers. */
@@ -6053,7 +6994,15 @@
         '</div>'
       : '');
   }
-  const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
+  const rg2 = (c) => (called[c.checkpoint] || {}).say || 'they have left the ladder';
+  /* ══ THE called'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
+     Every rung says what it means TO THE PERSON RINGING, and the last one
+     says "with the director" — which is the news at that desk and nonsense
+     at the director's own, where it tells her a lead is with somebody else
+     when the somebody else is her. */
+  const rungSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
+    ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
+    : (called[c.checkpoint] || {}).say || 'they have left the ladder');
 
   /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
      The card's punchline was the last line of the record's header, under
@@ -6087,7 +7036,7 @@
         'Ask ' + esc(finderOf().name) + ' for a better number</button>';
     } else if (last && last.outcome === 'gatekeeper' && c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
-        'Ring the mobile now</button>';
+        'call the mobile now</button>';
     } else if (c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Call ' + esc(c.name.split(' ')[0]) + '</button>';
@@ -6121,7 +7070,7 @@
      as what they are: one person's history, newest at the top, with the
      rungs they climbed marked on the way down. Every touchpoint is a node
      in the tone of how it went; a touchpoint that MOVED a rung is a
-     milestone — a larger accent ring and the rung it reached on the line —
+     milestone — a larger accent call and the rung it reached on the line —
      so the ladder is readable down the rail without opening anything. The
      rail ends where the journey began: the first rung, and the count.
 
@@ -6132,7 +7081,7 @@
     const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     if (!all.length) {
       return '<p class="b-vfoot">' + (untouched(c)
-        ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
+        ? 'Nobody has called them yet.' : 'No calls on the record.') + '</p>';
     }
     /* ══ THE RECORD IS THE RECORD ══════════════════════════════════════
        The heading said "18 touchpoints on the record" and the rail showed
@@ -6165,7 +7114,7 @@
           '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
           /* the chip names the rung reached; when the outcome already says it
-             ("Callback → Callback") the ring on the dot is the milestone */
+             ("Callback → Callback") the call on the dot is the milestone */
           (t.moved && rungLabel(t.moved[1]) !== kindLabel(t)
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
             : ph && t.decision
@@ -6188,7 +7137,7 @@
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
           'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
-          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
+          (climbed ? ' · ' + esc(plural(climbed, 'called')) + ' climbed' : ' · no rung climbed yet') +
         '</div>'
         : '') +
     '</div>' + pager(pg, 'touchpoint');
@@ -6208,20 +7157,222 @@
     return (DB.touchesOf[c.id] || []).map((id) => TOUCH[id])
       .filter((t) => t && t.outcome === 'phase').sort((x, y) => (x.at < y.at ? -1 : 1));
   }
+  /* ══ THE DEAL IS THE LEAD, AFTER THE HAND-OVER ══════════════════════════
+     There is no deal record and there should not be one: a deal is a person
+     at a company we are trying to sell to, which is a contact and an account,
+     and the manager's half of its history is already on the record as the
+     phase touchpoints the seed wrote. Stage is read off the last of them the
+     way every other state here is read off its events, so moving a deal is
+     writing one touchpoint and nothing has two answers. */
+  function stageOf(c) {
+    const ph = phasesOf(c);
+    if (!ph.length) return 'qual';
+    const last = ph[ph.length - 1];
+    if (last.phase !== 'resolution') return last.phase;
+    return last.decision === 'lost' ? 'lost' : 'won';
+  }
+  const dealLive = (c) => stageOf(c) !== 'won' && stageOf(c) !== 'lost';
+  /* Nobody handed over a lead the manager met himself, and a record that
+     says they did is the page inventing a colleague. */
+  const addedByHand = (c) => (DB.touchesOf[c.id] || [])
+    .some((id) => TOUCH[id] && TOUCH[id].outcome === 'added');
+  /* The campaign the deal belongs to, read the same way the index and the
+     seed's own hand-over note read it, rather than through `campFor`, which
+     answers for whoever is looking. */
+  const dealCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
+
+  function amountOf(c) {
+    const a = accOf(c);
+    const k = dealCamp(c);
+    const sell = (k && k.sells && k.sells.length ? k.sells[0] : 'qa');
+    const band = (PRICE[sell] || PRICE.qa)[priceBand(a ? a.size : 300)];
+    const j = (Math.abs(hash(c.id + ':amt')) % 45) - 22;
+    return Math.round((band * (1 + j / 100)) / 500) * 500;
+  }
+  /* When it should land, counted from the last thing that happened rather
+     than from today: a deal that has sat still for a month is late, and a
+     date that walks forward with the clock would never say so. */
+  function closeBy(c) {
+    const ph = phasesOf(c);
+    const from = ph.length ? ph[ph.length - 1].at.slice(0, 10)
+      : (c.checkpointAt || TODAY.toISOString()).slice(0, 10);
+    const st = stageOf(c);
+    return isoAdd(from, st === 'qual' ? 60 : st === 'discovery' ? 45 : st === 'proof' ? 28 : 14);
+  }
+
+  /* One line of why this deal is where it is — the last meeting held, and
+     what it left owed. The card and the column read the same string. */
+  function dealWhy(c) {
+    const ph = phasesOf(c);
+    const st = stageOf(c);
+    const last = ph.length ? ph[ph.length - 1] : null;
+    if (st === 'won') return 'They signed <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
+    if (st === 'lost') return 'They said no <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
+    if (!last) {
+      const when = esc(sayWhen((c.checkpointAt || '').slice(0, 10)));
+      return addedByHand(c)
+        ? 'You added them <b>' + when + '</b>, and nobody has called them yet'
+        : 'Handed to you <b>' + when + '</b>, and nobody has warm-called them';
+    }
+    const owed = c.next
+      ? esc(c.next.what) + ' <b>' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'due ') +
+        esc(sayWhen(c.next.due)) + '</b>'
+      : '';
+    return esc((PHASE[last.phase] || {}).label || last.phase) + ' <b>' +
+      esc(sayWhen(last.at.slice(0, 10))) + '</b>' + (owed ? ' · ' + owed : '');
+  }
+
+  /* ══ MOVING A DEAL IS WRITING WHAT HAPPENED ═════════════════════════════
+     The same act as a rung move and the same shape: one touchpoint, one
+     patch, a toast that undoes both. The words are what a manager would say
+     about the meeting, not the name of a column they dragged it into. */
+  const DEAL_MOVES = [
+    { k: 'discovery',  label: 'We spoke' },
+    { k: 'proof',      label: 'We met' },
+    { k: 'commercial', label: 'Proposal sent' },
+    { k: 'won',        label: 'They signed' },
+    { k: 'lost',       label: 'They passed' },
+  ];
+  function dealMoves(c) {
+    const at = stageRank(stageOf(c));
+    if (at >= stageRank('won')) return [];
+    return DEAL_MOVES.filter((m) => stageRank(m.k) > at);
+  }
+  /* What each stage leaves owed. An ended deal owes nothing and says so by
+     clearing the field, the way a finished called does. */
+  function nextForStage(k) {
+    if (k === 'discovery') return { what: 'Meeting with them', due: dayAdd(7) };
+    if (k === 'proof') return { what: 'Proposal to them', due: dayAdd(7) };
+    if (k === 'commercial') return { what: 'Chase the proposal', due: dayAdd(5) };
+    return null;
+  }
+  function setStage(conId, k, said) {
+    const c = DB.byCon[conId];
+    const st = DEAL_STAGE[k];
+    if (!c || !st) return;
+    const before = { checkpointAt: c.checkpointAt, next: c.next };
+    const now = new Date().toISOString();
+    const ended = k === 'won' || k === 'lost';
+    const t = {
+      id: 'd' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
+      con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
+      outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
+      proposals: [], objections: [], openings: [],
+      /* What was actually said, when there was something said. A record
+         that paraphrases you when it has your own words is a record you
+         stop trusting. */
+      note: said || (k === 'won' ? 'They signed on the terms agreed.'
+        : k === 'lost' ? 'They decided against it.'
+        : (PHASE[k] || {}).label + ' held.'),
+      lines: [], next: null, moved: null, called: 'handed-over',
+    };
+    patchCon(c, { checkpointAt: now, next: nextForStage(k) });
+    addTouch(t);
+    paint();
+    toast(c.name.split(' ')[0] + ' → ' + st.label, () => {
+      dropTouch(t.id);
+      patchCon(c, before);
+      paint();
+    });
+  }
+
   function dealLine(c) {
     const d = directorOf(c);
     const ph = phasesOf(c);
+    /* Whose it is depends on who is reading. To the caller who produced it
+       the news is that somebody else is running it; to the manager running
+       it the news is which meeting comes next. */
+    const who = isMgr() ? 'You have it' : d.name + ' has it';
+    const had = isMgr() ? 'You had it' : d.name + ' had it';
+    const notYours = isMgr() ? '' : ', and none of them are yours';
     /* the ladder line above already carries the date */
-    if (!ph.length) return d.name + ' has it. Discovery is the first of four meetings, and none of them are yours.';
+    if (!ph.length) {
+      return who + '. Discovery is the first of four meetings' + notYours + '.';
+    }
     const done = ph.map((t) => (PHASE[t.phase] || {}).label + ' ' + sayDay(t.at)).join(' · ');
     const last = ph[ph.length - 1];
     if (last.decision) {
-      return d.name + ' had it. ' + done + '. ' +
+      return had + '. ' + done + '. ' +
         (last.decision === 'won' ? 'They signed ' : 'They said no ') + sayWhen(last.at.slice(0, 10)) + '. Done.';
     }
     const nextPh = PHASES[ph.length];
-    return d.name + ' has it. ' + done + '. Next: ' +
-      (nextPh ? nextPh.label.toLowerCase() : 'resolution') + ', and it is not yours.';
+    return who + '. ' + done + '. Next: ' +
+      (nextPh ? nextPh.label.toLowerCase() : 'resolution') +
+      (isMgr() ? '.' : ', and it is not yours.');
+  }
+
+  /* ══ THE DIARY ═════════════════════════════════════════════════════════
+     Not a table. "We met them" is already answered by the phase touchpoints
+     and "we are meeting them" by the next step, and a meetings table beside
+     those would be a second place to look and a second answer when they
+     disagreed. So the diary is a reading of the two.
+
+     THE DAY IS ON THE RECORD; THE HOUR IS NOT. `next.due` is a bare
+     YYYY-MM-DD and is compared as a string in a dozen places, so a time can
+     never go into it. The hour is derived from the id — the same every time
+     it is asked, on every machine — until somebody sets one, and a derived
+     hour is drawn as a guess rather than as a booking. */
+  const MEET_KINDS = [
+    { k: 'meeting', label: 'Meeting', tone: 'accent' },
+    { k: 'demo',    label: 'Demo',    tone: 'info' },
+    { k: 'dinner',  label: 'Dinner',  tone: 'warn' },
+    { k: 'held',    label: 'Held',    tone: 'ok' },
+    { k: 'owed',    label: 'Owed',    tone: 'neutral' },
+  ];
+  const MEET_KIND = Object.create(null);
+  MEET_KINDS.forEach((x) => (MEET_KIND[x.k] = x));
+  const kindOfNext = (what) => (/dinner/i.test(what) ? 'dinner'
+    : /demo/i.test(what) ? 'demo'
+    : /meeting/i.test(what) ? 'meeting' : 'owed');
+
+  /* Mornings and afternoons for a meeting; a dinner is at dinner time. */
+  const MEET_SLOTS = [9, 10, 11, 14, 15, 16];
+  const DINNER_SLOTS = [19, 20];
+  function slotOf(key, kind) {
+    const h = Math.abs(hash(key + ':slot'));
+    const pool = kind === 'dinner' ? DINNER_SLOTS : MEET_SLOTS;
+    return { h: pool[h % pool.length], m: ((h >> 5) % 2) ? 30 : 0 };
+  }
+  function meetTime(conId, iso, kind) {
+    const set = DELTA.meet && DELTA.meet[conId];
+    if (set) return { h: set.h, m: set.m, set: true };
+    const t = slotOf(conId + '|' + iso, kind);
+    return { h: t.h, m: t.m, set: false };
+  }
+  const clockOf = (m) => (m.h == null ? '' : m.h + ':' + String(m.m).padStart(2, '0'));
+
+  /* Everything between two days, held and planned, in the order it happens. */
+  function meetings(from, to) {
+    const out = [];
+    queue(null, 'all').forEach((c) => {
+      phasesOf(c).forEach((t) => {
+        const iso = t.at.slice(0, 10);
+        if (iso < from || iso > to) return;
+        const d = new Date(t.at);
+        out.push({ con: c, iso: iso, h: d.getHours(), m: d.getMinutes(), set: true,
+          kind: 'held', held: true, title: (PHASE[t.phase] || {}).label || 'Meeting' });
+      });
+      if (c.next && c.next.due >= from && c.next.due <= to) {
+        const k = kindOfNext(c.next.what);
+        /* Something owed that is not a meeting has a day and no hour, and
+           drawing it at an invented ten o'clock is the diary asserting what
+           it was never told. */
+        const t = k === 'owed' ? { h: null, m: null, set: false } : meetTime(c.id, c.next.due, k);
+        out.push({ con: c, iso: c.next.due, h: t.h, m: t.m, set: t.set,
+          kind: k, held: false, title: c.next.what });
+      }
+    });
+    return out.sort((a, b) => (a.iso < b.iso ? -1 : a.iso > b.iso ? 1
+      : (a.h == null ? 1e4 : a.h * 60 + a.m) - (b.h == null ? 1e4 : b.h * 60 + b.m)));
+  }
+  const meetingsOn = (iso) => meetings(iso, iso);
+
+  /* A meeting whose day has passed with nothing recorded on or after it.
+     This is the whole reason the loop needs closing: the manager walks out
+     of the room and the record never hears about it. */
+  function unrecorded() {
+    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.held && m.kind !== 'owed' &&
+      !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
 
   /* ══ THE STORY SO FAR ══════════════════════════════════════════════════
@@ -6236,9 +7387,7 @@
   const nmClock = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
     'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
     '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
-  const nmTick = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  const nmTick = () => chIcon('check');
 
   /* ══ THE MAP ═══════════════════════════════════════════════════════════
      Every record here is joined to others and no page ever drew the joins.
@@ -6255,7 +7404,8 @@
         '<span class="s-block-say">' + esc(o.say) + '</span></div>' +
       '<div class="b-map">' +
         '<button class="b-node is-root" type="button" ' + o.root.attr + '>' +
-          '<span class="b-node-name">' + esc(o.root.name) + '</span>' +
+          '<span class="b-node-name b-fact">' + chIcon('company') +
+            '<span>' + esc(o.root.name) + '</span></span>' +
           '<span class="b-node-sub">' + esc(o.root.sub) + '</span>' +
         '</button>' +
         '<div class="b-map-body">' + o.limbs.map((x) =>
@@ -6265,7 +7415,7 @@
     '</section>';
   }
   const dotOf = (c) => '<span class="b-rstate-dot ' +
-    (TL_TONE[(RUNG[c.checkpoint] || RUNG['not-called']).tone] || 'tone-neutral') + '"></span>';
+    (TL_TONE[(called[c.checkpoint] || called['not-called']).tone] || 'tone-neutral') + '"></span>';
 
   /* From a person: the company, and everybody we hold inside it. */
   function conMap(c) {
@@ -6278,7 +7428,7 @@
       say: plural(all.length, 'lead') + ' at this company',
       root: {
         name: a.name,
-        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        sub: indLabel(a) + ' · ' + cityLabel(a) + ' · ' + headLabel(a),
         attr: 'data-acc="' + esc(a.id) + '"',
       },
       limbs: ['<div class="b-map-row">' + shown.map((x) =>
@@ -6354,7 +7504,7 @@
       say: plural(people.length, 'lead') + ' and ' + plural(ids.length, 'campaign'),
       root: {
         name: a.name,
-        sub: INDUSTRY[a.industry].label + ' · ' + a.city + ' · ' + commas(a.size) + ' staff',
+        sub: indLabel(a) + ' · ' + cityLabel(a) + ' · ' + headLabel(a),
         attr: 'data-acc="' + esc(a.id) + '"',
       },
       limbs: limbs,
@@ -6432,7 +7582,7 @@
     const list = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
     const camps = campsOf(c).filter(mine);
     const d = directorOf(c);
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const rg = called[c.checkpoint] || called['not-called'];
     const steps = [];
     /* where they came from */
     const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
@@ -6441,9 +7591,9 @@
       : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
     if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
-      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (RUNG[t.moved[1]] || {}).tone || 'ok' }));
+      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
     const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
-    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (RUNG[out.moved[1]] || {}).tone || 'warn' });
+    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
     phasesOf(c).forEach((t) => steps.push({
       k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
       t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
@@ -6455,7 +7605,7 @@
     const due = c.next
       ? { what: c.next.what, when: (late ? 'was due ' : 'due ') + sayWhen(c.next.due), late: late }
       : null;
-    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rg.say) +
+    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rungSay(c)) +
       (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.';
     const quiet = quietUnderFour(c);
     /* the caption says "Next", so the sentence does not have to */
@@ -6488,7 +7638,7 @@
     if (got) steps.push({ k: 'Got through', t: sayDay(got.at) + ' · ' + esc((DB.byCon[got.con] || {}).name || '').split(' ')[0], tone: 'ok' });
     if (top && rank(top.checkpoint) >= rank('answered')) {
       steps.push({ k: rungLabel(top.checkpoint), t: top.name.split(' ')[0] +
-        (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (RUNG[top.checkpoint] || {}).tone || 'ok' });
+        (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (called[top.checkpoint] || {}).tone || 'ok' });
       phasesOf(top).slice(-1).forEach((t) => steps.push({
         k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
         t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
@@ -6498,7 +7648,7 @@
     const now = calls.length
       ? '<b>' + commas(people.length) + '</b> on the record here, <b>' + commas(calls.length) + '</b> ' +
         verbFor(calls.length, 'call') + ' in, <b>' + commas(reached.length) + '</b> of them reached.'
-      : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been rung.';
+      : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been called.';
     const handed = top && top.checkpoint === 'handed-over';
     const next = handed ? esc(dealLine(top))
       : top && rank(top.checkpoint) >= rank('answered')
@@ -6509,7 +7659,7 @@
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
         ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
-      cite: a.city + ' · ' + INDUSTRY[a.industry].label,
+      cite: cityLabel(a) + ' · ' + indLabel(a),
     };
   }
   /* The hand-over from the company page: the furthest person, once warm. */
@@ -6522,18 +7672,18 @@
 
   function whatNext(c) {
     switch (c.checkpoint) {
-      case 'not-called':  return 'Next: ring them for the first time.';
+      case 'not-called':  return 'Next: call them for the first time.';
       case 'no-answer':   return 'Next: try again, or find a number they answer.';
-      case 'callback':    return 'Next: ring them back when they said.';
-      case 'answered':    return 'Next: ask for the meeting, or send them something and ring again.';
+      case 'callback':    return 'Next: call them back when they said.';
+      case 'answered':    return 'Next: ask for the meeting, or send them something and call again.';
       case 'meeting-set': return 'Next: the meeting happens, then say here whether they turned up.';
       case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this rung is waiting on.';
       case 'interested':  return 'Next: hand them to the director. Past that it is discovery, proof, commercial and resolution — and none of those are yours.';
       case 'handed-over': return dealLine(c);
-      case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and ring again only if something has changed.';
+      case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and call again only if something has changed.';
       case 'wrong-number': return 'Nothing is owed until somebody finds a number that is theirs.';
       case 'do-not-call': return 'Nothing is owed, and nothing may be. They opted out.';
-      default:            return 'Next: ring them.';
+      default:            return 'Next: call them.';
     }
   }
 
@@ -6566,13 +7716,13 @@
      The order is the queue's order, and there is only one of them: `qRank`
      reads the same function, so the chips and the ranking cannot drift. */
   /* ══ THE CUTS ARE THE LADDER, AND NOTHING ELSE ═════════════════════════
-     They were After a meeting · Due · Try again · Open · Never rung — five
+     They were After a meeting · Due · Try again · Open · Never called — five
      invented words for a cold caller to learn on top of the eight rungs the
      product already has. "Due" and "Open" are a CRM's vocabulary; the person
      dialling has one question, which is where this lead stands with me.
 
      So a cut IS a rung. Four of them, because four rungs are callable: you
-     have not rung them, you rang and nobody answered, they asked to be rung
+     have not called them, you rang and nobody answered, they asked to be called
      back, or you got them and there is no meeting yet. Past that a meeting
      is booked and they leave the queue — the BDR's part is done until it
      happens. Nothing here has a name that is not already on the ladder. */
@@ -6586,6 +7736,10 @@
     { k: 'after',      label: 'After meeting' },
   ];
   const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
+  /* A cut is a rung at one desk and a stage at the other, and it is exactly
+     one per person either way — which is what lets the chips add up to All. */
+  const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
+  const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
   const B_ORDER = Object.create(null);
   BUCKETS.forEach((b, i) => (B_ORDER[b.k] = i));
 
@@ -6601,13 +7755,26 @@
         const late = c.next ? -daysBetween(TODAY_ISO, c.next.due) : 0;
         const when = c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt);
         /* "4 days ago · 4 days late" said it twice; the suffix is for a date */
-        return 'Asked to be rung back <b>' + esc(when) + '</b>' +
+        return 'Asked to be called back <b>' + esc(when) + '</b>' +
           (late > 0 && !/ago|yesterday|today/.test(when) ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
       }
-      case 'not-called':
-        return 'Never rung';
+      case 'not-called': {
+        /* ══ THE LINE UNDER THE TAG IS NOT THE TAG ═══════════════════════
+           This said "Never called" six pixels under a chip reading NOT
+           CALLED. Every other rung's line earns its place by saying what
+           the chip cannot — a date, a count, the name of whoever has it,
+           what is owed and when — and this one restated it.
+
+           What the chip does not say is how long they have been sitting
+           there, which is the only thing separating one uncalled lead from
+           another. A lead nobody put on a list has no such date, and then
+           there is genuinely nothing to add: the line goes rather than
+           reaching for something to fill it. */
+        const from = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
+        return from ? 'In the book since <b>' + esc(sayDay(from.at)) + '</b>' : '';
+      }
       case 'no-answer':
-        return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
+        return 'called <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
       case 'meeting-set':
         return afterMeeting(c)
           ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
@@ -6650,7 +7817,30 @@
 
   /* The ranked queue. Stated once and read everywhere, so home, the campaign
      page and the composer cannot disagree about who is next. */
+  /* The leads on your desk. A manager's queue is not built from who is
+     callable — everyone on it has already been spoken to, by somebody else —
+     it is simply what was handed over and has not finished. */
+  /* Late first, then the ones nobody has warm-called, then what is running,
+     then what is decided — the order a manager would work them in, and the
+     same order the chips are counted in. */
+  function dealRank(c) {
+    const st = stageOf(c);
+    if (st === 'won' || st === 'lost') return 4;
+    if (c.next && daysBetween(TODAY_ISO, c.next.due) < 0) return 0;
+    if (st === 'qual') return 1;
+    if (c.next && daysBetween(TODAY_ISO, c.next.due) === 0) return 2;
+    return 3;
+  }
+  function dealQueue(campId, bucket) {
+    let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+    if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
+    if (bucket && bucket !== 'all') out = out.filter((c) => stageOf(c) === bucket);
+    out.sort((a, b) => dealRank(a) - dealRank(b) || (closeBy(a) < closeBy(b) ? -1 : 1));
+    return UI.cap ? out.slice(0, UI.cap) : out;
+  }
+
   function queue(campId, bucket) {
+    if (isMgr()) return dealQueue(campId, bucket);
     const meId = me().id;
     const mineCamps = Object.create(null);
     myCampaigns().filter(campOpen).forEach((c) => (mineCamps[c.id] = 1));
@@ -6918,9 +8108,10 @@
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Looking as</div>' +
-        REPS.filter((x) => x.fn === 'bdr').map((x) =>
+        REPS.map((x) =>
           '<button class="proto-link" type="button" data-as="' + esc(x.id) + '">' +
-          esc(x.name) + (x.id === me().id ? ' — you' : '') + '</button>').join('') +
+          esc(x.name) + ' · ' + esc(JOB[x.fn]) +
+          (x.id === me().id ? ' — you' : '') + '</button>').join('') +
       '</div>' +
       '<div class="proto-sec">' +
         '<div class="proto-h">Queue</div>' +
@@ -7102,7 +8293,7 @@
       ['you', 'Morning {first} — two minutes?'],
       ['them', 'Not now, we are mid quarter close.'],
       ['you', 'Understood. When is better?'],
-      ['them', 'Ring back next week and I will have the numbers.'],
+      ['them', 'call back next week and I will have the numbers.'],
     ],
     'gatekeeper-msg': [
       ['you', 'Morning, could I speak to {first}?'],
@@ -7124,7 +8315,7 @@
     'no-answer-rang': [
       ['you', 'Dialling…'],
       ['them', 'The line rings out.'],
-      ['you', 'Nobody picked up on the second ring either.'],
+      ['you', 'Nobody picked up on the second call either.'],
     ],
     'declined-signed': [
       ['you', 'Morning — is that {first}?'],
@@ -7164,17 +8355,53 @@
      is the handset rotated 135° — the shape a receiver makes going back into
      a cradle, which is why it means what it means. The V3 build's icons,
      unchanged. */
+  /* ══ ONE SET, ONE GRID, ONE WEIGHT ═════════════════════════════════════
+     These are Lucide (ISC), copied in rather than loaded. Every one is drawn
+     on the same 24×24 grid at the same two-pixel stroke with the same round
+     caps, which is the whole reason to take a set instead of drawing marks:
+     hand-cut paths drift, and this build had accumulated seven different
+     stroke widths across its own SVGs before this.
+
+     COPIED, NOT LOADED. The library's usual job is to walk the DOM and swap
+     placeholders for icons, and this app rewrites the stage's innerHTML on
+     every repaint — so it would have to run again after each one, and every
+     mark would blink. The paths are static data; the geometry is what was
+     worth having.
+
+     One mark per kind of fact, and the same kind carries the same mark on
+     every surface. Nothing that already has a word gets one. */
   const ICONS = {
-    dot: '<circle cx="12" cy="12" r="6"/>',
-    mic: '<path d="M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/>',
-    'mic-off': '<path d="M15 9V6a3 3 0 00-5.9-.7M9 9v3a3 3 0 004.6 2.5"/><path d="M5 11a7 7 0 0011.5 5.4M19 11a7 7 0 01-.3 2M12 18v3M9 21h6"/><path d="M3 3l18 18"/>',
-    play: '<path d="M7 4l12 8-12 8z"/>',
-    pause: '<path d="M9 5v14M15 5v14"/>',
-    phone: '<path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/>',
-    hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
+    dot: '<circle cx="12" cy="12" r="10"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/> <path d="M19 10v2a7 7 0 0 1-14 0v-2"/> <line x1="12" x2="12" y1="19" y2="22"/>',
+    'mic-off': '<line x1="2" x2="22" y1="2" y2="22"/> <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/> <path d="M5 10v2a7 7 0 0 0 12 5"/> <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/> <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/> <line x1="12" x2="12" y1="19" y2="22"/>',
+    play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+    pause: '<rect x="14" y="4" width="4" height="16" rx="1"/> <rect x="6" y="4" width="4" height="16" rx="1"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    hangup: '<path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/> <line x1="22" x2="2" y1="2" y2="22"/>',
+    company: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/> <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/> <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/> <path d="M10 6h4"/> <path d="M10 10h4"/> <path d="M10 14h4"/> <path d="M10 18h4"/>',
+    role: '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/> <rect width="20" height="14" x="2" y="6" rx="2"/>',
+    where: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/> <circle cx="12" cy="10" r="3"/>',
+    staff: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <path d="M22 21v-2a4 4 0 0 0-3-3.87"/> <path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    industry: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+    campaign: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/> <line x1="4" x2="4" y1="22" y2="15"/>',
+    web: '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
+    calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
+    spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+    back: '<path d="m15 18-6-6 6-6"/>',
+    fwd: '<path d="m9 18 6-6-6-6"/>',
+    plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
+    stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
+    mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
   };
+  /* A fact with its mark. The span wrapper is what lets the two sit on one
+     line without the mark drifting off the first line of a wrapped fact. */
+  const fact = (k, html) => '<span class="b-fact">' + chIcon(k) + '<span>' + html + '</span></span>';
+
   const chIcon = (k) =>
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (ICONS[k] || '') + '</svg>';
 
@@ -7195,6 +8422,19 @@
   }
 
   /* The director a lead is handed to: the owner of the campaign it is on. */
+  /* ══ WHOSE DESK, AS A FACT RATHER THAN A POINT OF VIEW ══════════════════
+     `directorOf` answers this for the person reading — it runs through
+     `campFor`, which prefers a campaign the reader is on — and that is right
+     for a sentence on a page and wrong for an index, which would be rebuilt
+     differently for every viewer. This reads the first campaign, which is
+     the one the seed itself used when it wrote "Handed to …" on the record,
+     so the index and the note cannot disagree. */
+  function mgrOf(c) {
+    if (c && c.manager && REP[c.manager]) return c.manager;
+    const k = c && c.camps.length ? DB.byCamp[c.camps[0]] : null;
+    return k && k.owner ? k.owner : MANAGERS[0].id;
+  }
+
   function directorOf(c) {
     /* whoever it was handed to, else whoever owns the campaign it is on */
     if (c && c.manager && REP[c.manager]) return REP[c.manager];
@@ -7216,7 +8456,7 @@
     };
     document.body.classList.add('is-calling');
     paintCall();
-    /* The brief goes up as the phone is about to ring, not after. It is a
+    /* The brief goes up as the phone is about to call, not after. It is a
        stored turn, so every toast and repaint for the rest of the run leaves
        it standing. */
     callPrep(c);
@@ -7394,9 +8634,9 @@
   }
 
   /* ══ ONE WRITE, TWO PLACES IT SHOWS ═════════════════════════════════════
-     The touchpoint and the contact's rung are the whole of it. Everything
+     The touchpoint and the contact's called are the whole of it. Everything
      the campaign reports — how many are left to call, how many callbacks are
-     due, how many meetings are set, its rung tally, its feed — is derived
+     due, how many meetings are set, its called tally, its feed — is derived
      from those two, so the person's record and the campaign they are on
      cannot disagree about what just happened. */
   function logCall() {
@@ -7426,7 +8666,7 @@
       lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
-      rung: mv.to || c.checkpoint,
+      called: mv.to || c.checkpoint,
     };
     const fields = { attempts: c.attempts + 1, lastCallAt: now };
     if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
@@ -7514,7 +8754,7 @@
      model and not a page of its own. */
   function callAll(ids) {
     const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
-    if (!live.length) { toast('Nobody in this set has a number to ring.'); return; }
+    if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
     const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
     startCall(live[0], sess);
     paint();
@@ -7530,6 +8770,16 @@
      Five rows, and they are the V3 build's: the state, who you are speaking
      to, what is being said, somewhere to write, and the four shapes every
      telephone has.
+
+     AND IT IS THE SAME RAIL IN A RUN. Skip was still in the handset row, and
+     because End and Start take the full width of that row it wrapped to a
+     line of its own — so a bulk run's rail was a row taller than a single
+     call's, the notes field sat higher, and the two did not read as the same
+     column. The build had already ruled on this one: the run's controls left
+     this panel because in here they have no visible object, and they live on
+     the brief in the canvas under a sentence naming the run, where Skip this
+     one and Stop the run sit together. The counter stays, because "1 of 15"
+     is something the rail knows rather than something it does.
 
      THE BRIEF IS NOT HERE. It is preparation, and preparation belongs in the
      canvas beside the rest of it — copying three of its lines into this
@@ -7629,14 +8879,6 @@
             (dialing ? 'Stop calling them' : 'End the call') + '">' + chIcon('hangup') +
             (dialing ? 'Stop' : 'End') + '</button>') +
 
-        /* Deciding not to ring somebody is a decision you make reading their
-           brief, not while their phone rings — so Skip holds in `ready`. */
-        /* Skip belongs to a RUN. Outside one there is nothing to skip to,
-           and V3 draws exactly one control here: Start call. A second button
-           beside it broke the full-width primary the whole column ends on. */
-        (ready && sess
-          ? '<button class="call-tool call-tool-word" type="button" data-callskip>Skip</button>'
-          : '') +
       '</div>';
   }
 
@@ -7651,12 +8893,12 @@
 
      So they are one press each, on the record, always visible, and every one
      of them is undoable. No modal, no picker, no confirm: the confirmation
-     ladder's bottom rung is "act, then toast with Undo", and every one of
+     ladder's bottom called is "act, then toast with Undo", and every one of
      these is reversible and touches one lead. */
 
   /* ══ THE BRANCH WITH NO CONTROL ════════════════════════════════════════
      The process has it: they answered, they showed no interest, so you send
-     the company profile and ring again later. It was a step in the flow
+     the company profile and call again later. It was a step in the flow
      with nowhere to press, so it was either not done or done outside the
      product and never written down. It is a touchpoint like any other. */
   /* ══ A BETTER NUMBER FOR ONE PERSON ════════════════════════════════════
@@ -7726,15 +8968,15 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint',
       proposals: [], objections: [], openings: [],
-      note: mv === 'no-show' ? 'They did not turn up. Ring to reschedule.'
+      note: mv === 'no-show' ? 'They did not turn up. call to reschedule.'
         : mv === 'handed-over' ? 'Handed to ' + directorOf(c).name + '.'
         : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
-      lines: [], next: null, moved: [c.checkpoint, to], rung: to,
+      lines: [], next: null, moved: [c.checkpoint, to], called: to,
     };
     /* A NO-SHOW OWES A CALL WITH A REASON. "Call them back" said nothing
        about why; the flowchart's step is reach them to reschedule. */
     patchCon(c, { checkpoint: to, checkpointAt: now,
-      next: mv === 'no-show' ? { what: 'Ring to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
+      next: mv === 'no-show' ? { what: 'call to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
     addTouch(t);
     const camp = DB.byCamp[t.camp];
     toast(c.name.split(' ')[0] + ' → ' + rungLabel(to) +
@@ -7772,10 +9014,10 @@
     if (backs.length) {
       tasks.push({ id: 'callbacks', sev: late ? 'p1' : 'p2', type: 'Callbacks',
         when: late ? late + ' overdue' : 'due today',
-        body: plural(backs.length, 'person') + ' asked to be rung back and their day has come.' +
+        body: plural(backs.length, 'person') + ' asked to be called back and their day has come.' +
           (late ? ' ' + late + ' of them ' + (late === 1 ? 'is' : 'are') + ' already overdue.' : ''),
         cta: 'Work the callbacks',
-        ask: 'Who asked to be rung back and is due today?' });
+        ask: 'Who asked to be called back and is due today?' });
     }
     /* the same cut the chip counts, so the bell and the page cannot disagree */
     const met = queue(null, 'after');
@@ -7800,7 +9042,7 @@
       tasks.push({ id: 'closing-' + closing.k.id, sev: 'p2', type: 'Campaign',
         when: plural(closing.left, 'day') + ' left',
         body: closing.k.name + ' closes in ' + plural(closing.left, 'day') + ' with ' +
-          commas(closing.fresh) + ' people never rung.',
+          commas(closing.fresh) + ' people never called.',
         cta: 'Show the campaign', ask: closing.k.name });
     }
     const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
@@ -7852,13 +9094,95 @@
     });
     return Object.keys(by).map((k) => by[k]).sort((x, y) => (x.sig.at < y.sig.at ? 1 : -1));
   }
+  /* ══ WHAT IS WAITING ON THE OTHER DESK ═════════════════════════════════
+     The caller's rows are all about the phone. None of them is the manager's
+     work, and the one that matters most to him has no equivalent at all: he
+     walked out of a room and the record never heard about it. That is the
+     reason they still carry a notebook, so it is the first row and it is the
+     only p1 the desk has. */
+  function mgrTasks() {
+    const tasks = [];
+    unrecorded().slice(0, 4).forEach((m) => {
+      const days = -daysBetween(TODAY_ISO, m.iso);
+      tasks.push({
+        id: 'met:' + m.con.id + ':' + m.iso,
+        sev: 'p1', type: MEET_KIND[m.kind].label,
+        when: days === 1 ? 'yesterday' : plural(days, 'day') + ' ago',
+        body: 'Your ' + clockOf(m) + ' with ' + m.con.name + ' has been and gone, and ' +
+          'nothing on the record says how it went.',
+        cta: 'Say how it went',
+        /* The words, not the answer — he is the only one who knows it. */
+        ask: 'fill:Had a ' + m.kind + ' with ' + m.con.name + ', ',
+      });
+    });
+    const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
+    if (soon.length) {
+      tasks.push({ id: 'diary-today', sev: 'p2', type: 'Today', when: clockOf(soon[0]),
+        body: plural(soon.length, 'thing') + ' in the diary today, the first with ' +
+          soon[0].con.name + '.',
+        cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
+    }
+    const live = queue(null, 'all').filter(dealLive);
+    const late = live.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
+    if (late.length) {
+      tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
+        body: plural(late.length, 'deal') + ' owed something before today: ' +
+          listSay(late.slice(0, 3).map((c) => c.name)) + (late.length > 3 ? ' and others' : '') + '.',
+        cta: 'Show the board', ask: 'How do my deals stand?' });
+    }
+    const cold = live.filter((c) => stageOf(c) === 'qual' &&
+      daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
+    if (cold.length) {
+      tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
+        body: plural(cold.length, 'lead') + ' been on your desk two days or more without a ' +
+          'warm call: ' + listSay(cold.slice(0, 3).map((c) => c.name)) + '.',
+        cta: 'Show them', ask: 'How do my deals stand?' });
+    }
+    const ripe = expansionsOf(null).filter((x) => x.ripe);
+    if (ripe.length) {
+      tasks.push({ id: 'expand', sev: 'p3', type: 'Customers', when: plural(ripe.length, 'account'),
+        body: plural(ripe.length, 'customer') + ' past ninety days on what they bought, ' +
+          'starting with ' + ripe[0].acc.name + ' — ' + SELL[ripe[0].next].name +
+          ' is the one that fits.',
+        cta: 'Show me', ask: ripe[0].acc.name });
+    }
+    const quiet = live.filter((c) => {
+      if (stageOf(c) !== 'commercial') return false;
+      const ph = phasesOf(c);
+      return ph.length && daysBetween(ph[ph.length - 1].at.slice(0, 10), TODAY_ISO) >= 7;
+    });
+    if (quiet.length) {
+      tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
+        body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
+          'for a week: ' + listSay(quiet.slice(0, 3).map((c) => c.name)) + '.',
+        cta: 'Show the board', ask: 'How do my deals stand?' });
+    }
+    return tasks;
+  }
+
   function refreshTasks() {
     AIMY_TASKS.length = 0;
-    bdrTasks().forEach((t) => AIMY_TASKS.push(t));
+    (isMgr() ? mgrTasks() : bdrTasks()).forEach((t) => AIMY_TASKS.push(t));
     if (window.aimyNtfRender) window.aimyNtfRender();
   }
+  /* ══ WHAT A ROW DOES WHEN YOU PRESS IT ═════════════════════════════════
+     Most rows are a question with one answer, and running it is right. Two
+     are not. "Say how it went" has to hand you the words and stop, because
+     submitting "Had a meeting with Ava Hall" as it stands would log a
+     meeting that says nothing about how it went — the whole point of the
+     row. And "Prepare me" opens a brief, which is not a sentence at all. */
+  function taskGo(q) {
+    if (typeof q !== 'string') return;
+    if (q.indexOf('fill:') === 0) { fillBar(q.slice(5)); return; }
+    if (q.indexOf('prep:') === 0) {
+      const c = DB.byCon[q.slice(5)];
+      if (c) callPrep(c);
+      return;
+    }
+    runInput(q);
+  }
   /* QA's hook. A row's question goes where a typed one goes. */
-  window.aimyOpenCanvas = function (q) { runInput(q); };
+  window.aimyOpenCanvas = taskGo;
 
 (function () {
   var bell   = document.getElementById('ntfBell');
@@ -8123,6 +9447,8 @@
                  attribute whose name only exists while the page is running
                  is one the audit cannot pair with its handler. */
               (t.spent ? 'disabled'
+                : t.step === 'cbuild' ? 'data-cb="' + esc(o.k) + '"'
+                : t.step === 'meetlog' ? 'data-meetlog="' + esc(o.k) + '"'
                 : t.step === 'calllog' ? 'data-calllog="' + esc(o.k) + '"'
                 : 'data-lb="' + esc(o.k) + '"') + '>' +
               esc(o.label) + '</button>').join('') + '</div>'
@@ -8170,8 +9496,215 @@
     return hit ? { con: hit } : null;
   }
 
-  const CALL_RE = /^(call|ring|dial)\b/i;
+  /* ══ WHAT A MANAGER SAYS AFTER A MEETING ═══════════════════════════════
+     The caller's reader answers "what happened on the phone" — a
+     disposition, a proposal, an objection. None of those is what comes out
+     of a room. What a manager says is which step the deal reached, what was
+     asked for next, and when.
+
+     The endings are tested first on purpose: "signed the proposal" is a
+     signature, not a proposal, and a lexicon ordered by anything but
+     finality reads it backwards. */
+  const MEET_SAID = [
+    { k: 'lost', re: /\b(lost it|they passed|passed on it|went with|turned us down|not going ahead|said no|no from them)\b/i },
+    { k: 'won', re: /\b(signed|we won|closed it|they agreed|go ahead|it is ours|they are in)\b/i },
+    { k: 'commercial', re: /\b(proposal|quote|quoted|pricing|priced|the numbers|contract|terms|sow|statement of work)\b/i },
+    { k: 'proof', re: /\b(demo|proof|showed them|walked them through|pilot|poc)\b/i },
+    { k: 'discovery', re: /\b(discovery|first meeting|intro|introductory|scoping|got into what)\b/i },
+  ];
+  /* What they asked for next, if they asked for anything. */
+  const NEXT_SAID = /\b(?:want|wants|wanted|asked for|asking for|set up|booked|book|scheduled|schedule|arranged|arrange|next)\b[^.]{0,40}?\b(demo|meeting|dinner|proposal|pricing|price|quote|numbers|call)\b/i;
+  const NEXT_WHAT = { demo: 'Demo for them', meeting: 'Meeting with them',
+    dinner: 'Dinner with them', proposal: 'Proposal to them', call: 'Meeting with them',
+    /* Asking for the price is asking for the proposal. It read as the stage
+       instead, so "walked them through it and they want pricing" put the
+       deal at Commercial — past the proposal, on the strength of somebody
+       asking for one. */
+    pricing: 'Proposal to them', price: 'Proposal to them',
+    quote: 'Proposal to them', numbers: 'Proposal to them' };
+
+  /* An hour, if one was said. Nothing is inferred here — no hour is a
+     perfectly good answer and the diary already knows how to draw one. */
+  function readClock(text) {
+    const m = text.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i) ||
+      text.match(/\b(?:at\s+)?(\d{1,2}):(\d{2})\b/);
+    if (!m) return null;
+    let h = Number(m[1]);
+    const mi = m[2] ? Number(m[2]) : 0;
+    const ap = (m[3] || '').toLowerCase();
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    if (h > 23 || mi > 59) return null;
+    return { h: h, m: mi };
+  }
+
+  function readMeet(text, fallback) {
+    /* Only your own deals, and the longest name that appears — "Kate" must
+       not beat "Kate Jones" when both are in the book. */
+    const lower = ' ' + text.toLowerCase() + ' ';
+    let con = null;
+    queue(null, 'all').forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(n) >= 0 && (!con || n.length > con.name.length)) con = c;
+    });
+    /* A correction names nobody — it is about the deal already in hand —
+       and a record open on screen is who you are talking about. */
+    if (!con && fallback) con = fallback;
+    if (!con && S.con && DB.byCon[S.con] && DB.byCon[S.con].checkpoint === 'handed-over') {
+      con = DB.byCon[S.con];
+    }
+    if (!con) return null;
+    const nx = text.match(NEXT_SAID);
+    /* ══ WHAT HAPPENED IS NOT WHAT WAS ASKED FOR ═══════════════════════
+       "had a demo, they want a proposal" read as Commercial, because the
+       word proposal is in the sentence — and then put a proposal in the
+       diary as the thing still owed, so the deal was simultaneously past
+       the proposal and yet to send one. The clause naming the next step is
+       cut out before the stage is read, the same way the caller's reader
+       only takes a date from the next-step clause. */
+    const past = nx ? text.replace(nx[0], ' ') : text;
+    let stage = null;
+    for (let i = 0; i < MEET_SAID.length; i++) {
+      if (MEET_SAID[i].re.test(past)) { stage = MEET_SAID[i].k; break; }
+    }
+    return {
+      con: con, stage: stage, guessed: !stage,
+      next: nx ? NEXT_WHAT[nx[1].toLowerCase()] : null,
+      when: readWhen(text), clock: readClock(text),
+    };
+  }
+
+  /* ══ THE READ-BACK, AND ONE PRESS ══════════════════════════════════════
+     The same shape a logged call ends on: what I heard, what I am about to
+     write, and a correction is another sentence rather than a form. */
+  function meetPropose(text, f) {
+    const c = f.con;
+    const at = stageRank(stageOf(c));
+    /* Nothing said which step it reached, so it moves one — and says that
+       is what it did, because a stage asserted from silence is the
+       invention this record must never make. */
+    const to = f.stage || (DEAL_STAGES[at + 1] ? DEAL_STAGES[at + 1].k : null);
+    if (!to || stageRank(to) <= at) {
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', 'That reads as <b>' + esc(DEAL_STAGE[to || stageOf(c)].label) +
+        '</b>, which is where ' + esc(c.name) + ' already stands. Say what came of it ' +
+        'and I will move it on.');
+      return true;
+    }
+    PENDING = { kind: 'meet', con: c.id, to: to, guessed: f.guessed, next: f.next,
+      when: f.when, clock: f.clock, note: text };
+    openCanvas();
+    say('you', esc(text));
+    lbuildSpend();
+    const bits = ['Moving <b>' + esc(c.name) + '</b> to <b>' + esc(DEAL_STAGE[to].label) + '</b>'];
+    if (f.next) bits.push('and putting <b>' + esc(f.next.toLowerCase()) + '</b> in the diary for <b>' +
+      esc(sayWhen(dayAdd(f.when))) + '</b>' + (f.clock ? ' at <b>' + f.clock.h + ':' +
+        String(f.clock.m).padStart(2, '0') + '</b>' : ''));
+    TURNS.push({
+      who: 'aimy',
+      html: bits.join(', ') + '.' + (f.guessed
+        ? ' Nothing in that said which step it reached, so I have moved it on by one.'
+        : ''),
+      hint: 'Or say what I got wrong — "it was only a demo", "they signed", "no meeting yet".',
+      step: 'meetlog',
+      opts: [{ k: 'go', label: 'Log it' }, { k: 'drop', label: 'Leave it', quiet: true }],
+    });
+    paintThread();
+    return true;
+  }
+
+  function meetCommit() {
+    const p = PENDING;
+    if (!p || p.kind !== 'meet') return;
+    const c = DB.byCon[p.con];
+    PENDING = null;
+    if (!c) { paintThread(); return; }
+    setStage(c.id, p.to, p.note);
+    if (p.next) {
+      const due = dayAdd(p.when);
+      patchCon(c, { next: { what: p.next, due: due } });
+      if (p.clock) {
+        DELTA.meet[c.id] = { h: p.clock.h, m: p.clock.m };
+        saveNow();
+      }
+    }
+    paint();
+  }
+
+  const CALL_RE = /^(call|call|dial)\b/i;
   const ASK_RE = /\?$|^(how|who|what|when|where|why|show|which)\b/i;
+
+  /* ══ A LEAD YOU MET, RATHER THAN ONE A SEARCH RETURNED ══════════════════
+     Every other lead in the book arrived from an index — described, run,
+     saved as a list. A manager's own arrive over dinner, and the product had
+     nowhere to put one. This is the same door everything else uses: you say
+     it, and what it heard is on the record.
+
+     Name first, then a title after a comma, then the company after "at".
+     Everything but the name is optional, because at the moment you type this
+     you are standing outside a restaurant. */
+  const ADD_RE = /^\s*(?:add|new)\s+(?:a\s+)?(?:lead|contact|person)\b\s*[:,-]?\s*(.*)$/i;
+  function readLead(rest) {
+    let t = String(rest || '').trim().replace(/[.\s]+$/, '');
+    if (!t) return null;
+    let co = null;
+    const at = t.match(/^(.*?)\s+(?:at|from|@)\s+([^,]+)$/i);
+    if (at) { t = at[1].trim(); co = at[2].trim(); }
+    const parts = t.split(',').map((x) => x.trim()).filter(Boolean);
+    if (!parts.length || !/[a-z]/i.test(parts[0])) return null;
+    return { name: parts[0], title: parts[1] || null, co: co };
+  }
+
+  /* The company is looked up before it is minted, so naming one already in
+     the book puts the person beside the colleagues we have rather than
+     starting a second copy of it. */
+  function addLead(f) {
+    const now = new Date().toISOString();
+    const key = Date.now().toString(36);
+    const tag = 'h' + key;
+    const lower = (f.co || '').toLowerCase();
+    let a = f.co ? DB.acc.filter((x) => x.name.toLowerCase() === lower)[0] : null;
+    const madeAcc = [];
+    if (f.co && !a) {
+      a = { id: 'x' + tag, name: f.co,
+        domain: f.co.toLowerCase().replace(/[^a-z0-9]+/g, '') + '.com',
+        industry: null, city: null, country: null, region: null, size: null };
+      madeAcc.push(a);
+    }
+    /* It lands on the manager's own desk at Qualification: he found them, so
+       there is no caller to hand it over from and nothing to call first. */
+    const c = {
+      id: 'y' + tag, acc: a ? a.id : null, name: f.name,
+      title: f.title || 'Title not known',
+      phone: null, email: null, camps: [], owner: null,
+      checkpoint: 'handed-over', checkpointAt: now,
+      attempts: 0, lastCallAt: null, next: null, remember: null, dnc: false,
+      fate: SCENARIOS[0].k, enrichedAt: null, manager: me().id,
+    };
+    const t = {
+      id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
+      outcome: 'added', proposals: [], objections: [], openings: [],
+      note: 'Added by hand' + (f.co ? ', met at ' + f.co : '') + '.',
+      lines: [], next: null, moved: null, called: 'handed-over',
+    };
+    DB.acc = DB.acc.concat(madeAcc);
+    DB.con = DB.con.concat([c]);
+    DELTA.made = (DELTA.made || []).concat([{ list: tag, acc: madeAcc, con: [c] }]);
+    reindex();
+    addTouch(t);
+    go({ con: c.id });
+    toast(esc(c.name) + ' is on your board' +
+      (a ? ' at ' + esc(a.name) : '') + ' — nothing is known but what you said', () => {
+      dropTouch(t.id);
+      DB.con = DB.con.filter((x) => x.id !== c.id);
+      DB.acc = DB.acc.filter((x) => madeAcc.indexOf(x) < 0);
+      DELTA.made = (DELTA.made || []).filter((m) => m.list !== tag);
+      reindex();
+      save();
+      go(cleared());
+    });
+  }
 
   /* Who the sentence is about: a name in it on one of your campaigns, else
      whoever is open. Nobody: ask, and keep the sentence in the thread. */
@@ -8203,10 +9736,44 @@
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
+    if (PENDING && PENDING.kind === 'meet') {
+      /* A correction re-reads the sentence alone, the same rule the call's
+         read-back follows: the newest thing you said wins outright. The
+         person carries over, because "it was only a demo" names nobody. */
+      const held = DB.byCon[PENDING.con];
+      const again = readMeet(t, held);
+      PENDING = null;
+      if (again && (again.stage || again.next)) { meetPropose(t, again); return; }
+      openCanvas();
+      say('you', esc(t));
+      say('aimy', 'I could not read a step out of that, so nothing was written. ' +
+        'Say it again with what came of the meeting in it.');
+      paintThread();
+      return;
+    }
     if (PENDING) {
       if (callLogCorrect(t)) return;
       PENDING.note = t;
       toast('I could not read a disposition out of that. Say it another way.');
+      return;
+    }
+
+    if (CBUILD) {
+      if (CBUILD.step === 'who') { cbuildWho(t); return; }
+      if (CBUILD.step === 'many') {
+        const m = cbuildReadMany(t);
+        cbuildMany(m.n, m.weeks);
+        return;
+      }
+      if (CBUILD.step === 'name') {
+        CBUILD.name = t.slice(0, 60);
+        cbuildMake();
+        return;
+      }
+      /* A sentence where a choice was asked for is said back rather than
+         swallowed: the chips above are still the answer. */
+      say('you', esc(t));
+      cbuildPush('Pick one of the options above and I will carry on.', [], '');
       return;
     }
 
@@ -8252,12 +9819,28 @@
       return;
     }
 
+    const addM = t.match(ADD_RE);
+    if (addM) {
+      const f = readLead(addM[1]);
+      if (!f) {
+        openCanvas();
+        say('you', esc(t));
+        say('aimy', answerBlock('Who am I adding?',
+          '<p class="s-block-sub">Give me a name at least — and a title and a company ' +
+          'if you have them. <b>Add a lead: Joseph Jones, Head of Operations at Puma</b>.</p>', ''));
+        return;
+      }
+      hideCanvas();
+      addLead(f);
+      return;
+    }
+
     if (CALL_RE.test(t)) {
       const rest = t.replace(CALL_RE, '').replace(/^\s*(the\s+)?/i, '').trim();
       hideCanvas();
       if (!rest || /^next( one)?$/i.test(rest)) {
         const first = queue(S.camp || null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
-        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to call.');
         return;
       }
       const found = findByName(rest);
@@ -8281,6 +9864,14 @@
          The bar promises "log a touchpoint" and this said "open the call
          panel". The sentence names who, or whoever is open is who; the
          read-back is the same card a call ends on, agreed in a word. */
+      /* At the manager's desk a sentence about a room outranks a sentence
+         about a phone: "had a demo with Kate, they want pricing" is a
+         meeting, and reading it as a call would write a touchpoint that
+         says a phone rang. */
+      if (isMgr()) {
+        const mt = readMeet(t);
+        if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
+      }
       const read = readCall(t);
       if (read.disp || read.props.length || read.objs.length) {
         if (logBySentence(t, read)) return;
@@ -8300,7 +9891,7 @@
     const q = text.toLowerCase();
     const all = queue(S.camp || null, 'all');
     const counts = Object.create(null);
-    all.forEach((c) => { const b = bucketOf(c); counts[b] = (counts[b] || 0) + 1; });
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     counts.after = queue(S.camp || null, 'after').length;
     const door = (label, over) =>
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
@@ -8322,7 +9913,7 @@
       /* the bell's number first, then the wider window it opens onto */
       return '<b>' + plural(week.length, 'company', 'companies') + '</b> in your queue moved this week' +
         (hits.length > week.length ? ', ' + commas(hits.length) + ' in the last three weeks' : '') +
-        '. Each door is the company; the first person to ring is on it.' +
+        '. Each door is the company; the first person to call is on it.' +
         '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
           door(h.a.name + ' · ' + h.sig.text + ' · seen ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
         '</div>';
@@ -8357,16 +9948,16 @@
             Object.assign(cleared(), { on: 'lists', list: l.id }))).join('') +
         '</div>';
     }
-    if (/callback|call back|rung back|owe|due/.test(q)) {
+    if (/callback|call back|called back|owe|due/.test(q)) {
       const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
-      return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be rung back' +
+      return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be called back' +
         (S.camp ? ' on this campaign' : ' across your ' +
         plural(myCampaigns().length, 'campaign')) + (late ? ', <b>' + commas(late) + '</b> of them overdue' : '') + '. ' +
         door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' }));
     }
     if (/how many|left|remaining|to call/.test(q)) {
-      /* the after-meeting cut is not rung, so it is not in the sum; it is said */
-      return '<b>' + commas(all.length) + '</b> people can be rung' +
+      /* the after-meeting cut is not called, so it is not in the sum; it is said */
+      return '<b>' + commas(all.length) + '</b> people can be called' +
         (S.camp ? ' on this campaign' : '') + ' — ' +
         BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
@@ -8426,16 +10017,19 @@
             (st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go' : '')
           : st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go — ' + st.perWeek + ' a week lands the other ' + st.need
           : ', past its end date and ' + st.need + ' short') +
-        '. <b>' + commas(cq.length) + '</b> to ring' + (backs || fresh ? ': ' +
-          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never rung' : null].filter(Boolean).join(', ') : '') + '. ' +
+        '. <b>' + commas(cq.length) + '</b> to call' + (backs || fresh ? ': ' +
+          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never called' : null].filter(Boolean).join(', ') : '') + '. ' +
         door('Open the campaign', Object.assign(cleared(), { camp: named.id }));
     }
     /* ══ WHAT TO DO FIRST ══════════════════════════════════════════════════
        The bell's own footer asks it, and got the fallback. The bell's rows
        are already in order; the answer says so and hands each one on. */
     if (/do first|first and why|what should i do|where do i start|start with|priorit/.test(q)) {
-      const tasks = bdrTasks();
-      if (!tasks.length) return 'Nothing is waiting on you. Ring the next one.';
+      const tasks = isMgr() ? mgrTasks() : bdrTasks();
+      if (!tasks.length) {
+        return isMgr() ? 'Nothing is waiting on you. The diary is clear.'
+          : 'Nothing is waiting on you. call the next one.';
+      }
       const first = tasks[0];
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
         (tasks.length > 1 ? ' Then ' + tasks.slice(1, 3).map((t) => esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
@@ -8443,7 +10037,7 @@
           '<button class="s-insight-lnk" type="button" data-ask="' + esc(t.ask) + '">' + esc(t.cta) + '</button>').join('') + '</div>';
     }
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
-      'people answer, which meetings passed, what changed at the companies you ring, who went ' +
+      'people answer, which meetings passed, what changed at the companies you call, who went ' +
       'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
       'what to do first. Name a person or a campaign to go there; a sentence about a call logs it.';
   }
@@ -8472,11 +10066,11 @@
 
   /* Everything worth knowing before the phone rings, in the order you would
      ask it. Nine lines at most, and every one of them off the record. */
-  /* ══ THE BRIEF IS DIFFERENT AT EVERY RUNG ══════════════════════════════
+  /* ══ THE BRIEF IS DIFFERENT AT EVERY called ══════════════════════════════
      It said the same thing to a stranger and to somebody who booked a
      meeting last Tuesday: who they are, what we sell, open on the pitch.
      That is the wrong sentence for six of the eight rungs. What you say
-     to a lead who asked to be rung back is that you are ringing when they
+     to a lead who asked to be called back is that you are ringing when they
      said; to one with a meeting in the diary it is a confirmation, not a
      pitch; to one who has never picked up it is a reason to keep trying.
 
@@ -8498,7 +10092,7 @@
         return 'They have never picked up — ' + plural(c.attempts, 'attempt') +
           ' so far. Say why you keep ringing rather than that you have been.';
       case 'callback':
-        return 'They asked to be rung back' + (c.next
+        return 'They asked to be called back' + (c.next
           ? ', and it ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
             sayWhen(c.next.due)
           : '') + '. Open on that: you are ringing when they said, not out of the blue.';
@@ -8516,14 +10110,14 @@
       case 'handed-over':
         return 'This one is not yours any more — ' +
           esc(actor((camp && camp.owner) || me().id).name) +
-          ' has it. Check before you ring.';
+          ' has it. Check before you call.';
       case 'declined':
         return 'They said no' + (said ? ' — ' + said : '') +
-          '. Ring only if something has changed, and open on the thing that changed.';
+          '. call only if something has changed, and open on the thing that changed.';
       case 'wrong-number':
         return 'The number on this record is not theirs. Find another before you dial.';
       case 'do-not-call':
-        return 'They opted out. Do not ring this one.';
+        return 'They opted out. Do not call this one.';
       default:
         return camp ? camp.pitch : 'Ask what they are running this with today.';
     }
@@ -8546,6 +10140,119 @@
 
      What they push back on sits between the second and the third, because
      it is the only part of the campaign's material that arrives mid-call. */
+  /* ══ BEFORE A ROOM, NOT BEFORE A DIAL ══════════════════════════════════
+     The caller's brief opens with the rung and the phone, because that is
+     what the next sixty seconds are. A manager's opens with proof: they
+     walk in cold to somebody who wants to know we have done this before,
+     and the sentence they say first is the one that decides whether the
+     rest of the meeting is a conversation or a pitch.
+
+     Then who they are and what the caller got out of them, then what has
+     already happened, then what they will push back on with the answer the
+     team agreed. Same blocks as the caller's brief, in the order a room
+     needs them rather than the order a phone does. */
+  function meetPrep(c) {
+    const a = accOf(c);
+    const camp = dealCamp(c);
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const ph = phasesOf(c);
+    const st = DEAL_STAGE[stageOf(c)];
+    const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
+    const stories = storiesFor(a, camp ? camp.sells : []);
+    const cases = camp ? camp.resources.filter((r) => r.kind === 'case') : [];
+
+    let body = '<div class="b-prep">';
+    body += '<p class="b-prep-id">' + esc(c.title) +
+      (a ? ' · ' + esc(a.name) + (accKnown(a)
+        ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
+
+    /* ── 1. the proof, first ── */
+    if (stories.length) {
+      body += '<h3 class="b-brief-cap">Say this first</h3>' +
+        '<div class="b-story">' + stories.map((x) =>
+          '<div class="b-story-row">' +
+            '<span class="b-story-who">' + esc(x.who) + '</span>' +
+            '<p class="b-story-say">' + esc(x.say) + '</p>' +
+          '</div>').join('') +
+        (cases.length
+          ? '<p class="b-prep-refp"><b>On paper</b> <span class="b-docs">' +
+            cases.map((r) => docChip(camp.id, camp.resources.indexOf(r), r)).join('') +
+            '</span></p>'
+          : '') +
+        '</div>';
+    }
+
+    /* ── 2. where the deal stands ── */
+    body += '<div class="b-prep-state">' +
+      '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
+      '<span class="b-prep-owed">' + esc(dealLive(c)
+        ? 'worth ' + euro(amountOf(c)) + ', expected ' + sayDay(closeBy(c))
+        : 'decided') + '</span>' +
+      (c.next
+        ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
+          esc(sayWhen(c.next.due)) + '</span>'
+        : '') +
+    '</div>';
+
+    /* ── 3. what is already known ── */
+    const know = [];
+    know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
+      'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
+    /* Something they put in public is the best opener there is, and it is
+       the thing a manager would have gone looking for by hand. */
+    const sig = a ? signalOf(a) : null;
+    if (sig) {
+      know.push([sig.src === 'LinkedIn' ? 'Seen on LinkedIn' : 'Seen',
+        esc(a.name) + ' ' + esc(sig.text) + ', ' + esc(sayWhen(sig.at)) + '.']);
+    }
+    if (c.owner) {
+      const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
+      know.push(['How it started', esc(actor(c.owner).name) + ' rang them cold' +
+        (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
+    }
+    if (ph.length) {
+      const l = ph[ph.length - 1];
+      know.push(['Last time', esc((PHASE[l.phase] || {}).label || 'A meeting') + ' on ' +
+        esc(sayDay(l.at.slice(0, 10))) + '. ' + esc(l.note)]);
+    } else {
+      know.push(['Last time', 'Nothing since the hand-over. This is the first time in a room.']);
+    }
+    if (c.remember) {
+      know.push(['Remember', esc(c.remember.text) + ' <span class="s-callp-who">— ' +
+        esc(actor(c.remember.by).name) + '</span>']);
+    }
+    body += '<div class="b-prep-know">' + know.map((x) =>
+      '<p class="b-prep-line"><b>' + esc(x[0]) + '</b> ' + x[1] + '</p>').join('') + '</div>';
+
+    /* ── 4. what comes back ── */
+    if (camp && camp.objections.length) {
+      const obj = objectionLikely(c, camp);
+      body += '<h3 class="b-brief-cap">If they push back</h3>' +
+        (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
+        '<div class="b-back">' + camp.objections.map((o) =>
+          '<div class="b-back-row">' +
+            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<p class="b-back-v">' + esc(o.say) + '</p>' +
+          '</div>').join('') + '</div>';
+    }
+
+    /* ── 5. the offering, quietest ── */
+    if (camp) {
+      body += '<div class="b-prep-ref">' +
+        '<p class="b-prep-refp"><b>Selling</b> ' + esc(camp.sells.map((x) =>
+          SELL[x].name + ' — ' + SELL[x].blurb).join('; ')) + '</p>' +
+        '<p class="b-prep-refp"><b>Why now</b> ' + esc(camp.persona.why) + '</p>' +
+      '</div>';
+    }
+    body += '</div>';
+
+    openCanvas();
+    say('aimy', answerBlock('Before you meet ' + c.name, body,
+      ph.length ? plural(ph.length, 'meeting') + ' behind this one'
+        : 'nothing in a room yet'));
+    paintThread();
+  }
+
   function callPrep(c) {
     const a = accOf(c);
     const camp = DB.byCamp[campFor(c)];
@@ -8553,7 +10260,7 @@
     const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
-    const rg = RUNG[c.checkpoint];
+    const rg = called[c.checkpoint];
     const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
 
     let body = '<div class="b-prep">';
@@ -8562,8 +10269,8 @@
        repeating it as the first of nine facts spent the loudest line on the
        one thing the reader had just read. */
     body += '<p class="b-prep-id">' + esc(c.title) +
-      (a ? ' · ' + esc(a.name) + ' · ' + esc(INDUSTRY[a.industry].label) + ' · ' +
-        commas(a.size) + ' staff' : '') + '</p>';
+      (a ? ' · ' + esc(a.name) + (accKnown(a)
+        ? ' · ' + esc(indLabel(a)) + ' · ' + esc(headLabel(a)) : '') : '') + '</p>';
 
     /* ── 1. where they stand, and what is owed ── */
     body += '<div class="b-prep-state">' +
@@ -8736,7 +10443,7 @@
     outcome: t.outcome,
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
-    rung: t.rung || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
+    called: t.called || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
   });
 
   function callFacts(f, c) {
@@ -8775,7 +10482,7 @@
          callback from July does not "stay at" a meeting set in August.
          A phase is the director's ladder, not this one, so it says
          nothing about a rung it was never going to move. */
-      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.rung || c.checkpoint), 'neutral']);
+      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.called || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
     return rows;
@@ -8931,7 +10638,7 @@
                   '<b>' + plural(meetings, 'meeting') + '</b>') + ' came out of it'
                 : ', and nothing was asked for')
             : made.length ? 'Nobody picked up.'
-              : 'Nobody was rung' + (sess.skipped.length ? ' — ' + plural(sess.skipped.length, 'person') + ' skipped.' : '.')) +
+              : 'Nobody was called' + (sess.skipped.length ? ' — ' + plural(sess.skipped.length, 'person') + ' skipped.' : '.')) +
           '</span></div>' +
         (topObj
           ? '<div class="s-callsum-row"><span class="s-callsum-mem">What got in the way</span>' +
@@ -8964,6 +10671,189 @@
      answering carries everything said into the page's own draft and runs the
      build there — streaming, then the set with its offers and its reading.
      The conversation does not grow a second preview of its own. */
+
+  /* ══ A CAMPAIGN IS FIVE ANSWERS ════════════════════════════════════════
+     The V3 build had this as a conversation and the argument for it holds:
+     a wizard whose likeliest outcome is no change is a form with extra
+     steps, so every turn here changes something and the last one lands you
+     on a campaign that has an offering, an audience, a number and a date.
+
+     What does NOT carry over is its shape. That build's campaign had a
+     description, a plan, a service and a set of criteria; this one has a
+     target, a persona, a pitch, objections and resources, and its builder
+     had a step for none of them. So the questions are this record's, and
+     the parts nobody should be made to type — the pitch, the agreed answers
+     to the objections, the one-pager — are derived exactly the way the seed
+     derives them, because they are the same facts about the same offering.
+
+     Two bugs in the original are not carried: it counted its audience
+     through the LEAD builder's draft rather than its own criteria, so with
+     no draft open every row matched and it imported the whole index; and it
+     minted keys as 'c' + length, which after an undo reuses the key of the
+     campaign just removed and attaches the next one's members to it. Keys
+     here come from the clock and never go backwards. */
+  let CBUILD = null;
+
+  function cbuildPush(text, opts, hint) {
+    lbuildSpend();
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '', step: 'cbuild' });
+    paintThread();
+  }
+
+  function cbuildStart() {
+    if (!isMgr()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
+    LBUILD = null;
+    DRAFT = null;
+    CBUILD = { step: 'sell', sell: null, industry: null, region: null,
+      who: null, noun: null, n: null, weeks: null, name: null };
+    TURNS.length = 0;
+    openCanvas();
+    cbuildPush('A new campaign. What are we selling on this one?',
+      SELLS.map((x) => ({ k: 'sell-' + x.k, label: x.name })),
+      'Everything else follows from this — what we say, what they push back on, and who to ask for.');
+  }
+
+  function cbuildSell(k) {
+    const x = SELL[k];
+    if (!x) return;
+    CBUILD.sell = k;
+    CBUILD.step = 'who';
+    cbuildPush('<b>' + esc(x.name) + '</b> — ' + esc(x.blurb) + '. ' +
+      'Who are we after? A sector and a country at least.',
+      [], 'Something like \u201clogistics companies in the Netherlands\u201d.');
+  }
+
+  function cbuildWho(text) {
+    const pairs = readSaid(text, 'acc');
+    const ind = pairs.filter((p) => p[0] === 'industry')[0];
+    const cc = pairs.filter((p) => p[0] === 'where')[0];
+    if (!ind && !cc) {
+      cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
+        '\u201chealthcare in Belgium\u201d — and I will take it from there.', [], '');
+      return;
+    }
+    CBUILD.industry = ind ? ind[1] : null;
+    CBUILD.region = cc ? regionOfCC(cc[1]) : null;
+    CBUILD.step = 'win';
+    const said = [CBUILD.industry ? INDUSTRY[CBUILD.industry].label : null,
+      CBUILD.region ? regionLabel(CBUILD.region) : null].filter(Boolean).join(' in ');
+    cbuildPush('<b>' + esc(said) + '</b>. What counts as a win on this one?',
+      [{ k: 'win-meeting', label: 'A meeting in the diary' },
+        { k: 'win-conversation', label: 'A real conversation' }],
+      'It is what the campaign gets measured against, so it is the thing a caller is asking for.');
+  }
+
+  function cbuildWin(noun) {
+    CBUILD.noun = noun;
+    CBUILD.step = 'many';
+    cbuildPush('How many ' + esc(noun) + 's, and how long have we got?',
+      [{ k: 'many-12', label: '20 in 12 weeks' }, { k: 'many-8', label: '12 in 8 weeks' }],
+      'Or say it \u2014 \u201c30 by the end of November\u201d.');
+  }
+
+  function cbuildMany(n, weeks) {
+    CBUILD.n = n;
+    CBUILD.weeks = weeks;
+    CBUILD.step = 'name';
+    CBUILD.name = cbuildAutoName();
+    cbuildPush('<b>' + commas(n) + ' ' + esc(CBUILD.noun) + 's</b> in ' +
+      esc(plural(weeks, 'week')) + ', so it closes <b>' + esc(sayDay(dayAdd(weeks * 7))) +
+      '</b>. Call it \u201c' + esc(CBUILD.name) + '\u201d?',
+      [{ k: 'make', label: 'Make it' }],
+      'Or type a different name and I will use that.');
+  }
+
+  /* Read a count and a length out of one sentence. Neither is required —
+     a number with no weeks keeps the default quarter. */
+  function cbuildReadMany(text) {
+    const n = (text.match(/\b(\d{1,3})\b/) || [])[1];
+    const w = text.match(/\b(\d{1,2})\s*(week|month)/i);
+    let weeks = 12;
+    if (w) weeks = /month/i.test(w[2]) ? Number(w[1]) * 4 : Number(w[1]);
+    return { n: n ? Number(n) : 20, weeks: Math.max(1, Math.min(52, weeks)) };
+  }
+
+  function cbuildAutoName() {
+    const x = SELL[CBUILD.sell];
+    const bits = [x ? x.name : 'New campaign'];
+    if (CBUILD.industry) bits.push(INDUSTRY[CBUILD.industry].label);
+    else if (CBUILD.region) bits.push(regionLabel(CBUILD.region));
+    return bits.join(' \u2014 ');
+  }
+
+  /* ══ THE ONLY WRITE IN THE FLOW ════════════════════════════════════════
+     And it makes the thing whole: an offering, an audience, a number, a
+     date, the pitch and the answers a caller needs when somebody pushes
+     back. What it does not make is members — a campaign with nobody on it
+     is exactly what the finder on its own page is for, and inventing an
+     audience here would be a second list builder in a worse place. */
+  function cbuildMake() {
+    const b = CBUILD;
+    if (!b || !b.sell) return;
+    const x = SELL[b.sell];
+    const ind = INDUSTRY[b.industry];
+    const regL = b.region ? regionLabel(b.region) : 'the region';
+    const id = 'k' + Date.now().toString(36);
+    const h = Math.abs(hash(id + ':camp'));
+    const pool = OBJECTIONS.slice();
+    const objs = [];
+    for (let i = 0; i < 3 && pool.length; i++) {
+      const o = pool.splice((h >> (i * 3)) % pool.length, 1)[0];
+      objs.push({ k: o.k, say: ANSWERS[o.k] });
+    }
+    const askFor = ASK_OF[b.sell];
+    const k = {
+      id: id, name: b.name || cbuildAutoName(), client: null,
+      target: { n: b.n, noun: b.noun },
+      persona: { who: askFor,
+        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
+        why: WHY_NOW[b.sell] },
+      goal: b.noun === 'meeting'
+        ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
+        : 'A real conversation with ' + askFor + ' about what this is costing them today',
+      pitch: 'They are in ' + regL + ', and they are running this with people rather than with ' +
+        'a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them today, not on ' +
+        'what we do.',
+      sells: [b.sell],
+      objections: objs,
+      resources: [
+        { name: x.name + ' \u2014 one pager', kind: 'deck' },
+        { name: 'What it costs, and against what', kind: 'pricing' },
+      ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
+      from: TODAY_ISO, to: dayAdd(b.weeks * 7),
+      owner: me().id,
+      /* Somebody has to work it, and there is one desk that rings. */
+      crew: BDRS.map((r) => r.id),
+      state: 'running',
+      industry: b.industry || INDUSTRIES[0].k,
+      region: b.region || REGIONS[0].k,
+    };
+    CBUILD = null;
+    DB.camp.push(k);
+    DELTA.camp.push(k);
+    reindex();
+    saveNow();
+    lbuildSpend();
+    hideCanvas();
+    go(Object.assign(cleared(), { camp: id }));
+    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+      DB.camp = DB.camp.filter((c) => c.id !== id);
+      DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
+      reindex();
+      saveNow();
+      go(Object.assign(cleared(), { on: 'camps' }));
+    });
+  }
+
+  function cbuildOpt(key) {
+    if (!CBUILD) return;
+    if (key.indexOf('sell-') === 0) { cbuildSell(key.slice(5)); return; }
+    if (key === 'win-meeting') { cbuildWin('meeting'); return; }
+    if (key === 'win-conversation') { cbuildWin('conversation'); return; }
+    if (key === 'many-12') { cbuildMany(20, 12); return; }
+    if (key === 'many-8') { cbuildMany(12, 8); return; }
+    if (key === 'make') { cbuildMake(); return; }
+  }
 
   let LBUILD = null;
 
@@ -9325,7 +11215,7 @@
       const k = nextin.getAttribute('data-callnextin');
       const first = queue(k, S.q).filter((c) => rowVerb(c) === 'Call')[0];
       if (first) startCall(first.id);
-      else toast('Nobody in this cut has a number to ring.');
+      else toast('Nobody in this cut has a number to call.');
       return;
     }
 
@@ -9375,10 +11265,28 @@
         return;
       }
       if (k === 'find') { lbuildStart(null); return; }
+      if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
+      if (k === 'lead') { fillBar('Add a lead: '); return; }
+      if (k === 'newcamp') { cbuildStart(); return; }
+      if (k === 'prep') {
+        /* The next thing in the diary, else the top of the queue: a manager
+           prepares for the room he is walking into, not for the deal that
+           happens to rank first. */
+        const soon = isMgr() ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed')[0] : null;
+        const top = soon ? soon.con : queue(null, S.q)[0];
+        if (!top) { toast('Nothing to prepare for yet.'); return; }
+        if (isMgr() && top.checkpoint === 'handed-over') meetPrep(top); else callPrep(top);
+        return;
+      }
       if (k === 'callnext') {
-        const first = queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
+        /* A manager's next call is the deal at the top of his own ranking —
+           nobody on it is `callable`, because callable means the caller has
+           not finished with them, and on this desk they have. */
+        const first = isMgr()
+          ? queue(null, S.q).filter((c) => c.phone && !c.dnc && dealLive(c))[0]
+          : queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
-        else toast('Nobody in this cut has a number to ring.');
+        else toast(isMgr() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to call.');
       } else if (k === 'lists') {
         go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
@@ -9433,11 +11341,21 @@
       if (DB.call) { DB.call.held = !DB.call.held; paintCall(); }
       return;
     }
+    const cb = t.closest('[data-cb]');
+    if (cb) { cbuildOpt(cb.getAttribute('data-cb')); return; }
+
+    const ml = t.closest('[data-meetlog]');
+    if (ml) {
+      if (ml.getAttribute('data-meetlog') === 'go') meetCommit();
+      else { PENDING = null; lbuildSpend(); say('aimy', 'Left as it was.'); paintThread(); }
+      return;
+    }
+
     const cl = t.closest('[data-calllog]');
     if (cl) {
       const how = cl.getAttribute('data-calllog');
       logCall();
-      /* the queue has re-ranked by now; its first is the one to ring */
+      /* the queue has re-ranked by now; its first is the one to call */
       if (how === 'gonext') { const nx = queue(S.camp || null, 'all')[0]; if (nx) startCall(nx.id); }
       return;
     }
@@ -9513,6 +11431,23 @@
     }
 
 
+    const prp = t.closest('[data-prep]');
+    if (prp) {
+      const c = DB.byCon[prp.getAttribute('data-prep')];
+      if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
+      return;
+    }
+
+    const cal = t.closest('[data-cal]');
+    if (cal) { go({ on: 'cal', cal: cal.getAttribute('data-cal') }); return; }
+
+    const dl = t.closest('[data-deal]');
+    if (dl) {
+      const p = dl.getAttribute('data-deal').split(':');
+      setStage(p[0], p[1]);
+      return;
+    }
+
     const dc = t.closest('[data-decide]');
     if (dc) { setCheckpoint(dc.getAttribute('data-for'), dc.getAttribute('data-decide')); return; }
 
@@ -9538,7 +11473,7 @@
 
     if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
-    if (ask) { runInput(ask.getAttribute('data-ask')); return; }
+    if (ask) { taskGo(ask.getAttribute('data-ask')); return; }
 
     /* ══ FILL THE BAR, DO NOT RUN IT ══════════════════════════════════════
        `data-ask` submits what it carries, which is right for a question with
@@ -9550,19 +11485,10 @@
        while the canvas is up. Writing into the wrong one puts your sentence
        somewhere you cannot see and leaves the cursor in a box that is not
        there. */
+    if (t.closest('[data-mic]')) { micStart(); return; }
+
     const fill = t.closest('[data-fill]');
-    if (fill) {
-      /* The canvas is open when it carries the class that opens it. It is
-         never marked hidden, so testing for that put the sentence into the
-         composer nobody was looking at. */
-      const over = byId('aimyOverlay');
-      const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
-      if (!el) return;
-      el.value = fill.getAttribute('data-fill');
-      el.focus();
-      try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
-      return;
-    }
+    if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
 
     const railToggle = t.closest('#railToggle');
     if (railToggle) {
@@ -9586,7 +11512,11 @@
     if (cap) { UI.cap = Number(cap.getAttribute('data-cap')) || 0; saveUI(); paint(); return; }
 
     const as = t.closest('[data-as]');
-    if (as) { go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') }); return; }
+    if (as) {
+      shutMenus(null);
+      go({ as: as.getAttribute('data-as') === DEFAULT_ME ? '' : as.getAttribute('data-as') });
+      return;
+    }
 
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
@@ -9751,7 +11681,7 @@
           return;
         }
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
-        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to call.');
       } else if (c.state === 'ready') callGo();
       else endCall();
       return;
@@ -9775,7 +11705,10 @@
         if (note) { e.preventDefault(); note.focus(); }
         return;
       }
-      if (e.key === 's' || e.key === 'S' && DB.call) { e.preventDefault(); skipCall(); return; }
+      /* `&&` binds tighter than `||`, so the guard only ever applied to the
+         capital: a lowercase s with no call swallowed the key and did
+         nothing. It is the only way to skip without the canvas now. */
+      if ((e.key === 's' || e.key === 'S') && DB.call) { e.preventDefault(); skipCall(); return; }
     }
 
     /* Moving through the cards, and opening or ringing the one you are on.
@@ -9830,6 +11763,119 @@
   });
 
   /* A MENU CLOSES ON THE NEXT THING YOU DO. Anything outside it, or Esc. */
+  /* Whichever composer the reader is looking at. The canvas is open when it
+     carries the class that opens it — it is never marked hidden, so testing
+     for that put the sentence into the box nobody was looking at. */
+  function fillBar(text) {
+    const over = byId('aimyOverlay');
+    const el = (over && over.classList.contains('open') && byId('overlayInput')) || byId('floatInput');
+    if (!el) return;
+    el.value = text;
+    el.focus();
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch (x) { /* not a text input */ }
+  }
+
+  /* ══ THE BAR BECOMES THE RECORDER ══════════════════════════════════════
+     A manager gets out of a dinner and has one hand and thirty seconds.
+     Typing is what sends them back to the notebook, so the bar takes
+     dictation — and the words land in the bar itself rather than in a panel
+     of their own, because the last step is reading them back and changing
+     the one AiMY misheard before anything is written.
+
+     THE CAPTURE IS SIMULATED AND THE READING IS NOT. There is no speech
+     engine here; the transcript is a fixture chosen off whoever you are
+     looking at, revealed a word at a time the way the call panel reveals a
+     line at a time. Everything after it — what it reads out of the
+     sentence, what it writes, the undo — is the real path a typed sentence
+     takes, because it IS that path. */
+  const VOICE_SAY = {
+    mgr: [
+      'Had a demo with {name}, it went well and they want a proposal next week',
+      'Met {name} at {co}, good conversation, we set a demo for Thursday at 3pm',
+      'Dinner with {name} last night and they signed',
+      '{name} passed, they went with someone else',
+      'Saw {name} today, they asked to move the meeting to next Tuesday at 2pm',
+      'Proposal is with {name} now, they want it priced against headcount',
+    ],
+    bdr: [
+      'Spoke to {name}, they want a demo next week',
+      'Rang {name} again, no answer',
+      '{name} asked me to call back on Thursday',
+      'Got {name} on the phone, the price came up straight away',
+      'Reception would not put me through to {name}',
+      '{name} is not interested, they have just signed with someone else',
+    ],
+  };
+  let VOICE = null;
+  let VOICE_TICK = null;
+
+  /* Whoever the words are most likely about: the record on screen, else the
+     meeting that has been and gone without a word, else the top of the
+     queue. */
+  function voiceSubject() {
+    if (S.con && DB.byCon[S.con]) return DB.byCon[S.con];
+    if (isMgr()) {
+      const u = unrecorded()[0];
+      if (u) return u.con;
+    }
+    return queue()[0] || null;
+  }
+  function voiceScript(c) {
+    const pool = VOICE_SAY[isMgr() ? 'mgr' : 'bdr'];
+    const a = c ? accOf(c) : null;
+    const pick2 = pool[Math.abs(hash((c ? c.id : 'none') + ':voice')) % pool.length];
+    return pick2.split('{name}').join(c ? c.name : 'them')
+      .split('{co}').join(a ? a.name : 'their office');
+  }
+  /* Whichever bar the reader is looking at — the same test `fillBar` makes. */
+  function micBars() {
+    const over = byId('aimyOverlay');
+    const on = over && over.classList.contains('open');
+    return on
+      ? { input: byId('overlayInput'), wave: byId('overlayWave'),
+        timer: byId('overlayTimer'), btn: byId('overlayMic') }
+      : { input: byId('floatInput'), wave: byId('floatWave'),
+        timer: byId('floatTimer'), btn: byId('floatMic') };
+  }
+  function micPaint(b, on, secs) {
+    if (b.btn) b.btn.classList.toggle('recording', on);
+    if (b.wave) b.wave.hidden = !on;
+    if (b.timer) { b.timer.hidden = !on; b.timer.textContent = fmtClock(secs || 0); }
+    if (b.input) b.input.hidden = on;
+  }
+  function micStart() {
+    if (VOICE) { micStop(); return; }
+    const c = voiceSubject();
+    const bars = micBars();
+    if (!bars.input) return;
+    VOICE = { words: voiceScript(c).split(' '), shown: 0, secs: 0, ticks: 0, bars: bars };
+    micPaint(bars, true, 0);
+    VOICE_TICK = setInterval(micTick, 240);
+  }
+  function micTick() {
+    if (!VOICE) return;
+    VOICE.ticks++;
+    VOICE.secs = Math.floor((VOICE.ticks * 240) / 1000);
+    VOICE.shown++;
+    if (VOICE.bars.timer) VOICE.bars.timer.textContent = fmtClock(VOICE.secs);
+    /* It stops itself at the end of the sentence, the way a short dictation
+       does. Pressing the mic again stops it earlier and keeps what was said. */
+    if (VOICE.shown >= VOICE.words.length) micStop();
+  }
+  function micStop() {
+    if (!VOICE) return;
+    const v = VOICE;
+    VOICE = null;
+    if (VOICE_TICK) { clearInterval(VOICE_TICK); VOICE_TICK = null; }
+    micPaint(v.bars, false, 0);
+    const text = v.words.slice(0, Math.max(1, Math.min(v.shown, v.words.length))).join(' ');
+    if (v.bars.input) {
+      v.bars.input.value = text;
+      v.bars.input.focus();
+      try { v.bars.input.setSelectionRange(text.length, text.length); } catch (e) { /* not a text input */ }
+    }
+  }
+
   function shutMenus(keep) {
     document.querySelectorAll('.b-menu:not([hidden])').forEach((m) => { if (m !== keep) m.hidden = true; });
   }
@@ -9917,6 +11963,7 @@
        itself rather than wait for a frame that is not coming. */
     vlists: VLISTS,
     read: readCall,
+    meetings: meetings, unrecorded: unrecorded,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,

@@ -94,12 +94,9 @@
    again — AiMY proposes what it heard and you agree or correct it — so the
    row and its rules are gone with it.
 
-   The one thing the rail still needs that the library does not ship: Skip
-   sits in the handset row and is a word rather than a shape, because it is
-   not one of the four everybody already knows. */
-.call-tool.call-tool-word {
-  width: auto; padding: 0 12px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
-}
+   Skip was styled here as a word among the round handset shapes. It has gone
+   back to the canvas with the rest of the run's controls, so the rule goes
+   with it — a run's rail and a single call's rail are now the same column. */
 
 /* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
    A row of counts, stated rather than linked. These are RUNGS, and the queue
@@ -264,7 +261,7 @@
   font-variant-numeric: tabular-nums; color: var(--d200);
 }
 
-/* The keyboard cursor on a card. A ring rather than a tint: a card already
+/* The keyboard cursor on a card. A call rather than a tint: a card already
    has a ground of its own, and tinting it would fight the status tag on it. */
 .b-qcard.is-cursor { border-color: var(--accent); }
 
@@ -328,7 +325,7 @@
    heading, and `.s-block-sub` at `--d500` for everything under it. The third
    is our record OF the company rather than a fact about it — the domain, the
    region, which campaigns of ours it sits on — and none of it changes who
-   you ring next, so at `--d500` beside the headcount it competed with the one
+   you call next, so at `--d500` beside the headcount it competed with the one
    line the block exists for.
 
    `--d600`, which is the next step down the ink ladder the library already
@@ -405,10 +402,10 @@
 /* ══ 19. THE LADDER AS A NARROWING ═════════════════════════════════════════
    Ten counts in one flat run put `9 meeting set` and `2 do not call` at the
    same rank and hid the one shape a campaign has: it narrows. Two hundred
-   rung, forty answered, nine with a meeting.
+   called, forty answered, nine with a meeting.
 
    Three columns, and the middle one is the finding. Every bar is drawn
-   against the WHOLE roster rather than against the largest rung — scaled to
+   against the WHOLE roster rather than against the largest called — scaled to
    the biggest bar, every campaign looks the same shape and the narrowing
    disappears. The name and the number are at full ink because they are the
    content; the track behind the bar is the only quiet thing here. */
@@ -598,8 +595,8 @@
 .b-switch-btn { padding-bottom: 4px; }
 
 /* T6 — THE SEARCH BOX SAYS IT HAS FOCUS. The border already turns accent;
-   a 3px ring at 18% is the standard input focus and reads at a glance from
-   across the page. Low alpha on purpose — a ring, not a glow. */
+   a 3px call at 18% is the standard input focus and reads at a glance from
+   across the page. Low alpha on purpose — a call, not a glow. */
 .b-find:focus-within {
   border-color: var(--accent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 3px rgba(var(--accent-rgb), 0.18);
@@ -807,10 +804,10 @@
 
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
-   the call went, a larger accent ring where a rung was climbed, and the rung
+   the call went, a larger accent call where a rung was climbed, and the rung
    it reached on the line. The cards are the same cards; the rail is drawn
    in the column the section already reserves for it. Metrics set once:
-   10px dot, 14px milestone ring, 26px gutter, rail at 7px. */
+   10px dot, 14px milestone call, 26px gutter, rail at 7px. */
 .b-tl { position: relative; padding-left: 26px; display: flex; flex-direction: column; gap: 10px; }
 .b-tl::before {
   content: ''; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 2px;
@@ -828,7 +825,7 @@
 .b-tl-dot.tone-warn { background: var(--warn-text); }
 .b-tl-dot.tone-err { background: var(--err-text); }
 .b-tl-dot.tone-neutral { background: var(--d400); }
-/* A rung climbed: the ring is the milestone, in accent, and the node sits
+/* A rung climbed: the call is the milestone, in accent, and the node sits
    on the rail a shade larger so the eye catches it scanning down. */
 .b-tl-item.is-milestone .b-tl-dot {
   width: 14px; height: 14px; left: -26px; top: 15px;
@@ -1056,7 +1053,7 @@ button.pipe-chip:active { transform: scale(0.97); }
 button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* motion — a thing arriving is already most of its size; nothing overshoots;
-   nothing runs on its own (the ring on the live tile stands still, the dot in
+   nothing runs on its own (the call on the live tile stands still, the dot in
    the masthead stands still — the spinner is the one thing that moves, and
    it moves because you pressed Find); the check is drawn, not dropped. */
 @keyframes pipe-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -1089,25 +1086,6 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    step because it is compared between rows, the fit and the tag under it —
    and the verb closes the column. Rank by size and weight; nothing dims
    below --d300. */
-.b-roster .s-brow { padding: 14px 12px; column-gap: 20px; align-items: start; }
-.b-roster .s-brow-main { gap: 3px; }
-.b-roster .s-brow-name { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); letter-spacing: -0.01em; color: var(--d50); }
-.b-roster .s-brow-desc { font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200); }
-.b-roster .s-brow-facts { font-size: var(--t-small); color: var(--d300); }
-.b-roster .s-brow-facts i { font-style: normal; color: var(--d300); }
-.b-roster .s-brow-links { margin-top: 2px; gap: 4px 14px; }
-.b-roster .s-brow-link { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--d300); }
-.b-roster-ai {
-  display: flex; align-items: flex-start; gap: 6px; margin-top: 6px;
-  font-size: var(--t-small); color: var(--d200); line-height: var(--lh-base); max-width: 60ch;
-}
-.b-roster-ai .b-aimy-mark { flex: none; margin-top: 1px; }
-.b-roster-ai b { color: var(--d50); }
-.b-roster .s-brow-side { gap: 3px; min-width: 120px; }
-.b-roster .s-brow-fig { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: -0.01em; }
-.b-roster .s-brow-rev { font-size: var(--t-small); color: var(--d300); }
-.b-roster .b-rstate { margin-top: 4px; }
-.b-roster-call { margin-top: 8px; }
 
 
 /* The results head sat 24px in from the page edge: .s-sheet-head is a sheet
@@ -1398,7 +1376,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    it holds.
 
    What has passed is filled and joined by a line you can see. The tip is
-   open — a ring in the rung's own tone with the page showing through, which
+   open — a call in the rung's own tone with the page showing through, which
    is the shape everything from a Stepper to a git log uses for the point
    still moving. And an elided stretch is dashed on both sides, because "3
    steps more" is a piece of the walk nobody is claiming to draw. */
@@ -1425,7 +1403,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-story-t { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; }
 .b-story-step.is-now .b-story-k { color: var(--d50); }
-/* The tip: the tone becomes the ring and the ground shows through it. Four
+/* The tip: the tone becomes the call and the ground shows through it. Four
    rules rather than a variable, because the tone arrives as a class and a
    class is the only thing the audit can pair with a rule. */
 .b-story-step.is-now .b-story-dot {
@@ -1616,7 +1594,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
    The rung sat in the roster's right column as a bordered pill, directly
    above the Call pill, and the two read as a pair of buttons. A dot in the
-   rung's own tone and the word beside it: a state you read, over the one
+   called's own tone and the word beside it: a state you read, over the one
    thing on the row you press. */
 .b-rstate {
   display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
@@ -2019,7 +1997,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* ══ 62. EVERY PRESSABLE ANSWERS THE HAND ══════════════════════════════════
    Twenty kinds of control here pressed down under the cursor and seven did
    not: the two ways into a list, a suggestion's door, a chat's opener, a
-   criterion chip, a filter chip's ring. A button that does not move under a
+   criterion chip, a filter chip's call. A button that does not move under a
    press is a button that might not have heard you, and the second press is
    the one that runs twice. Same 160ms and the same curve as the rest; 0.97
    for a button, 0.985 for a card, because a card is a bigger thing to move. */
@@ -2030,7 +2008,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .s-finding-go:active, .b-chat-item:active, .chip:active { transform: scale(0.97); }
 .s-way:active, .s-start:active { transform: scale(0.985); }
 .chip:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* The find box focuses the way the menus' search does — a ring, not only a
+/* The find box focuses the way the menus' search does — a call, not only a
    changed border — so the two boxes that do the same job look the same lit. */
 .b-find:focus-within { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); }
 .b-find { transition: border-color var(--t-fast), box-shadow var(--t-fast); }
@@ -2070,9 +2048,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .pipe-panel { border-radius: 8px; }
 .b-aimy { border-radius: var(--r-sm); }
 
-/* A photograph's edge takes its ring from the ground it sits on: white at a
-   tenth on a dark page, black at a tenth on a light one. A white ring on a
-   light page is a ring that is not there. */
+/* A photograph's edge takes its call from the ground it sits on: white at a
+   tenth on a dark page, black at a tenth on a light one. A white call on a
+   light page is a call that is not there. */
 :root[data-theme="light"] .b-face::after { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1); }
 
 /* ══ 64. FIGURES LINE UP ═══════════════════════════════════════════════════
@@ -2150,3 +2128,375 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--d300); margin-right: 2px;
 }
+
+/* ══ 68. THE DESK YOU ARE AT, IN A MENU THAT SWITCHES ══════════════════════
+   The people menu wore the tick the multi-select assign menu wears, which
+   says "choose as many as you like" about a control where you are exactly
+   one person. Lit like the switcher's current tab instead: the ground says
+   where you are, and the hover still says where you could go. */
+.b-menu-item.is-on {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--d50);
+}
+.b-menu-item.is-on:hover { background: rgba(var(--accent-rgb), 0.22); }
+
+/* ══ 69. THE BOARD ═════════════════════════════════════════════════════════
+   Six columns that scroll inside their own container, so a board wider than
+   the window never makes the page move sideways. Each column's list scrolls
+   inside itself, which leaves the heading — the count and the sum, the two
+   things a column exists to tell you — standing still above it without a
+   sticky rule that would have nothing to stick to.
+
+   The boundary between columns is a hairline, not a gap: a gap between
+   groups of cards reads as more cards missing. */
+.b-board {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(232px, 1fr);
+  overflow-x: auto; overscroll-behavior-x: contain;
+  margin-top: 16px; padding-bottom: 4px;
+}
+.b-col {
+  min-width: 0; display: flex; flex-direction: column; gap: 12px;
+  padding: 0 14px; border-right: 1px solid var(--card-border);
+}
+.b-col:first-child { padding-left: 0; }
+.b-col:last-child { border-right: 0; padding-right: 0; }
+/* Won and Lost are read, not worked, so they take less of the width. */
+.b-col.is-end { grid-column: span 1; }
+.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(232px, 1fr); }
+
+.b-col-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.b-col-cap {
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.b-col-n { font-variant-numeric: tabular-nums; color: var(--d300); margin-left: 6px; }
+.b-col-sum {
+  margin-left: auto; flex: none;
+  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d100);
+  font-variant-numeric: tabular-nums;
+}
+.b-col-none { margin: 0; font-size: var(--t-small); color: var(--d300); }
+.b-col-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 58svh; overflow-y: auto; overscroll-behavior-y: contain;
+  padding-right: 2px;
+}
+
+.b-dealcard {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
+  font-family: inherit; cursor: pointer;
+  padding: 11px 12px; border-radius: var(--r-md);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  transition: border-color var(--t-fast), background-color var(--t-fast),
+    transform 160ms var(--ease-out);
+  animation: b-surface-in 200ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
+}
+.b-dealcard:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
+.b-dealcard:active { transform: scale(0.99); }
+.b-dealcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-dc-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
+.b-dc-co { font-size: var(--t-micro); color: var(--d200); }
+.b-dc-why {
+  font-size: var(--t-micro); color: var(--d200); line-height: 1.45;
+  margin-top: 3px; text-wrap: pretty;
+}
+.b-dc-amt {
+  margin-top: 6px; font-size: var(--t-ui); font-weight: var(--fw-bold);
+  color: var(--d100); font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-dealcard { animation: none; transition: none; }
+  .b-dealcard:active { transform: none; }
+}
+
+/* ══ 70. THE DIARY ═════════════════════════════════════════════════════════
+   A month of dots over one day in full. The reference this is built from is
+   a light-only component with its own type scale, its own greys and a
+   four-layer drop shadow; what is kept is the SHAPE — a panel inside a card,
+   a 7×6 grid of pressable days each carrying up to three dots, a hairline,
+   then the day's agenda — and everything that made it look like somebody
+   else's product is replaced with ours.
+
+   The one colour decision: five kinds of thing land in a diary and the dot
+   is the only place they are told apart, so this is the one surface in the
+   build that spends five hues. They are the tones the product already owns —
+   the same five that tag anything else — rather than a new palette. */
+.b-cal { margin-top: 16px; max-width: 560px; }
+.b-cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 0 2px 14px;
+}
+.b-cal-month {
+  display: flex; align-items: center; gap: 10px; margin: 0;
+  font-size: var(--t-h3); font-weight: var(--fw-bold); color: var(--d50);
+  letter-spacing: -0.02em;
+}
+.b-cal-count {
+  min-width: 24px; text-align: center; padding: 3px 8px; border-radius: var(--r-pill);
+  font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--d200);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  font-variant-numeric: tabular-nums;
+}
+.b-cal-nav { display: flex; align-items: center; gap: 8px; }
+.b-cal-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex: none;
+  border-radius: var(--r-pill); cursor: pointer;
+  color: var(--d200); background: none; border: 1px solid var(--card-border);
+  font-family: inherit; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  transition: color var(--t-fast), border-color var(--t-fast),
+    background-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.b-cal-btn.is-word { width: auto; padding: 0 14px; }
+.b-cal-btn svg { width: 16px; height: 16px; }
+.b-cal-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
+.b-cal-btn:active { transform: scale(0.96); }
+.b-cal-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.b-cal-panel {
+  padding: 8px; border-radius: var(--r-lg);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+}
+.b-cal-week { display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px 0 6px; }
+.b-cal-wd {
+  text-align: center; font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--d200);
+}
+.b-cal-wd.is-end { color: var(--d300); }
+.b-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+/* A day is a stack: the ground that lights, the number, and the dots. The
+   ground is a child rather than the button's own background so it can scale
+   from 0.9 without taking the number with it. */
+.b-cal-day {
+  position: relative; height: 54px; padding: 0; border: 0; background: none;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; border-radius: var(--r-md);
+  font-family: inherit;
+}
+.b-cal-day:focus { outline: none; }
+.b-cal-bg {
+  position: absolute; inset: 2px 4px; border-radius: var(--r-md);
+  opacity: 0; transform: scale(0.9);
+  background: rgba(var(--accent-rgb), 0.12);
+  transition: opacity 160ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.b-cal-day:hover .b-cal-bg { opacity: 1; transform: none; }
+.b-cal-day.is-sel .b-cal-bg,
+.b-cal-day.is-sel:hover .b-cal-bg {
+  opacity: 1; transform: none; background: rgba(var(--accent-rgb), 0.22);
+}
+.b-cal-day:focus-visible .b-cal-bg {
+  opacity: 1; transform: none; background: none;
+  box-shadow: inset 0 0 0 2px var(--brand);
+}
+.b-cal-num {
+  position: relative; font-size: var(--t-ui); font-weight: var(--fw-medium);
+  color: var(--d100); font-variant-numeric: tabular-nums;
+}
+.b-cal-day.is-out .b-cal-num { color: var(--d300); }
+.b-cal-day.is-end .b-cal-num { color: var(--d200); }
+.b-cal-day.is-sel .b-cal-num { color: var(--d50); font-weight: var(--fw-bold); }
+/* Today is stated in a call rather than a fill, because the fill means "the
+   day you are reading" and two fills would be two answers to one question. */
+.b-cal-day.is-today .b-cal-num::after {
+  content: ""; position: absolute; left: 50%; bottom: -7px; width: 3px; height: 3px;
+  margin-left: -1.5px; border-radius: var(--r-pill); background: var(--accent);
+}
+.b-cal-day.is-today.is-sel .b-cal-num::after { display: none; }
+.b-cal-dots { position: relative; display: flex; gap: 3px; height: 5px; align-items: center; }
+.b-cal-dot { width: 5px; height: 5px; border-radius: var(--r-pill); flex: none; }
+.b-cal-day.is-out .b-cal-dot { opacity: 0.4; }
+.k-meeting { background: var(--accent); }
+.k-demo { background: var(--info); }
+.k-dinner { background: var(--warn); }
+.k-held { background: var(--ok); }
+.k-owed { background: var(--d300); }
+
+.b-cal-rule { height: 1px; margin: 10px 6px 0; background: var(--card-border); }
+.b-cal-cap {
+  margin: 0; padding: 16px 8px 8px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--d300);
+}
+.b-cal-agenda { display: flex; flex-direction: column; }
+.b-cal-ev {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 9px 8px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-cal-ev:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-cal-ev:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-cal-ev .b-cal-dot { width: 8px; height: 8px; }
+.b-cal-etime {
+  width: 48px; flex: none; font-size: var(--t-micro); color: var(--d200);
+  font-variant-numeric: tabular-nums;
+}
+.b-cal-ename {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-cal-ewhat { font-size: var(--t-micro); font-weight: var(--fw-medium); color: var(--d200); }
+.b-cal-ev .tag { flex: none; }
+.b-cal-none { margin: 0; padding: 4px 8px 8px; font-size: var(--t-body); color: var(--d200); }
+
+.b-cal-add {
+  display: flex; align-items: center; gap: 11px; width: 100%; margin-top: 4px;
+  padding: 9px 8px; border: 0; background: none; border-radius: var(--r-md);
+  cursor: pointer; font-family: inherit;
+  font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.b-cal-add:hover { background: rgba(var(--accent-rgb), 0.10); color: var(--d50); }
+.b-cal-add:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-cal-plus {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 24px; border-radius: var(--r-pill);
+  border: 1px solid var(--card-border); color: inherit;
+  transition: transform 200ms var(--ease-out), border-color var(--t-fast);
+}
+.b-cal-plus svg { width: 13px; height: 13px; }
+.b-cal-add:hover .b-cal-plus { transform: rotate(90deg); border-color: var(--card-border-hover); }
+
+@media (max-width: 560px) {
+  .b-cal-day { height: 48px; }
+  .b-cal-etime { width: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-cal-bg, .b-cal-plus, .b-cal-btn { transition: none; }
+  .b-cal-ev { animation: none; }
+  .b-cal-btn:active { transform: none; }
+  .b-cal-add:hover .b-cal-plus { transform: none; }
+}
+
+/* ══ 71. THE LOOP NOBODY CLOSED ════════════════════════════════════════════
+   Under the diary, and deliberately not another card: it is the same
+   surface's unfinished business, so it reads as the bottom of the diary
+   rather than as a second thing to do. */
+.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); max-width: 560px; }
+.b-loop-cap {
+  margin: 0 0 6px; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d300);
+}
+.b-loop-say {
+  margin: 0 0 10px; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+.b-loop-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 9px 10px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-loop-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-loop-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-loop-when { width: 84px; flex: none; font-size: var(--t-micro); color: var(--d200); }
+.b-loop-who {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
+}
+.b-loop-what { font-size: var(--t-micro); font-weight: var(--fw-medium); color: var(--d200); }
+.b-loop-go {
+  flex: none; font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent);
+}
+/* Today's three sit in a block rather than in the diary's panel, so they
+   carry the panel's padding themselves. */
+.b-day { margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
+
+/* ══ 72. THE BAR TAKES DICTATION ═══════════════════════════════════════════
+   The control ships in the library and nothing had ever used it. What it
+   does not ship is where the wave and the clock sit once the input has got
+   out of the way, which is the bar's own business. */
+.voice-btn { flex: none; width: 30px; height: 30px; }
+.voice-btn svg { width: 15px; height: 15px; }
+/* `display` on a class beats the browser's own [hidden], so a wave that
+   says it is hidden would be drawn anyway. */
+.voice-wave[hidden], .voice-timer[hidden], .aimy-float-input[hidden] { display: none !important; }
+.voice-wave { flex: 1; justify-content: center; }
+.voice-timer { flex: none; }
+.overlay-input[hidden] { display: none !important; }
+
+/* ══ 73. THE PROOF GOES FIRST ══════════════════════════════════════════════
+   Two sentences somebody is going to say out loud in a room, so they are set
+   as sentences rather than as fields: the customer's name over the claim,
+   at reading size, with nothing else competing on the line. */
+.b-story { display: flex; flex-direction: column; gap: 12px; margin: 8px 0 18px; }
+.b-story-row {
+  padding: 12px 14px; border-radius: var(--r-md);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+}
+.b-story-who {
+  display: block; margin-bottom: 4px;
+  font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
+}
+.b-story-say {
+  margin: 0; font-size: var(--t-body); color: var(--d50);
+  line-height: var(--lh-base); text-wrap: pretty;
+}
+
+/* ══ 74. WHAT ELSE FITS ════════════════════════════════════════════════════
+   The reason is the point, so it gets the body size and the room; the
+   service is a label over it and the timing is a chip, because "ready in
+   nineteen days" is a fact about the row rather than a thing to read. */
+.b-exp { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.b-exp-row {
+  padding: 13px 15px; border-radius: var(--r-md);
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-exp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.b-exp-next {
+  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50);
+}
+.b-exp-why {
+  margin: 0; font-size: var(--t-body); color: var(--d100);
+  line-height: var(--lh-base); text-wrap: pretty; max-width: 62ch;
+}
+.b-exp-go { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .b-exp-row { animation: none; } }
+
+/* ══ 75. A MARK PER KIND OF FACT ═══════════════════════════════════════════
+   The mark sits with the fact rather than in a column of its own, so a row
+   of facts wraps as a row of facts and nothing has to line up. It is quieter
+   than the words it marks — one step down the ink scale — because it is
+   there to be recognised at a glance and not to be read.
+
+   The middot separator goes wherever a mark arrives: two separators for one
+   job is one too many, and the gap does the rest. */
+.b-fact { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+.b-fact > svg {
+  width: 13px; height: 13px; flex: none; color: var(--d300);
+  align-self: center; margin-top: -1px;
+}
+.s-rec-facts .b-fact + .b-fact::before { content: none; }
+.s-rec-facts > div { gap: 4px 16px; }
+.b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+/* On a card the mark is smaller again: the line it sits on is 11px, and a
+   13px mark beside it reads as the loudest thing in the corner. */
+.tc-type.b-fact > svg { width: 11px; height: 11px; }
+.b-dc-co.b-fact > svg { width: 11px; height: 11px; }
+.b-node-name.b-fact > svg { width: 12px; height: 12px; }
+
+/* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
+   Smaller than on a record, because the line they sit on is smaller: a
+   13px mark beside 12px type is the loudest thing in the corner of a card,
+   which is the opposite of what a mark is for. The facts line becomes a
+   wrapping row so a long company name takes its mark with it. */
+.b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.b-qcard-where .b-fact > svg { width: 12px; height: 12px; }
+.b-qcard-num.b-fact > svg { width: 12px; height: 12px; }
+
+/* The campaign's team block carries its own caption and the top margin that
+   goes with sitting inside the metadata grid. On a record it is a section
+   with a heading of its own, so it takes neither. */
+.b-team-rec { margin-top: 12px; }

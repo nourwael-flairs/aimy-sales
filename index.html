@@ -44,7 +44,7 @@
        lie told to the one person trying to report what they are looking at.
 
        So: one number, in both places, every time. -->
-  <link rel="stylesheet" href="assets/sales.css?v=173" />
+  <link rel="stylesheet" href="assets/sales.css?v=225" />
 
   <!-- ONE UI SCALE, AND IT LOADS HERE FOR A REASON.
 
@@ -56,9 +56,9 @@
        After sales.css, so the shell rules it supersedes are already in the
        cascade. Ported from AiMY QA; the argument for the mechanism over px-to-rem
        is at the top of the sheet. -->
-  <link rel="stylesheet" href="assets/bdr.css?v=173" />
-  <link rel="stylesheet" href="assets/aimy-responsive.css?v=173" />
-  <script src="assets/aimy-viewport.js?v=173"></script>
+  <link rel="stylesheet" href="assets/bdr.css?v=225" />
+  <link rel="stylesheet" href="assets/aimy-responsive.css?v=225" />
+  <script src="assets/aimy-viewport.js?v=225"></script>
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark.
@@ -127,7 +127,7 @@
      this bar: a phone icon and a line picker, permanently on screen whatever
      you were looking at. Calling changes one contact and the record of it
      belongs on that contact, so the dialer moved onto the contact — which is
-     also the only place that knows which number to ring.
+     also the only place that knows which number to call.
 ══════════════════════════════════════════════ -->
 <div class="app-topnav">
   <div class="topnav-logo">
@@ -193,9 +193,9 @@
     <a class="ver-link" href="https://knowledge.aimy.flairstech.com/v1/chat/sales"
        target="_blank" rel="noopener noreferrer" title="Open V1 in a new tab">
       V1
-      <svg class="ver-link-ico" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4.5 2.5H2.5v7h7v-2M7 2.5h2.5V5M9.5 2.5L5.5 6.5"/>
+      <svg class="ver-link-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 3h6v6"/> <path d="M10 14 21 3"/> <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
       </svg>
     </a>
 
@@ -236,7 +236,7 @@
          The chevron used to be decorative; it opens the thing it promises. -->
     <div class="ntf-anchor">
       <button class="topnav-user" id="asBtn" type="button"
-              aria-haspopup="dialog" aria-expanded="false" aria-controls="asPanel">
+              data-pickopen="asPanel" aria-haspopup="menu" aria-controls="asPanel">
         <span class="topnav-avatar" id="userAvatar">NW</span>
         <span class="topnav-user-info">
           <span class="topnav-user-name" id="userName">Nour Wael</span>
@@ -244,16 +244,9 @@
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="ntf-panel as-panel" id="asPanel" hidden role="dialog" aria-label="Looking as">
-        <div class="ntf-head">
-          <b>Looking as</b>
-        </div>
-        <ul class="ntf-list" id="asList"></ul>
-        <div class="ntf-foot">
-          <span class="as-note">In a real deployment this comes from your sign-in. It is a
-            control here so every tier can be seen without five accounts.</span>
-        </div>
-      </div>
+      <!-- Filled by paintWho. A menu, so one-at-a-time, Escape and the
+           outside click are the machinery every other menu here uses. -->
+      <div class="b-menu" id="asPanel" role="menu" hidden></div>
     </div>
   </div>
 </div>
@@ -364,7 +357,15 @@
         <input class="aimy-float-input" id="floatInput" type="text"
                placeholder="Ask, filter, name a lead, or log a touchpoint…"
                autocomplete="off" spellcheck="false" aria-label="Drive the surface" />
-        <span class="aimy-float-hint">Enter to run</span>
+        <span class="voice-wave" id="floatWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+        <span class="voice-timer" id="floatTimer" hidden>0:00</span>
+        <!-- Dictation, at the sending end. The two ways to put a sentence in
+             — say it, or send it — are the same act by different means, so
+             they sit together rather than at opposite ends of the bar. The
+             words land where you would have typed them, and you can change
+             them before anything is written. -->
+        <button class="voice-btn" id="floatMic" type="button" data-mic
+                aria-label="Say it instead of typing"></button>
         <button class="aimy-float-send" id="floatSend" aria-label="Run">
           <svg class="send-icon" viewBox="0 0 14 14" fill="none" width="14" height="14">
             <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
@@ -427,6 +428,10 @@
             </div>
             <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
                       spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
+            <span class="voice-wave" id="overlayWave" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="voice-timer" id="overlayTimer" hidden>0:00</span>
+            <button class="voice-btn" id="overlayMic" type="button" data-mic
+                    aria-label="Say it instead of typing"></button>
             <button class="overlay-send" id="overlaySend" aria-label="Send">
               <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
                 <path d="M6.12 7.88L12.25 1.75M6.2 8.07l1.533 3.942c.135.347.203.521.3.572a.3.3 0 00.3 0c.097-.05.165-.224.3-.572L12.447 2.16c.122-.314.183-.47.15-.57a.3.3 0 00-.21-.21c-.1-.034-.257.027-.57.15L1.99 5.4c-.347.135-.52.203-.571.3a.3.3 0 000 .3c.05.097.224.165.571.3L5.933 7.8c.07.027.106.041.135.062a.3.3 0 01.062.062c.022.03.036.066.063.135z" stroke="white" stroke-linecap="round" stroke-linejoin="round"/>
@@ -460,8 +465,8 @@
      avoid. -->
 <div class="drop-layer" id="dropLayer" hidden aria-hidden="true">
   <div class="drop-card">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8"
-         stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/> <polyline points="17 8 12 3 7 8"/> <line x1="12" x2="12" y1="3" y2="15"/></svg>
     <span class="drop-title">Drop to add leads</span>
     <span class="drop-sub">A record per row, owned by you. Nothing is contacted until you say so.</span>
   </div>
@@ -499,6 +504,6 @@
 </div>
 
 <script src="assets/aimy-ds.js"></script>
-<script src="assets/bdr.js?v=173"></script>
+<script src="assets/bdr.js?v=225"></script>
 </body>
 </html>

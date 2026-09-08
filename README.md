@@ -40,9 +40,9 @@ whole, because a person stands on exactly one rung.
 
 | cut | the rung it is |
 |---|---|
-| Callbacks | they asked to be rung back, and the date has come |
-| New | nobody has rung them |
-| No answer | rung, nobody picked up |
+| Callbacks | they asked to be called back, and the date has come |
+| New | nobody has called them |
+| No answer | called, nobody picked up |
 | Answered | you got them, and there is no meeting yet |
 
 Once a meeting is booked they leave the queue — the BDR's part is done until it
@@ -61,7 +61,7 @@ are dialling down. The call logs the touchpoint; a separate step to report the
 same call is the step this build exists to remove.
 
 **One worklist per surface, paged. Everything else is context, capped.** Fifteen
-is a screenful: ring through it, press once for the next fifteen. A thousand
+is a screenful: call through it, press once for the next fifteen. A thousand
 people behind a scrollbar is not scale, it is an endless list — you cannot tell
 where you are in it, cannot come back to the same place, and never finish
 anything.
@@ -126,7 +126,7 @@ ladder ends there.
 
 **One write, two places it shows.** A touchpoint and a rung are the whole of it;
 everything a campaign reports — how many are left to call, callbacks due,
-meetings set, its rung tally, its feed — is derived from those two, so a person's
+meetings set, its called tally, its feed — is derived from those two, so a person's
 record and the campaign they are on cannot disagree about what just happened.
 
 ---
