@@ -650,7 +650,7 @@
       sees: (rec, me) => rec.owner === me.id || (rec.shared || []).includes(me.id) || onACampaignWith(rec, me.id),
       writes: true, grain: 'record', runsCampaigns: false,
       /* THE SALES VIEW LEADS, AND LISTS COME WITH IT. `queue` first, because
-         who to ring next is the question a working day opens on — that was
+         who to call next is the question a working day opens on — that was
          the old `sales` home and it is the better of the two. `lists` stays
          from the old `sdr` home: sourcing and enriching is the same
          person's morning now, and `tabPool('lists')` is entitlement-bounded
@@ -2810,7 +2810,7 @@
        It is WHO OWES WHAT — and that has a different answer depending on
        who is asking, which is exactly what the diagram's arrows mean. Lina
        looks at this campaign and sees copy to write; Omar looks at the same
-       campaign and sees people to ring. A row that says "Reach" to both of
+       campaign and sees people to call. A row that says "Reach" to both of
        them has told neither anything.
 
        So the campaign gets a headline per viewer: the stage THEY own that
@@ -2837,7 +2837,7 @@
 
        Marit is a client on `edu-nl`, and opening it landed her on REACH:
        the copy block, the sequence, and a 659px call queue naming ten
-       people we are about to ring — while `campIdentity` twelve pixels above
+       people we are about to call — while `campIdentity` twelve pixels above
        deliberately hides the Team row from her, on the argument that our
        staffing is not her business. The header hid the staffing and the flow
        printed it, and the working surface underneath was never gated at all.
@@ -3735,7 +3735,7 @@
      Two have existed since v7 and they sit in the same block head: `Call`
      on a row rings ONE, and `Let AiMY call 12` hands the whole queue to
      AiMY as a watchable task. The one nobody could do is the one a BDR
-     does all morning — ring all of them, themselves.
+     does all morning — call all of them, themselves.
 
      It is not a mode, not a second call model and not a new page. It is the
      same `call` task, and the only thing that differs is what advances it:
@@ -4166,7 +4166,7 @@
   }
 
   /* Under way is anything past `ready` — the moment you press Start call,
-     not the moment they pick up. Deciding not to ring somebody is a decision
+     not the moment they pick up. Deciding not to call somebody is a decision
      made while reading their brief; once it is dialling, stopping it is the
      rail's Stop button, which exists and says so. */
   const callUnderWay = () => !!DB.call && DB.call.state !== 'ready';
@@ -4188,7 +4188,7 @@
        call` toasted, the toast wiped the block, and Pause and Stop vanished
        with it. The control removed itself by working.
 
-       `answerBlock` pushes a stored turn, which is the same path `Ring
+       `answerBlock` pushes a stored turn, which is the same path `call
        someone` already answers on, so the whole session survives every
        repaint: brief, receipt, brief, receipt, summary. That is what makes
        the canvas the record of a run rather than a view of its last frame. */
@@ -4354,11 +4354,11 @@
      `TAX` states about its own lists, and for the same reason: a ranking has
      to live somewhere, and a lexicon sorted by accident ranks by accident. */
   const READ_DISP = [
-    [/\b(do not call|do not ring|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
+    [/\b(do not call|do not call|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
     [/\b(wrong number|wrong extension|number is wrong|not her number|not his number|not their number|no longer in service|dead line)\b/, 'wrong-number'],
     [/\b(gatekeeper|reception|receptionist|switchboard|front desk|secretary|assistant|pa|screened|not put me through|get past|take a message|who is calling|put you through|she is in|he is in|in workshops|in meetings all)\b/, 'gatekeeper'],
     [/\b(no answer|no one answered|nobody answered|nobody picked up|did not answer|did not pick up|voicemail|voice mail|answerphone|answering machine|rang out|busy tone|engaged tone|left a message|no show|no-show|did not show)\b/, 'no-answer'],
-    [/\b(call back|called back|callback|call me back|ring back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
+    [/\b(call back|called back|callback|call me back|call back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
     [/\b(not interested|no thanks|not for us|not a fit|declined|hung up|brushed me off|no appetite)\b/, 'not-interested'],
     [/\b(spoke|talked|chatted|got through|reached her|reached him|reached them|good|good chat|good conversation|went well|positive|keen|interested|promising|receptive|open to)\b/, 'reached'],
   ];
@@ -4387,7 +4387,7 @@
     [/\b(demo|demonstration|walkthrough|walk through|show them|see it working)\b/, 'demo'],
     [/\b(proposal|quote|quotation|statement of work|sow|rate card)\b/, 'proposal'],
     [/\b(deck|case study|one pager|one-pager|brochure|price list|pricing page|materials|send the|send her|send him|send them|send it|send over|email over|forward it|send me|send us|email me|email us)\b/, 'info'],
-    [/\b(call back|callback|ring back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
+    [/\b(call back|callback|call back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
   ];
 
   const READ_OBJ = [
@@ -4489,7 +4489,7 @@
        contain the words that name one. "Do not call again" carries "call
        again"; a wrong number is a call that never reached anybody to ask
        anything of. Read literally, the first was recording that the rep had
-       proposed another call to somebody who had just told them never to ring
+       proposed another call to somebody who had just told them never to call
        back — a chip that contradicts the disposition beside it, ticked by the
        same sentence that set it. */
     if (disp === 'do-not-call' || disp === 'wrong-number') props.length = 0;
@@ -4553,7 +4553,7 @@
          reading contradicting itself in the same breath.
 
        · NOTHING OPENS ON A CALL THAT REACHED NOBODY, and nothing is asked for
-         on one that ended in "never ring again". Both are the same rule the
+         on one that ended in "never call again". Both are the same rule the
          proposal guard above states: a chip that contradicts the disposition
          beside it is worse than an empty axis. */
     const said = {};
@@ -5010,7 +5010,7 @@
     /* ══ YOU CANNOT SKIP A CALL THAT IS UNDER WAY ══════════════════════════
        Skip writes no touchpoint, which is right for a call that never
        happened and is a way of leaving a real conversation off the record
-       once one has. So it holds only while `ready`: deciding not to ring
+       once one has. So it holds only while `ready`: deciding not to call
        somebody is a decision you make while reading their brief, not after
        you have pressed Start call.
 
@@ -5038,7 +5038,7 @@
     /* ── NO UNDO ON THE TOAST, AND THAT IS THE DESIGN ──
        Un-skipping would have to rewind the queue pointer and re-dial
        somebody, which is a phone call nobody asked for. The way back is on
-       the run sheet, where the skipped are listed with `Ring these 3` — a
+       the run sheet, where the skipped are listed with `call these 3` — a
        door rather than a rewind, which is what §1.2 asks for anyway. */
     toast(`Skipped ${rec ? rec.name : 'them'}. They stay on the run, flagged.`);
     callAdvance(sess);
@@ -5169,7 +5169,7 @@
      containing accounts — which is what ticking cards on the Organizations
      tab gives you — silently dropped every one of them and reported on
      whatever contacts happened to be in the list beside them. An account
-     is a company; the people at it are who you ring. */
+     is a company; the people at it are who you call. */
   function callable(ids) {
     const seen = new Set();
     const out = [];
@@ -5186,7 +5186,7 @@
     return { who: out.filter((p) => p.phone), noNumber: out.filter((p) => !p.phone).length };
   }
 
-  /* ══ YOU RING ALL OF THEM ═══════════════════════════════════════════════
+  /* ══ YOU call ALL OF THEM ═══════════════════════════════════════════════
 
      The counterpart of `autoCall`, and deliberately the same shape: the
      same campaign guard, the same commit naming the exact set, the same
@@ -6782,7 +6782,7 @@
     emp: ['headcount', 'sorted or scored'],
     rev: ['revenue', 'sorted or scored'],
     email: ['an email address', 'written to'],
-    phone: ['a phone number', 'rung'],
+    phone: ['a phone number', 'called'],
   };
   /* ══ THE OFFER FILLS THE LIST, IT DOES NOT OPEN A FLOW ═════════════════
 
@@ -9637,15 +9637,15 @@
      target, which is not a forecast, it is a number with a decimal point.
 
      The book knows better. Every account has already sorted itself onto a
-     rung by what has happened to it, and some of them closed — so the rate
-     at each rung is a fact about this business rather than a figure from
+     called by what has happened to it, and some of them closed — so the rate
+     at each called is a fact about this business rather than a figure from
      somebody's slide. That is also the only honest way for an AI product to
      put a probability on screen: derived from the outcomes, recomputed when
      they change, and able to say what it was derived from.
 
      LAPLACE-SMOOTHED, BECAUSE FOUR WINS IS NOT A SAMPLE. `(won + a) / (n +
-     a/prior)` pulls a thin rung toward its prior instead of letting one
-     lucky account read as a 50% close rate — and pulls an empty rung to the
+     a/prior)` pulls a thin called toward its prior instead of letting one
+     lucky account read as a 50% close rate — and pulls an empty called to the
      prior exactly, rather than to zero. The page says the sample is thin
      rather than hiding it. */
   const RUNG_PRIOR = { met: 0.09, replied: 0.045, contacted: 0.02, untouched: 0.006 };
@@ -9669,7 +9669,7 @@
   function pipelineOf(scope) {
     const open = scope.filter((a) => !ENDINGS.includes(a.outcome));
     const tier = { comparable: 0, modelled: 0 };
-    const rung = {};
+    const called = {};
     let all = 0, weighted = 0;
     open.forEach((a) => {
       const v = acvOf(a);
@@ -9677,11 +9677,11 @@
       tier[v.basis] += v.value;
       all += v.value;
       weighted += v.value * o.p;
-      const r = rung[o.k] || (rung[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
+      const r = called[o.k] || (called[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
       r.n += 1; r.value += v.value;
     });
     return { open: open.length, all, weighted, tier,
-      rungs: RUNGS.map((o) => rung[o.k]).filter(Boolean) };
+      rungs: RUNGS.map((o) => called[o.k]).filter(Boolean) };
   }
 
   /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
@@ -11722,14 +11722,14 @@
         ${skipped.length ? row(skipped.length, 'Skipped', 'warn', skipped.map((p) => p.id)) : ''}
       </div>
       ${/* ══ A SKIP IS NOT A DEAD END ══════════════════════════════════════
-            Somebody skipped is somebody you decided not to ring THEN, which
-            is a different fact from deciding not to ring them. Without a
+            Somebody skipped is somebody you decided not to call THEN, which
+            is a different fact from deciding not to call them. Without a
             way back the flag would be the whole of it, and the run would
             have quietly shrunk the list it reported on. */ ''}
       ${skipped.length && canWrite() ? `<div class="s-sess-skips">
         <p class="s-sess-skip-say">${esc(skipped.map((p) => p.name).join(' · '))}</p>
         <button class="s-inline-btn" type="button"
-          data-callthrough="${esc(skipped.map((p) => p.id).join(','))}${t.camp ? `|${esc(t.camp)}` : ''}">${skipped.length === 1 ? 'Ring them' : `Ring these ${skipped.length}`}</button>
+          data-callthrough="${esc(skipped.map((p) => p.id).join(','))}${t.camp ? `|${esc(t.camp)}` : ''}">${skipped.length === 1 ? 'call them' : `call these ${skipped.length}`}</button>
       </div>` : ''}
 
       ${/* ══ AND THEN THE THREE QUESTIONS A RUN IS ACTUALLY ABOUT ═══════════
@@ -13565,7 +13565,7 @@
   }
 
   /* ── ⑤ REACH ──
-     The plan, and the people to ring. Sales' whole job per the diagram —
+     The plan, and the people to call. Sales' whole job per the diagram —
      "I will start calling every person" — and there was no call control on a
      campaign page at all: 166 of them, and not one rang anybody. */
   function stageReach(l) {
@@ -13669,7 +13669,7 @@
                   Reach node could not be read without scrolling past the
                   step it belongs to. They are two lines now: who, and then
                   why-plus-whether-there-is-a-line, which are both answers to
-                  "should I ring this one next" and belong on one line
+                  "should I call this one next" and belong on one line
                   because that is one question.
 
                   THE ROLE IS A SIBLING, NOT A CHILD. It was nested inside the
@@ -13691,10 +13691,10 @@
             <div class="s-qrow-why">
               <span class="s-qrow-because">${esc(because(p))}</span>
               ${/* ══ WHERE THIS ONE STANDS ══════════════════════════════════
-                    The row said who to ring and why they are ranked, and
+                    The row said who to call and why they are ranked, and
                     nothing about what has already happened to them — so
                     "answered and nobody came back" and "nobody has ever
-                    rung them" read identically, and a caller had to open the
+                    called them" read identically, and a caller had to open the
                     record to find out which call they were about to make.
 
                     The last touchpoint, in the words `touchPhrase` writes
@@ -13712,7 +13712,7 @@
                      Every row printed its whole agreed line, and `draftSay`
                      builds those from one template — so six rows carried the
                      same forty-five words with three nouns swapped. A queue
-                     is for CHOOSING who to ring; the line is for SAYING, and
+                     is for CHOOSING who to call; the line is for SAYING, and
                      you say one at a time, so it lives in the call panel.
 
                      "Nothing written for them yet" then said per row what
@@ -14752,7 +14752,7 @@
           const who = rec.kind === 'acc' ? DB.conBy[t.on] : null;
           return `<details class="s-call"${i === 0 ? ' open' : ''}>
             <summary class="s-call-sum">
-              ${/* WHO WAS RUNG, ON AN ACCOUNT. The closed line named the rep
+              ${/* WHO WAS called, ON AN ACCOUNT. The closed line named the rep
                     who dialled and never the person on the other end — which
                     on an organization with four contacts is the one thing
                     that tells two calls apart. On a contact's own record it
@@ -18974,9 +18974,9 @@
   ═══════════════════════════════════════════════ */
 
   /* ── Today's calls, for Sales ──
-     The queue is the Sales function's whole surface: who to ring, why, and
+     The queue is the Sales function's whole surface: who to call, why, and
      the control that starts it. Ranked by what it costs to leave — somebody
-     who replied outranks somebody who has never been rung. */
+     who replied outranks somebody who has never been called. */
   /* ══ WHO IS WORTH RINGING — ONE DERIVATION, THREE READERS ══════════════
 
      Three surfaces asked this question and two of them asked it
@@ -19028,7 +19028,7 @@
         <h2 class="s-block-h">Calls</h2>
         ${/* ══ THREE WAYS THROUGH ONE QUEUE, AND THEY SIT TOGETHER ═══════
 
-              Ring one — the first row's `Call`. Ring all of them yourself —
+              call one — the first row's `Call`. call all of them yourself —
               this. Hand the lot to AiMY — the last. The difference between
               the three is legible only because they are eight pixels apart;
               a session started from a page of its own would be a fourth
@@ -20072,7 +20072,7 @@
             product already has.
 
             So the same component, as a `<button>` with `data-camp`, cursor,
-            hover and a focus ring. The rule was never "panels are inert" —
+            hover and a focus call. The rule was never "panels are inert" —
             it was "the signals tell the truth", and here the truth is the
             other way round. */ ''}
       <section class="s-exec-sec">
@@ -20126,7 +20126,7 @@
           ${secAsk('Who should we chase', `Some of my companies have not been contacted or have gone quiet. Tell me which ones to chase first and why.`)}
         </div>
         ${/* THE LADDER WITHOUT THE RATES. The executive page shows the close
-              rate at each rung; that is our conversion economics and stays
+              rate at each called; that is our conversion economics and stays
               on our side of the boundary. WHERE their companies sit is
               theirs, and it is what a customer most wants from a progress
               report. */ ''}
@@ -20506,7 +20506,7 @@
 
   /* ══ WHO IS WORTH RINGING, WITH THE PHONE ON EACH ROW ══════════════════
 
-     `Ring someone` used to write `tab=contacts&cut=worth-call` — a correct
+     `call someone` used to write `tab=contacts&cut=worth-call` — a correct
      narrowing of the briefing's contacts tab, which is at the FOOT of the
      page. So pressing the second opener in "Since your last visit" changed a
      count 1,400px below the fold and left the screen you were looking at
@@ -20514,7 +20514,7 @@
      same defect the float chips had before `on` defaulted to the list.
 
      Sending you to the leads surface instead would have been the other
-     obvious fix and it is worse: you asked WHO SHOULD I RING, and a filtered
+     obvious fix and it is worse: you asked WHO SHOULD I call, and a filtered
      grid answers "here is a set, now read twelve rows and choose". The
      question has a short answer and AiMY has it.
 
@@ -20531,20 +20531,20 @@
        what `worth` opens. */
     const { all: mine, worth } = ringQueue();
     if (!mine.length) {
-      answerBlock('Nobody to ring', 'Nothing you can see has a number and something open on it. <em>Fill in the gaps</em> finds numbers for the people who have none.');
+      answerBlock('Nobody to call', 'Nothing you can see has a number and something open on it. <em>Fill in the gaps</em> finds numbers for the people who have none.');
       return;
     }
     const q = mine.slice(0, 6);
 
-    const body = `<div class="s-ring">
+    const body = `<div class="s-call">
       ${q.map((c, i) => {
         const flag = topFlag(c);
-        return `<div class="s-ring-row">
-          <div class="s-ring-who">
+        return `<div class="s-call-row">
+          <div class="s-call-who">
             <button class="s-ans-name" type="button" data-open="${esc(c.id)}">${esc(c.name)}</button>
             <span class="s-ans-sub">${esc(c.role)} · ${esc(accOf(c).name)}</span>
           </div>
-          <p class="s-ring-why">${esc(flag ? whyFlag(c, flag.k) : because(c))}</p>
+          <p class="s-call-why">${esc(flag ? whyFlag(c, flag.k) : because(c))}</p>
           ${/* Only the first is filled. Six identical filled Call buttons is
                 six recommendations, which is none — the list is ranked, so
                 the top row IS the recommendation and says so by being the
@@ -20554,7 +20554,7 @@
                 page paints before the canvas opens — so by the time this
                 renders the claim is spent on whatever the briefing put first,
                 and every row came out ghost. Measured: six Call buttons, none
-                filled, on a block whose entire job is to say who to ring
+                filled, on a block whose entire job is to say who to call
                 first.
 
                 The canvas is its own surface and gets its own primary, which
@@ -20562,7 +20562,7 @@
                 `btn-brand` unconditionally. Two filled controls never share a
                 screen here because the canvas overlays the page and a settled
                 work block has had its actions replaced. */ ''}
-          <button class="s-insight-lnk${i === 0 && !worth.length ? ' primary' : ''} s-ring-go" type="button"
+          <button class="s-insight-lnk${i === 0 && !worth.length ? ' primary' : ''} s-call-go" type="button"
             data-callstart="${esc(c.id)}">${chIcon('phone')}Call</button>
         </div>`;
       }).join('')}
@@ -20570,7 +20570,7 @@
 
             The difference is what was asked. The block on home is one of
             seven things on a page nobody came to for the phone; this is the
-            answer to "who should I ring", pressed on purpose, and the
+            answer to "who should I call", pressed on purpose, and the
             answer to that question is not six names to choose between — it
             is these, in this order, starting now.
 
@@ -20588,7 +20588,7 @@
             is drawn as — and the two `Call all` controls on the home block
             and the Reach stage carry no icon at all, so this was the odd
             one out as well as the ambiguous one. The word is the label. */ ''}
-      ${canWrite() && worth.length ? `<div class="s-ring-foot">
+      ${canWrite() && worth.length ? `<div class="s-call-foot">
         <button class="s-insight-lnk primary" type="button"
           data-callthrough="${esc(worth.map((c) => c.id).join(','))}">Call all ${worth.length}</button>
       </div>` : ''}
@@ -20633,7 +20633,7 @@
         why: won.length && inds.length
           ? `your ${won.length} wins all came from ${plural(inds.length, 'industry')}`
           : 'they arrive as a named list you can work' },
-      { k: 'call', label: 'Ring someone',
+      { k: 'call', label: 'call someone',
         why: callable.length
           ? `${plural(callable.length, 'person')} ${callable.length === 1 ? 'has' : 'have'} a phone number and something unresolved`
           : 'nobody is waiting on a call' },
@@ -22158,7 +22158,7 @@
        one is raised from a control on the page, the turn lands in the thread
        and nothing draws it: the question is answered, correctly, off screen.
 
-       Found on `Ring someone`, which is exactly that case. `openCanvas` is
+       Found on `call someone`, which is exactly that case. `openCanvas` is
        idempotent and adds nothing when the canvas is already up, so the chat
        path is unchanged. */
     openCanvas();
@@ -25079,7 +25079,7 @@
            The tab block is at the FOOT of the briefing and this opener is
            at the top, so the press narrowed a set 1,400px below the fold
            and left the screen identical — the exact defect the note on
-           `Ring someone` documents, arrived at from the other direction.
+           `call someone` documents, arrived at from the other direction.
            `go` repaints synchronously, so the block exists to scroll to by
            the time this runs. */
         const seat = $('.s-tabs-block'); const sc = $('#pageScroll');
@@ -25550,7 +25550,7 @@
      FIRST thing, not buried in the form, because every field after it means
      something different depending on the answer.
 
-     Contacts, not accounts: you ring a person. Ranked with the ones the
+     Contacts, not accounts: you call a person. Ranked with the ones the
      campaign is waiting on first, since those are what somebody opening this
      control has usually just done something about. */
   function logOnCampaign(key) {
@@ -26837,7 +26837,7 @@
      promised it.
   ═══════════════════════════════════════════════ */
 
-  /* ══ THE LADDER'S BOTTOM RUNG, FINALLY USED ════════════════════════════
+  /* ══ THE LADDER'S BOTTOM called, FINALLY USED ════════════════════════════
 
      Doctrine §3.1: *reversible, single-entity, low blast radius → none. Act,
      then toast with Undo.* The product declared that ladder and then put a

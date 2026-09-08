@@ -34,15 +34,15 @@ are on. The rail carries the AiMY reading and nothing else.
 Under those sit the three records: one campaign (`?camp=`), one person
 (`?con=`), one list (`?list=`).
 
-**A cut is a rung.** The queue is cut four ways and every one of them is a
+**A cut is a called.** The queue is cut four ways and every one of them is a
 place on the ladder, so there is no second vocabulary to learn. They sum to the
-whole, because a person stands on exactly one rung.
+whole, because a person stands on exactly one called.
 
-| cut | the rung it is |
+| cut | the called it is |
 |---|---|
-| Callbacks | they asked to be rung back, and the date has come |
-| New | nobody has rung them |
-| No answer | rung, nobody picked up |
+| Callbacks | they asked to be called back, and the date has come |
+| New | nobody has called them |
+| No answer | called, nobody picked up |
 | Answered | you got them, and there is no meeting yet |
 
 Once a meeting is booked they leave the queue — the BDR's part is done until it
@@ -51,9 +51,9 @@ closed in it.
 
 **The queue is cards, three across.** A row held a name, a line and a button —
 enough to be ranked by and not enough to prepare with, so every call began by
-opening the record to find out who this was. A card carries the rung and the
+opening the record to find out who this was. A card carries the called and the
 campaign, who they are and where they sit, how big the company is, why they are
-on this rung, what was said last time in the words it was written in, and the
+on this called, what was said last time in the words it was written in, and the
 number. Every card does the same thing, because on this surface there is only
 one thing to do, and it says **Call**. It briefly said "Say what happened" on people whose
 meeting had passed: a second verb, for a second job, in the middle of a list you
@@ -61,7 +61,7 @@ are dialling down. The call logs the touchpoint; a separate step to report the
 same call is the step this build exists to remove.
 
 **One worklist per surface, paged. Everything else is context, capped.** Fifteen
-is a screenful: ring through it, press once for the next fifteen. A thousand
+is a screenful: call through it, press once for the next fifteen. A thousand
 people behind a scrollbar is not scale, it is an endless list — you cannot tell
 where you are in it, cannot come back to the same place, and never finish
 anything.
@@ -124,9 +124,9 @@ A call never moves a lead **backwards**, and never climbs out of an exit — onl
 Undo does that. Past `handed-over` it stops being a BDR lead, which is why the
 ladder ends there.
 
-**One write, two places it shows.** A touchpoint and a rung are the whole of it;
+**One write, two places it shows.** A touchpoint and a called are the whole of it;
 everything a campaign reports — how many are left to call, callbacks due,
-meetings set, its rung tally, its feed — is derived from those two, so a person's
+meetings set, its called tally, its feed — is derived from those two, so a person's
 record and the campaign they are on cannot disagree about what just happened.
 
 ---

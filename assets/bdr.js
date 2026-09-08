@@ -169,13 +169,13 @@
      it is not a BDR's lead any more, which is why the ladder stops there.
 
      ORDER IS MEANING. `rank` is the index, and everything that decides
-     whether a call moves a lead compares indices. Insert a rung in the middle
+     whether a call moves a lead compares indices. Insert a called in the middle
      and every stored checkpoint below it keeps its NAME and changes its
      POSITION — so add at the end, or renumber deliberately. */
   const LADDER = [
-    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has rung them yet' },
-    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'rung, nobody picked up' },
-    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be rung back' },
+    { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
+    { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
+    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
     { k: 'answered',    label: 'Answered',     tone: 'ok',      say: 'you got them on the phone' },
     { k: 'meeting-set', label: 'Meeting set',  tone: 'ok',      say: 'time in a diary' },
     { k: 'showed-up',   label: 'Showed up',    tone: 'ok',      say: 'they came to the meeting' },
@@ -188,12 +188,12 @@
     { k: 'wrong-number', label: 'Wrong number',  tone: 'warn',    say: 'the number is not theirs' },
     { k: 'do-not-call',  label: 'Do not call',   tone: 'err',     say: 'they opted out' },
   ];
-  const RUNG = Object.create(null);
-  LADDER.forEach((x, i) => (RUNG[x.k] = Object.assign({ n: i }, x)));
-  EXITS.forEach((x) => (RUNG[x.k] = Object.assign({ n: -1 }, x)));
-  const rank = (k) => (RUNG[k] ? RUNG[k].n : 0);
+  const called = Object.create(null);
+  LADDER.forEach((x, i) => (called[x.k] = Object.assign({ n: i }, x)));
+  EXITS.forEach((x) => (called[x.k] = Object.assign({ n: -1 }, x)));
+  const rank = (k) => (called[k] ? called[k].n : 0);
   const isExit = (k) => rank(k) < 0;
-  const rungLabel = (k) => (RUNG[k] ? RUNG[k].label : k);
+  const rungLabel = (k) => (called[k] ? called[k].label : k);
 
   /* ══ WHAT HAPPENED ON A CALL ═══════════════════════════════════════════
      Seven, and the keys are the V3 build's so every ported lexicon still
@@ -250,7 +250,7 @@
     { k: 'other',        label: 'Something opened' },
   ];
   /* ══ NOT EVERY TOUCHPOINT IS A CALL ════════════════════════════════════
-     Two of them are not: a rung somebody settled by hand, and the company
+     Two of them are not: a called somebody settled by hand, and the company
      profile going out after a call that went nowhere. Both are written to
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
@@ -645,11 +645,11 @@
      `TAX` states about its own lists, and for the same reason: a ranking has
      to live somewhere, and a lexicon sorted by accident ranks by accident. */
   const READ_DISP = [
-    [/\b(do not call|do not ring|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
+    [/\b(do not call|do not call|do not contact|take me off|take us off|remove me|remove us|stop calling|never call|opted out|opt out)\b/, 'do-not-call'],
     [/\b(wrong number|wrong extension|number is wrong|not her number|not his number|not their number|no longer in service|dead line)\b/, 'wrong-number'],
     [/\b(gatekeeper|reception|receptionist|switchboard|front desk|secretary|assistant|pa|screened|not put me through|get past|take a message|who is calling|put you through|she is in|he is in|in workshops|in meetings all)\b/, 'gatekeeper'],
     [/\b(no answer|no one answered|nobody answered|nobody picked up|did not answer|did not pick up|voicemail|voice mail|answerphone|answering machine|rang out|busy tone|engaged tone|left a message|no show|no-show|did not show)\b/, 'no-answer'],
-    [/\b(call back|called back|callback|call me back|ring back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
+    [/\b(call back|called back|callback|call me back|call back|call again|try again|another call|call her back|call him back|call them back|asked me to call)\b/, 'callback'],
     [/\b(not interested|no thanks|not for us|not a fit|declined|hung up|brushed me off|no appetite)\b/, 'not-interested'],
     [/\b(spoke|talked|chatted|got through|reached her|reached him|reached them|good|good chat|good conversation|went well|positive|keen|interested|promising|receptive|open to)\b/, 'reached'],
   ];
@@ -678,7 +678,7 @@
     [/\b(demo|demonstration|walkthrough|walk through|show them|see it working)\b/, 'demo'],
     [/\b(proposal|quote|quotation|statement of work|sow|rate card)\b/, 'proposal'],
     [/\b(deck|case study|one pager|one-pager|brochure|price list|pricing page|materials|send the|send her|send him|send them|send it|send over|email over|forward it|send me|send us|email me|email us)\b/, 'info'],
-    [/\b(call back|callback|ring back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
+    [/\b(call back|callback|call back|call again|another call|try again|call her back|call him back|call them back|try her back|try him back|try me back)\b/, 'callback'],
   ];
 
   const READ_OBJ = [
@@ -780,7 +780,7 @@
        contain the words that name one. "Do not call again" carries "call
        again"; a wrong number is a call that never reached anybody to ask
        anything of. Read literally, the first was recording that the rep had
-       proposed another call to somebody who had just told them never to ring
+       proposed another call to somebody who had just told them never to call
        back — a chip that contradicts the disposition beside it, ticked by the
        same sentence that set it. */
     if (disp === 'do-not-call' || disp === 'wrong-number') props.length = 0;
@@ -812,7 +812,7 @@
        follow-up and its day in one clause, and the read-back was putting it
        down for tomorrow. Only the clause that asks — a call back, a
        meeting, a demo — is read for a day, never a fact about her diary. */
-    const ask = when == null && raw.match(/\b(?:call(?:ing)?|ring|phone)\s+(?:her|him|them|me)?\s*back\b[^.,;—–]*|\bcallback\b[^.,;—–]*|\b(?:meeting|demo)\b[^.,;—–]*/i);
+    const ask = when == null && raw.match(/\b(?:call(?:ing)?|call|phone)\s+(?:her|him|them|me)?\s*back\b[^.,;—–]*|\bcallback\b[^.,;—–]*|\b(?:meeting|demo)\b[^.,;—–]*/i);
     const whenAsk = ask && /\b(monday|tuesday|wednesday|thursday|friday|next week|next month|tomorrow)\b/i.test(ask[0])
       ? readWhen(ask[0].toLowerCase()) : null;
     let next = null;
@@ -851,7 +851,7 @@
          reading contradicting itself in the same breath.
 
        · NOTHING OPENS ON A CALL THAT REACHED NOBODY, and nothing is asked for
-         on one that ended in "never ring again". Both are the same rule the
+         on one that ended in "never call again". Both are the same rule the
          proposal guard above states: a chip that contradicts the disposition
          beside it is worse than an empty axis. */
     const said = {};
@@ -1235,7 +1235,7 @@
 
     /* ── History ── where each contact stands, and the calls that got them
        there. The shares are what a real book looks like after a quarter: most
-       of it has never been rung. */
+       of it has never been called. */
     /* THESE SHARES ARE OF THE REACHABLE BOOK, NOT OF EVERYBODY. Contacts on
        no campaign, and most contacts with no number, never get here at all —
        so a 0.50 not-called share reads as 0.64 of all six thousand once those
@@ -1245,7 +1245,7 @@
        hundred — fine across six thousand people, and across three hundred it
        leaves the manager with three deals and no board worth opening. The
        book is a demo's size now, so the hand-over share is what a demo
-       needs: a hundred or so still to ring on one desk, forty-odd deals on
+       needs: a hundred or so still to call on one desk, forty-odd deals on
        the other. */
     const START = [
       ['not-called', 0.33],
@@ -1285,7 +1285,7 @@
     const NOTE = {
       reached: ['Good conversation, they want a demo.', 'Spoke to them, keen but the price came up.',
         'Talked it through. They asked me to send the case study.', 'Got through. Timing is the problem, not the fit.'],
-      callback: ['Asked me to call back next week.', 'Bad moment, ring back Thursday.', 'Call them back after the board meeting.'],
+      callback: ['Asked me to call back next week.', 'Bad moment, call back Thursday.', 'Call them back after the board meeting.'],
       gatekeeper: ['Reception would not put me through.', 'Screened. Assistant took a message.', 'Front desk again, they are in workshops all week.'],
       'no-answer': ['No answer.', 'Rang out.', 'Left a voicemail.', 'Straight to answerphone.'],
       'not-interested': ['Not interested, they have just signed with someone.', 'No appetite this year.', 'Brushed me off.'],
@@ -1295,15 +1295,15 @@
 
     con.forEach((c) => {
       c.fate = FATES[Math.abs(hash(c.id)) % FATES.length];
-      if (!c.camps.length) return;              // not on a campaign, never rung
+      if (!c.camps.length) return;              // not on a campaign, never called
       if (!c.phone && chance(r, 0.8)) return;   // no number, mostly untouched
-      const rung = rollRung();
-      if (rung === 'not-called') return;
+      const called = rollRung();
+      if (called === 'not-called') return;
 
-      c.checkpoint = rung;
-      const climbed = isExit(rung) ? between(r, 1, 4) : rank(rung);
+      c.checkpoint = called;
+      const climbed = isExit(called) ? between(r, 1, 4) : rank(called);
       /* Further up the ladder means more calls behind it. A meeting is not
-         set on the first ring, and a cold number is rung five or six times
+         set on the first call, and a cold number is called five or six times
          before anybody gives up on it. */
       const n = Math.max(1, between(r, 2 + climbed, 6 + climbed * 2));
       const camps = c.camps;
@@ -1312,8 +1312,8 @@
         const daysAgo = between(r, 1, 120) + (n - j) * 2;
         const at = dayOf(-daysAgo);
         at.setHours(between(r, 9, 17), between(r, 0, 59), 0, 0);
-        const oc = j === n - 1 && isExit(rung)
-          ? (rung === 'declined' ? 'not-interested' : rung)
+        const oc = j === n - 1 && isExit(called)
+          ? (called === 'declined' ? 'not-interested' : called)
           : pick(r, ['no-answer', 'no-answer', 'gatekeeper', 'reached', 'callback']);
         const props = [];
         const objs = [];
@@ -1352,22 +1352,22 @@
       }
       /* ══ THE HISTORY RECORDS THE CLIMB ═════════════════════════════════
          Every touchpoint was written with moved: null, so a person at
-         Meeting set had a history that ended "no rung climbed yet" and a
+         Meeting set had a history that ended "no called climbed yet" and a
          callback that said "stays at Meeting set". The rungs somebody
          stands on were reached by particular calls, and those calls say so
          now, wearing an outcome that could have done it: a meeting is set
          on a connected call that asked for one; showed up, interested and
          handed over are settled by hand. Which calls: the last one reaches
-         the rung they stand on, the earlier rungs are spread back through
+         the called they stand on, the earlier rungs are spread back through
          the history in order. Positions come off the id's hash, not the
          generator, so nothing else in the corpus moves. */
       const mineT = touch.slice(-n).sort((x, y) => (x.at < y.at ? -1 : 1));
       const hc = Math.abs(hash(c.id + ':climb'));
-      const steps = isExit(rung)
-        ? LADDER.slice(1, 1 + climbed).map((x) => x.k).concat([rung])
-        : LADDER.slice(1, 1 + rank(rung)).map((x) => x.k);
+      const steps = isExit(called)
+        ? LADDER.slice(1, 1 + climbed).map((x) => x.k).concat([called])
+        : LADDER.slice(1, 1 + rank(called)).map((x) => x.k);
       const use = steps.slice(Math.max(0, steps.length - n));
-      const top = isExit(rung) ? rank(use[use.length - 2] || 'not-called') : rank(rung);
+      const top = isExit(called) ? rank(use[use.length - 2] || 'not-called') : rank(called);
       /* A history that never got past no-answer holds no connected call,
          and one that never got past no-answer holds no callback either. */
       mineT.forEach((t, i) => {
@@ -1425,20 +1425,20 @@
           t.secs = 8 + (hc + i) % 38; t.proposals = []; t.objections = []; t.openings = [];
         }
       });
-      /* the rung each touchpoint left them on, for "stays at" */
+      /* the called each touchpoint left them on, for "stays at" */
       prevRung = 'not-called';
-      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.rung = prevRung; });
+      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.called = prevRung; });
       const calls = mineT.filter((t) => t.outcome !== 'checkpoint');
       c.attempts = calls.length;
       c.lastCallAt = calls.length ? calls[calls.length - 1].at : last;
       c.checkpointAt = mineT[n - 1].at;
-      if (rung === 'do-not-call') c.dnc = true;
+      if (called === 'do-not-call') c.dnc = true;
       /* ══ WHAT THE DIRECTOR HAS DONE WITH IT SINCE ═══════════════════════
          A handed-over lead's history ended at the hand-over. The director's
          meetings land on the record as touchpoints by the director, dated
          off the hand-over up to today; a resolution carries the decision.
          Off the hash, so the generator is untouched. */
-      if (rung === 'handed-over') {
+      if (called === 'handed-over') {
         const kk = camp.filter((x) => x.id === camps[0])[0];
         const dirId = kk && kk.owner ? kk.owner : MANAGERS[0].id;
         mineT[n - 1].note = 'Handed to ' + REP[dirId].name + '.';
@@ -1458,7 +1458,7 @@
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
               : ph.label + ' held. ' + REP[dirId].name.split(' ')[0] + ' ' + ph.did + '.',
-            lines: [], next: null, moved: null, rung: 'handed-over',
+            lines: [], next: null, moved: null, called: 'handed-over',
           });
         }
         /* ══ AND WHAT IS IN THE DIARY NEXT ═══════════════════════════════
@@ -1483,20 +1483,20 @@
       }
 
       /* What is owed next, and when. Only the rungs that owe something. */
-      if (rung === 'callback') {
+      if (called === 'callback') {
         c.next = { what: 'Call them back', due: dayAdd(between(r, -9, 6)) };
-      } else if (rung === 'meeting-set') {
+      } else if (called === 'meeting-set') {
         c.next = { what: pick(r, ['Meeting with them', 'Demo for them']), due: dayAdd(between(r, -6, 14)) };
         /* the call that set it asked for the thing in the diary */
         const setBy = mineT[n - 1];
         if (/Demo/.test(c.next.what)) { setBy.proposals = ['demo']; setBy.note = 'Got through. They will take a demo.'; }
-      } else if (rung === 'answered' && chance(r, 0.45)) {
+      } else if (called === 'answered' && chance(r, 0.45)) {
         c.next = { what: pick(r, ['Send what was promised', 'Call them back']), due: dayAdd(between(r, -8, 9)) };
-      } else if (rung === 'showed-up') {
-        /* ONE NEXT STEP PER RUNG. Showed up owes the interest question; the
+      } else if (called === 'showed-up') {
+        /* ONE NEXT STEP PER called. Showed up owes the interest question; the
            hand-over is owed by Interested. The page said both at once. */
         c.next = { what: 'Say whether they are interested', due: dayAdd(between(r, -3, 8)) };
-      } else if (rung === 'interested') {
+      } else if (called === 'interested') {
         c.next = { what: 'Hand to the director', due: dayAdd(between(r, -3, 8)) };
       }
       if (chance(r, 0.18)) {
@@ -1872,7 +1872,7 @@
      Whatever its state says — the seed's dates drift as real days pass. A
      closed campaign stays yours to read, and stops feeding your queue: the
      surface said "past its end date" over a card that said "Work it" and
-     84 people to ring. */
+     84 people to call. */
   const campOpen = (k) => k.state !== 'done' && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
@@ -1885,8 +1885,8 @@
      with the buckets that were their only readers. A derivation nothing calls
      is a claim nothing checks. */
 
-  /* Who a BDR may ring: a number, not opted out, and still on the part of
-     the ladder that is rung. ONCE A MEETING IS BOOKED THEY LEAVE THE QUEUE —
+  /* Who a BDR may call: a number, not opted out, and still on the part of
+     the ladder that is called. ONCE A MEETING IS BOOKED THEY LEAVE THE QUEUE —
      the BDR's part is done until it happens, and a caller working a list
      does not want the people they have already closed in it. A callback with
      a date in the future is parked until that date. */
@@ -2128,9 +2128,9 @@
   function qcard(c, i) {
     const a = accOf(c);
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
-    /* At the caller's desk the tag is the rung; at the manager's it is the
-       stage, because the rung stopped moving at the hand-over. */
-    const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (RUNG[c.checkpoint] || RUNG['not-called']);
+    /* At the caller's desk the tag is the called; at the manager's it is the
+       stage, because the called stopped moving at the hand-over. */
+    const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
@@ -2141,7 +2141,8 @@
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
         '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
-        (camp ? '<span class="tc-type">' + esc(camp.name) + '</span>' : '') +
+        (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
+          '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
         esc(c.name) + '</button>' +
@@ -2162,7 +2163,7 @@
         : '') +
       aimyBlock(aimySays(c)) +
       '<div class="tc-gov b-qcard-foot">' +
-        /* What it is worth, where the number to ring sits on the caller's
+        /* What it is worth, where the number to call sits on the caller's
            card: the one figure a manager scans a list of deals for. */
         '<span class="b-qcard-num">' +
           (isMgr() ? esc(euro(amountOf(c))) : c.phone ? esc(c.phone) : 'No number') + '</span>' +
@@ -2183,7 +2184,7 @@
           : callable(c)
             ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
               '" type="button" data-call="' + esc(c.id) + '">' + rowVerb() + '</button>'
-            /* NO CALL ON SOMEBODY YOU CANNOT RING. A do-not-call, a hand-over, a
+            /* NO CALL ON SOMEBODY YOU CANNOT call. A do-not-call, a hand-over, a
                person with no number — the card offered Call on all of them. */
             : !c.phone && !c.dnc && !isExit(c.checkpoint)
               ? '<button class="s-inline-btn" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
@@ -2195,7 +2196,7 @@
   /* The queue's own renderer. Not `vlist`: that positions rows by arithmetic
      down one column, and a grid's geometry is the browser's job. A page is
      fifteen cards, so there is nothing to window. */
-  /* AN EMPTY GRID HAS TO SAY WHICH EMPTINESS IT IS. "Nobody on this rung"
+  /* AN EMPTY GRID HAS TO SAY WHICH EMPTINESS IT IS. "Nobody on this called"
      is true of a cut with nobody in it and false of a search that found
      nothing — and the second is the one you reach by typing, where the
      answer you need is your own words back and a way out of them. */
@@ -2205,7 +2206,7 @@
       return S.find
         ? '<p class="b-vfoot">Nobody here matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
-        : '<p class="b-vfoot">Nobody on this rung.' +
+        : '<p class="b-vfoot">Nobody on this called.' +
           /* A cut with nobody in it is one press from the cut with
              everybody. An empty state that only says it is empty leaves
              the caller to work out that the chip row above is the way out. */
@@ -2262,7 +2263,7 @@
   }
 
   /* ══ FOUR TOUCHES BEFORE YOU LET GO ════════════════════════════════════
-     The notes' rule. Somebody rung or reached, under four touchpoints,
+     The notes' rule. Somebody called or reached, under four touchpoints,
      quiet for a week, nothing owed: the rule says touch them again. Returns
      the touches so far when the rule applies, otherwise nothing. */
   const TOUCH_RULE = 4;
@@ -2287,7 +2288,7 @@
     const last = hist[0];
     const a = accOf(c);
 
-    /* A WAY OUT READS AS WHAT IT IS. The hour reading and "ring the mobile"
+    /* A WAY OUT READS AS WHAT IT IS. The hour reading and "call the mobile"
        were being offered on a number that is not theirs. */
     if (c.checkpoint === 'wrong-number') {
       return { text: 'The number is not theirs. Nothing on it counts until somebody finds one that is.',
@@ -2333,7 +2334,7 @@
         from: h ? 'every call on the record' : 'the call before this one',
       };
     }
-    /* Rung and rung and nothing. That is a fact about the number. */
+    /* called and called and nothing. That is a fact about the number. */
     if (c.attempts >= 3 && c.checkpoint === 'no-answer') {
       return { text: plural(c.attempts, 'attempt') + ' and nobody has picked up. ' +
         'The number may not be the one they answer.', from: 'this record’s own history' };
@@ -2354,7 +2355,7 @@
     }
     if (last) {
       /* `kindLabel`, not `OUTCOME[...]`. The newest touchpoint stopped being
-         guaranteed to be a call the moment a rung could be settled by hand
+         guaranteed to be a call the moment a called could be settled by hand
          and a profile could be sent, and this read `undefined.label` on both
          — a throw inside the page's own string, so the whole record failed to
          render and the surface simply kept showing the version before the
@@ -2423,18 +2424,19 @@
       '<div class="tc-head">' +
         '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
-        '<span class="tc-type">' + esc(SELL[k.sells[0]].name) + '</span>' +
+        '<span class="tc-type b-fact">' + chIcon('industry') +
+          '<span>' + esc(SELL[k.sells[0]].name) + '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
       '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
-          plural(members.length, 'person') + ' to ring' +
+          plural(members.length, 'person') + ' to call' +
           (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
-          (fresh ? ', <b>' + commas(fresh) + '</b> never rung' : '') + '</div>'
+          (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '') + '</div>'
         : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
-          '</b> of its ' + plural(members.length, 'person') + ' never rung when it closed</div>') +
+          '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
       aimyBlock(campSays(k, q, back, fresh, left)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num">' + esc(actor(k.owner).name) + '</span>' +
@@ -2468,7 +2470,7 @@
        redundant once stops reading it everywhere.
 
        So it says what the numbers cannot: what this audience pushes back on,
-       whether the window is about to close on people nobody has rung, and
+       whether the window is about to close on people nobody has called, and
        how often the calls here actually connect. */
 
     /* What this audience actually pushes back on, counted. */
@@ -2484,7 +2486,7 @@
       };
     }
     if (left > 0 && left < 21 && fresh) {
-      return { text: '<b>' + commas(fresh) + '</b> have never been rung and it closes in ' +
+      return { text: '<b>' + commas(fresh) + '</b> have never been called and it closes in ' +
         plural(left, 'day') + '.', from: 'the window and the roster' };
     }
     const got = mine2.filter((t) => t.outcome === 'reached').length;
@@ -2499,21 +2501,22 @@
   function lcard(l, i) {
     const camp = l.for && DB.byCamp[l.for];
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
-    const ring = people.filter(callable).length;
+    const call = people.filter(callable).length;
     return '<article class="type-card s-card b-qcard" data-open="list:' + esc(l.id) + '">' +
       '<div class="tc-head">' +
         /* The tag says WHICH campaign. "On a campaign" told you the state
            and made you open the card to learn the one fact that matters. */
         '<span class="tag tag-' + (camp ? 'ok' : 'warn') + '">' +
           (camp ? 'On ' + esc(camp.name) : 'Not on a campaign') + '</span>' +
-        '<span class="tc-type">' + esc(l.via) + '</span>' +
+        '<span class="tc-type b-fact">' + chIcon('web') +
+          '<span>' + esc(l.via) + '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
       '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
-        commas(ring) + '</b> of them ringable</div>' +
-      aimyBlock(listSays(l, people, ring, camp)) +
+        commas(call) + '</b> of them ringable</div>' +
+      aimyBlock(listSays(l, people, call, camp)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num">built ' + esc(sayWhen(l.at)) + '</span>' +
         '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
@@ -2529,7 +2532,7 @@
     return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
   }
 
-  function listSays(l, people, ring, camp) {
+  function listSays(l, people, call, camp) {
     if (!camp) {
       /* the facts above say "7 on AiMY Knowledge"; the lead cannot then say
          nobody is in the queue */
@@ -2548,10 +2551,10 @@
     const gap = people.filter((c) => !c.phone).length;
     if (gap) {
       return { text: '<b>' + commas(gap) + '</b> of them came back without a number, so they ' +
-        'cannot be rung.', from: l.via + ' filled the rest' };
+        'cannot be called.', from: l.via + ' filled the rest' };
     }
     const done = people.filter((c) => c.checkpoint !== 'not-called').length;
-    return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been rung.',
+    return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been called.',
       from: 'their own records' };
   }
 
@@ -2624,22 +2627,22 @@
     const c = S.con && DB.byCon[S.con];
     if (c) {
       const n = (DB.touchesOf[c.id] || []).length;
-      const r = RUNG[c.checkpoint];
+      const r = called[c.checkpoint];
       return {
         eyebrow: 'This person', subject: c.name,
         card: {
           state: 'reading',
           /* CALLS ARE CALLS. A hand-over settled by hand and the director's
-             meetings are touchpoints, not rings; "Rung 19 times" over a
+             meetings are touchpoints, not rings; "called 19 times" over a
              ladder that said 12 attempts was the same record disagreeing
              with itself. */
           text: c.attempts
-            ? 'Rung <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
+            ? 'called <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
               '</b> — ' + esc(rungSay(c)) + '.'
             : n
               ? '<b>' + plural(n, 'touchpoint') + '</b> and no call yet, standing at <b>' + esc(r.label) +
                 '</b> — ' + esc(rungSay(c)) + '.'
-              : 'Nobody has rung them yet. The campaign is the only thing that knows anything about them.',
+              : 'Nobody has called them yet. The campaign is the only thing that knows anything about them.',
           evidence: [{ val: c.attempts, cap: c.attempts === 1 ? 'call' : 'calls' },
             { val: n !== c.attempts ? n : 0, cap: n === 1 ? 'touchpoint' : 'touchpoints' }].filter((e) => e.val),
           act: c.next ? esc(c.next.what) + ' ' + esc(sayWhen(c.next.due)) : null,
@@ -2655,7 +2658,7 @@
           state: 'completed',
           text: 'It closed <b>' + esc(sayWhen(k.to)) + '</b>. Nothing on it is dialled now.',
           evidence: [{ val: commas(members.length), cap: 'on it' },
-            { val: commas(members.filter((c) => c.checkpoint === 'not-called').length), cap: 'never rung' }],
+            { val: commas(members.filter((c) => c.checkpoint === 'not-called').length), cap: 'never called' }],
           act: null, q: null,
         },
       };
@@ -2668,8 +2671,8 @@
         card: {
           state: cback ? 'staged' : 'detected',
           text: cback
-            ? '<b>' + plural(cback, 'person') + '</b> on this campaign asked to be rung back.'
-            : '<b>' + commas(cq.length) + '</b> people here are waiting to be rung.',
+            ? '<b>' + plural(cback, 'person') + '</b> on this campaign asked to be called back.'
+            : '<b>' + commas(cq.length) + '</b> people here are waiting to be called.',
           evidence: [{ val: commas(cq.length), cap: 'to call' },
             { val: commas(membersOf(k.id).length), cap: 'on it' }],
           act: cback ? 'Show the ' + cback : null,
@@ -2683,7 +2686,7 @@
     const a = S.acc && DB.byAcc[S.acc];
     if (a) {
       const people = consAt(a.id);
-      const ring = people.filter(callable);
+      const call = people.filter(callable);
       const sig = signalOf(a);
       return {
         eyebrow: 'This company', subject: a.name,
@@ -2692,8 +2695,8 @@
           text: sig
             ? '<b>' + esc(a.name) + '</b> ' + esc(sig.text) + ' · seen ' + esc(sayWhen(sig.at)) + '.'
             : '<b>' + plural(people.length, 'person') + '</b> on the record here, ' +
-              (ring.length ? '<b>' + commas(ring.length) + '</b> you can ring now.' : 'nobody you can ring now.'),
-          evidence: [{ val: people.length, cap: 'here' }, { val: ring.length, cap: 'to call' }].filter((e) => e.val),
+              (call.length ? '<b>' + commas(call.length) + '</b> you can call now.' : 'nobody you can call now.'),
+          evidence: [{ val: people.length, cap: 'here' }, { val: call.length, cap: 'to call' }].filter((e) => e.val),
           act: null, q: null,
         },
       };
@@ -2745,9 +2748,9 @@
       card: {
         state: back ? 'staged' : 'detected',
         text: back
-          ? '<b>' + plural(back, 'person') + '</b> asked to be rung back, across your ' +
+          ? '<b>' + plural(back, 'person') + '</b> asked to be called back, across your ' +
             plural(camps.length, 'campaign') + '.'
-          : '<b>' + commas(q.length) + '</b> people are waiting to be rung across your ' +
+          : '<b>' + commas(q.length) + '</b> people are waiting to be called across your ' +
             plural(camps.length, 'campaign') + '.',
         evidence: [{ val: commas(q.length), cap: 'to call' }, { val: camps.length, cap: 'campaigns' }],
         act: back ? 'Show the ' + back : null,
@@ -2766,7 +2769,7 @@
      The one you are on is the heading, at heading weight. The other two sit
      beside it, quiet, and press to become the heading. */
   /* ══ FINDING ONE THING IN NINE HUNDRED ═════════════════════════════════
-     The cuts narrow by rung and the pager walks fifteen at a time, and
+     The cuts narrow by called and the pager walks fifteen at a time, and
      neither answers "where is Sofie". Nine hundred and seventy-six people
      across sixty-six pages is a list you have already failed to search.
 
@@ -2870,7 +2873,7 @@
       '<div class="b-menu" id="coMenu" role="menu" hidden>' +
         '<span class="b-menu-cap">Also at ' + esc(a.name) + '</span>' +
         shown.map((x) => {
-          const rg = RUNG[x.checkpoint] || RUNG['not-called'];
+          const rg = called[x.checkpoint] || called['not-called'];
           return '<button class="b-menu-item" type="button" role="menuitem" data-con="' + esc(x.id) + '">' +
             '<span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') + '"></span>' +
             '<span class="b-menu-line"><span class="b-menu-name">' + esc(x.name) + '</span>' +
@@ -2974,7 +2977,7 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint', proposals: [], objections: [], openings: [],
       note: 'Handed to ' + m.name + '.',
-      lines: [], next: null, moved: [c.checkpoint, 'handed-over'], rung: 'handed-over',
+      lines: [], next: null, moved: [c.checkpoint, 'handed-over'], called: 'handed-over',
     };
     patchCon(c, { checkpoint: 'handed-over', checkpointAt: now, next: null, manager: m.id });
     addTouch(t);
@@ -3326,8 +3329,12 @@
     return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i, 8) + '">' +
       '<span class="b-dc-name">' + esc(c.name) + '</span>' +
-      '<span class="b-dc-co">' + esc(a ? a.name : 'No company named') + '</span>' +
+      '<span class="b-dc-co b-fact">' + chIcon('company') +
+        '<span>' + esc(a ? a.name : 'No company named') + '</span></span>' +
       '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
+      /* No mark. Every card on the board carries an amount, in the same
+         place, bold and in tabular figures — a mark on all of them tells
+         one from another not at all, which is the whole job of a mark. */
       '<span class="b-dc-amt">' + esc(euro(amountOf(c))) + '</span>' +
     '</button>';
   }
@@ -3601,9 +3608,9 @@
     if (here === 'camps') {
       const busiest = camps.slice().sort((a, b) => queue(b.id).length - queue(a.id).length)[0];
       const soonest = camps.slice().sort((a, b) => (a.to < b.to ? -1 : 1))[0];
-      if (!camps.length) return 'You are on no campaign, so there is nobody to ring.';
+      if (!camps.length) return 'You are on no campaign, so there is nobody to call.';
       return plural(camps.length, 'campaign') + ' are yours. <b>' + esc(busiest.name) +
-        '</b> has the most left to ring at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
+        '</b> has the most left to call at <b>' + commas(queue(busiest.id).length) + '</b>, and <b>' +
         esc(soonest.name) + '</b> ' + closesIn(soonest) + '.';
     }
     if (here === 'lists') {
@@ -3635,17 +3642,17 @@
   function openerText(counts, all, camps) {
     const bits = [];
     if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
-      '</b> asked to be rung back');
+      '</b> asked to be called back');
     if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
-      '</b> have never been rung');
+      '</b> have never been called');
     if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
       '</b> did not pick up last time');
     if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
       (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
-    if (!bits.length) bits.push('there is nobody left to ring');
+    if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
     return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
-      '</b> people on them can be rung. ' +
+      '</b> people on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
   }
@@ -3712,7 +3719,7 @@
       const soonest = camps.filter((k) => k.to >= TODAY_ISO).sort((a, b) => (a.to < b.to ? -1 : 1))[0];
       opens = [
         busiest ? { k: 'camp:' + busiest.id, label: 'Work ' + busiest.name,
-          why: plural(queue(busiest.id).length, 'person') + ' left to ring on it' } : null,
+          why: plural(queue(busiest.id).length, 'person') + ' left to call on it' } : null,
         soonest && soonest.id !== (busiest && busiest.id)
           ? { k: 'camp:' + soonest.id, label: 'Work ' + soonest.name, why: closesIn(soonest) }
           : null,
@@ -3736,15 +3743,15 @@
         { k: 'callnext', label: 'Call the next one',
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
         { k: 'callback', label: 'Work the callbacks',
-          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be rung back'
+          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be called back'
             : 'nobody asked for one' },
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
           ? { k: 'after', label: 'Say what happened',
               why: plural(counts.after, 'meeting') + ' passed without a word' }
-          : { k: 'not-called', label: 'Ring somebody new',
-              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been rung'
+          : { k: 'not-called', label: 'call somebody new',
+              why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
                 : 'everyone has been tried' },
         findLeads,
       ];
@@ -3758,7 +3765,7 @@
 
   /* The queue, cut by state. The cuts are always visible and their counts sum
      to All, so the row of chips is also the shape of the day. */
-  function cuts(counts, all, ring) {
+  function cuts(counts, all, call) {
     const on = S.q || 'all';
     const chip = (k, label, n) =>
       '<button class="filter-chip' + (on === k ? ' active' : '') + '" type="button" data-q="' +
@@ -3767,9 +3774,9 @@
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
       (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
-      ((ring && ring.length)
+      ((call && call.length)
         ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
-          esc(ring.map((c) => c.id).join(',')) + '">Call these ' + ring.length + '</button>'
+          esc(call.map((c) => c.id).join(',')) + '">Call these ' + call.length + '</button>'
         : '') + '</div>';
   }
 
@@ -3780,7 +3787,7 @@
      place, and gets no sense of having finished anything.
 
      So the queue is worked a PAGE at a time. Fifteen is a screenful — you
-     see the whole of what is in front of you without scrolling, ring through
+     see the whole of what is in front of you without scrolling, call through
      it, and press once for the next fifteen. The total is stated on every
      page, so bounding what is drawn never hides how much there is.
 
@@ -3829,7 +3836,7 @@
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
-    const ring = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
+    const call = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
     return '<section class="s-block s-block-wide" aria-label="To call">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
@@ -3860,9 +3867,9 @@
             ? '<b>' + commas(all.length) + '</b> handed to you on this campaign'
             : S.q === 'after'
               ? '<b>' + commas(counts.after || 0) + '</b> meetings passed without a word'
-              : '<b>' + commas(all.length) + '</b> you can ring now') + '</p>'
+              : '<b>' + commas(all.length) + '</b> you can call now') + '</p>'
         : '') +
-      cuts(counts, all, ring) +
+      cuts(counts, all, call) +
       qgrid(pg.rows) +
       pager(pg, 'person') +
     '</section>';
@@ -4051,30 +4058,30 @@
 
   /* ══ ONE LIST, AS A JOURNEY ═════════════════════════════════════════════
      You open a list to decide one thing: is it on a campaign yet, and if it
-     is, who on it is left to ring. The page answered with the name in the
+     is, who on it is left to call. The page answered with the name in the
      caption gutter, the criteria and the counts in one grey sentence, and
      no Call action at all — a list of forty-six people, thirty-two of them
      ringable, and nowhere to press.
 
      Now: the masthead with the one chip that matters beside the name, what
      AiMY makes of the list with a door, the action row decided by state,
-     the people never-rung first, where they all stand, and what has been
+     the people never-called first, where they all stand, and what has been
      said to them. */
   function listPage(l) {
     const camp = l.for && DB.byCamp[l.for];
-    /* NEVER-RUNG FIRST. A list exists to bring new people in; the ones
+    /* NEVER-called FIRST. A list exists to bring new people in; the ones
        nobody has tried lead, the rest follow up the ladder, exits last. */
     const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean)
       .sort((x, y) => (order(x) - order(y)) || qTie(x, y));
-    const ring = people.filter(callable);
+    const call = people.filter(callable);
     const hist = [];
     people.forEach((c) => (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) hist.push(TOUCH[id]); }));
     hist.sort((a, b) => (a.at > b.at ? -1 : 1));
     const chip = camp
       ? { label: 'On ' + camp.name, tone: 'ok' }
       : { label: 'Not on a campaign yet', tone: 'warn' };
-    const first = ring[0];
+    const first = call[0];
     const callFirst = first
       ? '<button class="s-inline-btn" type="button" data-call="' + esc(first.id) + '">Call ' +
         esc(first.name.split(' ')[0]) + '</button>'
@@ -4086,12 +4093,12 @@
       ? (first
           ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
               '">Call the next one on this list</button>' +
-            (ring.length > 1
+            (call.length > 1
               ? '<button class="s-inline-btn" type="button" data-callall="' +
-                esc(ring.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
-                Math.min(PAGE, ring.length) + '</button>'
+                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
+                Math.min(PAGE, call.length) + '</button>'
               : '')
-          : '<span class="s-block-sub">Nobody on it has a number you can ring now.</span>') +
+          : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
           'Open ' + esc(camp.name) + '</button>'
       : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
@@ -4112,8 +4119,8 @@
           /* [4] HOW MANY OF IT EACH CAMPAIGN HOLDS — V3's fact — and [2] the
              gap, with its door. */
           '<div>' +
-            '<span>' + (ring.length
-              ? '<b>' + commas(ring.length) + '</b> ringable'
+            '<span>' + (call.length
+              ? '<b>' + commas(call.length) + '</b> ringable'
               : 'nobody ringable') + '</span>' +
             (function () {
               const by = Object.create(null);
@@ -4149,12 +4156,12 @@
         '<div class="s-rec-actions">' + actions + '</div>' +
       '</section>' +
 
-      listLead(l, people, ring, camp) +
+      listLead(l, people, call, camp) +
 
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
           '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · never rung first, then by rung</span></div>' +
+          ' · never called first, then by called</span></div>' +
         rosterBlock(paged(people).rows) +
         pager(paged(people), 'person') +
       '</section>' +
@@ -4176,7 +4183,7 @@
      AiMY's one line about this person; right: the company's size at the
      largest step because it is the figure you compare DOWN the page, what
      they would be bought for, and the status tag. Mine had the name, a
-     line, the rung and a number. The whole right column was missing, and
+     line, the called and a number. The whole right column was missing, and
      the right column is the reason a roster beats a grid: figures align.
 
      AiMY's line is drawn only where AiMY has something specific — a note
@@ -4187,7 +4194,7 @@
   const ROSTER_QUIET = ['the account and the campaign', 'the touchpoint before this one'];
   function rosterRow(c) {
     const a = accOf(c);
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const rg = called[c.checkpoint] || called['not-called'];
     const camp = campsOf(c).filter(mine)[0] || campsOf(c)[0];
     const sell = camp && SELL[camp.sells[0]];
     const slug = String(c.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -4220,7 +4227,7 @@
       '<span class="s-brow-side">' +
         '<span class="s-brow-fig">' + (a && a.size ? commas(a.size) + ' staff' : '—') + '</span>' +
         '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
-        /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The rung is a state:
+        /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The called is a state:
            a dot in its tone and the word, quiet. The only pill on the row
            is the one you press. */
         '<span class="b-rstate"><span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') +
@@ -4283,12 +4290,12 @@
 
   /* [3] What AiMY makes of the list, with a door. The card's two readings
      that mean something — it is on no campaign, or people came back without
-     a number — get the block. The fallback, how many have been rung, is what
+     a number — get the block. The fallback, how many have been called, is what
      the funnel two sections down shows, and is not drawn as a panel. */
-  function listLead(l, people, ring, camp) {
-    const said = listSays(l, people, ring.length, camp);
+  function listLead(l, people, call, camp) {
+    const said = listSays(l, people, call.length, camp);
     if (!said || said.from === 'their own records') return '';
-    const first = ring[0];
+    const first = call[0];
     /* The missing-number reading gets V3's verb; the no-campaign reading
        gets the phone anyway. */
     const door = /without a number/.test(said.text)
@@ -4656,7 +4663,7 @@
            not, and "in Netherlands" is the kind of seam that makes a
            sentence read as assembled rather than written. */
         say: '<b>' + esc(k.name) + '</b> has ' + esc(plural(short.left, 'person')) +
-          ' left to ring and is after ' + esc(INDUSTRY[k.industry].label.toLowerCase()) +
+          ' left to call and is after ' + esc(INDUSTRY[k.industry].label.toLowerCase()) +
           ' in ' + (reg ? (THE_REGION[reg.k] ? 'the ' : '') + esc(reg.label) : 'its region') + '.',
         act: 'Look for those' });
     }
@@ -4676,7 +4683,7 @@
           act: 'Add those sectors' });
       }
     }
-    /* Where you actually get through. A country you have rung enough times
+    /* Where you actually get through. A country you have called enough times
        for the rate to mean anything, and which beats your own average. */
     if (!has('where')) {
       const mineT = DB.touch.filter((t2) => t2.by === me().id && OUTCOME[t2.outcome]);
@@ -4713,7 +4720,7 @@
       const live = mine2.filter(callable);
       out.push({ k: 'have', take: mine2.map((c) => c.id),
         say: '<b>' + commas(mine2.length) + '</b> you already hold match this' +
-          (live.length ? ', and <b>' + commas(live.length) + '</b> can be rung' : '') + '.',
+          (live.length ? ', and <b>' + commas(live.length) + '</b> can be called' : '') + '.',
         act: 'Bring ' + (mine2.length === 1 ? 'it' : 'them') + ' in' });
     }
     /* A concentration worth narrowing to. A third or better, or it is a fact
@@ -4745,14 +4752,14 @@
       }
     }
     /* Where the callable ones are. A criterion that narrows to people you can
-       actually ring is worth more than one that narrows to more people. */
+       actually call is worth more than one that narrows to more people. */
     if (buildKind() === 'con' && found.length > 3 && anyCrit(t)) {
       const f2 = finderOf();
       const dead = found.filter((r) => r.seedPhone >= f2.phone).length;
       if (dead && dead / found.length >= 0.25) {
         out.push({ k: 'phone', terms: [['only', 'phone']],
           say: '<b>' + commas(dead) + ' of the ' + commas(found.length) +
-            '</b> will come back without a number, so they cannot be rung.',
+            '</b> will come back without a number, so they cannot be called.',
           act: 'Only ones with a number' });
       }
     }
@@ -5094,7 +5101,7 @@
      says what has been staged, and Save is still the one press that commits.
 
      ASSIGN TAKES SEVERAL. Five hundred leads and one caller is a queue
-     nobody finishes; a list is split between the people who will ring it,
+     nobody finishes; a list is split between the people who will call it,
      so the menu toggles and stays open until you look away from it. */
   const assignedTo = () => ((DRAFT && DRAFT.assign && DRAFT.assign.length)
     ? DRAFT.assign : [me().id]);
@@ -5292,7 +5299,7 @@
         .sort((a, b) => b.phone - a.phone)[0];
       out.push({ n: noPhone.length, act: better ? 'Ask ' + better.name : 'No better source',
         attr: better ? 'data-finder="' + esc(better.k) + '"' : 'disabled',
-        say: 'came back without a number, so they cannot be rung. ' +
+        say: 'came back without a number, so they cannot be called. ' +
           (better ? esc(better.name) + ' fills ' + Math.round(better.phone * 100) +
             '% against ' + esc(f.name) + '&rsquo;s ' + Math.round(f.phone * 100) + '%.'
             : esc(f.name) + ' is the best of ' + ofThem + ' for numbers.') });
@@ -5310,7 +5317,7 @@
       out.push({ n: known.length, act: 'Leave them out', attr: 'data-bterm="only:new"',
         say: verbFor(known.length, 'is') + ' already in your book, so saving ' +
           (known.length === 1 ? 'them' : 'these') + ' would give you a second copy ' +
-          'of somebody you may already have rung.' });
+          'of somebody you may already have called.' });
     }
     return out;
   }
@@ -5378,7 +5385,7 @@
     const crit = describeSentence(t, buildKind());
     /* The people you brought in from your own book join the list without
        being minted again — they are already records, and a second copy of
-       somebody you have already rung is the worst thing a list can add. */
+       somebody you have already called is the worst thing a list can add. */
     const has = madeCon.map((c) => c.id).concat(bring.filter((id2) => DB.byCon[id2]));
     const l = {
       id: id, name: buildName(), kind: 'con', terms: S.bt || '', crit: crit,
@@ -5512,13 +5519,13 @@
     counts.after = queue(k.id, 'after').length;
     const members = membersOf(k.id);
     const left = daysBetween(TODAY_ISO, k.to);
-    const ring = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
+    const call = paged(queue(k.id, S.q)).rows.filter((c) => rowVerb(c) === 'Call');
 
     /* ══ THE ORDER IS THE JOB ══════════════════════════════════════════════
        It opened with the name in a 132px caption gutter — a slot built for
        the word `Calls`, not for `Engineering teams — Banking & finance`,
        which stacked over three lines and read as a label rather than as the
-       thing you had opened. Under it: two paragraphs, a button row, ten rung
+       thing you had opened. Under it: two paragraphs, a button row, ten called
        counts in one flat run, three AiMY panels, and then the pitch. The
        queue — the entire reason a BDR opens a campaign — was the fifth thing
        on the page and roughly a screen and a half down.
@@ -5533,8 +5540,11 @@
       backBtn('data-home', 'Back to the briefing') +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Campaign · ' + esc(INDUSTRY[k.industry].label) + ' · ' +
-          esc(REGION[k.region].label) + ' · ' + esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to)) +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('campaign', 'Campaign') +
+          fact('industry', esc(INDUSTRY[k.industry].label)) +
+          fact('where', esc(REGION[k.region].label)) +
+          fact('calendar', esc(sayDay(k.from)) + ' to ' + esc(sayDay(k.to))) +
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
@@ -5558,7 +5568,7 @@
         '</div>' +
       '</section>' +
 
-      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO RING. A caller who
+      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO call. A caller who
          opens straight onto a worklist never learns how the campaign is
          doing, because nobody scrolls past their own queue to find out. */
       campLead(k) +
@@ -5569,7 +5579,7 @@
           '<div class="s-camp-list-head"><h2 class="s-block-h">To call</h2>' +
             '<span class="s-block-say">nothing — it closed ' + esc(sayWhen(k.to)) + '</span></div>' +
           '<p class="b-vfoot"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) + '</b> of its ' +
-            esc(plural(members.length, 'person')) + ' were never rung. Where they stand is below.</p>' +
+            esc(plural(members.length, 'person')) + ' were never called. Where they stand is below.</p>' +
         '</section>') +
 
       /* The detail behind the headline, under the doing of it. */
@@ -5597,7 +5607,7 @@
   /* ══ WHAT A CAMPAIGN IS ════════════════════════════════════════════════
      The masthead carried one unlabelled sentence and two counts: the goal
      with nothing saying it was the goal, how many people are on it, and how
-     many of those are yours to ring. Both counts were already stated below
+     many of those are yours to call. Both counts were already stated below
      — the roster count heads Where it stands, and the ringable count sits
      under To call — so the masthead was spending its whole width repeating
      the page while five things a caller has to know before dialling were
@@ -5663,7 +5673,7 @@
      Read once and used by the lead block, the figures and the readings, so
      three parts of one page cannot report three different positions.
 
-     The goal's own verb picks the rung: a campaign to book meetings is
+     The goal's own verb picks the called: a campaign to book meetings is
      measured at `meeting-set`, one to open conversations at `answered`.
      Counting everyone ever reached against a meetings goal is how this
      page once reported 35 of 22 with 111 people still unrung. */
@@ -5692,7 +5702,7 @@
 
   /* ══ THE ONE THING THE PAGE IS ABOUT, BEFORE THE WORK ══════════════════
      A campaign page opened straight onto a queue, which tells a caller who
-     to ring and nothing about whether the ringing is working. The numbers
+     to call and nothing about whether the ringing is working. The numbers
      that answer that were below the queue, in a flat run of ten counts, and
      nobody scrolls past their own worklist to find out how they are doing.
 
@@ -5708,7 +5718,7 @@
     const st = campStand(k);
     const all = queue(k.id, 'all');
     /* ══ A BUTTON COUNTS WHAT IT OPENS ═════════════════════════════════════
-       These read the rung tally at first — 14 callbacks, 102 never rung — and
+       These read the called tally at first — 14 callbacks, 102 never called — and
        the cuts they open show 9 and 58, because the queue drops anyone whose
        follow-up is still in the future and anyone without a number. A door
        labelled with a different number from the room behind it is worse than
@@ -5733,7 +5743,7 @@
       : '';
 
     const deck = fresh0
-      ? 'You have not rung anyone on this campaign yet. Call the next one — what to say comes up with it.'
+      ? 'You have not called anyone on this campaign yet. Call the next one — what to say comes up with it.'
       : !st.target
       ? 'This one has no number in its goal, so there is nothing to measure it against.'
       : !st.need
@@ -5768,10 +5778,10 @@
         (back && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="callback">' +
           'Work the ' + commas(back) + ' callbacks</button>' : '') +
         (fresh && campOpen(k) ? '<button class="s-insight-lnk" type="button" data-q="not-called">' +
-          'Show the ' + commas(fresh) + ' never rung</button>' : '') +
+          'Show the ' + commas(fresh) + ' never called</button>' : '') +
         (all.length || !campOpen(k) ? '' :
           '<button class="s-insight-lnk" type="button" data-bopen="' + esc(k.id) +
-          '">Nobody left to ring — find more</button>') +
+          '">Nobody left to call — find more</button>') +
       '</div>' +
     '</section>';
   }
@@ -5819,7 +5829,7 @@
     }
 
     /* People on the ladder that nobody has touched in a fortnight. Not the
-       never-rung — those are on the numbers line above — but the ones that
+       never-called — those are on the numbers line above — but the ones that
        were being worked and stopped, which no count on this page shows. */
     const cold = members.filter((c) => !isExit(c.checkpoint) &&
       c.checkpoint !== 'not-called' && c.lastCallAt &&
@@ -5829,10 +5839,10 @@
         /* STATED, NOT LINKED. The stale ones sit across three rungs, and the
            cuts on this page are the rungs — every callable person is in
            exactly one, which is what makes the chips add up to All. A door
-           here would have to point at one rung and quietly lose the rest, or
+           here would have to point at one called and quietly lose the rest, or
            add an overlapping cut and break the arithmetic under it. */
         text: '<b>' + commas(cold.length) + '</b> were being worked and have not been ' +
-          'rung in a fortnight. They are spread across the cuts below.',
+          'called in a fortnight. They are spread across the cuts below.',
         from: 'the last call on each of their records',
       });
     }
@@ -5896,7 +5906,7 @@
   }
 
   /* Where the campaign's people stand. Informational: these are rungs, and
-     the queue below cuts by what is OWED, not by rung — so a door here would
+     the queue below cuts by what is OWED, not by called — so a door here would
      open a filter that does not exist. Stated, not linked, rather than
      pretending to be pressable. */
   /* ══ WHERE IT STANDS, AS A NARROWING ══════════════════════════════════
@@ -5904,7 +5914,7 @@
      callback · 7 answered · 9 meeting set · 1 interested · 4 handed over ·
      13 declined · 6 wrong number · 2 do not call` — is a sentence you have
      to read word by word to find anything in, and it hid the one shape a
-     campaign has: it narrows. Two hundred people rung, forty answered, nine
+     campaign has: it narrows. Two hundred people called, forty answered, nine
      with a meeting. The narrowing IS the finding.
 
      So four figures for what a BDR acts on, then the ladder as bars drawn
@@ -5913,7 +5923,7 @@
      climb to `declined`, it leaves. */
   /* ══ THE LADDER AS A NARROWING ═════════════════════════════════════════
      Every bar is drawn against the WHOLE roster rather than against the
-     largest rung, because the narrowing is the finding: two hundred rung,
+     largest called, because the narrowing is the finding: two hundred called,
      forty answered, nine with a meeting. Scaled to the biggest bar instead,
      every campaign looks the same shape and the one fact this block exists
      to show disappears.
@@ -5930,12 +5940,12 @@
   const FN_TONE = { ok: 'tone-ok', warn: 'tone-warn', neutral: 'tone-neutral',
     err: 'tone-warn' };
 
-  /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT RUNG ═════════════
-     It drew how many people STAND on each rung today, scaled to the
+  /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT called ═════════════
+     It drew how many people STAND on each called today, scaled to the
      biggest — which says where the book is piled up and nothing about
      whether the ringing works. A funnel answers the other question: of the
      people who got this far, how many got one further. So each row counts
-     everybody who ever reached that rung (their history says so, whatever
+     everybody who ever reached that called (their history says so, whatever
      happened after), the bar is that share of the campaign, and the figure
      beside it is the share of the row above — the drop, which is the whole
      reason to look. Pipedrive and Zoho both draw it this way. */
@@ -5973,7 +5983,7 @@
     const rows = FUNNEL_STEPS.map((k) => {
       const n = ever[k];
       if (!n && k !== 'not-called') return '';
-      const rg = RUNG[k];
+      const rg = called[k];
       const pct = Math.max(1, Math.round((n / total) * 100));
       const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
       prev = n;
@@ -6032,7 +6042,7 @@
     /* ══ THE TILE IS THE DOOR ═══════════════════════════════════════════
        Two of the four figures map onto a cut of the queue. The tile shows
        the roster count — the fact — and its sub-line says how many of them
-       you can ring now, which is the number on the other side of the door.
+       you can call now, which is the number on the other side of the door.
        So the door is labelled with the room behind it. */
     const fig = (cap, val, sub, tone, q) => {
       const inner =
@@ -6053,11 +6063,11 @@
         ' on this campaign</span></div>' +
 
       '<div class="s-afs">' +
-        fig('Never rung', n['not-called'] || 0,
-          ringNew ? commas(ringNew) + ' of them you can ring now →' : 'none of them callable now',
+        fig('Never called', n['not-called'] || 0,
+          ringNew ? commas(ringNew) + ' of them you can call now →' : 'none of them callable now',
           null, ringNew ? 'not-called' : null) +
-        fig('Rung, no answer', n['no-answer'] || 0,
-          ringNo ? commas(ringNo) + ' of them you can ring now →' : 'none of them callable now',
+        fig('called, no answer', n['no-answer'] || 0,
+          ringNo ? commas(ringNo) + ' of them you can call now →' : 'none of them callable now',
           null, ringNo ? 'no-answer' : null) +
         fig('Reached', st.reached, 'you got them on the phone', 'ok') +
         fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
@@ -6079,7 +6089,7 @@
      Two kinds of obstacle, and they are not the same kind of thing. What
      they SAY — counted off the calls, not scripted, so it is what this
      audience actually raises rather than what somebody expected them to.
-     And what stops the call happening at all: no number, reception, rung
+     And what stops the call happening at all: no number, reception, called
      four times and never picked up.
 
      Every one is paired with what beats it. For a spoken objection that is
@@ -6143,10 +6153,10 @@
     if (stuck) {
       const h = hourOf(here);
       stops.push({
-        n: stuck, of: members.length, unit: 'person', name: 'Rung four times, never picked up',
+        n: stuck, of: members.length, unit: 'person', name: 'called four times, never picked up',
         sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
-          'Try that hour, or open their company and ring somebody else there.',
+          'Try that hour, or open their company and call somebody else there.',
         door: { attr: 'data-q="no-answer"', say: 'Show the no-answers' },
       });
     }
@@ -6155,7 +6165,7 @@
       stops.push({
         n: passed, of: members.length, unit: 'person', name: 'Meeting passed, nothing logged',
         sub: 'The meeting was the whole point and nobody said what happened.',
-        beats: 'Ring them and settle it — showed up, did not show, or interested.',
+        beats: 'call them and settle it — showed up, did not show, or interested.',
         door: { attr: 'data-q="after"', say: 'Work the ' + commas(passed) },
       });
     }
@@ -6250,7 +6260,7 @@
   /* ══ ONE COMPANY, AS A JOURNEY ══════════════════════════════════════════
      You come here from a person's record — "2 others at Velvik Institute" —
      or from AiMY's door when a number is dead, with one question: who else
-     here can I ring, and has anyone here already been reached. The page
+     here can I call, and has anyone here already been reached. The page
      answered it with the name in a 132px caption slot, the one thing it
      knows that nothing else does at the bottom of the header, and a row of
      campaign chips above the people they act on.
@@ -6363,7 +6373,7 @@
     const reached = (c) => (!isExit(c.checkpoint) && rank(c.checkpoint) >= rank('answered')) ? 1 : 0;
     const people = consAt(a.id).sort((x, y) =>
       (reached(y) - reached(x)) || (qRank(x) - qRank(y)) || qTie(x, y));
-    const ring = people.filter(callable);
+    const call = people.filter(callable);
     const hist = touchesAt(a.id);
     const camps = [];
     people.forEach((c) => campsOf(c).forEach((k) => {
@@ -6376,14 +6386,14 @@
        message: a company where nobody has picked up is a different call. */
     const top = people.filter((c) => !isExit(c.checkpoint))
       .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
-    /* AND IT MUST AGREE WITH THE LEAD. The chip read the rung people stand
+    /* AND IT MUST AGREE WITH THE LEAD. The chip read the called people stand
        at NOW; the lead reads the calls. Somebody reached in July who has
        since slipped back to callback made the chip say "Nobody reached yet"
        under a reading that named who got through. The call is the fact. */
     SAID_SIGNAL = signalOf(a) ? a.id : null;
     const everReached = hist.some((t) => t.outcome === 'reached');
     const chip = top && rank(top.checkpoint) >= rank('answered')
-      ? { label: rungLabel(top.checkpoint) + ' here', tone: (RUNG[top.checkpoint] || {}).tone || 'ok' }
+      ? { label: rungLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
         ? { label: 'Reached before', tone: 'ok' }
         : { label: 'Nobody reached yet', tone: 'neutral' };
@@ -6394,37 +6404,41 @@
             label: 'Put everybody here on a campaign', cap: 'Put them on', go: 'acc:' + a.id }) +
         '</div>'
       : '';
-    const callFirst = ring.length
-      ? '<button class="s-inline-btn" type="button" data-call="' + esc(ring[0].id) + '">Call ' +
-        esc(ring[0].name.split(' ')[0]) + '</button>'
+    const callFirst = call.length
+      ? '<button class="s-inline-btn" type="button" data-call="' + esc(call[0].id) + '">Call ' +
+        esc(call[0].name.split(' ')[0]) + '</button>'
       : '';
 
     return '<div class="s-home">' +
       backHere() +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Company · ' + esc(indLabel(a)) + ' · ' +
-          esc(whereLabel(a)) + '</span>' +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('company', 'Company') +
+          fact('industry', esc(indLabel(a))) +
+          fact('where', esc(whereLabel(a))) +
+        '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
-             ring — the numbers that decide whether this company is worth
+             call — the numbers that decide whether this company is worth
              the afternoon. */
           '<div>' +
-            '<span><b>' + esc(headLabel(a)) + '</b></span>' +
-            '<span>' + esc(plural(people.length, 'person')) + ' here</span>' +
-            '<span>' + (ring.length
-              ? '<b>' + commas(ring.length) + '</b> you can ring now'
-              : 'nobody with a number you can ring now') + '</span>' +
+            fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
+            fact('role', esc(plural(people.length, 'person')) + ' here') +
+            fact('phone', (call.length
+              ? '<b>' + commas(call.length) + '</b> you can call now'
+              : 'nobody with a number you can call now')) +
           '</div>' +
           /* Rank two: our record of them. */
           '<div>' +
-            '<span>' + esc(a.domain) + '</span>' +
-            (REGION[a.region] ? '<span>' + esc(REGION[a.region].label) + '</span>' : '') +
-            (signalOf(a) ? '<span><b>' + esc(a.signal.text) + '</b> · seen ' + esc(sayWhen(a.signal.at)) + '</span>' : '') +
+            fact('web', esc(a.domain)) +
+            (REGION[a.region] ? fact('where', esc(REGION[a.region].label)) : '') +
+            (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
+              esc(sayWhen(a.signal.at))) : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
@@ -6434,12 +6448,12 @@
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' +
-          (ring.length
+          (call.length
             ? '<button class="s-insight-lnk primary" type="button" data-call="' +
-                esc(ring[0].id) + '">Call ' + esc(ring[0].name.split(' ')[0]) + '</button>' +
-              (ring.length > 1
+                esc(call[0].id) + '">Call ' + esc(call[0].name.split(' ')[0]) + '</button>' +
+              (call.length > 1
                 ? '<button class="s-inline-btn" type="button" data-callall="' +
-                  esc(ring.map((c) => c.id).join(',')) + '">Call all ' + ring.length +
+                  esc(call.map((c) => c.id).join(',')) + '">Call all ' + call.length +
                   ' here</button>'
                 : '')
             : '<span class="s-block-sub">' + esc(accIdle(people)) + '</span>') +
@@ -6448,14 +6462,14 @@
       '</section>' +
 
       storyBlock(accStory(a, people, hist)) +
-      accLead(a, people, hist, ring, free) +
+      accLead(a, people, hist, call, free) +
       (isMgr() ? fitBlock(a) : '') +
       accMap(a, people) +
 
       '<section class="s-block s-block-wide" aria-label="Who is here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is here</h2>' +
           '<span class="s-block-say">' + esc(plural(people.length, 'person')) +
-          ' · who has picked up first, then by rung</span></div>' +
+          ' · who has picked up first, then by called</span></div>' +
         qgrid(paged(people).rows, 'Nobody on the record at this company.') +
         pager(paged(people), 'person') +
         chips +
@@ -6474,7 +6488,7 @@
          the campaign uses, under the day it happened. */
       '<section class="s-block s-block-wide" aria-label="What has been said here">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">What has been said here</h2></div>' +
-        feedBlock(hist, 'Nobody has rung this company yet. ' + callFirst) +
+        feedBlock(hist, 'Nobody has called this company yet. ' + callFirst) +
       '</section>' +
     '</div>';
   }
@@ -6484,17 +6498,17 @@
      does — somebody already got through here, and to whom — was the last
      item in the header stack, under the funnel, with no door. It leads now,
      and the door follows the finding: the person who picked up, if they can
-     be rung; otherwise the best of the rest; otherwise a campaign. The
+     be called; otherwise the best of the rest; otherwise a campaign. The
      reader's fallback — size and place, which the masthead now states — is
      not worth a panel, so on that reading the block is not drawn. */
-  function accLead(a, people, hist, ring, free) {
+  function accLead(a, people, hist, call, free) {
     const said = accSays(a, people, hist);
     if (!said || said.from === 'the account itself') return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
     const who = got && DB.byCon[got.con];
     let door = '';
     /* THE DOOR FOLLOWS THE SENTENCE. The reading names who picked up; when
-       that person cannot be rung now — a meeting set, a hand-over — the
+       that person cannot be called now — a meeting set, a hand-over — the
        door opens their record rather than ringing somebody else under
        their name. */
     if (who && callable(who)) {
@@ -6503,9 +6517,9 @@
     } else if (who) {
       door = '<button class="s-insight-lnk" type="button" data-con="' + esc(who.id) + '">' +
         'Open ' + esc(who.name) + ' — ' + esc(rg2(who)) + '</button>';
-    } else if (ring[0]) {
-      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(ring[0].id) + '">' +
-        'Call ' + esc(ring[0].name.split(' ')[0]) + '</button>';
+    } else if (call[0]) {
+      door = '<button class="s-insight-lnk" type="button" data-call="' + esc(call[0].id) + '">' +
+        'Call ' + esc(call[0].name.split(' ')[0]) + '</button>';
     } else if (free.length) {
       door = '<button class="s-insight-lnk" type="button" data-goto="accCamps">' +
         'Put them on a campaign</button>';
@@ -6524,8 +6538,8 @@
 
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
-  /* Why nobody at a company can be rung now. It said "no number" over two
-     people who had numbers and had simply gone past the rungs you ring. */
+  /* Why nobody at a company can be called now. It said "no number" over two
+     people who had numbers and had simply gone past the rungs you call. */
   function accIdle(people) {
     if (!people.length) return 'Nobody is on the record here.';
     const live = people.filter((c) => !c.dnc && !isExit(c.checkpoint));
@@ -6534,11 +6548,11 @@
     const noNum = live.filter((c) => !c.phone).length;
     const gone = people.length - live.length;
     const bits = [];
-    if (past) bits.push(plural(past, 'person') + ' past the rungs you ring');
+    if (past) bits.push(plural(past, 'person') + ' past the rungs you call');
     if (parked) bits.push(plural(parked, 'callback') + ' parked until its day');
     if (noNum) bits.push(plural(noNum, 'person') + ' with no number');
     if (gone) bits.push(plural(gone, 'person') + ' who left the ladder');
-    return 'Nobody here can be rung now: ' + bits.join(', ') + '.';
+    return 'Nobody here can be called now: ' + bits.join(', ') + '.';
   }
 
   /* The calls among a set of touchpoints. A hand-move, a profile going out
@@ -6579,19 +6593,19 @@
         ' here. ' + esc(OBJECTION[top].blurb),
         from: plural(callsIn(hist).length, 'call') + ' into this company' };
     }
-    /* Rung and rung and nothing, across the whole company. */
+    /* called and called and nothing, across the whole company. */
     if (callsIn(hist).length >= 3 && !got) {
       return { text: plural(callsIn(hist).length, 'call') + ' in and nobody here has picked up. ' +
         'It may be a switchboard rather than the people.',
         from: 'this company’s own history' };
     }
     /* Nothing has happened, so the useful thing is who they are. */
-    const ring = people.filter(callable).length;
+    const call = people.filter(callable).length;
     return { text: (accKnown(a)
       ? esc(indLabel(a)) + ' at ' + esc(headLabel(a)) + ' in ' + esc(cityLabel(a))
-      : esc(a.name) + ', and nobody has filled in who they are') + ', and ' + (ring
-        ? plural(ring, 'person') + ' here can be rung today'
-        : 'nobody here has a number you can ring') + '.',
+      : esc(a.name) + ', and nobody has filled in who they are') + ', and ' + (call
+        ? plural(call, 'person') + ' here can be called today'
+        : 'nobody here has a number you can call') + '.',
       from: 'the account itself' };
   }
 
@@ -6608,8 +6622,8 @@
      across three of them, and where they stand said three separate ways.
 
      Now it reads top to bottom in the order the question is asked: who (the
-     masthead, with the rung as a chip beside the name), what AiMY makes of
-     them with a door, what to do (one row, the primary decided by the rung),
+     masthead, with the called as a chip beside the name), what AiMY makes of
+     them with a door, what to do (one row, the primary decided by the called),
      where they stand (the ladder, what is owed, what to remember — once),
      and what has been said, grouped by month. The last thing on the action
      row is the next person in the queue, because a finished record is one
@@ -6661,12 +6675,12 @@
     const a = accOf(c);
     const camps = campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
-    /* Past the hand-over the rung has stopped moving — every deal reads
+    /* Past the hand-over the called has stopped moving — every deal reads
        "Handed over" for ever — so at the manager's desk the status is the
        stage, which is the thing that is actually still moving. */
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
     const rg = (isMgr() && c.checkpoint === 'handed-over')
-      ? DEAL_STAGE[stageOf(c)] : (RUNG[c.checkpoint] || RUNG['not-called']);
+      ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     const n = (DB.touchesOf[c.id] || []).length;
 
     /* THE WAY BACK AND THE WAY OUT SHARE A ROW. One leaves the record, the
@@ -6679,33 +6693,36 @@
       '<div class="b-topbar s-block-wide">' + backHere() + endGate(c) + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">Person' +
-          (mineCamp ? ' · on ' + esc(mineCamp.name) : ' · on no campaign') +
-          (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '') + '</span>' +
+        '<span class="s-rec-kind b-kinds">' +
+          fact('role', 'Person') +
+          fact('campaign', mineCamp
+            ? esc(mineCamp.name) + (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '')
+            : 'On no campaign') +
+        '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
-            '<span>' + esc(c.title) + '</span>' +
-            (a ? '<span><button class="s-inline-btn" type="button" data-acc="' + esc(a.id) +
-              '">' + esc(a.name) + '</button></span>' +
-              '<span>' + esc(indLabel(a)) + '</span>' +
-              '<span>' + esc(whereLabel(a)) + '</span>' +
-              '<span>' + esc(headLabel(a)) + '</span>' : '') +
+            fact('role', esc(c.title)) +
+            (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
+                esc(a.id) + '">' + esc(a.name) + '</button>') +
+              fact('industry', esc(indLabel(a))) +
+              fact('where', esc(whereLabel(a))) +
+              fact('staff', esc(headLabel(a))) : '') +
           '</div>' +
           '<div>' +
-            (c.phone
-              ? '<span><a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
-                '">' + esc(c.phone) + '</a></span>'
-              : '<span>No number on file</span>') +
+            fact('phone', c.phone
+              ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
+                '">' + esc(c.phone) + '</a>'
+              : 'No number on file') +
             /* [7] A REASON TO OPEN THE COMPANY. A caller whose number rings
                out needs a colleague, not a company profile — so the fact that
                there are colleagues is on the record, with the door. */
             (others.length
-              ? '<span>' + coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name) + '</span>'
-              : (a ? '<span>the only person here</span>' : '')) +
+              ? fact('staff', coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name))
+              : (a ? fact('staff', 'the only person here') : '')) +
             /* WHO IS MANAGING THEM NOW. The one fact about this record that
                is not the BDR's to act on, so it sits with the facts. */
             /* Not at the manager's own desk: "Managed by Lina Haddad" read
@@ -6737,10 +6754,10 @@
     '</div>';
   }
 
-  /* ══ ONE ROW, AND THE RUNG DECIDES WHICH IS FIRST ══════════════════════
+  /* ══ ONE ROW, AND THE called DECIDES WHICH IS FIRST ══════════════════════
      Call was always the primary, even on a lead with a meeting in a diary
      — where the one thing this page is waiting for is whether they turned
-     up. The rung says what the next press is; the row puts it first and
+     up. The called says what the next press is; the row puts it first and
      everything else after it in the order it is likely to be needed. */
   /* ══ THE WAY OUT IS A CONTROL, AT THE FAR END OF THE MASTHEAD ══════════
      "They said no" was an .s-inline-btn — a text link — with its accent
@@ -6809,7 +6826,7 @@
     /* "They said no" is not one of these: it ends the lead, so it is out
        of the row of ordinary verbs and behind a gate of its own. */
     /* The same row, asking the question this desk answers: a caller records
-       what a rung did, a manager records what a meeting did. */
+       what a called did, a manager records what a meeting did. */
     const moves = (isMgr() && c.checkpoint === 'handed-over')
       ? dealMoves(c).map((m) => ({ html: esc(m.label),
         attr: 'data-deal="' + esc(c.id + ':' + m.k) + '"' }))
@@ -6820,7 +6837,7 @@
        manager is a decision — so the verb opens the list rather than
        naming whoever happens to own the campaign. */
     /* From a callback up: a callback is a live thread — somebody asked to
-       be rung back — and a BDR can pass one across. Below that nobody has
+       be called back — and a BDR can pass one across. Below that nobody has
        spoken to them, and there is nothing to hand over. */
     const warm = rank(c.checkpoint) >= rank('callback') && !isExit(c.checkpoint) &&
       c.checkpoint !== 'handed-over';
@@ -6867,7 +6884,7 @@
          Four verbs stood in one line at two weights, and which of them led
          swapped as soon as a meeting date passed — so the button under the
          cursor changed from Call to They showed up without the page moving.
-         The row is what you DO with this record: ring them, hand them over,
+         The row is what you DO with this record: call them, hand them over,
          go to the next one. What happened at the meeting is a different
          kind of thing — a fact to record, not an action to take — and it
          gets its own line and the question it answers. */
@@ -6898,15 +6915,15 @@
         '</div>'
       : '');
   }
-  const rg2 = (c) => (RUNG[c.checkpoint] || {}).say || 'they have left the ladder';
-  /* ══ THE RUNG'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
-     Every rung says what it means TO THE PERSON RINGING, and the last one
+  const rg2 = (c) => (called[c.checkpoint] || {}).say || 'they have left the ladder';
+  /* ══ THE called'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
+     Every called says what it means TO THE PERSON RINGING, and the last one
      says "with the director" — which is the news at that desk and nonsense
      at the director's own, where it tells her a lead is with somebody else
      when the somebody else is her. */
   const rungSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
     ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
-    : (RUNG[c.checkpoint] || {}).say || 'they have left the ladder');
+    : (called[c.checkpoint] || {}).say || 'they have left the ladder');
 
   /* ══ WHAT AiMY MAKES OF THIS ONE, WITH SOMEWHERE TO GO ═════════════════
      The card's punchline was the last line of the record's header, under
@@ -6940,7 +6957,7 @@
         'Ask ' + esc(finderOf().name) + ' for a better number</button>';
     } else if (last && last.outcome === 'gatekeeper' && c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
-        'Ring the mobile now</button>';
+        'call the mobile now</button>';
     } else if (c.phone && callable(c)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(c.id) + '">' +
         'Call ' + esc(c.name.split(' ')[0]) + '</button>';
@@ -6959,7 +6976,7 @@
   /* ══ EVERY TOUCHPOINT, WITH THE WHOLE OF IT INSIDE ═════════════════════
      It was a one-line row: outcome, who, when, and the note squeezed beside
      them. Everything a call actually produced — what was asked for, what
-     pushed back, what opened, which rung it moved, what it left owing, the
+     pushed back, what opened, which called it moved, what it left owing, the
      transcript — was written to the record and shown nowhere on it.
 
      So it is the record's card, drawn by the renderer the read-back uses.
@@ -6973,10 +6990,10 @@
      Eight cards in a column read as a list. The same eight on a rail read
      as what they are: one person's history, newest at the top, with the
      rungs they climbed marked on the way down. Every touchpoint is a node
-     in the tone of how it went; a touchpoint that MOVED a rung is a
-     milestone — a larger accent ring and the rung it reached on the line —
+     in the tone of how it went; a touchpoint that MOVED a called is a
+     milestone — a larger accent call and the called it reached on the line —
      so the ladder is readable down the rail without opening anything. The
-     rail ends where the journey began: the first rung, and the count.
+     rail ends where the journey began: the first called, and the count.
 
      The card underneath each node is unchanged, and so are its handlers.
      Written out per tone rather than composed, for the audit. */
@@ -6985,7 +7002,7 @@
     const all = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
     if (!all.length) {
       return '<p class="b-vfoot">' + (untouched(c)
-        ? 'Nobody has rung them yet.' : 'No calls on the record.') + '</p>';
+        ? 'Nobody has called them yet.' : 'No calls on the record.') + '</p>';
     }
     /* ══ THE RECORD IS THE RECORD ══════════════════════════════════════
        The heading said "18 touchpoints on the record" and the rail showed
@@ -7017,8 +7034,8 @@
             esc(whoDid(t).name) + '</span>' +
           '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
-          /* the chip names the rung reached; when the outcome already says it
-             ("Callback → Callback") the ring on the dot is the milestone */
+          /* the chip names the called reached; when the outcome already says it
+             ("Callback → Callback") the call on the dot is the milestone */
           (t.moved && rungLabel(t.moved[1]) !== kindLabel(t)
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
             : ph && t.decision
@@ -7040,8 +7057,8 @@
          the rail, and on page one of three the rail has not ended. */
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
-          'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
-          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
+          'First called ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
+          (climbed ? ' · ' + esc(plural(climbed, 'called')) + ' climbed' : ' · no called climbed yet') +
         '</div>'
         : '') +
     '</div>' + pager(pg, 'touchpoint');
@@ -7115,7 +7132,7 @@
     if (!last) {
       const when = esc(sayWhen((c.checkpointAt || '').slice(0, 10)));
       return addedByHand(c)
-        ? 'You added them <b>' + when + '</b>, and nobody has rung them yet'
+        ? 'You added them <b>' + when + '</b>, and nobody has called them yet'
         : 'Handed to you <b>' + when + '</b>, and nobody has warm-called them';
     }
     const owed = c.next
@@ -7127,7 +7144,7 @@
   }
 
   /* ══ MOVING A DEAL IS WRITING WHAT HAPPENED ═════════════════════════════
-     The same act as a rung move and the same shape: one touchpoint, one
+     The same act as a called move and the same shape: one touchpoint, one
      patch, a toast that undoes both. The words are what a manager would say
      about the meeting, not the name of a column they dragged it into. */
   const DEAL_MOVES = [
@@ -7143,7 +7160,7 @@
     return DEAL_MOVES.filter((m) => stageRank(m.k) > at);
   }
   /* What each stage leaves owed. An ended deal owes nothing and says so by
-     clearing the field, the way a finished rung does. */
+     clearing the field, the way a finished called does. */
   function nextForStage(k) {
     if (k === 'discovery') return { what: 'Meeting with them', due: dayAdd(7) };
     if (k === 'proof') return { what: 'Proposal to them', due: dayAdd(7) };
@@ -7168,7 +7185,7 @@
       note: said || (k === 'won' ? 'They signed on the terms agreed.'
         : k === 'lost' ? 'They decided against it.'
         : (PHASE[k] || {}).label + ' held.'),
-      lines: [], next: null, moved: null, rung: 'handed-over',
+      lines: [], next: null, moved: null, called: 'handed-over',
     };
     patchCon(c, { checkpointAt: now, next: nextForStage(k) });
     addTouch(t);
@@ -7310,7 +7327,8 @@
         '<span class="s-block-say">' + esc(o.say) + '</span></div>' +
       '<div class="b-map">' +
         '<button class="b-node is-root" type="button" ' + o.root.attr + '>' +
-          '<span class="b-node-name">' + esc(o.root.name) + '</span>' +
+          '<span class="b-node-name b-fact">' + chIcon('company') +
+            '<span>' + esc(o.root.name) + '</span></span>' +
           '<span class="b-node-sub">' + esc(o.root.sub) + '</span>' +
         '</button>' +
         '<div class="b-map-body">' + o.limbs.map((x) =>
@@ -7320,7 +7338,7 @@
     '</section>';
   }
   const dotOf = (c) => '<span class="b-rstate-dot ' +
-    (TL_TONE[(RUNG[c.checkpoint] || RUNG['not-called']).tone] || 'tone-neutral') + '"></span>';
+    (TL_TONE[(called[c.checkpoint] || called['not-called']).tone] || 'tone-neutral') + '"></span>';
 
   /* From a person: the company, and everybody we hold inside it. */
   function conMap(c) {
@@ -7487,18 +7505,18 @@
     const list = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
     const camps = campsOf(c).filter(mine);
     const d = directorOf(c);
-    const rg = RUNG[c.checkpoint] || RUNG['not-called'];
+    const rg = called[c.checkpoint] || called['not-called'];
     const steps = [];
     /* where they came from */
     const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
     steps.push(foundBy
       ? { k: 'Found by ' + list.via, t: sayDay(list.at), tone: 'neutral' }
       : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
-    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
-      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (RUNG[t.moved[1]] || {}).tone || 'ok' }));
+      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
     const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
-    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (RUNG[out.moved[1]] || {}).tone || 'warn' });
+    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
     phasesOf(c).forEach((t) => steps.push({
       k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
       t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
@@ -7538,12 +7556,12 @@
     const reached = live.filter((c) => rank(c.checkpoint) >= rank('answered'));
     const top = live.slice().sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
     const steps = [];
-    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     const got = calls.filter((t) => t.outcome === 'reached')[0];
     if (got) steps.push({ k: 'Got through', t: sayDay(got.at) + ' · ' + esc((DB.byCon[got.con] || {}).name || '').split(' ')[0], tone: 'ok' });
     if (top && rank(top.checkpoint) >= rank('answered')) {
       steps.push({ k: rungLabel(top.checkpoint), t: top.name.split(' ')[0] +
-        (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (RUNG[top.checkpoint] || {}).tone || 'ok' });
+        (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (called[top.checkpoint] || {}).tone || 'ok' });
       phasesOf(top).slice(-1).forEach((t) => steps.push({
         k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
         t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
@@ -7553,7 +7571,7 @@
     const now = calls.length
       ? '<b>' + commas(people.length) + '</b> on the record here, <b>' + commas(calls.length) + '</b> ' +
         verbFor(calls.length, 'call') + ' in, <b>' + commas(reached.length) + '</b> of them reached.'
-      : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been rung.';
+      : '<b>' + commas(people.length) + '</b> on the record here, and nobody has been called.';
     const handed = top && top.checkpoint === 'handed-over';
     const next = handed ? esc(dealLine(top))
       : top && rank(top.checkpoint) >= rank('answered')
@@ -7577,23 +7595,23 @@
 
   function whatNext(c) {
     switch (c.checkpoint) {
-      case 'not-called':  return 'Next: ring them for the first time.';
+      case 'not-called':  return 'Next: call them for the first time.';
       case 'no-answer':   return 'Next: try again, or find a number they answer.';
-      case 'callback':    return 'Next: ring them back when they said.';
-      case 'answered':    return 'Next: ask for the meeting, or send them something and ring again.';
+      case 'callback':    return 'Next: call them back when they said.';
+      case 'answered':    return 'Next: ask for the meeting, or send them something and call again.';
       case 'meeting-set': return 'Next: the meeting happens, then say here whether they turned up.';
-      case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this rung is waiting on.';
+      case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this called is waiting on.';
       case 'interested':  return 'Next: hand them to the director. Past that it is discovery, proof, commercial and resolution — and none of those are yours.';
       case 'handed-over': return dealLine(c);
-      case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and ring again only if something has changed.';
+      case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and call again only if something has changed.';
       case 'wrong-number': return 'Nothing is owed until somebody finds a number that is theirs.';
       case 'do-not-call': return 'Nothing is owed, and nothing may be. They opted out.';
-      default:            return 'Next: ring them.';
+      default:            return 'Next: call them.';
     }
   }
 
   /* The ladder: eight bars and one sentence. The bars carry the position, the
-     sentence carries the meaning. An exit is not a rung — it lights the whole
+     sentence carries the meaning. An exit is not a called — it lights the whole
      track in the exit's colour, because a lead that said no is not standing
      partway up anything. */
   /* ══ ONE DRAWING OF ONE CLIMB ══════════════════════════════════════════
@@ -7602,7 +7620,7 @@
      the one on top could only say how far along it was. It said that with
      colour alone, so a reader had to know the ladder by heart before the
      bars meant anything, and then read the chain underneath to find out
-     which rung was which anyway. The chain stays; the bars go with the
+     which called was which anyway. The chain stays; the bars go with the
      function that drew them. */
 
   function rungCounts(list) {
@@ -7621,13 +7639,13 @@
      The order is the queue's order, and there is only one of them: `qRank`
      reads the same function, so the chips and the ranking cannot drift. */
   /* ══ THE CUTS ARE THE LADDER, AND NOTHING ELSE ═════════════════════════
-     They were After a meeting · Due · Try again · Open · Never rung — five
+     They were After a meeting · Due · Try again · Open · Never called — five
      invented words for a cold caller to learn on top of the eight rungs the
      product already has. "Due" and "Open" are a CRM's vocabulary; the person
      dialling has one question, which is where this lead stands with me.
 
-     So a cut IS a rung. Four of them, because four rungs are callable: you
-     have not rung them, you rang and nobody answered, they asked to be rung
+     So a cut IS a called. Four of them, because four rungs are callable: you
+     have not called them, you rang and nobody answered, they asked to be called
      back, or you got them and there is no meeting yet. Past that a meeting
      is booked and they leave the queue — the BDR's part is done until it
      happens. Nothing here has a name that is not already on the ladder. */
@@ -7636,12 +7654,12 @@
     { k: 'not-called', label: 'New' },
     { k: 'no-answer',  label: 'No answer' },
     { k: 'answered',   label: 'Answered' },
-    /* Not a rung: the meeting-set people whose day has passed. They are
+    /* Not a called: the meeting-set people whose day has passed. They are
        not dialled from here, they are answered for. */
     { k: 'after',      label: 'After meeting' },
   ];
   const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
-  /* A cut is a rung at one desk and a stage at the other, and it is exactly
+  /* A cut is a called at one desk and a stage at the other, and it is exactly
      one per person either way — which is what lets the chips add up to All. */
   const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
   const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
@@ -7660,13 +7678,13 @@
         const late = c.next ? -daysBetween(TODAY_ISO, c.next.due) : 0;
         const when = c.next ? sayWhen(c.next.due) : sayWhen(c.lastCallAt);
         /* "4 days ago · 4 days late" said it twice; the suffix is for a date */
-        return 'Asked to be rung back <b>' + esc(when) + '</b>' +
+        return 'Asked to be called back <b>' + esc(when) + '</b>' +
           (late > 0 && !/ago|yesterday|today/.test(when) ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
       }
       case 'not-called':
-        return 'Never rung';
+        return 'Never called';
       case 'no-answer':
-        return 'Rung <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
+        return 'called <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
       case 'meeting-set':
         return afterMeeting(c)
           ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
@@ -8185,7 +8203,7 @@
       ['you', 'Morning {first} — two minutes?'],
       ['them', 'Not now, we are mid quarter close.'],
       ['you', 'Understood. When is better?'],
-      ['them', 'Ring back next week and I will have the numbers.'],
+      ['them', 'call back next week and I will have the numbers.'],
     ],
     'gatekeeper-msg': [
       ['you', 'Morning, could I speak to {first}?'],
@@ -8207,7 +8225,7 @@
     'no-answer-rang': [
       ['you', 'Dialling…'],
       ['them', 'The line rings out.'],
-      ['you', 'Nobody picked up on the second ring either.'],
+      ['you', 'Nobody picked up on the second call either.'],
     ],
     'declined-signed': [
       ['you', 'Morning — is that {first}?'],
@@ -8255,11 +8273,34 @@
     play: '<path d="M7 4l12 8-12 8z"/>',
     pause: '<path d="M9 5v14M15 5v14"/>',
     phone: '<path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/>',
+    /* ══ ONE MARK PER KIND OF FACT ═══════════════════════════════════════
+       A record's facts were a run of middots: a job title, a company, an
+       industry, a place and a headcount, told apart only by the order they
+       were written in. The mark says which is which, so the row can be read
+       out of order — which is how anybody reads a row of facts.
+
+       They are marks, not decoration. Nothing that already has a word gets
+       one, no heading gets one, and the same kind of thing carries the same
+       mark on every surface: the building is always the company, wherever
+       the company appears. */
+    company: '<path d="M4 21h16M6 21V6l6-3 6 3v15M10 21v-4h4v4"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>',
+    role: '<rect x="3" y="7.5" width="18" height="12.5" rx="2"/><path d="M9 7.5V5.5a2 2 0 012-2h2a2 2 0 012 2v2"/>',
+    where: '<path d="M12 21s6.5-5.4 6.5-10.5a6.5 6.5 0 10-13 0C5.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.4"/>',
+    staff: '<circle cx="9" cy="8" r="3.2"/><path d="M2.8 19.5a6.2 6.2 0 0112.4 0"/><path d="M16.2 5.4a3.2 3.2 0 010 5.2M17 19.5a6.2 6.2 0 00-2.6-4.6"/>',
+    industry: '<path d="M20.6 12.4 12 21l-9-9V3h9l8.6 8.6a1.4 1.4 0 010 2z"/><circle cx="7.4" cy="7.4" r="1.2"/>',
+    campaign: '<path d="M5 21V3M5 4h12l-2.4 4L17 12H5"/>',
+    web: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18 15 15 0 010-18"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    spark: '<path d="M13 2.5 4.5 14H11l-1 7.5L19 10h-6.5l.5-7.5z"/>',
     back: '<path d="M15 5l-7 7 7 7"/>',
     fwd: '<path d="M9 5l7 7-7 7"/>',
     plus: '<path d="M12 6v12M6 12h12"/>',
     hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
   };
+  /* A fact with its mark. The span wrapper is what lets the two sit on one
+     line without the mark drifting off the first line of a wrapped fact. */
+  const fact = (k, html) => '<span class="b-fact">' + chIcon(k) + '<span>' + html + '</span></span>';
+
   const chIcon = (k) =>
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -8316,7 +8357,7 @@
     };
     document.body.classList.add('is-calling');
     paintCall();
-    /* The brief goes up as the phone is about to ring, not after. It is a
+    /* The brief goes up as the phone is about to call, not after. It is a
        stored turn, so every toast and repaint for the rest of the run leaves
        it standing. */
     callPrep(c);
@@ -8435,7 +8476,7 @@
      false record of a conversation. */
 
   /* ══ WHAT A CALL DOES TO A LEAD ═════════════════════════════════════════
-     Pure, and the only thing that moves a rung on a call. A checkpoint never
+     Pure, and the only thing that moves a called on a call. A checkpoint never
      goes BACKWARDS on a call — ringing somebody you have already met does
      not un-meet them — and an exit is never climbed out of by a call, only
      by Undo. */
@@ -8494,9 +8535,9 @@
   }
 
   /* ══ ONE WRITE, TWO PLACES IT SHOWS ═════════════════════════════════════
-     The touchpoint and the contact's rung are the whole of it. Everything
+     The touchpoint and the contact's called are the whole of it. Everything
      the campaign reports — how many are left to call, how many callbacks are
-     due, how many meetings are set, its rung tally, its feed — is derived
+     due, how many meetings are set, its called tally, its feed — is derived
      from those two, so the person's record and the campaign they are on
      cannot disagree about what just happened. */
   function logCall() {
@@ -8526,7 +8567,7 @@
       lines: call.lines || [],
       next: mv.next || null,
       moved: mv.to ? [c.checkpoint, mv.to] : null,
-      rung: mv.to || c.checkpoint,
+      called: mv.to || c.checkpoint,
     };
     const fields = { attempts: c.attempts + 1, lastCallAt: now };
     if (mv.to) { fields.checkpoint = mv.to; fields.checkpointAt = now; }
@@ -8614,7 +8655,7 @@
      model and not a page of its own. */
   function callAll(ids) {
     const live = ids.filter((id) => DB.byCon[id] && DB.byCon[id].phone && !DB.byCon[id].dnc);
-    if (!live.length) { toast('Nobody in this set has a number to ring.'); return; }
+    if (!live.length) { toast('Nobody in this set has a number to call.'); return; }
     const sess = { id: 's' + Date.now().toString(36), ids: live, done: [], skipped: [], at: new Date().toISOString() };
     startCall(live[0], sess);
     paint();
@@ -8753,12 +8794,12 @@
 
      So they are one press each, on the record, always visible, and every one
      of them is undoable. No modal, no picker, no confirm: the confirmation
-     ladder's bottom rung is "act, then toast with Undo", and every one of
+     ladder's bottom called is "act, then toast with Undo", and every one of
      these is reversible and touches one lead. */
 
   /* ══ THE BRANCH WITH NO CONTROL ════════════════════════════════════════
      The process has it: they answered, they showed no interest, so you send
-     the company profile and ring again later. It was a step in the flow
+     the company profile and call again later. It was a step in the flow
      with nowhere to press, so it was either not done or done outside the
      product and never written down. It is a touchpoint like any other. */
   /* ══ A BETTER NUMBER FOR ONE PERSON ════════════════════════════════════
@@ -8805,7 +8846,7 @@
     return MOVES.filter((m) => m.from.indexOf(c.checkpoint) >= 0);
   }
 
-  /* The next step each rung owes, if any. A rung that owes nothing clears
+  /* The next step each called owes, if any. A called that owes nothing clears
      the field rather than leaving a stale one: a handed-over lead with a
      callback still on it is a queue entry for work nobody should do. */
   function nextForRung(to) {
@@ -8828,15 +8869,15 @@
       con: c.id, camp: campFor(c), by: me().id, at: now, secs: 0,
       outcome: 'checkpoint',
       proposals: [], objections: [], openings: [],
-      note: mv === 'no-show' ? 'They did not turn up. Ring to reschedule.'
+      note: mv === 'no-show' ? 'They did not turn up. call to reschedule.'
         : mv === 'handed-over' ? 'Handed to ' + directorOf(c).name + '.'
         : (MOVES.filter((m) => m.k === mv)[0] || {}).label + '.',
-      lines: [], next: null, moved: [c.checkpoint, to], rung: to,
+      lines: [], next: null, moved: [c.checkpoint, to], called: to,
     };
     /* A NO-SHOW OWES A CALL WITH A REASON. "Call them back" said nothing
        about why; the flowchart's step is reach them to reschedule. */
     patchCon(c, { checkpoint: to, checkpointAt: now,
-      next: mv === 'no-show' ? { what: 'Ring to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
+      next: mv === 'no-show' ? { what: 'call to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
     addTouch(t);
     const camp = DB.byCamp[t.camp];
     toast(c.name.split(' ')[0] + ' → ' + rungLabel(to) +
@@ -8874,10 +8915,10 @@
     if (backs.length) {
       tasks.push({ id: 'callbacks', sev: late ? 'p1' : 'p2', type: 'Callbacks',
         when: late ? late + ' overdue' : 'due today',
-        body: plural(backs.length, 'person') + ' asked to be rung back and their day has come.' +
+        body: plural(backs.length, 'person') + ' asked to be called back and their day has come.' +
           (late ? ' ' + late + ' of them ' + (late === 1 ? 'is' : 'are') + ' already overdue.' : ''),
         cta: 'Work the callbacks',
-        ask: 'Who asked to be rung back and is due today?' });
+        ask: 'Who asked to be called back and is due today?' });
     }
     /* the same cut the chip counts, so the bell and the page cannot disagree */
     const met = queue(null, 'after');
@@ -8902,7 +8943,7 @@
       tasks.push({ id: 'closing-' + closing.k.id, sev: 'p2', type: 'Campaign',
         when: plural(closing.left, 'day') + ' left',
         body: closing.k.name + ' closes in ' + plural(closing.left, 'day') + ' with ' +
-          commas(closing.fresh) + ' people never rung.',
+          commas(closing.fresh) + ' people never called.',
         cta: 'Show the campaign', ask: closing.k.name });
     }
     const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
@@ -9492,7 +9533,7 @@
     paint();
   }
 
-  const CALL_RE = /^(call|ring|dial)\b/i;
+  const CALL_RE = /^(call|call|dial)\b/i;
   const ASK_RE = /\?$|^(how|who|what|when|where|why|show|which)\b/i;
 
   /* ══ A LEAD YOU MET, RATHER THAN ONE A SEARCH RETURNED ══════════════════
@@ -9533,7 +9574,7 @@
       madeAcc.push(a);
     }
     /* It lands on the manager's own desk at Qualification: he found them, so
-       there is no caller to hand it over from and nothing to ring first. */
+       there is no caller to hand it over from and nothing to call first. */
     const c = {
       id: 'y' + tag, acc: a ? a.id : null, name: f.name,
       title: f.title || 'Title not known',
@@ -9546,7 +9587,7 @@
       id: 'a' + tag, con: c.id, camp: null, by: me().id, at: now, secs: 0,
       outcome: 'added', proposals: [], objections: [], openings: [],
       note: 'Added by hand' + (f.co ? ', met at ' + f.co : '') + '.',
-      lines: [], next: null, moved: null, rung: 'handed-over',
+      lines: [], next: null, moved: null, called: 'handed-over',
     };
     DB.acc = DB.acc.concat(madeAcc);
     DB.con = DB.con.concat([c]);
@@ -9700,7 +9741,7 @@
       hideCanvas();
       if (!rest || /^next( one)?$/i.test(rest)) {
         const first = queue(S.camp || null, S.q).filter((c) => rowVerb(c) === 'Call')[0];
-        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to call.');
         return;
       }
       const found = findByName(rest);
@@ -9773,7 +9814,7 @@
       /* the bell's number first, then the wider window it opens onto */
       return '<b>' + plural(week.length, 'company', 'companies') + '</b> in your queue moved this week' +
         (hits.length > week.length ? ', ' + commas(hits.length) + ' in the last three weeks' : '') +
-        '. Each door is the company; the first person to ring is on it.' +
+        '. Each door is the company; the first person to call is on it.' +
         '<div class="b-cuts">' + hits.slice(0, 6).map((h) =>
           door(h.a.name + ' · ' + h.sig.text + ' · seen ' + sayWhen(h.sig.at), Object.assign(cleared(), { acc: h.a.id }))).join('') +
         '</div>';
@@ -9808,16 +9849,16 @@
             Object.assign(cleared(), { on: 'lists', list: l.id }))).join('') +
         '</div>';
     }
-    if (/callback|call back|rung back|owe|due/.test(q)) {
+    if (/callback|call back|called back|owe|due/.test(q)) {
       const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
-      return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be rung back' +
+      return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be called back' +
         (S.camp ? ' on this campaign' : ' across your ' +
         plural(myCampaigns().length, 'campaign')) + (late ? ', <b>' + commas(late) + '</b> of them overdue' : '') + '. ' +
         door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' }));
     }
     if (/how many|left|remaining|to call/.test(q)) {
-      /* the after-meeting cut is not rung, so it is not in the sum; it is said */
-      return '<b>' + commas(all.length) + '</b> people can be rung' +
+      /* the after-meeting cut is not called, so it is not in the sum; it is said */
+      return '<b>' + commas(all.length) + '</b> people can be called' +
         (S.camp ? ' on this campaign' : '') + ' — ' +
         BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
@@ -9877,8 +9918,8 @@
             (st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go' : '')
           : st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go — ' + st.perWeek + ' a week lands the other ' + st.need
           : ', past its end date and ' + st.need + ' short') +
-        '. <b>' + commas(cq.length) + '</b> to ring' + (backs || fresh ? ': ' +
-          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never rung' : null].filter(Boolean).join(', ') : '') + '. ' +
+        '. <b>' + commas(cq.length) + '</b> to call' + (backs || fresh ? ': ' +
+          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never called' : null].filter(Boolean).join(', ') : '') + '. ' +
         door('Open the campaign', Object.assign(cleared(), { camp: named.id }));
     }
     /* ══ WHAT TO DO FIRST ══════════════════════════════════════════════════
@@ -9888,7 +9929,7 @@
       const tasks = isMgr() ? mgrTasks() : bdrTasks();
       if (!tasks.length) {
         return isMgr() ? 'Nothing is waiting on you. The diary is clear.'
-          : 'Nothing is waiting on you. Ring the next one.';
+          : 'Nothing is waiting on you. call the next one.';
       }
       const first = tasks[0];
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
@@ -9897,7 +9938,7 @@
           '<button class="s-insight-lnk" type="button" data-ask="' + esc(t.ask) + '">' + esc(t.cta) + '</button>').join('') + '</div>';
     }
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
-      'people answer, which meetings passed, what changed at the companies you ring, who went ' +
+      'people answer, which meetings passed, what changed at the companies you call, who went ' +
       'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
       'what to do first. Name a person or a campaign to go there; a sentence about a call logs it.';
   }
@@ -9926,11 +9967,11 @@
 
   /* Everything worth knowing before the phone rings, in the order you would
      ask it. Nine lines at most, and every one of them off the record. */
-  /* ══ THE BRIEF IS DIFFERENT AT EVERY RUNG ══════════════════════════════
+  /* ══ THE BRIEF IS DIFFERENT AT EVERY called ══════════════════════════════
      It said the same thing to a stranger and to somebody who booked a
      meeting last Tuesday: who they are, what we sell, open on the pitch.
      That is the wrong sentence for six of the eight rungs. What you say
-     to a lead who asked to be rung back is that you are ringing when they
+     to a lead who asked to be called back is that you are ringing when they
      said; to one with a meeting in the diary it is a confirmation, not a
      pitch; to one who has never picked up it is a reason to keep trying.
 
@@ -9952,7 +9993,7 @@
         return 'They have never picked up — ' + plural(c.attempts, 'attempt') +
           ' so far. Say why you keep ringing rather than that you have been.';
       case 'callback':
-        return 'They asked to be rung back' + (c.next
+        return 'They asked to be called back' + (c.next
           ? ', and it ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
             sayWhen(c.next.due)
           : '') + '. Open on that: you are ringing when they said, not out of the blue.';
@@ -9970,14 +10011,14 @@
       case 'handed-over':
         return 'This one is not yours any more — ' +
           esc(actor((camp && camp.owner) || me().id).name) +
-          ' has it. Check before you ring.';
+          ' has it. Check before you call.';
       case 'declined':
         return 'They said no' + (said ? ' — ' + said : '') +
-          '. Ring only if something has changed, and open on the thing that changed.';
+          '. call only if something has changed, and open on the thing that changed.';
       case 'wrong-number':
         return 'The number on this record is not theirs. Find another before you dial.';
       case 'do-not-call':
-        return 'They opted out. Do not ring this one.';
+        return 'They opted out. Do not call this one.';
       default:
         return camp ? camp.pitch : 'Ask what they are running this with today.';
     }
@@ -10001,7 +10042,7 @@
      What they push back on sits between the second and the third, because
      it is the only part of the campaign's material that arrives mid-call. */
   /* ══ BEFORE A ROOM, NOT BEFORE A DIAL ══════════════════════════════════
-     The caller's brief opens with the rung and the phone, because that is
+     The caller's brief opens with the called and the phone, because that is
      what the next sixty seconds are. A manager's opens with proof: they
      walk in cold to somebody who wants to know we have done this before,
      and the sentence they say first is the one that decides whether the
@@ -10120,7 +10161,7 @@
     const calls = callsIn(hist);
     const last = hist[0];
     const sess = DB.call && DB.call.sess;
-    const rg = RUNG[c.checkpoint];
+    const rg = called[c.checkpoint];
     const late = c.next ? daysBetween(TODAY_ISO, c.next.due) < 0 : false;
 
     let body = '<div class="b-prep">';
@@ -10303,14 +10344,14 @@
     outcome: t.outcome,
     props: t.proposals || [], objs: t.objections || [], opps: t.openings || [],
     from: t.moved ? t.moved[0] : null, to: t.moved ? t.moved[1] : null, next: t.next,
-    rung: t.rung || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
+    called: t.called || null, phase: t.phase || null, decision: t.decision || null, by: t.by,
   });
 
   function callFacts(f, c) {
     const o = OUTCOME[f.outcome];
     const rows = [];
     if (o) rows.push(['Outcome', o.label, o.tone]);
-    /* A rung somebody settled by hand and a profile going out are not
+    /* A called somebody settled by hand and a profile going out are not
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
     else if (KINDS[f.outcome]) rows.push(['What happened', KINDS[f.outcome], 'neutral']);
@@ -10338,11 +10379,11 @@
     if (f.to) {
       rows.push(['Checkpoint', (f.from ? rungLabel(f.from) + ' → ' : '') + rungLabel(f.to), 'ok']);
     } else if (c && f.outcome !== 'phase') {
-      /* the rung they were on when it happened, not the rung today: a
+      /* the called they were on when it happened, not the called today: a
          callback from July does not "stay at" a meeting set in August.
          A phase is the director's ladder, not this one, so it says
-         nothing about a rung it was never going to move. */
-      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.rung || c.checkpoint), 'neutral']);
+         nothing about a called it was never going to move. */
+      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.called || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
     return rows;
@@ -10498,7 +10539,7 @@
                   '<b>' + plural(meetings, 'meeting') + '</b>') + ' came out of it'
                 : ', and nothing was asked for')
             : made.length ? 'Nobody picked up.'
-              : 'Nobody was rung' + (sess.skipped.length ? ' — ' + plural(sess.skipped.length, 'person') + ' skipped.' : '.')) +
+              : 'Nobody was called' + (sess.skipped.length ? ' — ' + plural(sess.skipped.length, 'person') + ' skipped.' : '.')) +
           '</span></div>' +
         (topObj
           ? '<div class="s-callsum-row"><span class="s-callsum-mem">What got in the way</span>' +
@@ -11075,7 +11116,7 @@
       const k = nextin.getAttribute('data-callnextin');
       const first = queue(k, S.q).filter((c) => rowVerb(c) === 'Call')[0];
       if (first) startCall(first.id);
-      else toast('Nobody in this cut has a number to ring.');
+      else toast('Nobody in this cut has a number to call.');
       return;
     }
 
@@ -11146,7 +11187,7 @@
           ? queue(null, S.q).filter((c) => c.phone && !c.dnc && dealLive(c))[0]
           : queue(null, S.q).filter((c) => callable(c) && rowVerb(c) === 'Call')[0];
         if (first) startCall(first.id);
-        else toast(isMgr() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to ring.');
+        else toast(isMgr() ? 'No deal is waiting on a call.' : 'Nobody in this cut has a number to call.');
       } else if (k === 'lists') {
         go(Object.assign(cleared(), { on: 'lists' }));
       } else if (k === 'camps') {
@@ -11215,7 +11256,7 @@
     if (cl) {
       const how = cl.getAttribute('data-calllog');
       logCall();
-      /* the queue has re-ranked by now; its first is the one to ring */
+      /* the queue has re-ranked by now; its first is the one to call */
       if (how === 'gonext') { const nx = queue(S.camp || null, 'all')[0]; if (nx) startCall(nx.id); }
       return;
     }
@@ -11541,7 +11582,7 @@
           return;
         }
         const first = queue(S.camp || null, S.q).filter((x) => rowVerb(x) === 'Call')[0];
-        if (first) startCall(first.id); else toast('Nobody in this cut has a number to ring.');
+        if (first) startCall(first.id); else toast('Nobody in this cut has a number to call.');
       } else if (c.state === 'ready') callGo();
       else endCall();
       return;

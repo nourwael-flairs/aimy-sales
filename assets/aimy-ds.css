@@ -885,37 +885,37 @@
 
 
     /* ═══════════════════════════════════════════════
-       SCORE RING (SVG circular progress)
+       SCORE call (SVG circular progress)
     ═══════════════════════════════════════════════ */
-    .score-ring-wrap {
+    .score-call-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
-    .score-ring { position: relative; display: inline-flex; }
-    .score-ring svg { transform: rotate(-90deg); }
-    .score-ring-track { fill: none; stroke: rgba(255,255,255,0.07); }
+    .score-call { position: relative; display: inline-flex; }
+    .score-call svg { transform: rotate(-90deg); }
+    .score-call-track { fill: none; stroke: rgba(255,255,255,0.07); }
     /* stroke-dashoffset is the only way to draw an SVG arc, but the
        300ms ceiling still applies — 800ms read as sluggish. */
-    .score-ring-fill  { fill: none; stroke-linecap: round;
+    .score-call-fill  { fill: none; stroke-linecap: round;
       transition: stroke-dashoffset var(--t-slow) var(--ease-out);
     }
-    .score-ring-fill.ok   { stroke: var(--ok); }
-    .score-ring-fill.warn { stroke: var(--warn); }
-    .score-ring-fill.err  { stroke: var(--err); }
-    .score-ring-fill.brand{ stroke: var(--brand); }
-    .score-ring-center {
+    .score-call-fill.ok   { stroke: var(--ok); }
+    .score-call-fill.warn { stroke: var(--warn); }
+    .score-call-fill.err  { stroke: var(--err); }
+    .score-call-fill.brand{ stroke: var(--brand); }
+    .score-call-center {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
     }
-    .score-ring-number {
+    .score-call-number {
       font-size: 22px; font-weight: 800;
       letter-spacing: -0.03em; line-height: 1;
     }
-    .score-ring-label {
+    .score-call-label {
       font-size: 9px; font-weight: 700; color: var(--d500);
       letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px;
     }
-    .score-ring-wrap .score-ring-title {
+    .score-call-wrap .score-call-title {
       font-size: 11px; font-weight: 700; color: var(--d300); text-align: center;
     }
 
@@ -2529,7 +2529,7 @@
     .mem-what { color: var(--d300); }
     .mem-foot { display: flex; gap: 8px; padding: 0 13px 12px; }
 
-    /* ── Governance change request card (§3.1 rung 3, §6.2) ── */
+    /* ── Governance change request card (§3.1 called 3, §6.2) ── */
     .gov-cr-card {
       max-width: 520px; border-radius: var(--r-lg); overflow: hidden;
       background: var(--card-bg); border: 1px solid rgba(247,144,9,0.3);
@@ -2777,7 +2777,7 @@
        CITATION PREVIEW & PER-CITATION FEEDBACK
        (Knowledge v2 · D2)
 
-       The intermediate verification rung. Rungs 1 (inline
+       The intermediate verification called. Rungs 1 (inline
        marker) and 4 (full source) already existed; this is
        the one that carries most verification traffic.
 
@@ -3331,7 +3331,7 @@
       /* Shimmer becomes a flat placeholder tone */
       .skeleton { animation: none !important; background: rgba(255,255,255,0.07) !important; }
       :root[data-theme="light"] .skeleton { background: rgba(16,24,40,0.08) !important; }
-      /* Spinners still need to read as "in progress" — hold a partial ring */
+      /* Spinners still need to read as "in progress" — hold a partial call */
       .think-spinner,
       .loading-spinner,
       .agent-step .mini-spin { animation: none !important; }
