@@ -2160,7 +2160,11 @@
         fact('industry', esc(indLabel(a))) +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
-      '<div class="b-qcard-why">' + (isMgr() ? dealWhy(c) : whyLine(c)) + '</div>' +
+      /* An empty why is an empty row of padding, not an empty string. */
+      (function () {
+        const why = isMgr() ? dealWhy(c) : whyLine(c);
+        return why ? '<div class="b-qcard-why">' + why + '</div>' : '';
+      })() +
       /* What was actually said, in the words it was written in. A caller
          opening cold on somebody they rang last week is the thing this card
          exists to stop. */
@@ -7754,8 +7758,21 @@
         return 'Asked to be called back <b>' + esc(when) + '</b>' +
           (late > 0 && !/ago|yesterday|today/.test(when) ? ' · <b>' + esc(plural(late, 'day')) + ' late</b>' : '');
       }
-      case 'not-called':
-        return 'Never called';
+      case 'not-called': {
+        /* ══ THE LINE UNDER THE TAG IS NOT THE TAG ═══════════════════════
+           This said "Never called" six pixels under a chip reading NOT
+           CALLED. Every other rung's line earns its place by saying what
+           the chip cannot — a date, a count, the name of whoever has it,
+           what is owed and when — and this one restated it.
+
+           What the chip does not say is how long they have been sitting
+           there, which is the only thing separating one uncalled lead from
+           another. A lead nobody put on a list has no such date, and then
+           there is genuinely nothing to add: the line goes rather than
+           reaching for something to fill it. */
+        const from = DB.list.filter((l) => l.has.indexOf(c.id) >= 0)[0];
+        return from ? 'In the book since <b>' + esc(sayDay(from.at)) + '</b>' : '';
+      }
       case 'no-answer':
         return 'called <b>' + plural(c.attempts, 'time') + '</b>, last ' + esc(sayWhen(c.lastCallAt));
       case 'meeting-set':
