@@ -4822,16 +4822,25 @@
      with a different supplier — so the footer holds both: the way to what
      came back, and the other suppliers. */
   let PIPE = null;
+  /* The four steps of a run, from the same set as everything else. */
   const PIPE_ICON = {
-    read: '<path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="17" r="3"/><path d="M20.2 19.2 22 21"/>',
-    ask: '<path d="M12 20v-8"/><circle cx="12" cy="10" r="2"/><path d="M7.8 14.2a6 6 0 0 1 0-8.4M16.2 5.8a6 6 0 0 1 0 8.4M5 17a10 10 0 0 1 0-14M19 3a10 10 0 0 1 0 14"/>',
-    fill: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
-    known: '<path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/><path d="M4 4v19M18 20H7a3 3 0 0 0-3 3"/>',
+    read: '<circle cx="11" cy="11" r="8"/> <path d="m21 21-4.3-4.3"/>',
+    ask: '<path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9"/> <path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5"/> <circle cx="12" cy="9" r="2"/> <path d="M16.2 4.8c2 2 2.26 5.11.8 7.47"/> <path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1"/> <path d="M9.5 18h5"/> <path d="m8 22 4-11 4 11"/>',
+    fill: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/> <path d="M14.05 2a9 9 0 0 1 8 7.94"/> <path d="M14.05 6A5 5 0 0 1 18 10"/>',
+    known: '<rect width="8" height="18" x="3" y="3" rx="1"/> <path d="M7 3v18"/> <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>',
   };
   const pipeIcon = (k) =>
     '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" ' +
-      'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       PIPE_ICON[k] + '</svg>';
+  /* ══ THE TWO MARKS THAT ARE NOT ICONS ══════════════════════════════════
+     This tick and the spinner below it keep their own heavier strokes and
+     stay out of the set on purpose. Both are drawn at eleven and twelve
+     pixels, where a two-pixel stroke on a twenty-four grid is under one
+     device pixel and reads as grey; and this one carries `pathLength="1"`
+     so it can draw itself, which is a property of this path rather than of
+     a check mark. They are animation primitives that happen to be shaped
+     like symbols. */
   const pipeCheck = (size) =>
     '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" ' +
       'stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" ' +
@@ -7308,9 +7317,7 @@
   const nmClock = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
     'stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
     '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>';
-  const nmTick = () => '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
-    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  const nmTick = () => chIcon('check');
 
   /* ══ THE MAP ═══════════════════════════════════════════════════════════
      Every record here is joined to others and no page ever drew the joins.
@@ -8265,44 +8272,50 @@
      is the handset rotated 135° — the shape a receiver makes going back into
      a cradle, which is why it means what it means. The V3 build's icons,
      unchanged. */
-  const ICONS = {
-    dot: '<circle cx="12" cy="12" r="6"/>',
-    mic: '<path d="M12 3a3 3 0 013 3v6a3 3 0 01-6 0V6a3 3 0 013-3z"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6"/>',
-    stop: '<rect x="7" y="7" width="10" height="10" rx="2"/>',
-    'mic-off': '<path d="M15 9V6a3 3 0 00-5.9-.7M9 9v3a3 3 0 004.6 2.5"/><path d="M5 11a7 7 0 0011.5 5.4M19 11a7 7 0 01-.3 2M12 18v3M9 21h6"/><path d="M3 3l18 18"/>',
-    play: '<path d="M7 4l12 8-12 8z"/>',
-    pause: '<path d="M9 5v14M15 5v14"/>',
-    phone: '<path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/>',
-    /* ══ ONE MARK PER KIND OF FACT ═══════════════════════════════════════
-       A record's facts were a run of middots: a job title, a company, an
-       industry, a place and a headcount, told apart only by the order they
-       were written in. The mark says which is which, so the row can be read
-       out of order — which is how anybody reads a row of facts.
+  /* ══ ONE SET, ONE GRID, ONE WEIGHT ═════════════════════════════════════
+     These are Lucide (ISC), copied in rather than loaded. Every one is drawn
+     on the same 24×24 grid at the same two-pixel stroke with the same round
+     caps, which is the whole reason to take a set instead of drawing marks:
+     hand-cut paths drift, and this build had accumulated seven different
+     stroke widths across its own SVGs before this.
 
-       They are marks, not decoration. Nothing that already has a word gets
-       one, no heading gets one, and the same kind of thing carries the same
-       mark on every surface: the building is always the company, wherever
-       the company appears. */
-    company: '<path d="M4 21h16M6 21V6l6-3 6 3v15M10 21v-4h4v4"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/>',
-    role: '<rect x="3" y="7.5" width="18" height="12.5" rx="2"/><path d="M9 7.5V5.5a2 2 0 012-2h2a2 2 0 012 2v2"/>',
-    where: '<path d="M12 21s6.5-5.4 6.5-10.5a6.5 6.5 0 10-13 0C5.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.4"/>',
-    staff: '<circle cx="9" cy="8" r="3.2"/><path d="M2.8 19.5a6.2 6.2 0 0112.4 0"/><path d="M16.2 5.4a3.2 3.2 0 010 5.2M17 19.5a6.2 6.2 0 00-2.6-4.6"/>',
-    industry: '<path d="M20.6 12.4 12 21l-9-9V3h9l8.6 8.6a1.4 1.4 0 010 2z"/><circle cx="7.4" cy="7.4" r="1.2"/>',
-    campaign: '<path d="M5 21V3M5 4h12l-2.4 4L17 12H5"/>',
-    web: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18 15 15 0 010-18"/>',
-    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-    spark: '<path d="M13 2.5 4.5 14H11l-1 7.5L19 10h-6.5l.5-7.5z"/>',
-    back: '<path d="M15 5l-7 7 7 7"/>',
-    fwd: '<path d="M9 5l7 7-7 7"/>',
-    plus: '<path d="M12 6v12M6 12h12"/>',
-    hangup: '<g transform="rotate(135 12 12)"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 006 6L16 13l5 2v4a2 2 0 01-2 2A16 16 0 013 5a2 2 0 012-2z"/></g>',
+     COPIED, NOT LOADED. The library's usual job is to walk the DOM and swap
+     placeholders for icons, and this app rewrites the stage's innerHTML on
+     every repaint — so it would have to run again after each one, and every
+     mark would blink. The paths are static data; the geometry is what was
+     worth having.
+
+     One mark per kind of fact, and the same kind carries the same mark on
+     every surface. Nothing that already has a word gets one. */
+  const ICONS = {
+    dot: '<circle cx="12" cy="12" r="10"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/> <path d="M19 10v2a7 7 0 0 1-14 0v-2"/> <line x1="12" x2="12" y1="19" y2="22"/>',
+    'mic-off': '<line x1="2" x2="22" y1="2" y2="22"/> <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/> <path d="M5 10v2a7 7 0 0 0 12 5"/> <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/> <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/> <line x1="12" x2="12" y1="19" y2="22"/>',
+    play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+    pause: '<rect x="14" y="4" width="4" height="16" rx="1"/> <rect x="6" y="4" width="4" height="16" rx="1"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    hangup: '<path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/> <line x1="22" x2="2" y1="2" y2="22"/>',
+    company: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/> <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/> <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/> <path d="M10 6h4"/> <path d="M10 10h4"/> <path d="M10 14h4"/> <path d="M10 18h4"/>',
+    role: '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/> <rect width="20" height="14" x="2" y="6" rx="2"/>',
+    where: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/> <circle cx="12" cy="10" r="3"/>',
+    staff: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <path d="M22 21v-2a4 4 0 0 0-3-3.87"/> <path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    industry: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+    campaign: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/> <line x1="4" x2="4" y1="22" y2="15"/>',
+    web: '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
+    calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
+    spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+    back: '<path d="m15 18-6-6 6-6"/>',
+    fwd: '<path d="m9 18 6-6-6-6"/>',
+    plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
+    stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
      line without the mark drifting off the first line of a wrapped fact. */
   const fact = (k, html) => '<span class="b-fact">' + chIcon(k) + '<span>' + html + '</span></span>';
 
   const chIcon = (k) =>
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (ICONS[k] || '') + '</svg>';
 
