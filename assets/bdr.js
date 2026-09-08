@@ -4204,58 +4204,19 @@
      dead number. Fifteen rows each wearing the mark to say "software, 260
      staff" is the one-block-per-row defect V3's own note spends a paragraph
      on. The verb sits at the foot of the right column, where the eye ends. */
-  const ROSTER_QUIET = ['the account and the campaign', 'the touchpoint before this one'];
-  function rosterRow(c) {
-    const a = accOf(c);
-    const rg = called[c.checkpoint] || called['not-called'];
-    const camp = campsOf(c).filter(mine)[0] || campsOf(c)[0];
-    const sell = camp && SELL[camp.sells[0]];
-    const slug = String(c.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const li = 'linkedin.com/in/' + slug;
-    const said = aimySays(c, true);
-    const specific = said && ROSTER_QUIET.indexOf(said.from) < 0;
-    const facts = [
-      a && a.city ? esc(a.city) : null,
-      a && INDUSTRY[a.industry] ? esc(indLabel(a)) : null,
-      c.email ? esc(c.email) : null,
-      c.phone ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>' : null,
-    ].filter(Boolean);
-    return '<div class="s-brow">' +
-      '<span class="s-brow-nopick"></span>' +
-      '<span class="s-brow-main">' +
-        '<button class="s-brow-name" type="button" data-con="' + esc(c.id) + '">' + esc(c.name) + '</button>' +
-        '<span class="s-brow-desc">' + esc(c.title) + (a ? ' at ' + esc(a.name) : '') + '</span>' +
-        '<span class="s-brow-facts">' + (facts.length ? facts.join(' · ')
-          : '<i>no email and no phone number</i>') + '</span>' +
-        '<span class="s-brow-links">' +
-          '<a class="s-brow-link" href="https://www.' + esc(li) + '" target="_blank" rel="noopener">' + esc(li) + '</a>' +
-          (a ? '<a class="s-brow-link" href="https://' + esc(a.domain) + '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>' : '') +
-        '</span>' +
-        (specific
-          ? '<span class="s-brow-ops b-roster-ai">' +
-              '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
-              '<span>' + said.text + '</span></span>'
-          : '') +
-      '</span>' +
-      '<span class="s-brow-side">' +
-        '<span class="s-brow-fig">' + (a && a.size ? commas(a.size) + ' staff' : '—') + '</span>' +
-        '<span class="s-brow-rev">' + (sell ? 'buys ' + esc(sell.name) : 'fit unknown') + '</span>' +
-        /* A PILL ABOVE A PILL READS AS TWO BUTTONS. The rung is a state:
-           a dot in its tone and the word, quiet. The only pill on the row
-           is the one you press. */
-        '<span class="b-rstate"><span class="b-rstate-dot ' + (TL_TONE[rg.tone] || 'tone-neutral') +
-          '"></span>' + esc(rg.label) + '</span>' +
-        (c.phone && callable(c)
-          ? '<button class="s-insight-lnk b-roster-call" type="button" data-call="' + esc(c.id) + '">Call</button>'
-          : !c.phone && !c.dnc && !isExit(c.checkpoint)
-            ? '<button class="s-inline-btn b-roster-call" type="button" data-enrichcon="' + esc(c.id) + '">Find a number</button>'
-            : '') +
-      '</span>' +
-    '</div>';
-  }
+  /* ══ A LIST'S PEOPLE ARE PEOPLE ════════════════════════════════════════
+     This was the one surface in the build that drew a person as a table
+     row — six columns of facts, two link fields and a state pill — while
+     the queue, the campaign, the company and the search all drew the same
+     person as a card. A reader who has learnt one shape should not have to
+     learn a second for the same thing in a different room.
+
+     The table shape survives where it is still the right one: the builder's
+     preview draws rows out of the index through `netRow`, and those are not
+     records — they are candidates you are comparing before any of them
+     exists. Comparing wants columns. Working wants a card. */
   function rosterBlock(rows) {
-    if (!rows.length) return '<p class="b-vfoot">Nobody is on this list.</p>';
-    return '<div class="s-brows b-roster">' + rows.map(rosterRow).join('') + '</div>';
+    return qgrid(rows, 'Nobody is on this list.');
   }
 
   /* The criteria a saved list carries, parsed the way the builder parses
@@ -6754,6 +6715,11 @@
     '</section>';
   }
 
+  /* A profile address, from the name. It went out with the roster row it
+     was written for; the record is what needs it now. */
+  const liSlug = (c) => String(c.name).toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
@@ -6812,6 +6778,21 @@
             /* [7] A REASON TO OPEN THE COMPANY. A caller whose number rings
                out needs a colleague, not a company profile — so the fact that
                there are colleagues is on the record, with the door. */
+            /* ══ THE ADDRESS AND THE PROFILE LIVE HERE NOW ══════════════
+               Both of these existed in exactly one place in the product —
+               a row on the list page — so turning that row into the card
+               everything else uses would have taken them out of the build
+               altogether. They are facts about a person and this is the
+               person's page. It matters more since LinkedIn became what a
+               run asks first: it comes back with an address far more often
+               than a number, and a lead you can only email is still a lead
+               you can reach. */
+            (c.email ? fact('mail', '<a class="s-inline-btn" href="mailto:' +
+              esc(c.email) + '">' + esc(c.email) + '</a>') : '') +
+            fact('linkedin', '<a class="s-inline-btn" href="https://www.linkedin.com/in/' +
+              esc(liSlug(c)) + '" target="_blank" rel="noopener">' + esc(liSlug(c)) + '</a>') +
+            (a ? fact('web', '<a class="s-inline-btn" href="https://' + esc(a.domain) +
+              '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>') : '') +
             (others.length
               ? fact('staff', coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name))
               : (a ? fact('staff', 'the only person here') : '')) +
@@ -8395,6 +8376,8 @@
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
+    mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
      line without the mark drifting off the first line of a wrapped fact. */

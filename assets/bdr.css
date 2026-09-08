@@ -1086,25 +1086,6 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    step because it is compared between rows, the fit and the tag under it —
    and the verb closes the column. Rank by size and weight; nothing dims
    below --d300. */
-.b-roster .s-brow { padding: 14px 12px; column-gap: 20px; align-items: start; }
-.b-roster .s-brow-main { gap: 3px; }
-.b-roster .s-brow-name { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); letter-spacing: -0.01em; color: var(--d50); }
-.b-roster .s-brow-desc { font-size: var(--t-ui); font-weight: var(--fw-medium); color: var(--d200); }
-.b-roster .s-brow-facts { font-size: var(--t-small); color: var(--d300); }
-.b-roster .s-brow-facts i { font-style: normal; color: var(--d300); }
-.b-roster .s-brow-links { margin-top: 2px; gap: 4px 14px; }
-.b-roster .s-brow-link { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--d300); }
-.b-roster-ai {
-  display: flex; align-items: flex-start; gap: 6px; margin-top: 6px;
-  font-size: var(--t-small); color: var(--d200); line-height: var(--lh-base); max-width: 60ch;
-}
-.b-roster-ai .b-aimy-mark { flex: none; margin-top: 1px; }
-.b-roster-ai b { color: var(--d50); }
-.b-roster .s-brow-side { gap: 3px; min-width: 120px; }
-.b-roster .s-brow-fig { font-family: inherit; font-size: var(--t-lead); font-weight: var(--fw-extrabold); color: var(--d50); letter-spacing: -0.01em; }
-.b-roster .s-brow-rev { font-size: var(--t-small); color: var(--d300); }
-.b-roster .b-rstate { margin-top: 4px; }
-.b-roster-call { margin-top: 8px; }
 
 
 /* The results head sat 24px in from the page edge: .s-sheet-head is a sheet
