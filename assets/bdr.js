@@ -6700,18 +6700,24 @@
      people is the kind of thing that reads as a joke the second time. */
   function conTeam(c) {
     const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const k = dealCamp(c);
     const ids = [];
     const add = (id) => { if (id && REP[id] && ids.indexOf(id) < 0) ids.push(id); };
+    /* ══ THE TEAM ON A LEAD IS THE CAMPAIGN'S TEAM ══════════════════════
+       A first cut showed only the people who had already touched the
+       record, so on a lead one caller had been working alone it was one
+       name — and it hid the answer to the question the section exists for.
+       The manager who owns the campaign is on this lead before anybody
+       hands it to them: they are who it goes to, and a caller wanting to
+       know that should not have to open the campaign to find out.
+
+       Whoever found them first, then the rest of the crew, then whoever
+       owns it — the order it reaches people in. */
     add(c.owner);
-    if (c.manager) add(c.manager);
-    else if (c.checkpoint === 'handed-over') add(mgrOf(c));
+    if (k) k.crew.forEach(add);
+    add(c.manager || (k ? k.owner : null));
     hist.forEach((t) => add(t.by));
-    /* ONE NAME IS NOT A TEAM. A caller working their own lead is the only
-       person on it, and a section headed The team telling them how many
-       calls they have made is the rail's line again in a heavier frame.
-       It appears when the lead becomes shared, which is the moment the
-       answer stops being obvious. */
-    if (ids.length < 2) return '';
+    if (!ids.length) return '';
     return '<section class="s-block s-block-wide" aria-label="The team">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">The team</h2>' +
@@ -6727,7 +6733,14 @@
           const bits = [];
           if (calls) bits.push(plural(calls, 'call'));
           if (mets) bits.push(plural(mets, 'meeting'));
-          if (!bits.length) bits.push(id === c.owner ? 'found them' : 'has it now');
+          /* Nothing done yet is not nothing to say: it is what they are
+             here for, which is the more useful half on a cold lead. */
+          if (!bits.length) {
+            bits.push(id === c.owner ? (you ? 'yours to call' : 'theirs to call')
+              : (k && id === k.owner) ? (c.checkpoint === 'handed-over'
+                ? 'has it now' : 'takes it at Interested')
+              : 'on the crew');
+          }
           return '<div class="b-mate">' + faceOf(id, 32) +
             '<span class="b-mate-t">' +
               '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
