@@ -23,7 +23,7 @@
      windowing is a positioning wrapper, not a second row design.
 
      THE CHECKPOINT LADDER. Where one lead stands with a BDR, which the V3
-     build did not have because it derived status rather than storing a called.
+     build did not have because it derived status rather than storing a rung.
 
    Everything else here is a small variant of something in sales.css and says
    which one.
@@ -65,7 +65,7 @@
    eight things to read to answer one question, and at this width each would
    be four characters.
 
-   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per called would
+   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per rung would
    be eight colours to learn, and the product already spends its semantic
    colours on status. */
 
@@ -804,7 +804,7 @@
 
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
-   the call went, a larger accent call where a called was climbed, and the called
+   the call went, a larger accent call where a rung was climbed, and the rung
    it reached on the line. The cards are the same cards; the rail is drawn
    in the column the section already reserves for it. Metrics set once:
    10px dot, 14px milestone call, 26px gutter, rail at 7px. */
@@ -825,7 +825,7 @@
 .b-tl-dot.tone-warn { background: var(--warn-text); }
 .b-tl-dot.tone-err { background: var(--err-text); }
 .b-tl-dot.tone-neutral { background: var(--d400); }
-/* A called climbed: the call is the milestone, in accent, and the node sits
+/* A rung climbed: the call is the milestone, in accent, and the node sits
    on the rail a shade larger so the eye catches it scanning down. */
 .b-tl-item.is-milestone .b-tl-dot {
   width: 14px; height: 14px; left: -26px; top: 15px;
@@ -1395,7 +1395,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    it holds.
 
    What has passed is filled and joined by a line you can see. The tip is
-   open — a call in the called's own tone with the page showing through, which
+   open — a call in the rung's own tone with the page showing through, which
    is the shape everything from a Stepper to a git log uses for the point
    still moving. And an elided stretch is dashed on both sides, because "3
    steps more" is a piece of the walk nobody is claiming to draw. */
@@ -1446,8 +1446,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-story-step.is-gap .b-story-k { color: var(--d300); letter-spacing: 0.08em; }
 
 /* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
-   Four columns on one grid: the called, the bar, how many ever got that far,
-   and what share of the called above that is. The last column is the reason
+   Four columns on one grid: the rung, the bar, how many ever got that far,
+   and what share of the rung above that is. The last column is the reason
    the block exists, so it is set in the mono face and reads down its own
    edge. */
 .b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
@@ -1611,7 +1611,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 @media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
 
 /* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
-   The called sat in the roster's right column as a bordered pill, directly
+   The rung sat in the roster's right column as a bordered pill, directly
    above the Call pill, and the two read as a pair of buttons. A dot in the
    called's own tone and the word beside it: a state you read, over the one
    thing on the row you press. */
@@ -1631,7 +1631,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
 .b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
 
-/* A menu row that names a person: the called as a dot, the name, what they do. */
+/* A menu row that names a person: the rung as a dot, the name, what they do. */
 .b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-menu-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: inherit; }
 .b-menu-sub { font-size: var(--t-micro); color: var(--d300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1673,7 +1673,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-map-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* A node is a door with one fact on it: for a person, the called as a dot. */
+/* A node is a door with one fact on it: for a person, the rung as a dot. */
 .b-node {
   display: flex; flex-direction: column; gap: 3px; align-items: flex-start; cursor: pointer;
   font-family: inherit; text-align: left; min-width: 172px; max-width: 260px;

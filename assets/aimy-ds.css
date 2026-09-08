@@ -885,37 +885,37 @@
 
 
     /* ═══════════════════════════════════════════════
-       SCORE call (SVG circular progress)
+       SCORE RING (SVG circular progress)
     ═══════════════════════════════════════════════ */
-    .score-call-wrap {
+    .score-ring-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
-    .score-call { position: relative; display: inline-flex; }
-    .score-call svg { transform: rotate(-90deg); }
-    .score-call-track { fill: none; stroke: rgba(255,255,255,0.07); }
+    .score-ring { position: relative; display: inline-flex; }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring-track { fill: none; stroke: rgba(255,255,255,0.07); }
     /* stroke-dashoffset is the only way to draw an SVG arc, but the
        300ms ceiling still applies — 800ms read as sluggish. */
-    .score-call-fill  { fill: none; stroke-linecap: round;
+    .score-ring-fill  { fill: none; stroke-linecap: round;
       transition: stroke-dashoffset var(--t-slow) var(--ease-out);
     }
-    .score-call-fill.ok   { stroke: var(--ok); }
-    .score-call-fill.warn { stroke: var(--warn); }
-    .score-call-fill.err  { stroke: var(--err); }
-    .score-call-fill.brand{ stroke: var(--brand); }
-    .score-call-center {
+    .score-ring-fill.ok   { stroke: var(--ok); }
+    .score-ring-fill.warn { stroke: var(--warn); }
+    .score-ring-fill.err  { stroke: var(--err); }
+    .score-ring-fill.brand{ stroke: var(--brand); }
+    .score-ring-center {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
     }
-    .score-call-number {
+    .score-ring-number {
       font-size: 22px; font-weight: 800;
       letter-spacing: -0.03em; line-height: 1;
     }
-    .score-call-label {
+    .score-ring-label {
       font-size: 9px; font-weight: 700; color: var(--d500);
       letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px;
     }
-    .score-call-wrap .score-call-title {
+    .score-ring-wrap .score-ring-title {
       font-size: 11px; font-weight: 700; color: var(--d300); text-align: center;
     }
 
