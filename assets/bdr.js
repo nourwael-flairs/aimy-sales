@@ -6684,6 +6684,63 @@
     '</section>';
   }
 
+  /* ══ WHO OF OURS HAS WORKED THIS ONE ═══════════════════════════════════
+     The campaign has a team and a lead did not, which left the two desks
+     invisible to each other on the record where they actually meet: a
+     caller could not see who the deal went to, and a manager could not see
+     who spent nine calls getting it warm.
+
+     THE ROLE SLOT SAYS WHAT THEY DID HERE, not what they do generally.
+     "BDR" under a face is a fact about the person; "BDR · 9 calls" is a
+     fact about this lead, and this is the lead's page. The order is the
+     order it happened in — whoever found them, then whoever has them.
+
+     AiMY is not on it. It enriches numbers and reads calls back, and a
+     section headed "the team" listing a piece of software next to two
+     people is the kind of thing that reads as a joke the second time. */
+  function conTeam(c) {
+    const hist = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+    const ids = [];
+    const add = (id) => { if (id && REP[id] && ids.indexOf(id) < 0) ids.push(id); };
+    add(c.owner);
+    if (c.manager) add(c.manager);
+    else if (c.checkpoint === 'handed-over') add(mgrOf(c));
+    hist.forEach((t) => add(t.by));
+    /* ONE NAME IS NOT A TEAM. A caller working their own lead is the only
+       person on it, and a section headed The team telling them how many
+       calls they have made is the rail's line again in a heavier frame.
+       It appears when the lead becomes shared, which is the moment the
+       answer stops being obvious. */
+    if (ids.length < 2) return '';
+    return '<section class="s-block s-block-wide" aria-label="The team">' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">The team</h2>' +
+        '<span class="s-block-say">' + esc(plural(ids.length, 'person')) +
+          ' on this lead</span>' +
+      '</div>' +
+      '<div class="b-team b-team-rec">' +
+        ids.map((id) => {
+          const you = id === me().id;
+          const theirs = hist.filter((t) => t.by === id);
+          const calls = theirs.filter((t) => OUTCOME[t.outcome]).length;
+          const mets = theirs.filter((t) => t.outcome === 'phase').length;
+          const bits = [];
+          if (calls) bits.push(plural(calls, 'call'));
+          if (mets) bits.push(plural(mets, 'meeting'));
+          if (!bits.length) bits.push(id === c.owner ? 'found them' : 'has it now');
+          return '<div class="b-mate">' + faceOf(id, 32) +
+            '<span class="b-mate-t">' +
+              '<span class="b-mate-name">' + esc(you ? 'You' : actor(id).name) + '</span>' +
+              '<span class="b-mate-role">' +
+                esc((REP[id] && JOB[REP[id].fn]) || 'On the crew') + ' · ' +
+                esc(bits.join(', ')) + '</span>' +
+            '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</section>';
+  }
+
   function contactPage() {
     const c = DB.byCon[S.con];
     if (!c) {
@@ -6761,6 +6818,8 @@
       (isMgr() && c.checkpoint === 'handed-over' ? dealBlock(c) : '') +
 
       storyBlock(storyOf(c)) +
+
+      conTeam(c) +
 
       conMap(c) +
 

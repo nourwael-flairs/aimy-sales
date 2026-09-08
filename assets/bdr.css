@@ -2514,3 +2514,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
 .b-qcard-where .b-fact > svg { width: 12px; height: 12px; }
 .b-qcard-num.b-fact > svg { width: 12px; height: 12px; }
+
+/* The campaign's team block carries its own caption and the top margin that
+   goes with sitting inside the metadata grid. On a record it is a section
+   with a heading of its own, so it takes neither. */
+.b-team-rec { margin-top: 12px; }
