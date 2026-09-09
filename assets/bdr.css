@@ -2509,6 +2509,38 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-plus svg { width: 13px; height: 13px; }
 .b-cal-add:hover .b-cal-plus { transform: rotate(90deg); border-color: var(--card-border-hover); }
 
+/* What is coming, under the day you are on. Its own rule, because it is a
+   different question from the one the column opens with — and the caption
+   sits tight to that rule rather than carrying the day heading's air. */
+.b-cal-next {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+}
+.b-cal-next .b-cal-cap { padding-top: 0; }
+/* One line: when, who, and the colour of the thing. A step under the day's
+   own rows on size and on ink, because it is about a day you are not on. */
+.b-cal-nrow {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  padding: 7px 8px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-cal-nrow:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-cal-nrow:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-cal-nrow.is-plain { cursor: default; }
+.b-cal-nrow.is-plain:hover { background: none; }
+.b-cal-nwhen {
+  flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
+  color: var(--d300); font-variant-numeric: tabular-nums;
+}
+.b-cal-nwho {
+  flex: 1; min-width: 0; font-size: var(--t-ui); font-weight: var(--fw-semibold);
+  color: var(--d100); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: reduce) { .b-cal-nrow { animation: none; } }
+
 @media (max-width: 560px) {
   .b-cal-day { height: 48px; }
   .b-cal-etime { width: 42px; }

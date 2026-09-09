@@ -3603,6 +3603,50 @@
      the day the panel is showing for exactly as long as it is open. */
   let CALSEL = null;
 
+  /* A row on the day you are reading: the hour, what kind of thing it is,
+     who it is with and what it says about itself. */
+  function calRow(m, i) {
+    const k = MEET_KIND[m.kind];
+    return (m.con.id
+      ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
+      : '<div class="b-cal-ev is-plain" ') +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-cal-evtop">' +
+        '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+        '<span class="b-cal-etime">' +
+          esc(m.h == null ? 'all day' : clockOf(m)) + '</span>' +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+      '</span>' +
+      '<span class="b-cal-ename">' + esc(m.con.name) +
+        '<span class="b-cal-ewhat">' + esc(m.title) +
+          (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
+        '</span>' +
+      '</span>' +
+    (m.con.id ? '</button>' : '</div>');
+  }
+
+  /* ══ AND A ROW ABOUT A DAY YOU ARE NOT ON ══════════════════════════════
+     Drawn as the row above, three of what is coming made the column taller
+     than the month beside it — the empty half filled and then some, which
+     is the same fault the other way round. And it read wrong before it
+     measured wrong: a meeting next Friday given the same weight as the one
+     at eight tonight says the two are the same kind of fact.
+
+     So it is a line rather than a block. When, who, and the colour of the
+     thing — enough to know whether to press it, and nothing that competes
+     with the day you actually opened. */
+  function calNext(m, i) {
+    return (m.con.id
+      ? '<button class="b-cal-nrow" type="button" data-con="' + esc(m.con.id) + '" '
+      : '<div class="b-cal-nrow is-plain" ') +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+      '<span class="b-cal-nwhen">' + esc(sayDay(m.iso)) +
+        (m.h == null ? '' : ' · ' + esc(clockOf(m))) + '</span>' +
+      '<span class="b-cal-nwho">' + esc(m.con.name) + '</span>' +
+    (m.con.id ? '</button>' : '</div>');
+  }
+
   function calBody(selIn) {
     const sel = selIn || TODAY_ISO;
     const d = new Date(sel + 'T00:00:00');
@@ -3651,26 +3695,24 @@
     }).join('');
 
     const agenda = today.length
-      ? today.map((m, i) => {
-        const k = MEET_KIND[m.kind];
-        return (m.con.id
-          ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
-          : '<div class="b-cal-ev is-plain" ') +
-          'style="--i:' + Math.min(i, 8) + '">' +
-          '<span class="b-cal-evtop">' +
-            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
-            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
-          '</span>' +
-          '<span class="b-cal-ename">' + esc(m.con.name) +
-            '<span class="b-cal-ewhat">' + esc(m.title) +
-              (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
-            '</span>' +
-          '</span>' +
-        (m.con.id ? '</button>' : '</div>');
-      }).join('')
+      ? today.map((m, i) => calRow(m, i)).join('')
       : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
+
+    /* ══ AND WHAT IS AFTER IT ═════════════════════════════════════════════
+       Beside a month five rows tall, a day with two things in it leaves two
+       hundred pixels of column with nothing in it — and the answer to that
+       is not to stretch two rows to fill it, it is to put something worth
+       having there. What is coming is the thing this page could not say:
+       the dots on the month tell you WHICH days have something on them and
+       the column now tells you what.
+
+       Forward only, from the day you are standing on, and three of them: it
+       is the tail of a column, not a second agenda. Empty at the end of the
+       diary, where a shorter column is the honest answer. */
+    const from = new Date(sel + 'T00:00:00');
+    const at = (n) => isoDay(new Date(from.getFullYear(), from.getMonth(), from.getDate() + n));
+    const soon = meetings(at(1), at(60)).slice(0, 3);
 
     /* ══ THE MONTH BESIDE THE DAY, NOT ABOVE IT ══════════════════════════
        Stacked, this ran 644px: 336 of month over 163 of agenda, and it hung
@@ -3732,6 +3774,16 @@
               '<button class="b-cal-add" type="button" data-fill="Add to calendar: ">' +
                 '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
                 'Add to calendar</button>' +
+              /* Adding to the calendar belongs to the day above it, so it
+                 stays with that day and what is coming sits after it. */
+              (soon.length
+                ? '<div class="b-cal-next">' +
+                  '<h4 class="b-cal-cap">Next in the diary</h4>' +
+                  '<div class="b-cal-agenda">' +
+                    soon.map((m, i) => calNext(m, i)).join('') +
+                  '</div>' +
+                '</div>'
+                : '') +
             '</div>' +
           '</div>' +
         '</div>';
