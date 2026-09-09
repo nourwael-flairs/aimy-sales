@@ -291,12 +291,32 @@
    was the dimmer half. A caption is a signpost — it is read once, to learn
    what kind of fact follows, and never again. The fact is read every time.
 
+   SWAPPING THE INK WAS HALF AN ANSWER. Measured after it, the label was
+   13/700/--d400 and the goal it labels was 13/700's opposite — 13/400/--d300
+   — so size tied, ink said read the goal and weight said read the word. The
+   eye takes the loudest of the three and this line had no loudest. The card
+   settles it the way §THE RAMP settles the person card: the three axes move
+   together, and a caption is the bottom rung of the ramp rather than a
+   competitor on it.
+
+     11 / 700 / d400   the word            `.tc-type`'s recipe exactly, so the
+                                           two captions on this card match
+     13 / 500 / d200   the goal            a step under the AiMY sentence,
+                                           two under the numbers that lead
+
+   Bold at eleven px and --d400 is a label, not emphasis — the ramp already
+   says so of the campaign chip, and this is the same species of thing.
+
    The gap stays on the label alone rather than on every bold thing in the
    line, so a figure set in bold inside the sentence keeps its own spacing
    and its own ink. */
-.b-qcard-what { text-wrap: pretty; color: var(--d300); }
+.b-qcard-what {
+  text-wrap: pretty;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
+}
 .b-qcard-what > b:first-child {
-  color: var(--d400); font-weight: var(--fw-bold); margin-right: 4px;
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--d400); margin-right: 5px;
 }
 
 /* The keyboard cursor on a card. A call rather than a tint: a card already
