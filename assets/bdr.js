@@ -3717,32 +3717,49 @@
     return openerText(counts, all, camps);
   }
 
-  /* ══ THE BOLD MARKS THE FIGURE, AND ONLY THE FIGURE ════════════════════
-     Five counts in one paragraph, marked five different ways. `plural`
-     returns "3 people" as one string and `commas` returns "64" on its own,
-     so whichever helper a clause reached for decided how much of it went
-     inside the `<b>`: "<b>3 people</b> asked" beside "<b>64</b> have never
-     been called". And the first figure of all — the campaign count — was not
-     marked at all, sitting plain next to a bolded 110 in the same breath.
+  /* ══ EVERY FIGURE IS THE WAY INTO THE SET IT COUNTS ════════════════════
+     Two repairs, and the second is the reason for the first.
 
-     A reader cannot learn a rule from that, so the emphasis stops meaning
-     anything and becomes texture. One rule now: the number is bold, the word
-     for what it counts is not, everywhere. `verbFor` is `plural` without the
-     number, which is exactly the half that belongs outside the mark. */
+     The marking followed no rule. `plural` returns "3 people" as one string
+     and `commas` returns "64" on its own, so whichever helper a clause
+     reached for decided how much of it went inside the `<b>`: "<b>3 people</b>
+     asked" beside "<b>64</b> have never been called". The campaign count was
+     not marked at all, sitting plain next to a bolded 110 in the same breath.
+     One rule now — the number is marked, the word for what it counts is not.
+
+     And the mark is a door. `.slv-n` has been in the shell all along, argued
+     out at length there: a resting underline in the accent at low alpha,
+     because every other text action in this product marks itself at rest and
+     a hover-only signifier is one you have to guess at first. It went unused,
+     so the paragraph named six sets and offered a way into none of them —
+     and two of those sets, the never-called and the no-answers, had no door
+     anywhere else in the block either. The counts stay `--d50` rather than
+     accent-coloured; six coloured phrases would stop this being a paragraph,
+     which is the constraint the shell's own comment sets and keeps.
+
+     `data-q` for the five that are cuts of the queue and `data-go` for the
+     campaigns, which are a surface rather than a cut — the same two verbs
+     the chips and the switcher already use, so no new handler. */
   function openerText(counts, all, camps) {
     const bits = [];
-    const fig = (n, one) => '<b>' + commas(n) + '</b> ' + esc(verbFor(n, one));
-    if (counts.callback) bits.push(fig(counts.callback, 'person') + ' asked to be called back');
-    if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
-      '</b> have never been called');
-    if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
-      '</b> did not pick up last time');
-    if (counts.after) bits.push(fig(counts.after, 'meeting') + ' ' +
+    const door = (n, q) => '<button class="slv-n" type="button" data-q="' + esc(q) + '">' +
+      commas(n) + '</button>';
+    const fig = (n, one, q) => door(n, q) + ' ' + esc(verbFor(n, one));
+    if (counts.callback) bits.push(fig(counts.callback, 'person', 'callback') +
+      ' asked to be called back');
+    if (counts['not-called']) bits.push(door(counts['not-called'], 'not-called') +
+      ' have never been called');
+    if (counts['no-answer']) bits.push(door(counts['no-answer'], 'no-answer') +
+      ' did not pick up last time');
+    if (counts.after) bits.push(fig(counts.after, 'meeting', 'after') + ' ' +
       (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
     if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
-    return 'You are on ' + fig(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
-      '</b> people on them can be called. ' +
+    return 'You are on ' +
+      '<button class="slv-n" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'camps' }))) + '">' +
+        commas(camps.length) + '</button> ' + esc(verbFor(camps.length, 'campaign')) +
+      ' and ' + door(all.length, 'all') + ' people on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
   }
@@ -3766,7 +3783,13 @@
     if (!hits.length) return '';
     const h = hits[0];
     const more = hits.length - 1;
-    return '<b>' + esc(h.c.name) + '</b>, handed over ' + esc(sayWhen(h.c.checkpointAt.slice(0, 10))) + ', ' +
+    /* The name goes through the same door treatment as the figures rather
+       than staying a bare bold: it is the most specific thing in the
+       paragraph, his record is the one place the rest of that sentence is
+       written down, and a run marked exactly like six pressable ones and not
+       pressable is the ambiguity the shell's comment is about. */
+    return '<button class="slv-n" type="button" data-con="' + esc(h.c.id) + '">' +
+      esc(h.c.name) + '</button>, handed over ' + esc(sayWhen(h.c.checkpointAt.slice(0, 10))) + ', ' +
       (h.t.decision === 'won' ? 'signed' : 'said no at resolution') + ' ' + esc(sayWhen(h.t.at.slice(0, 10))) +
       (more ? ', and ' + plural(more, 'other') + ' got a decision this week' : '') + '.';
   }
