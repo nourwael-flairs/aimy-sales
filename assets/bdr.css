@@ -2734,3 +2734,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-cal-pop .b-cal { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .b-gate:active { transform: none; } }
+
+/* The promise each door keeps, in the ink this product uses for a text action
+   everywhere else. `margin-top: auto` puts it on the floor of the card, so the
+   two sit on one line however tall their middles run; the chevron steps
+   forward on hover, which is the only motion either card has. */
+.b-door-go {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: auto; padding-top: 2px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--accent-text);
+}
+.b-door-go svg {
+  width: 13px; height: 13px; transition: transform 160ms var(--ease-out);
+}
+.b-door:hover .b-door-go svg { transform: translateX(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .b-door:hover .b-door-go svg { transform: none; }
+}

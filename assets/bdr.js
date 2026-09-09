@@ -3364,6 +3364,7 @@
             .reduce((n, c) => n + amountOf(c), 0))) + '</span>' +
           bookBar() +
           '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
+          doorGo('Open the report') +
         '</button>' +
       '</div>' +
       dayBlock() +
@@ -3726,6 +3727,12 @@
     return commas(live) + ' open' + (won ? ' · ' + commas(won) + ' signed' : '');
   }
 
+  /* The promise, at the foot of both cards so the two line up whatever
+     height the middle of them runs to. */
+  function doorGo(label) {
+    return '<span class="b-door-go">' + esc(label) + chIcon('fwd') + '</span>';
+  }
+
   /* The gate and the panel it opens, as one thing: `.b-menu-wrap` is the
      positioned ancestor every other popover in the build hangs from. The
      panel is rendered with the page rather than on demand, because the
@@ -3738,7 +3745,19 @@
          the stylesheet never keeps. */
       '<button class="b-door" type="button" data-pickopen="calPop" ' +
         'aria-haspopup="dialog">' +
+        /* ══ A CARD THAT OPENS SOMETHING SAYS SO ═══════════════════════
+           Drawn as a reading, these two told you where the day and the book
+           stood and nothing at all about being pressable: the hover and the
+           pointer are the only signals, and both of them arrive after you
+           have already guessed. So each one ends on the promise it keeps.
+
+           Not "click for details" — nothing else in this product names the
+           input, and half the people reading it will be on a laptop with a
+           trackpad and half on a screen they tap. It names the thing you get
+           instead, which is the more useful half of that sentence anyway:
+           one opens the diary, the other opens the report. */
         '<span class="b-door-cap">Today</span>' + dayHead() +
+        doorGo('Open the diary') +
       '</button>' +
       '<div class="b-menu b-cal-pop" id="calPop" role="dialog" aria-label="The diary" hidden>' +
         calBody(CALSEL) +
@@ -4058,9 +4077,19 @@
       opens = [
         { k: 'callnext', label: 'Warm-call the next one',
           why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
-        { k: 'prep', label: 'Prepare me',
-          why: top ? 'the brief on ' + esc(top.name) + ' before you dial'
-            : 'nothing to prepare for yet' },
+        /* ══ THE BRIEF IS NOT A WAY TO START ═══════════════════════════
+           "Prepare me" sat here offering the brief on whoever is top of the
+           deals — which is the sheet the record itself hands you, the bell
+           hands you, and the day block hands you at the row for the meeting
+           it is about. Three doors onto one sheet, and this was the only one
+           that had to guess who you meant.
+
+           A campaign is the other half of the job and had no door on this
+           page at all: a manager who wanted a new one had to go to Campaigns
+           to start it, which is the surface for the ones that already exist.
+           So the slot goes to the thing that could not be done from here. */
+        { k: 'newcamp', label: 'Build a campaign',
+          why: 'what you sell, to whom, and how many you want' },
         /* The board is already the tab beside this one and the door under
            the cards; a third way in is not a way in. This slot goes to the
            thing the desk could not do at all. */
@@ -11752,16 +11781,6 @@
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
       if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
-      if (k === 'prep') {
-        /* The next thing in the diary, else the top of the queue: a manager
-           prepares for the room he is walking into, not for the deal that
-           happens to rank first. */
-        const soon = isMgr() ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed')[0] : null;
-        const top = soon ? soon.con : queue(null, S.q)[0];
-        if (!top) { toast('Nothing to prepare for yet.'); return; }
-        if (isMgr() && top.checkpoint === 'handed-over') meetPrep(top); else callPrep(top);
-        return;
-      }
       if (k === 'callnext') {
         /* A manager's next call is the deal at the top of his own ranking —
            nobody on it is `callable`, because callable means the caller has
