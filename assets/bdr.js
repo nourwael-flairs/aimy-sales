@@ -2495,7 +2495,7 @@
          the frame those are read inside, not a fourth figure competing with
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
-      '<p class="tc-summary b-qcard-what"><b>The goal</b> ' + campGoalSay(k) + '</p>' +
+      '<p class="tc-summary b-qcard-what"><b>Goal</b> ' + campGoalSay(k) + '</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
