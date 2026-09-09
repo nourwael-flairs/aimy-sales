@@ -1715,7 +1715,7 @@
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [] };
+    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [] };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -1811,7 +1811,7 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [], meet: {}, camp: [] }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [] }, d);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
@@ -3263,7 +3263,16 @@
       '<div class="b-cal-agenda b-day">' +
         on.slice(0, 3).map((m, i) => {
           const k = MEET_KIND[m.kind];
-          return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+          /* ══ A DOOR ONLY WHERE THERE IS SOMETHING BEHIND IT ══════════
+             The calendar now holds entries with no record — a dinner with
+             somebody who is not in the book. Drawn as a button carrying an
+             empty `data-con`, pressing one would go to a record that does
+             not exist. A button where there is a record, a plain row where
+             there is not, and the row says which by not lighting under the
+             pointer. */
+          return (m.con.id
+            ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
+            : '<div class="b-cal-ev is-plain" ') +
             'style="--i:' + Math.min(i, 8) + '">' +
             /* ══ WHEN AND WHAT KIND, THEN WHO AND WHAT ═══════════════════════
                One line held a dot, a time, a two-line name block and a tag, which
@@ -3280,9 +3289,10 @@
             '</span>' +
             '<span class="b-cal-ename">' + esc(m.con.name) +
               '<span class="b-cal-ewhat">' + esc(m.title) +
-                (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+                (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
+              '</span>' +
             '</span>' +
-          '</button>';
+          (m.con.id ? '</button>' : '</div>');
         }).join('') +
       '</div>' +
       (on.length > 3
@@ -3623,7 +3633,9 @@
     const agenda = today.length
       ? today.map((m, i) => {
         const k = MEET_KIND[m.kind];
-        return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
+        return (m.con.id
+          ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
+          : '<div class="b-cal-ev is-plain" ') +
           'style="--i:' + Math.min(i, 8) + '">' +
           '<span class="b-cal-evtop">' +
             '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
@@ -3632,9 +3644,10 @@
           '</span>' +
           '<span class="b-cal-ename">' + esc(m.con.name) +
             '<span class="b-cal-ewhat">' + esc(m.title) +
-              (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
+              (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
+            '</span>' +
           '</span>' +
-        '</button>';
+        (m.con.id ? '</button>' : '</div>');
       }).join('')
       : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
@@ -7906,8 +7919,24 @@
   const clockOf = (m) => (m.h == null ? '' : m.h + ':' + String(m.m).padStart(2, '0'));
 
   /* Everything between two days, held and planned, in the order it happens. */
+  /* ══ NOT EVERYTHING IN A CALENDAR IS A DEAL ════════════════════════════
+     Every entry here hangs off a contact: a phase touchpoint that happened
+     or a `next` that is going to. That is right for the work and wrong for
+     a calendar, which also holds the dentist, the board, and a dinner with
+     somebody who is not in the book yet — and asked to put one in, the
+     product could only answer that nobody answers to that name.
+
+     `DELTA.cal` is the rest: what was said, who with, when, and why, with no
+     record behind it. They read the same as everything else in the day and
+     open nothing, because there is nothing to open. */
   function meetings(from, to) {
     const out = [];
+    (DELTA.cal || []).forEach((e) => {
+      if (!e || e.iso < from || e.iso > to) return;
+      out.push({ con: { id: '', name: e.who }, iso: e.iso, h: e.h, m: e.m,
+        set: e.h != null, kind: e.kind || 'meeting', held: false, free: true,
+        title: e.why || 'In the calendar' });
+    });
     queue(null, 'all').forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
@@ -7935,7 +7964,8 @@
      This is the whole reason the loop needs closing: the manager walks out
      of the room and the record never hears about it. */
   function unrecorded() {
-    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.held && m.kind !== 'owed' &&
+    /* A free entry moves no deal, so there is nothing for it to be late for. */
+    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && m.kind !== 'owed' &&
       !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
 
@@ -10153,6 +10183,13 @@
      A booking is the other direction: nobody is reporting a stage, they are
      naming a person, a day and an hour. It writes the next step and the time
      and moves no deal, because nothing has happened yet. */
+  /* `readWhen` answers "a week" when it recognises nothing, which is the
+     right default for a follow-up and an invention in a calendar. This one
+     says so when nothing was said. */
+  const WHEN_RE = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|tonight|next week|next month)\b/i;
+  const saidWhen = (text) => (WHEN_RE.test(text)
+    ? (/\b(today|tonight)\b/i.test(text) ? 0 : readWhen(text.toLowerCase())) : null);
+
   const BOOK_RE = /\b(?:add to calendar|put in the calendar|book|schedule)\b/i;
   const BOOK_KIND = [
     [/\bdinner\b/i, 'dinner', 'Dinner with them'],
@@ -10192,16 +10229,49 @@
     if (!BOOK_RE.test(text)) return null;
     /* Past tense means it is a report, whatever words it opens with. */
     if (/\b(had|held|went|was|were|did|met)\b/i.test(text)) return null;
+    /* WHOEVER IT IS. A name in the book attaches the entry to that record so
+       the deal and the diary stay one thing; a name that is not is still a
+       name, and refusing it made the calendar a list of our customers rather
+       than a calendar. What is left after the phrase that introduced them
+       and before the clause that says why is the name. */
     const who = whoIn(text);
-    if (!who) return { miss: true };
-    if (who.many) return { many: who.many };
-    const con = who.con;
-    let what = 'Meeting with them';
-    for (let i = 0; i < BOOK_KIND.length; i++) {
-      if (BOOK_KIND[i][0].test(text)) { what = BOOK_KIND[i][2]; break; }
+    if (who && who.many) return { many: who.many };
+    const con = who ? who.con : null;
+    let free = null;
+    if (!con) {
+      const m = text.replace(BOOK_RE, ' ').match(/\b(?:with|for)\s+(.+?)(?=\s+(?:to|about|on|at|next|tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|[,.]|$)/i);
+      free = m ? m[1].trim().replace(/\s+/g, ' ') : null;
+      if (!free) return { miss: true };
     }
-    return { con: con, what: what, when: readWhen(text.toLowerCase()), clock: readClock(text) };
+    /* The kind travels with the label. Deriving it back out of "Lunch with
+       them" through `kindOfNext` — which knows meetings, demos and dinners —
+       returned "owed", so a lunch you had just booked was tagged as something
+       overdue. What was read is what is kept. */
+    let what = 'Meeting with them';
+    let kind = 'meeting';
+    for (let i = 0; i < BOOK_KIND.length; i++) {
+      if (BOOK_KIND[i][0].test(text)) { kind = BOOK_KIND[i][1]; what = BOOK_KIND[i][2]; break; }
+    }
+    /* The reason, which is the half of a calendar entry a CRM never keeps.
+       Read off the sentence WITHOUT its opening — "Add to calendar: meeting
+       with jeff to finalize the qa deal" has two "to"s in it and the first
+       one belongs to the instruction, so the reason came back as "calendar:
+       meeting with jeff". The phrase that opened it is not part of what it
+       says. */
+    const body = text.replace(BOOK_RE, ' ').replace(/^\s*[:,-]\s*/, ' ');
+    /* The day is not part of the reason. "to sign the contract monday" gave
+       back "sign the contract monday", so the entry carried a weekday inside
+       its own description and read as a note somebody forgot to finish. */
+    const rm = body.match(/\bto\s+((?!\d)(?:(?!\bat\b|\bon\b|\btomorrow\b|\btoday\b|\btonight\b|\bnext\b|\bmonday\b|\btuesday\b|\bwednesday\b|\bthursday\b|\bfriday\b|\bsaturday\b|\bsunday\b).)+)/i);
+    const why = rm ? rm[1].trim().replace(/[.\s]+$/, '') : null;
+    return { con: con, free: free, what: what, kind: kind, why: why,
+      when: saidWhen(text), clock: readClock(text) };
   }
+
+  /* The sentence read back to the reader is the one they actually said,
+     plus the day they just added to it. */
+  const PENDING_TEXT_OF = (f, day) =>
+    (f.why ? 'To ' + f.why : f.what) + ' with ' + (f.free || (f.con && f.con.name)) + ', ' + day;
 
   function bookPropose(text, f) {
     /* Both of these are the sentence answering back rather than a form
@@ -10218,17 +10288,35 @@
           'record and I will put it in the calendar.');
       return true;
     }
+    /* ONE QUESTION, FOR THE ONE THING NOTHING CAN SUPPLY. An hour can be
+       placed and says so on the row; a day cannot be guessed at all, and a
+       calendar that picks one is worse than a calendar that asks. So the
+       entry is held with everything already heard in it and the answer only
+       has to carry the day. */
+    if (f.when == null) {
+      PENDING = { kind: 'bookday', book: f, note: text };
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', 'What day? Everything else is down — <b>' +
+        esc(f.free || f.con.name) + '</b>' +
+        (f.clock ? ' at <b>' + f.clock.h + ':' + String(f.clock.m).padStart(2, '0') + '</b>' : '') +
+        (f.why ? ', to ' + esc(f.why) : '') + '.');
+      return true;
+    }
     const due = dayAdd(f.when);
-    PENDING = { kind: 'meet', con: f.con.id, to: null, next: f.what,
+    const who = f.free || f.con.name;
+    PENDING = { kind: 'meet', con: f.con ? f.con.id : '', to: null, next: f.what,
+      free: f.free, why: f.why, sort: f.kind,
       when: f.when, clock: f.clock, note: text };
     openCanvas();
     say('you', esc(text));
     TURNS.push({
       who: 'aimy',
-      html: 'Putting <b>' + esc(f.what.toLowerCase()) + '</b> in the calendar for <b>' +
-        esc(f.con.name) + '</b> on <b>' + esc(sayWhen(due)) + '</b>' +
+      html: 'Putting <b>' + esc(f.why || f.what.toLowerCase()) + '</b> in the calendar with <b>' +
+        esc(who) + '</b> on <b>' + esc(sayDay(due)) + '</b>' +
         (f.clock ? ' at <b>' + f.clock.h + ':' + String(f.clock.m).padStart(2, '0') + '</b>'
-          : ', and I will place the hour until you name one') + '.',
+          : ', and I will place the hour until you name one') + '.' +
+        (f.free ? ' Nobody on your book answers to that name, so it goes in as its own entry.' : ''),
       hint: 'Or say what I got wrong — "make it Thursday", "it is a dinner", "at 4pm".',
       step: 'meetlog',
       opts: [{ k: 'go', label: 'Put it in' }, { k: 'drop', label: 'Leave it', quiet: true }],
@@ -10279,6 +10367,16 @@
     if (!p || p.kind !== 'meet') return;
     const c = DB.byCon[p.con];
     PENDING = null;
+    /* An entry about nobody on the book has no record to patch, so it is
+       written where those live and the calendar picks it up from there. */
+    if (!c && p.free) {
+      DELTA.cal.push({ who: p.free, why: p.why, kind: p.sort || 'meeting',
+        iso: dayAdd(p.when), h: p.clock ? p.clock.h : null, m: p.clock ? p.clock.m : 0 });
+      saveNow();
+      toast('In the calendar with ' + p.free + '.');
+      showCalOn(dayAdd(p.when));
+      return;
+    }
     if (!c) { paintThread(); return; }
     /* A booking moves no deal: nothing has happened, something is going to. */
     if (p.to) setStage(c.id, p.to, p.note);
@@ -10289,8 +10387,28 @@
         DELTA.meet[c.id] = { h: p.clock.h, m: p.clock.m };
         saveNow();
       }
+      /* Something went into the calendar, so the calendar is what you want to
+         see — not the thread you were saying it in. */
+      if (!p.to) { showCalOn(due); return; }
     }
     paint();
+  }
+
+  /* ══ WHERE IT WENT, NOT WHERE YOU SAID IT ══════════════════════════════
+     Confirming an entry left you looking at the conversation that made it,
+     with the thing itself somewhere behind. The canvas shuts, the page comes
+     back, and the calendar opens on the day it landed on — which is both the
+     receipt and the place to change it. The paint has to happen first: the
+     panel is drawn with the page, so there is nothing to open until it is. */
+  function showCalOn(iso) {
+    CALSEL = iso;
+    closeCanvas();
+    paint();
+    const pop = byId('calPop');
+    const door = document.querySelector('[data-pickopen="calPop"]');
+    if (!pop || !door) return;
+    pop.innerHTML = calBody(CALSEL);
+    door.click();
   }
 
   const CALL_RE = /^(call|call|dial)\b/i;
@@ -10397,6 +10515,23 @@
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
+    /* The day, and nothing else needed. Whatever was already heard is still
+       in `PENDING.book`; this reply only has to carry a date. */
+    if (PENDING && PENDING.kind === 'bookday') {
+      const f = PENDING.book;
+      const when = saidWhen(t);
+      PENDING = null;
+      if (when == null) {
+        openCanvas();
+        say('you', esc(t));
+        say('aimy', 'I could not find a day in that. Say it as a day — ' +
+          '"tomorrow", "Thursday", "next week" — and it goes in.');
+        return;
+      }
+      f.when = when;
+      bookPropose(PENDING_TEXT_OF(f, t), f);
+      return;
+    }
     if (PENDING && PENDING.kind === 'meet') {
       /* A correction re-reads the sentence alone, the same rule the call's
          read-back follows: the newest thing you said wins outright. The

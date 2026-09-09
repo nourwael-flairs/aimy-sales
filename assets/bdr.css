@@ -2849,3 +2849,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    is forty-eight, which is the gap, and the head gives back the rest. */
 .b-cal-pop .b-cal-day { height: 46px; }
 .b-cal-pop .b-cal-head { padding-bottom: 10px; }
+
+/* An entry the calendar holds for its own sake: the same row, no door. */
+.b-cal-ev.is-plain { cursor: default; }
+.b-cal-ev.is-plain:hover { background: none; }
