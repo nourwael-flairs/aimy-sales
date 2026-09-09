@@ -3739,27 +3739,48 @@
 
      `data-q` for the five that are cuts of the queue and `data-go` for the
      campaigns, which are a surface rather than a cut — the same two verbs
-     the chips and the switcher already use, so no new handler. */
+     the chips and the switcher already use, so no new handler.
+
+     THE DOOR IS THE PHRASE, NOT THE DIGIT INSIDE IT. A bare "9" says
+     nothing about where it goes and is seven pixels wide; "9 campaigns"
+     says both, and a reader picking it out of a paragraph knows what they
+     are pressing before they press it. So the mark takes the number and the
+     word it counts, together.
+
+     Two of the clauses have no noun of their own — the sentence names people
+     once and then elides — so they get "of them", which is short, points at
+     the 110 the reader has just read, and keeps all six doors to two or three
+     words. The alternative was to underline whole clauses, and half a
+     paragraph under a rule is not a paragraph any more, which is the
+     constraint the shell's comment sets on this exact line. */
   function openerText(counts, all, camps) {
     const bits = [];
-    const door = (n, q) => '<button class="slv-n" type="button" data-q="' + esc(q) + '">' +
-      commas(n) + '</button>';
-    const fig = (n, one, q) => door(n, q) + ' ' + esc(verbFor(n, one));
-    if (counts.callback) bits.push(fig(counts.callback, 'person', 'callback') +
-      ' asked to be called back');
-    if (counts['not-called']) bits.push(door(counts['not-called'], 'not-called') +
-      ' have never been called');
-    if (counts['no-answer']) bits.push(door(counts['no-answer'], 'no-answer') +
-      ' did not pick up last time');
-    if (counts.after) bits.push(fig(counts.after, 'meeting', 'after') + ' ' +
-      (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
+    const door = (q, html) => '<button class="slv-n" type="button" data-q="' + esc(q) + '">' +
+      html + '</button>';
+    const of = (n) => commas(n) + ' of them';
+    if (counts.callback) {
+      bits.push(door('callback', commas(counts.callback) + ' ' +
+        esc(verbFor(counts.callback, 'person'))) + ' asked to be called back');
+    }
+    if (counts['not-called']) {
+      bits.push(door('not-called', of(counts['not-called'])) +
+        (counts['not-called'] === 1 ? ' has' : ' have') + ' never been called');
+    }
+    if (counts['no-answer']) {
+      bits.push(door('no-answer', of(counts['no-answer'])) + ' did not pick up last time');
+    }
+    if (counts.after) {
+      bits.push(door('after', commas(counts.after) + ' ' +
+        esc(verbFor(counts.after, 'meeting'))) + ' ' +
+        (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
+    }
     if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
     return 'You are on ' +
       '<button class="slv-n" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'camps' }))) + '">' +
-        commas(camps.length) + '</button> ' + esc(verbFor(camps.length, 'campaign')) +
-      ' and ' + door(all.length, 'all') + ' people on them can be called. ' +
+        commas(camps.length) + ' ' + esc(verbFor(camps.length, 'campaign')) + '</button>' +
+      ' and ' + door('all', commas(all.length) + ' people') + ' on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
   }
