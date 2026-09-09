@@ -69,14 +69,21 @@ input, select, textarea { font-family: inherit; }
    cluster: the eye cannot read a 1px difference as a level, so four
    "different" sizes all read as one. Re-spaced so every step is visible:
 
-       12 · 13 · 15 · 18 · 22 · 28 · 36
+       12 · 14 · 16 · 18 · 20 · 24 · 32
 
    Three text levels and one label style, per Butterick's max-3-headings
-   rule: body 15, group heading 18, page title 22 — and 13 for the meta
-   line under a name. 12 is a LABEL size and is only ever set in all-caps
-   with tracking, which makes it a different TEXTURE rather than merely a
-   smaller size; that is what lets 12 and 13 coexist a single pixel apart
-   when 11/12/13/14 could not.
+   rule: body 16, group heading 18, page title 20 — and 14 for the meta
+   line under a name. 12 is the MINIMAL-COMPONENT size — a tag, a work
+   state, a timestamp — and it is never a sentence.
+
+   EVERY STEP IS EVEN, and that is the rule that makes the floor hold. "Under
+   14 is too small" catches eleven and lets thirteen through; "even, and
+   never below twelve" catches both, and a sweep can apply it without a
+   human ruling on each site. The first pass corrected the shell and this
+   file's `--ty-*` roles and left THIS block alone, so a corrected shell was
+   overridden back to 13px by the product on top of it. A product override
+   is the last word on a token, so it is the first place a floor has to
+   reach.
 
    THE DUPLICATES ARE DELIBERATE. `--fs-md` resolves to the same value as
    `--fs-base`, and `--fs-xl` to the same as `--fs-lg`. A component that
@@ -107,21 +114,23 @@ input, select, textarea { font-family: inherit; }
    against 11px body — a ratio of three — which is what makes its cards
    legible at eleven pixels. This is that, one step gentler.
 
-     11  caption   ALL CAPS, TRACKED — never lowercase, never a sentence
-     13  meta      the supporting line under a name, and card body
-     14  body      prose, insight sentences, anything you read
-     16  heading   a block heading inside a surface
+     12  minimal   a tag, a work state, a timestamp — recognised, not read
+     14  meta      the supporting line under a name; the smallest sentence
+     16  body      prose, insight sentences, anything you read
+     18  heading   a block heading inside a surface
      20  title     the name of the thing you have open
      32  anchor    the ONE number a surface is about
 
-   The gaps are 2 / 1 / 2 / 4 / 12 — deliberately uneven. Butterick's
-   "smallest visible increment" applies within a role; BETWEEN roles the step
-   has to be big enough to read as a different kind of thing, which is why
-   heading→title is 4 and title→anchor is 12.
+   The gaps are 2 / 2 / 2 / 2 / 12 — even, all the way up to the anchor,
+   which is a different kind of object rather than another step. Butterick's
+   "smallest visible increment" applies within a role; between roles the step
+   has to read as a different kind of thing, and two pixels at these sizes
+   does, where one never did.
 
-   CARD BODY IS 13px AT WEIGHT 600, NOT 14 AT 400 — QA's lesson, and the one
-   thing that stops a card of small text reading as grey mush: at these sizes
-   weight carries hierarchy and size carries role. */
+   CARD BODY CARRIES WEIGHT 600 AT BODY SIZE — QA's lesson, and the one
+   thing that stops a card of small text reading as grey mush: weight carries
+   hierarchy and size carries role. It used to buy that by dropping a step to
+   13px, which is the trade the floor no longer allows. */
 /* macOS renders text heavier than the design intends, and nothing in this
    product or the design system had ever turned that off. Once, on the root,
    never per component. A no-op on Windows and Linux, correct on a Mac. */
@@ -131,14 +140,14 @@ html {
 }
 
 :root {
-  --fs-2xs:  12px;   /* minimal components — caps and tracked, never a sentence */
-  --fs-xs:   13px;   /* meta, and card body at weight 600 */
-  --fs-sm:   13px;   /* → meta */
-  --fs-base: 14px;   /* BODY */
-  --fs-md:   14px;   /* → body */
-  --fs-lg:   16px;   /* block heading */
-  --fs-xl:   16px;   /* → block heading */
-  --fs-2xl:  20px;   /* the name of the thing you have open */
+  --fs-2xs:  12px;   /* minimal components — a mark, not a sentence */
+  --fs-xs:   14px;   /* the smallest sentence — meta, the line under a name */
+  --fs-sm:   16px;   /* → body */
+  --fs-base: 16px;   /* BODY */
+  --fs-md:   16px;   /* → body */
+  --fs-lg:   18px;   /* block heading */
+  --fs-xl:   20px;   /* the name of the thing you have open */
+  --fs-2xl:  24px;   /* → title */
   --fs-3xl:  32px;   /* the one number a surface is about */
   --fs-4xl:  32px;   /* → anchor. One anchor size, not two. */
 

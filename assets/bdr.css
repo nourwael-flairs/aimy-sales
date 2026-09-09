@@ -138,9 +138,13 @@
    whichever surface is showing. The type is `.s-block-h`'s, because the one
    you are on IS that heading and must not be a different size from the one
    it replaces. */
+/* An <h2> with no font-size takes the user agent's 1.5em, which is a size
+   derived from the body rather than chosen — 21px against a 14px body, 24
+   against 16. Every child sets its own size, so the h2's is only ever
+   inherited by accident. Named, so it stops moving when the body does. */
 .b-switch {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
-  margin: 0;
+  margin: 0; font-size: var(--t-body);
 }
 .b-switch-btn {
   appearance: none; border: 0; background: transparent; padding: 0;
