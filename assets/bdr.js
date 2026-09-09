@@ -5812,7 +5812,11 @@
       /* The name, and nothing after it. What the engagement is does not
          change a single thing a caller does in the next eight minutes. */
       cmPart('Client', '<p class="b-cmeta-p"><b>' +
-        esc(cl ? cl.name : 'Our own book') + '</b></p>') +
+        /* Our own book is FlairsTech's book. "Our own book" is how the desk
+           says it out loud, but under a caption reading CLIENT the reader is
+           asking WHICH company, and every other value in this cell answers
+           that with a name. */
+        esc(cl ? cl.name : 'FlairsTech') + '</b></p>') +
     '</div>' +
     teamRow(k);
   }

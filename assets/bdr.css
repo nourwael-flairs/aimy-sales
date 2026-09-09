@@ -2606,3 +2606,41 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    goes with sitting inside the metadata grid. On a record it is a section
    with a heading of its own, so it takes neither. */
 .b-team-rec { margin-top: 12px; }
+
+/* ══ 78. A HEAD THAT HOLDS A SEARCH FIELD ALIGNS ON CENTRES ════════════════
+   `.s-camp-list-head` is `align-items: baseline`, which is right for what it
+   was written for — a heading with a caption beside it, two runs of text that
+   should sit on the same line of writing. Two of these heads hold something
+   else: a bordered search pill, on the queue beside the tab strip and on a
+   campaign beside "To call". A pill is read as a box, not as the text inside
+   it, so lining up the text left the box hanging. Measured: 4.5px below the
+   tabs' optical centre, 5.1px below the heading's.
+
+   `:has(.b-find)` rather than a blanket change, because every other head is
+   the heading-and-caption case and baseline is right there.
+
+   The negative margin is the tab strip's underline gutter. `.b-switch-btn`
+   carries `padding-bottom: 4px` to reserve room for `.b-switch-bar`, so the
+   strip's box is 4px taller than its type and centring the box would centre
+   the type 2px high. Discounting the gutter says what is meant: line up the
+   writing, not the runway under it. 4.5px to 0.6px on the queue, 5.1px to
+   nothing on the campaign, and the sliding bar lands level with the bottom of
+   the pill. */
+.s-camp-list-head:has(.b-find) { align-items: center; }
+.s-camp-list-head:has(.b-find) > .b-switch { margin-bottom: -4px; }
+/* And the heading's own bottom margin, which centring would otherwise centre
+   along with it: flex aligns the MARGIN box, so `.s-block-h`'s 12px underneath
+   pushed the type 5px up inside a row that was now correctly centred. The
+   margin is redundant here anyway — the head's `row-gap` already spaces a
+   wrapped second line — and the shell zeroes it the same way, on the same
+   class, in `.s-camp-rows-head`. */
+.s-camp-list-head:has(.b-find) > .s-block-h { margin-bottom: 0; }
+
+/* ══ 79. THE MARK STANDS BESIDE THE TAG, NOT UNDER IT ══════════════════════
+   14px against a pill that is 24px of line and padding: the mark read as a
+   speck put next to a label rather than as the speaker of it. 18px is about
+   three quarters of the pill, which is where a logo sits beside a word — big
+   enough to be the thing talking, small enough that an 11px label still leads.
+   Scoped past the shell's `.s-insight.is-lead` rule rather than editing it,
+   since the same mark at 14 is right where it appears without a tag. */
+.s-insight.is-lead .s-lead-mark .s-insight-mark { width: 18px; height: 18px; }
