@@ -2750,3 +2750,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 @media (prefers-reduced-motion: reduce) {
   .b-door:hover .b-door-go svg { transform: none; }
 }
+
+/* The clock sits on the figure's own line, sized off it so the two scale
+   together, and a step down in ink so the number still leads. `0.62em` is the
+   digits' cap height at this weight — a mark that matches the glyphs beside it
+   rather than the box they sit in. */
+.b-door-clock {
+  display: inline-flex; align-items: center; margin-right: 0.3em;
+  vertical-align: baseline; color: var(--d400);
+}
+.b-door-clock svg { width: 0.62em; height: 0.62em; }

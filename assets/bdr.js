@@ -3352,7 +3352,11 @@
          opening: how much is in the diary today, and what the book is worth.
          One opens where it stands; the other is a page, because a report is
          something you read down. */
-      '<div class="b-doors">' +
+      /* `s-block-wide` like every other block on this page. Without it the
+         pair sat in one column of the home grid and stopped at 45% of the
+         width on a wide window, with nothing to its right to align to — which
+         reads as a layout that broke rather than one that decided. */
+      '<div class="b-doors s-block-wide">' +
         calGate() +
         /* Both cards are the same container now that they are apart, so
            neither carries a modifier and the stylesheet keeps no hook it
@@ -3694,8 +3698,15 @@
           : 'and nothing in the fortnight ahead') + '</span>';
     }
     const k = MEET_KIND[first.kind];
+    /* The mark only where there is a time to mark. "All day" is the absence
+       of one and "Clear" is the absence of the whole day, and a clock face
+       beside either says the opposite of what the word does. The other card
+       needs no mark for the same reason its figure already carries one: a
+       euro sign is what a clock is to a time. */
     return '<span class="b-door-fig">' +
-        esc(first.h == null ? 'All day' : clockOf(first)) + '</span>' +
+        (first.h == null ? 'All day'
+          : '<span class="b-door-clock">' + chIcon('clock') + '</span>' + esc(clockOf(first))) +
+      '</span>' +
       '<span class="b-door-who">' + esc(first.con.name) +
         '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span></span>' +
       '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
@@ -8906,6 +8917,7 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    clock: '<circle cx="12" cy="12" r="10"/> <polyline points="12 6 12 12 16 14"/>',
     money: '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
     linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
   };
