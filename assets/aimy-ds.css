@@ -89,9 +89,22 @@
       --ok-glow: rgba(127,174,148,0.18);
       --warn:    #98a5b3;
       --warn-bg: rgba(152,165,179,0.10);
-      --err:     #c98b84;
-      --err-bg:  rgba(201,139,132,0.10);
-      --err-glow:rgba(201,139,132,0.18);
+      /* ══ THE NEGATIVE POLE IS RED, NOT CLAY ═══════════════════════
+         #c98b84 was already at 6° — the hue was red all along. What made
+         it read as terracotta was the chroma: 39% is a colour that has
+         been washed rather than one that has been chosen. Ten points of
+         saturation, the same lightness, and the hue a degree closer to
+         zero: it is unmistakably red now and still nowhere near the
+         #f04438 it replaced.
+
+         It carries more chroma than the positive pole does, and that is
+         deliberate rather than an oversight in the pairing. The two are
+         not used equally often — a lost deal and a do-not-call are rarer
+         and cost more than a handover — so the one you need to catch
+         across a page gets the louder half of a quiet pair. */
+      --err:     #d2827b;   /* H5 S49 L65 — 5.96:1 on card, 6.01 on the rail */
+      --err-bg:  rgba(210,130,123,0.10);
+      --err-glow:rgba(210,130,123,0.18);
       --info:    #98a5b3;
       --info-bg: rgba(152,165,179,0.10);
 
@@ -243,11 +256,11 @@
          contrast when used as text/icons on white. Tint backgrounds stay pale. */
       --ok:   #4a7a5e;
       --warn: #5a6672;
-      --err:  #96524b;
+      --err:  #903b37;
       --info: #5a6672;
       --ok-bg:   rgba(74,122,94,0.12);
       --warn-bg: rgba(90,102,114,0.10);
-      --err-bg:  rgba(150,82,75,0.12);
+      --err-bg:  rgba(144,59,55,0.12);
       --info-bg: rgba(90,102,114,0.10);
 
       /* Surfaces */
@@ -332,7 +345,7 @@
     :root[data-theme="light"] .chip.ok   { color: #3f6b52; }
     :root[data-theme="light"] .tag-err,
     :root[data-theme="light"] .signal-badge.err,
-    :root[data-theme="light"] .chip.err   { color: #8a473f; }
+    :root[data-theme="light"] .chip.err   { color: #903b37; }
     /* On white a tint of the same fraction reads louder than it does on the
        card, because it is lifting off a ground with nowhere to go. Down a
        third, and the border does more of the work. */
@@ -341,8 +354,8 @@
       border-color: color-mix(in srgb, #3f6b52 22%, transparent);
     }
     :root[data-theme="light"] .tag-err {
-      background: color-mix(in srgb, #8a473f 7%, transparent);
-      border-color: color-mix(in srgb, #8a473f 22%, transparent);
+      background: color-mix(in srgb, #903b37 7%, transparent);
+      border-color: color-mix(in srgb, #903b37 22%, transparent);
     }
     :root[data-theme="light"] .chip.warn  { color: var(--d300); }
     :root[data-theme="light"] .tag-accent,

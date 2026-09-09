@@ -659,7 +659,7 @@ button {
      affordance is not a verdict. It stays. */
   --ok-text:     #7fae94;   /* 7.4:1 on card, 8.1 on the rail */
   --warn-text:   #98a5b3;   /* 8.0:1 — the neutral, not a hue */
-  --err-text:    #c98b84;   /* 6.9:1 on card, 7.6 on the rail */
+  --err-text:    #d2827b;   /* 5.96:1 on card, 6.01 on the rail */
   --accent-text: #a06ff7;   /* 5.04:1 */
 }
 :root[data-theme="light"] {
@@ -670,7 +670,7 @@ button {
      from failing silently. These clear on both grounds with room. */
   --ok-text:     #3f6b52;
   --warn-text:   #5a6672;
-  --err-text:    #8a473f;
+  --err-text:    #903b37;   /* 7.33:1 on white */
   --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
 }
 
