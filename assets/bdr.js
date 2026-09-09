@@ -1070,15 +1070,25 @@
          index here put half of mine in the finished pile. */
       const crew = [];
 
-      /* ══ THE GOAL IS THE ASK; THE NUMBER IS THE MEASURE ═══════════════
+      /* ══ THE ASK AND THE GOAL ARE TWO FACTS ═══════════════════════════
          "Book 19 first meetings with logistics operations leads" was doing
          both jobs and neither well. It read as a quota in a run of unlabelled
          facts, and the page had to find the 19 by running a regular
          expression over its own prose to know what to measure against — so
          renaming an industry could silently change the target.
 
-         The ask is the goal. The number is `target`, and where it stands
-         against that number is the insight sixty pixels below. */
+         Splitting them was right; the naming was wrong twice over. `target`
+         is the QUOTA — the meetings or conversations the desk paces against,
+         countable so `campStand` can say what a week has to land. The field
+         below is the ASK: what one call should come away with. Neither is
+         the goal. The goal is what the campaign is worth having worked, and
+         `campGoal` derives it in four kinds — logos, money, a first client
+         in a market, an account taken off somebody else.
+
+         The field keeps the name `goal` because a campaign somebody built is
+         stored under it in their browser and a rename would strand it. It is
+         drawn in exactly one place now, the prep sheet, under "Asking for" —
+         which is the only moment anybody needs it. */
       const askFor = ASK_OF[sells[0].k];
       const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
       camp.push({
@@ -1102,7 +1112,12 @@
           ])
           : pick(r, [
             'A real conversation with ' + askFor + ' about what this is costing them today',
-            'To hear from ' + askFor + ' how they run this now, and what it takes',
+            /* A noun phrase like the other five. As an infinitive it read
+               "Asking for To hear from ops directors how they run this now"
+               on the prep sheet, which has been printing that sentence since
+               the sheet existed. Same length of array, so the seed cursor
+               does not move. */
+            'An account from ' + askFor + ' of how they run this now, and what it takes',
             'A straight answer from ' + askFor + ' on whether this is worth their money',
           ]),
         pitch: 'They are in ' + reg.label + ', and they are running this with people rather than with a system. ' +
@@ -2154,10 +2169,27 @@
       /* THE IDENTITY BLOCK KEEPS NO MARKS. The name and the job above this
          are who they are, and a mark beside either competes with the name
          for the loudest thing on the card. This line is the facts, and the
-         facts are four different kinds of thing. */
+         facts are four different kinds of thing.
+
+         ══ TWO LINES OF TWO, BECAUSE THE FOURTH NEVER FIT ═══════════════
+         All four went in one wrapping row, and there is no width at which
+         four facts and four marks fit a card three to a row: measured on
+         the queue, twelve of fifteen cards at 1400 and nine of fifteen at
+         800 broke after the city and left the headcount alone on a line of
+         its own. A line holding "260 staff" and nothing else reads as
+         something left over rather than something said.
+
+         So the break is ours instead of the browser's, and it falls where
+         the meaning already divides: the organisation on one line, then
+         where it is and how big. Every card now has the same shape, which
+         is the whole point of putting them in a grid. Two paragraphs and
+         not one wrapping row — `.b-qcard-where` is `margin: 0` over
+         `padding-top: 2px`, so stacking them gives back exactly the 2px
+         the wrap's row-gap was giving, and no rule changes. */
       (a ? '<p class="b-qcard-where">' +
         fact('company', esc(a.name)) +
-        fact('industry', esc(indLabel(a))) +
+        fact('industry', esc(indLabel(a))) + '</p>' +
+        '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
       /* An empty why is an empty row of padding, not an empty string. */
@@ -2444,7 +2476,26 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
-      '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
+      /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
+         `.tc-summary` is the shell's description slot — 11.5px at --d400,
+         the quietest thing on the card — and what sat in it was `k.goal`,
+         which is neither a description nor a goal. It is the ask: one
+         sentence on what a single call should come away with, and under the
+         word "goal" it answered a question nobody had.
+
+         `campGoalSay` writes the end state instead, in whichever of its four
+         kinds this campaign was signed off against. No date in it: a goal
+         has one, and this card's is six pixels up and louder — "14 days
+         left" while it runs, "closed 6 Sep" once it has. No standing in it
+         either; the three lines under it are the standing, and a goal that
+         moved with them would not be one.
+
+         The ink stays where it is. Choosing which campaign to work is
+         decided by the days left, the numbers and the insight; the goal is
+         the frame those are read inside, not a fourth figure competing with
+         them. What the line was missing was not weight, it was the right
+         fact under the right word. */
+      '<p class="tc-summary b-qcard-what"><b>Goal</b> ' + campGoalSay(k) + '</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
@@ -2473,9 +2524,17 @@
     /* closed: the one fact is how it closed */
     if (left <= 0) {
       const st = campStand(k);
+      /* Short of the QUOTA, which is what this figure measures. The goal is
+         clients, and a campaign that booked every meeting it paced for can
+         still have signed nobody — "past its goal" of a meeting count
+         claimed the second thing while counting the first. */
       return { text: 'It closed ' + esc(sayWhen(k.to)) +
-        (st.target ? (st.need ? ', <b>' + commas(st.need) + '</b> short of its goal.' : ', past its goal.') : '.'),
-        from: 'the window and the goal' };
+        (st.target
+          ? (st.need
+            ? ', <b>' + commas(st.need) + '</b> ' + esc(verbFor(st.need, st.noun)) + ' short.'
+            : ', past the ' + esc(plural(st.target, st.noun)) + ' it paced for.')
+          : '.'),
+        from: 'the window and the target' };
     }
     /* ══ IT MUST NOT REPEAT THE LINE ABOVE IT ═══════════════════════════
        This led with the callback count, and the callback count is already
@@ -2529,7 +2588,9 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
-      '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
+      /* Same slot, same silence: this is who the search asked for, and it
+         sat in the description slot unnamed beside a card that names it. */
+      '<p class="tc-summary b-qcard-what"><b>Who</b> ' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
         commas(call) + '</b> of them ringable</div>' +
       aimyBlock(listSays(l, people, call, camp)) +
@@ -2616,15 +2677,49 @@
     const p2 = (x) => String(x).padStart(2, '0');
     return p2(d.getHours()) + ':' + p2(d.getMinutes());
   };
+  /* ══ WHAT HAPPENED IS THE POINT OF THE ROW ═════════════════════════════
+     Every part of this row but the name came out at 13/400/--d200: the
+     outcome, who did it, the hour, and the words they said, four different
+     ranks of thing set identically. The outcome is the one the reader came
+     for — it is what the section is called — and it was the hardest to find,
+     buried mid-run between a name and a timestamp.
+
+     The record's own timeline ranks the same fact properly, with weight and
+     the tone of how it went, and this row already computed `OUTCOME[...]`
+     and threw it away. So it is drawn the way the timeline draws it, and the
+     bookkeeping behind it drops a step:
+
+       13 / 700 / d50     who it was          the subject
+       13 / 600 / tone    what happened       green good, amber stuck, red out
+       13 / 400 / d200    what they said      their words, still the content
+       13 / 400 / d400    who and when        true, and nobody scans for it
+
+     Neutral outcomes take --d100 rather than the `tone-neutral` utility's
+     --d400: "Moved by hand" is not a lesser event than "Connected", it is
+     one the tones have nothing to say about, and dimming it below the note
+     would have put the row's subject at the bottom of its own ramp. Written
+     out per tone rather than composed, for the audit, as `TL_TONE` is. */
+  const FEED_TONE = {
+    ok: 'b-feed-out tone-ok', warn: 'b-feed-out tone-warn',
+    err: 'b-feed-out tone-err', neutral: 'b-feed-out',
+  };
   function campTouchRow(t, underDay) {
     const c = DB.byCon[t.con];
     const o = OUTCOME[t.outcome];
+    /* A phase has no outcome row of its own; a lost resolution is the one
+       that reads as a way out rather than a step forward. */
+    const tone = o ? o.tone
+      : (t.outcome === 'phase' ? (t.decision === 'lost' ? 'warn' : 'ok') : 'neutral');
     const head = kindLabel(t);
     return '<div class="s-qrow-id">' +
         '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
           esc(c ? c.name : 'Somebody') + '</button>' +
-        '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(whoDid(t).name) +
-          ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
+        '<span class="s-qrow-sub">' +
+          '<span class="' + (FEED_TONE[tone] || FEED_TONE.neutral) + '">' +
+            esc(head) + '</span>' +
+          '<span class="b-feed-meta"> · ' + esc(whoDid(t).name) +
+            ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
+        '</span>' +
       '</div>' +
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
   }
@@ -3656,20 +3751,70 @@
     return openerText(counts, all, camps);
   }
 
+  /* ══ EVERY FIGURE IS THE WAY INTO THE SET IT COUNTS ════════════════════
+     Two repairs, and the second is the reason for the first.
+
+     The marking followed no rule. `plural` returns "3 people" as one string
+     and `commas` returns "64" on its own, so whichever helper a clause
+     reached for decided how much of it went inside the `<b>`: "<b>3 people</b>
+     asked" beside "<b>64</b> have never been called". The campaign count was
+     not marked at all, sitting plain next to a bolded 110 in the same breath.
+     One rule now — the number is marked, the word for what it counts is not.
+
+     And the mark is a door. `.slv-n` has been in the shell all along, argued
+     out at length there: a resting underline in the accent at low alpha,
+     because every other text action in this product marks itself at rest and
+     a hover-only signifier is one you have to guess at first. It went unused,
+     so the paragraph named six sets and offered a way into none of them —
+     and two of those sets, the never-called and the no-answers, had no door
+     anywhere else in the block either. The counts stay `--d50` rather than
+     accent-coloured; six coloured phrases would stop this being a paragraph,
+     which is the constraint the shell's own comment sets and keeps.
+
+     `data-q` for the five that are cuts of the queue and `data-go` for the
+     campaigns, which are a surface rather than a cut — the same two verbs
+     the chips and the switcher already use, so no new handler.
+
+     THE DOOR IS THE PHRASE, NOT THE DIGIT INSIDE IT. A bare "9" says
+     nothing about where it goes and is seven pixels wide; "9 campaigns"
+     says both, and a reader picking it out of a paragraph knows what they
+     are pressing before they press it. So the mark takes the number and the
+     word it counts, together.
+
+     Two of the clauses have no noun of their own — the sentence names people
+     once and then elides — so they get "of them", which is short, points at
+     the 110 the reader has just read, and keeps all six doors to two or three
+     words. The alternative was to underline whole clauses, and half a
+     paragraph under a rule is not a paragraph any more, which is the
+     constraint the shell's comment sets on this exact line. */
   function openerText(counts, all, camps) {
     const bits = [];
-    if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
-      '</b> asked to be called back');
-    if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
-      '</b> have never been called');
-    if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
-      '</b> did not pick up last time');
-    if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
-      (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
+    const door = (q, html) => '<button class="slv-n" type="button" data-q="' + esc(q) + '">' +
+      html + '</button>';
+    const of = (n) => commas(n) + ' of them';
+    if (counts.callback) {
+      bits.push(door('callback', commas(counts.callback) + ' ' +
+        esc(verbFor(counts.callback, 'person'))) + ' asked to be called back');
+    }
+    if (counts['not-called']) {
+      bits.push(door('not-called', of(counts['not-called'])) +
+        (counts['not-called'] === 1 ? ' has' : ' have') + ' never been called');
+    }
+    if (counts['no-answer']) {
+      bits.push(door('no-answer', of(counts['no-answer'])) + ' did not pick up last time');
+    }
+    if (counts.after) {
+      bits.push(door('after', commas(counts.after) + ' ' +
+        esc(verbFor(counts.after, 'meeting'))) + ' ' +
+        (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
+    }
     if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
-    return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
-      '</b> people on them can be called. ' +
+    return 'You are on ' +
+      '<button class="slv-n" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'camps' }))) + '">' +
+        commas(camps.length) + ' ' + esc(verbFor(camps.length, 'campaign')) + '</button>' +
+      ' and ' + door('all', commas(all.length) + ' people') + ' on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
   }
@@ -3693,7 +3838,13 @@
     if (!hits.length) return '';
     const h = hits[0];
     const more = hits.length - 1;
-    return '<b>' + esc(h.c.name) + '</b>, handed over ' + esc(sayWhen(h.c.checkpointAt.slice(0, 10))) + ', ' +
+    /* The name goes through the same door treatment as the figures rather
+       than staying a bare bold: it is the most specific thing in the
+       paragraph, his record is the one place the rest of that sentence is
+       written down, and a run marked exactly like six pressable ones and not
+       pressable is the ambiguity the shell's comment is about. */
+    return '<button class="slv-n" type="button" data-con="' + esc(h.c.id) + '">' +
+      esc(h.c.name) + '</button>, handed over ' + esc(sayWhen(h.c.checkpointAt.slice(0, 10))) + ', ' +
       (h.t.decision === 'won' ? 'signed' : 'said no at resolution') + ' ' + esc(sayWhen(h.t.at.slice(0, 10))) +
       (more ? ', and ' + plural(more, 'other') + ' got a decision this week' : '') + '.';
   }
@@ -3759,15 +3910,53 @@
       opens = [
         { k: 'callnext', label: 'Call the next one',
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        /* ══ THE DOOR SAYS WHAT IS OWED, THE PARAGRAPH SAYS HOW MANY ══════
+           Two of these four read back a clause the paragraph six pixels above
+           had just finished saying — "3 people asked to be called back" under
+           a sentence containing "3 people asked to be called back", and the
+           same again for the meetings. The block said everything twice and
+           the second time in smaller type.
+
+           Naming the lead you land on was the first attempt, following the
+           door above, and it collided: the top of the queue is very often the
+           top of the callbacks too, so two doors named the same person and
+           read as one job listed twice. `qRank` puts what is owed first, so
+           that collision is the common case rather than the unlucky one.
+
+           What cannot collide is the fact each cut is about. A callback is
+           about a day somebody named, so the door says how many of those days
+           have gone; a meeting nobody has reported is about how long the
+           silence has run. Both are computed here rather than read off an
+           order — `queue` ranks by what is owed, not by date, so the oldest
+           is found by looking at all of them. */
         { k: 'callback', label: 'Work the callbacks',
-          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be called back'
-            : 'nobody asked for one' },
+          why: (function () {
+            if (!counts.callback) return 'nobody asked for one';
+            const cb = queue(null, 'callback');
+            const late = cb.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
+            /* When every one of them is late the count is the paragraph's
+               count again — three callbacks, three of them late — and the
+               door would read as an echo of a sentence it is meant to add
+               to. The stronger sentence is also the shorter one. */
+            if (late.length === cb.length) return 'every one of them is past the day they asked for';
+            if (late.length) {
+              return commas(late.length) + (late.length === 1 ? ' is' : ' are') +
+                ' past the day they asked for';
+            }
+            return cb[0] && cb[0].next ? 'the first is due ' + esc(sayWhen(cb[0].next.due))
+              : 'none of them is late yet';
+          })() },
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
           ? { k: 'after', label: 'Say what happened',
-              why: plural(counts.after, 'meeting') + ' passed without a word' }
-          : { k: 'not-called', label: 'call somebody new',
+              why: (function () {
+                const aft = queue(null, 'after').filter((c) => c.next && c.next.due);
+                if (!aft.length) return 'nothing to report yet';
+                const oldest = aft.reduce((m, c) => (c.next.due < m ? c.next.due : m), aft[0].next.due);
+                return 'the oldest passed ' + esc(sayWhen(oldest));
+              })() }
+          : { k: 'not-called', label: 'Call somebody new',
               why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
                 : 'everyone has been tried' },
         findLeads,
@@ -3793,7 +3982,7 @@
       (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
       ((call && call.length)
         ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
-          esc(call.map((c) => c.id).join(',')) + '">Call these ' + call.length + '</button>'
+          esc(call.map((c) => c.id).join(',')) + '">Call them</button>'
         : '') + '</div>';
   }
 
@@ -4112,8 +4301,7 @@
               '">Call the next one on this list</button>' +
             (call.length > 1
               ? '<button class="s-inline-btn" type="button" data-callall="' +
-                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
-                Math.min(PAGE, call.length) + '</button>'
+                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call them</button>'
               : '')
           : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
@@ -5542,7 +5730,7 @@
         '<div class="s-rec-actions">' +
           (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
             esc(k.id) + '">Call the next one</button>' : '') +
-          /* "Call these 15" is about the fifteen on the page of the queue, so
+          /* "Call them" is about the people on the page of the queue, so
              it sits with the queue and nowhere else — it was here too, and a
              control repeated is a decision repeated. */
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
@@ -5641,7 +5829,14 @@
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
     return '<div class="b-cmeta">' +
-      cmPart('The goal', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
+      cmPart('The goal', '<p class="b-cmeta-p">' + campGoalSay(k) + '</p>') +
+      /* THE ASK IS NOT A PROPERTY OF THE CAMPAIGN, IT IS A LINE FOR A CALL.
+         It had a cell here — "thirty minutes with whoever owns the model
+         pipeline, booked while you are still on the call" — and a record is
+         read to decide whether to work a campaign, not while working one.
+         The one moment that sentence is worth anything is the moment before
+         somebody dials, and the prep sheet already puts it there under
+         "Asking for". It is drawn once now, where it is used. */
       /* The name and which kind it is. The blurb underneath was the line a
          caller says out loud, and it is said out loud in What to say — here
          it was a second copy of it in the smallest type on the page. */
@@ -5651,7 +5846,11 @@
       /* The name, and nothing after it. What the engagement is does not
          change a single thing a caller does in the next eight minutes. */
       cmPart('Client', '<p class="b-cmeta-p"><b>' +
-        esc(cl ? cl.name : 'Our own book') + '</b></p>') +
+        /* Our own book is FlairsTech's book. "Our own book" is how the desk
+           says it out loud, but under a caption reading CLIENT the reader is
+           asking WHICH company, and every other value in this cell answers
+           that with a name. */
+        esc(cl ? cl.name : 'FlairsTech') + '</b></p>') +
     '</div>' +
     teamRow(k);
   }
@@ -5664,6 +5863,87 @@
      measured at `meeting-set`, one to open conversations at `answered`.
      Counting everyone ever reached against a meetings goal is how this
      page once reported 35 of 22 with 111 people still unrung. */
+  /* ══ WHAT THE CAMPAIGN IS TRYING TO WIN ════════════════════════════════
+     A campaign's goal is not a number of meetings. Meetings are how it is
+     worked; the goal is what it is worth having worked — two more clients
+     for AiMY QA, three for a partner's offer — and that is the sentence the
+     person who signed the campaign off would use.
+
+     `target` stays what it always was: the meetings or conversations the
+     desk paces against, which is why `campStand` can say what a week has to
+     land. It is the quota, not the goal, and every surface now says so.
+
+     The number is derived, not seeded. `hash` on the campaign's own id keeps
+     it identical on every load without a new value in the generator, and
+     keeps it off the member count — a goal that moved when somebody added
+     forty leads to the list would not be a goal.
+
+     THE GOAL IS THE GOAL AND NOTHING ELSE. A first cut hung the standing off
+     the end of it — "2 new clients for AiMY QA, 3 in play" — which turns the
+     one line on this card that says where the campaign is TRYING to get into
+     another line about where it is. Progress has three homes already: the
+     numbers directly under this, what AiMY reads off the calls, and the
+     figure in the record's lead block. The goal does not move, and that is
+     the point of it — it is what those three are measured against. */
+  /* ══ FOUR WAYS TO END UP SOMEWHERE ═════════════════════════════════════
+     A book where every campaign wants "two new clients" is a template with a
+     number in it. Real campaigns are signed off against different kinds of
+     end: some are counted in logos, some in money, some in getting a foot
+     into a market at all, and some in taking an account off whoever has it.
+     All four are outcomes — none of them is a count of calls — so the word
+     over them stays true whichever one a campaign drew.
+
+     Everything is derived and nothing is stored: `hash` on the campaign's id
+     picks the kind and the size, so a goal is the same on every load without
+     a value in the generator, and it does not move when somebody adds forty
+     leads to the list. The money one is priced off `PRICE` at the mid band
+     so the figure is the size of the deals this campaign would actually
+     write, rounded to the ten thousand nobody would quote more precisely
+     than. */
+  function campGoal(k) {
+    const name = k.client && CLIENT[k.client]
+      ? CLIENT[k.client].name
+      : (SELL[k.sells[0]] ? SELL[k.sells[0]].name : 'us');
+    /* `Math.abs`, as every other caller of `hash` here does: it returns a
+       signed 32-bit int, and c8 hashed negative and printed "0 new clients". */
+    const n = 2 + (Math.abs(hash(k.id + ':goal')) % 3);
+    const band = PRICE[k.sells[0]] ? PRICE[k.sells[0]][1] : 40000;
+    /* THE KIND IS DEALT, NOT ROLLED. Hashing it gave four competitor goals,
+       three logo goals, two footholds and — across the whole book — not one
+       priced in money, which is a fair coin landing badly and a demo showing
+       three quarters of what it can say. The id's own number deals them
+       round, so every kind is on the shelf; the cards are ordered by days
+       left rather than by id, so nothing reads as a cycle. A campaign built
+       in the browser has no number in its id and falls back to the hash. */
+    const dealt = String(k.id).match(/\d+/);
+    return {
+      n: n,
+      forWhom: name,
+      kind: dealt ? (+dealt[0] % 4) : (Math.abs(hash(k.id + ':goalkind')) % 4),
+      money: Math.round((band * n) / 10000) * 10000,
+      ind: INDUSTRY[k.industry] ? INDUSTRY[k.industry].label.toLowerCase() : null,
+      reg: REGION[k.region] ? REGION[k.region].label : null,
+    };
+  }
+  /* The sentence, once, so the card and the record cannot drift apart. */
+  function campGoalSay(k) {
+    const g = campGoal(k);
+    const who = esc(g.forWhom);
+    /* The foothold reads as a goal only where the book knows the market it
+       is trying to get into; without both halves it falls back to logos. */
+    if (g.kind === 2 && g.ind && g.reg) {
+      /* Two of these regions are plural or a group and take the article:
+         "in the Netherlands", "in the Nordics", against "in DACH". */
+      const where = (g.reg === 'Netherlands' || g.reg === 'Nordics' ? 'the ' : '') + g.reg;
+      return 'Our first ' + esc(g.ind) + ' client in ' + esc(where) + ' for ' + who + '.';
+    }
+    if (g.kind === 1) return esc(euro(g.money)) + ' of new business for ' + who + '.';
+    if (g.kind === 3) {
+      return esc(plural(g.n, 'account')) + ' won off a competitor for ' + who + '.';
+    }
+    return esc(plural(g.n, 'new client')) + ' for ' + who + '.';
+  }
+
   function campStand(k) {
     const members = membersOf(k.id);
     const n = rungCounts(members);
@@ -5785,11 +6065,12 @@
      finishes, and the fourth-best thing AiMY noticed is not worth the
      reader deciding which three of five to trust.
 
-     AGAINST THE GOAL, FIRST. Every campaign goal in this book opens with a
-     number — "Open 20 conversations in Central Europe" — so the goal is
-     countable, and where it stands is the question the campaign exists to
-     answer. Read out of the sentence rather than stored beside it, so a
-     goal that is edited cannot leave a target behind that disagrees. */
+     AGAINST THE QUOTA, FIRST. `target` is countable — a number and a noun —
+     and where the desk stands against it is the question this block answers.
+     It is stored, not read out of prose: this paragraph used to say the
+     opposite, and `campStand` records why the regular expression over the
+     goal sentence had to go. What the campaign is trying to WIN, as opposed
+     to what it is pacing against, is `campGoal`. */
   function campReadings(k) {
     const here = DB.touch.filter((t) => t.camp === k.id);
     const members = membersOf(k.id);
@@ -6140,7 +6421,10 @@
     if (stuck) {
       const h = hourOf(here);
       stops.push({
-        n: stuck, of: members.length, unit: 'person', name: 'called four times, never picked up',
+        /* Capitalised like its three siblings. It is a name in a column of
+           names — "Stopped at reception", "Pricing", "Timing" — and it was
+           the only one starting lower case. */
+        n: stuck, of: members.length, unit: 'person', name: 'Called four times, never picked up',
         sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
           'Try that hour, or open their company and call somebody else there.',
@@ -7134,10 +7418,21 @@
     }).join('') +
       /* Where it began, on the page where it began: the cap is the end of
          the rail, and on page one of three the rail has not ended. */
+      /* ══ THE FOOT SAYS WHERE IT BEGAN, NOT HOW MUCH THERE IS ═══════════
+         Two repairs in one line. It read "First rung 24 Jun · 7 touchpoints
+         · 2 calleds climbed": the count is already the section's own caption
+         six hundred pixels above it, and "calleds" is a word nobody wrote —
+         a global rename walked through `plural(climbed, 'rung')` and left
+         the plural to be taken of the wrong noun. Its own else-branch two
+         characters later still says "no rung climbed yet".
+
+         So the count goes to the caption that already had it and the foot
+         keeps the two facts only it can give: the day this started, and how
+         far up the ladder it got. */
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
-          'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
-          (climbed ? ' · ' + esc(plural(climbed, 'called')) + ' climbed' : ' · no rung climbed yet') +
+          'First rung ' + esc(sayDay(oldest.at)) +
+          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
         '</div>'
         : '') +
     '</div>' + pager(pg, 'touchpoint');

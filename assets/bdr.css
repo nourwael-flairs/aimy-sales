@@ -198,7 +198,22 @@
    company above them were indented — a ragged margin down the middle of every
    card. The 14px is the library's number, not a new one. */
 .b-qcard-why { padding: 8px 14px 0; }
-.b-qcard .b-qcard-note { padding: 6px 14px 0 23px; }
+
+/* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
+   The fix above moved the note's TEXT off the edge and left its rule behind.
+   `.tc-quote` is `padding-left: 9px; border-left: 2px solid var(--card-border)`
+   — a rule at the block's left edge with the words nine px clear of it — and
+   it is written for a card that carries its own padding, where that edge IS
+   the text column. Here the block spans the whole card, so the rule landed at
+   x=28 against the card's own border at 27.2: two hairlines touching, which
+   reads as a thick left edge on one card in the row and nothing else.
+
+   The rule goes rather than moving to the column. Against the card it sits on
+   it measures 1.23:1 in both themes — visible only as the reason for an
+   indent, and an indent is what it was costing. Nothing else on this card is
+   ruled; the italic and the drop to --d300 already say the words are somebody
+   else's. So the note joins the one column every other line here keeps. */
+.b-qcard .b-qcard-note { padding: 6px 14px 0; border-left: 0; }
 
 /* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
    The first cut ranked by ink alone and everything was a different grey, with
@@ -259,6 +274,49 @@
 .b-qcard-num {
   font-size: var(--fs-sm); font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums; color: var(--d200);
+}
+
+/* ── A NAMED FACT, AT THE PREP SHEET'S RELATIONSHIP ───────────────────────
+   The campaign's goal and the list's search, each led by the word for what
+   it is. One step of ink between the name and the sentence — the same step
+   `.b-prep-refp b` takes over its own body — is enough to read as a label
+   without becoming a second heading on a card that already has one.
+
+   `text-wrap: pretty` because these run two and three lines in a 340px card
+   and the last line is where a lone word lands. */
+/* ── THE FACT IS LOUDER THAN THE WORD FOR IT ──────────────────────────────
+   These were the wrong way round: the label took --d300 and the sentence it
+   labels took --d400 off `.tc-summary`, so on every campaign and list card
+   the brightest thing in the line was the word "Goal" and the goal itself
+   was the dimmer half. A caption is a signpost — it is read once, to learn
+   what kind of fact follows, and never again. The fact is read every time.
+
+   SWAPPING THE INK WAS HALF AN ANSWER. Measured after it, the label was
+   13/700/--d400 and the goal it labels was 13/700's opposite — 13/400/--d300
+   — so size tied, ink said read the goal and weight said read the word. The
+   eye takes the loudest of the three and this line had no loudest. The card
+   settles it the way §THE RAMP settles the person card: the three axes move
+   together, and a caption is the bottom rung of the ramp rather than a
+   competitor on it.
+
+     11 / 700 / d400   the word            `.tc-type`'s recipe exactly, so the
+                                           two captions on this card match
+     13 / 500 / d200   the goal            a step under the AiMY sentence,
+                                           two under the numbers that lead
+
+   Bold at eleven px and --d400 is a label, not emphasis — the ramp already
+   says so of the campaign chip, and this is the same species of thing.
+
+   The gap stays on the label alone rather than on every bold thing in the
+   line, so a figure set in bold inside the sentence keeps its own spacing
+   and its own ink. */
+.b-qcard-what {
+  text-wrap: pretty;
+  font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
+}
+.b-qcard-what > b:first-child {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  color: var(--d400); margin-right: 5px;
 }
 
 /* The keyboard cursor on a card. A call rather than a tint: a card already
@@ -423,9 +481,17 @@
 .b-fn-fill.tone-ok { background: var(--ok-text); }
 .b-fn-fill.tone-warn { background: var(--warn-text); }
 .b-fn-fill.tone-neutral { background: var(--d300); }
+/* Right, like every other column of figures on the page. It carried
+   `tabular-nums` and left alignment, which is the two halves of the job
+   pulling opposite ways: the digits were all one width and then set from the
+   left, so 35 over 9 put the tens of one over the units of the other and the
+   column read ragged down its right edge — the edge the eye compares on. Its
+   own neighbour `.b-fn-conv` was already right, and so are the counts in
+   What is in the way two sections below. The header cell inherits it, so the
+   caption sits over the edge its column is set against. */
 .b-fn-n {
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums; text-align: right;
 }
 /* The ways off the ladder. A sentence, not a fourth bar: three counts that
    share one fact — these people are no longer callable — read as a sentence,
@@ -815,7 +881,20 @@
 }
 .b-tl-month { margin: 6px 0 0; }
 .b-tl > .b-tl-month:first-child { margin-top: 0; }
-.b-tl-item { position: relative; }
+.b-tl-item { position: relative; transition: border-color var(--t-base); }
+/* ── A ROW YOU CAN PRESS ANSWERS THE POINTER ──────────────────────────────
+   Seven of these, each one a door onto what was said, each with
+   `cursor: pointer` from the shell and no visual answer of any kind: the
+   pointer changed and the row did not. The card grid two screens away lifts
+   its border and takes a shadow on hover, and the reason a reader trusts
+   that grid is that everything in it responds.
+
+   The same token, at a row's weight rather than a card's: the border alone,
+   no shadow — a shadow on one row of a stack of seven lifts it off a surface
+   it is not sitting on. The chevron comes up a step with it, because the
+   thing being promised is that this opens. */
+.b-tl-item:hover { border-color: var(--card-border-hover); }
+.b-tl-item:hover > .s-call-sum::before { color: var(--d300); }
 .b-tl-dot {
   position: absolute; left: -24px; top: 17px;
   width: 10px; height: 10px; border-radius: 50%;
@@ -1150,6 +1229,12 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 @keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
 
+:root {
+  /* Lucide chevron-right, the set the rest of the build draws from, carried
+     as a mask so `currentColor` still decides what colour it is. */
+  --chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>');
+}
+
 /* ══ 34. A DISCLOSURE OPENS; IT DOES NOT SNAP ══════════════════════════════
    A call on the timeline and a transcript are <details>, and a <details>
    snaps open. ::details-content with interpolate-size lets the
@@ -1163,12 +1248,33 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
 .s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+/* ── AND THE MARK IS DRAWN, NOT TYPED ─────────────────────────────────────
+   Every other mark in this product is a Lucide path at 2px in a 24 viewBox,
+   set by `chIcon`. This one was U+25B8, a solid triangle out of whatever
+   face the system hands over — filled where the others are stroked, and a
+   different weight on every platform. It is the last typed mark in the
+   build.
+
+   The same chevron the icon set ships, as a mask rather than an image, so it
+   takes the `color` the shell already sets on this pseudo-element and turns
+   with the theme instead of needing a second copy of itself.
+
+   Two properties to sit it on the line, and each summary ignores the one the
+   other needs. The call's is a baseline flex row, so `align-self` centres it
+   there and `vertical-align` is dead; the transcript's is a plain block, where
+   `align-self` is dead and a 12px box rests its bottom edge on the baseline —
+   two px above where a glyph read. A `translateY` would do both and then have
+   to be carried through the rotation below, so neither is one. */
 .s-call-sum::before, .s-trace-sum::before {
-  content: "▸"; display: inline-block; margin-right: 0.35em;
+  content: ""; display: inline-block; flex: none; align-self: center;
+  width: 12px; height: 12px; margin-right: 0.35em; vertical-align: -2px;
+  background: currentColor;
+  -webkit-mask: var(--chevron-right) center / 12px 12px no-repeat;
+  mask: var(--chevron-right) center / 12px 12px no-repeat;
   transition: transform 160ms var(--ease-out);
 }
 .s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
-  content: "▸"; transform: rotate(90deg);
+  content: ""; transform: rotate(90deg);
 }
 
 /* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════
@@ -2500,3 +2606,59 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    goes with sitting inside the metadata grid. On a record it is a section
    with a heading of its own, so it takes neither. */
 .b-team-rec { margin-top: 12px; }
+
+/* ══ 78. A HEAD THAT HOLDS A SEARCH FIELD ALIGNS ON CENTRES ════════════════
+   `.s-camp-list-head` is `align-items: baseline`, which is right for what it
+   was written for — a heading with a caption beside it, two runs of text that
+   should sit on the same line of writing. Two of these heads hold something
+   else: a bordered search pill, on the queue beside the tab strip and on a
+   campaign beside "To call". A pill is read as a box, not as the text inside
+   it, so lining up the text left the box hanging. Measured: 4.5px below the
+   tabs' optical centre, 5.1px below the heading's.
+
+   `:has(.b-find)` rather than a blanket change, because every other head is
+   the heading-and-caption case and baseline is right there.
+
+   The negative margin is the tab strip's underline gutter. `.b-switch-btn`
+   carries `padding-bottom: 4px` to reserve room for `.b-switch-bar`, so the
+   strip's box is 4px taller than its type and centring the box would centre
+   the type 2px high. Discounting the gutter says what is meant: line up the
+   writing, not the runway under it. 4.5px to 0.6px on the queue, 5.1px to
+   nothing on the campaign, and the sliding bar lands level with the bottom of
+   the pill. */
+.s-camp-list-head:has(.b-find) { align-items: center; }
+.s-camp-list-head:has(.b-find) > .b-switch { margin-bottom: -4px; }
+/* And the heading's own bottom margin, which centring would otherwise centre
+   along with it: flex aligns the MARGIN box, so `.s-block-h`'s 12px underneath
+   pushed the type 5px up inside a row that was now correctly centred. The
+   margin is redundant here anyway — the head's `row-gap` already spaces a
+   wrapped second line — and the shell zeroes it the same way, on the same
+   class, in `.s-camp-rows-head`. */
+.s-camp-list-head:has(.b-find) > .s-block-h { margin-bottom: 0; }
+
+/* ══ 79. THE MARK STANDS BESIDE THE TAG, NOT UNDER IT ══════════════════════
+   14px against a pill that is 24px of line and padding: the mark read as a
+   speck put next to a label rather than as the speaker of it. 18px is about
+   three quarters of the pill, which is where a logo sits beside a word — big
+   enough to be the thing talking, small enough that an 11px label still leads.
+   Scoped past the shell's `.s-insight.is-lead` rule rather than editing it,
+   since the same mark at 14 is right where it appears without a tag. */
+.s-insight.is-lead .s-lead-mark .s-insight-mark { width: 18px; height: 18px; }
+
+/* ══ 80. THE OUTCOME CARRIES ITS OWN WEIGHT AND TONE ═══════════════════════
+   Argued at `campTouchRow`. `.tone-ok` and its siblings are colour-only
+   utilities from the shell, so the weight lives here and the neutral case is
+   the absence of a tone class rather than `tone-neutral`, whose --d400 would
+   have sunk an event the tones simply have nothing to say about. */
+.b-feed-out { font-weight: var(--fw-semibold); color: var(--d100); }
+/* The tones have to outrank the neutral above them. `.tone-ok` and its
+   siblings are single-class rules in sales.css and this file loads after it,
+   so at equal specificity the LATER rule won and --d100 quietly painted over
+   every tone in the feed — Connected and Resolution came out the same grey as
+   Moved by hand. Two classes beats one. */
+.b-feed-out.tone-ok { color: var(--ok-text); }
+.b-feed-out.tone-warn { color: var(--warn-text); }
+.b-feed-out.tone-err { color: var(--err-text); }
+/* And the bookkeeping behind it. Who logged it and at what minute is true and
+   worth keeping, and nobody has ever scanned a feed looking for it. */
+.b-feed-meta { color: var(--d400); }
