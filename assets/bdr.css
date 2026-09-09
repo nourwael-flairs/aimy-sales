@@ -830,7 +830,20 @@
 }
 .b-tl-month { margin: 6px 0 0; }
 .b-tl > .b-tl-month:first-child { margin-top: 0; }
-.b-tl-item { position: relative; }
+.b-tl-item { position: relative; transition: border-color var(--t-base); }
+/* ── A ROW YOU CAN PRESS ANSWERS THE POINTER ──────────────────────────────
+   Seven of these, each one a door onto what was said, each with
+   `cursor: pointer` from the shell and no visual answer of any kind: the
+   pointer changed and the row did not. The card grid two screens away lifts
+   its border and takes a shadow on hover, and the reason a reader trusts
+   that grid is that everything in it responds.
+
+   The same token, at a row's weight rather than a card's: the border alone,
+   no shadow — a shadow on one row of a stack of seven lifts it off a surface
+   it is not sitting on. The chevron comes up a step with it, because the
+   thing being promised is that this opens. */
+.b-tl-item:hover { border-color: var(--card-border-hover); }
+.b-tl-item:hover > .s-call-sum::before { color: var(--d300); }
 .b-tl-dot {
   position: absolute; left: -24px; top: 17px;
   width: 10px; height: 10px; border-radius: 50%;
@@ -1165,6 +1178,12 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 @keyframes b-arrive { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .chat-msg.b-arrive { animation: none; } }
 
+:root {
+  /* Lucide chevron-right, the set the rest of the build draws from, carried
+     as a mask so `currentColor` still decides what colour it is. */
+  --chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>');
+}
+
 /* ══ 34. A DISCLOSURE OPENS; IT DOES NOT SNAP ══════════════════════════════
    A call on the timeline and a transcript are <details>, and a <details>
    snaps open. ::details-content with interpolate-size lets the
@@ -1178,12 +1197,33 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
 .s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+/* ── AND THE MARK IS DRAWN, NOT TYPED ─────────────────────────────────────
+   Every other mark in this product is a Lucide path at 2px in a 24 viewBox,
+   set by `chIcon`. This one was U+25B8, a solid triangle out of whatever
+   face the system hands over — filled where the others are stroked, and a
+   different weight on every platform. It is the last typed mark in the
+   build.
+
+   The same chevron the icon set ships, as a mask rather than an image, so it
+   takes the `color` the shell already sets on this pseudo-element and turns
+   with the theme instead of needing a second copy of itself.
+
+   Two properties to sit it on the line, and each summary ignores the one the
+   other needs. The call's is a baseline flex row, so `align-self` centres it
+   there and `vertical-align` is dead; the transcript's is a plain block, where
+   `align-self` is dead and a 12px box rests its bottom edge on the baseline —
+   two px above where a glyph read. A `translateY` would do both and then have
+   to be carried through the rotation below, so neither is one. */
 .s-call-sum::before, .s-trace-sum::before {
-  content: "▸"; display: inline-block; margin-right: 0.35em;
+  content: ""; display: inline-block; flex: none; align-self: center;
+  width: 12px; height: 12px; margin-right: 0.35em; vertical-align: -2px;
+  background: currentColor;
+  -webkit-mask: var(--chevron-right) center / 12px 12px no-repeat;
+  mask: var(--chevron-right) center / 12px 12px no-repeat;
   transition: transform 160ms var(--ease-out);
 }
 .s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
-  content: "▸"; transform: rotate(90deg);
+  content: ""; transform: rotate(90deg);
 }
 
 /* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════

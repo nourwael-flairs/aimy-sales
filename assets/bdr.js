@@ -7150,10 +7150,21 @@
     }).join('') +
       /* Where it began, on the page where it began: the cap is the end of
          the rail, and on page one of three the rail has not ended. */
+      /* ══ THE FOOT SAYS WHERE IT BEGAN, NOT HOW MUCH THERE IS ═══════════
+         Two repairs in one line. It read "First rung 24 Jun · 7 touchpoints
+         · 2 calleds climbed": the count is already the section's own caption
+         six hundred pixels above it, and "calleds" is a word nobody wrote —
+         a global rename walked through `plural(climbed, 'rung')` and left
+         the plural to be taken of the wrong noun. Its own else-branch two
+         characters later still says "no rung climbed yet".
+
+         So the count goes to the caption that already had it and the foot
+         keeps the two facts only it can give: the day this started, and how
+         far up the ladder it got. */
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
-          'First rung ' + esc(sayDay(oldest.at)) + ' · ' + esc(plural(all.length, 'touchpoint')) +
-          (climbed ? ' · ' + esc(plural(climbed, 'called')) + ' climbed' : ' · no rung climbed yet') +
+          'First rung ' + esc(sayDay(oldest.at)) +
+          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
         '</div>'
         : '') +
     '</div>' + pager(pg, 'touchpoint');
