@@ -4263,9 +4263,7 @@
      the fixed few minutes of writing it down that a call is not finished
      without. */
   const AFTER_CALL_MINS = 4;
-  const touchCost = (t) => (t.auto
-    ? PRICE_TOUCH
-    : ((t.secs || 0) / 3600 + AFTER_CALL_MINS / 60) * rateOf(t.by));
+  const touchCost = (t) => ((t.secs || 0) / 3600 + AFTER_CALL_MINS / 60) * rateOf(t.by);
 
   const touchesOfCon = (c) => (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
 
@@ -4277,9 +4275,16 @@
     const arrived = inPeriod(srcAt(c), p);
     const src = arrived ? srcSpend(c) : 0;
     const enrich = arrived ? enrichSpend(c).cost : 0;
-    let activity = 0;
-    touchesOfCon(c).forEach((t) => { if (inPeriod(t.at.slice(0, 10), p)) activity += touchCost(t); });
-    return { src: src, enrich: enrich, activity: activity, total: src + enrich + activity };
+    /* AiMY's calls are a supplier bill and a person's are time, so they are
+       returned apart: one is added to the book's cost and the other is the
+       attributed share of a salary that is already in it. */
+    let human = 0, aimy = 0;
+    touchesOfCon(c).forEach((t) => {
+      if (!inPeriod(t.at.slice(0, 10), p)) return;
+      if (t.auto) aimy += PRICE_TOUCH; else human += touchCost(t);
+    });
+    return { src: src, enrich: enrich, human: human, aimy: aimy,
+      total: src + enrich + human + aimy };
   }
 
   /* ── What a deal is worth ─────────────────────────────────────────────
@@ -4433,14 +4438,15 @@
   const GROSS_MARGIN = 0.72;
 
   function bookMoney(scope, p, heads) {
-    const spend = { src: 0, enrich: 0, activity: 0, team: 0, tools: 0, total: 0 };
+    const spend = { src: 0, enrich: 0, human: 0, aimy: 0, team: 0, total: 0 };
     const wins = [];
     const stage = { sourced: 0, reachable: 0, contacted: 0, replied: 0, met: 0, won: 0 };
     const bySrc = Object.create(null), byLine = Object.create(null);
 
     scope.forEach((c) => {
       const s = spendOn(c, p);
-      spend.src += s.src; spend.enrich += s.enrich; spend.activity += s.activity;
+      spend.src += s.src; spend.enrich += s.enrich;
+      spend.human += s.human; spend.aimy += s.aimy;
 
       const ts = touchesOfCon(c).filter((t) => inPeriod(t.at.slice(0, 10), p));
       const arrived = inPeriod(srcAt(c), p);
@@ -4486,9 +4492,28 @@
       }
     });
 
-    spend.tools = spend.src + spend.enrich + spend.activity;
+    /* == THE HOURS WERE COUNTED TWICE ==================================
+       `total` was payroll PLUS the time on the touchpoints, and the second
+       is a subset of the first: the same hours, at the same rates, priced
+       once as a month of salary and once as the minutes that landed on a
+       record. `unlogged` exists to say precisely that -- "EUR3,171 of EUR52k
+       is logged against a campaign" -- and the total underneath it was
+       adding the EUR3,171 back on top of the EUR52k it had just said it was
+       inside.
+
+       It showed as a breakdown that did not add up: 94% and under 1% on a
+       list with nothing else in it, and a reader asking what the missing six
+       were of. They were the double count.
+
+       So labour is what the desk is PAID -- the real number, the one finance
+       would recognise -- and the logged hours stay what they are, the share
+       of it that landed on named work. A window with no payroll behind it
+       falls back to the logged hours, because then they are the only labour
+       cost there is. The three groups now sum to `total` exactly, and their
+       shares to a hundred. */
     spend.team = heads === 0 ? 0 : payrollRows(p).reduce((n, r) => n + r.cost, 0);
-    spend.total = spend.tools + spend.team;
+    spend.labour = heads === 0 ? spend.human : spend.team;
+    spend.total = spend.labour + spend.src + spend.enrich + spend.aimy;
 
     const days = daysBetween(p.from, p.to) + 1;
     const arr = wins.reduce((n, w) => n + w.value, 0);
@@ -4994,7 +5019,6 @@
       g.n += 1; g.cost += r.cost; g.hours += r.hours; g.on += r.onCamp.hours;
     });
     const roles = Object.keys(byRole).map((k) => byRole[k]).sort((x, y) => y.cost - x.cost);
-    const aimyCost = camps.reduce((n, c) => n + c.aimy, 0);
     const cost = [
       /* ══ A ROLE ROW IS A PERSON WHEN THE DESK IS TWO PEOPLE ═════════
          The rule above is right — break by taxonomy, never by population —
@@ -5021,7 +5045,8 @@
         sub: 'every attempt, not only the ones that answered',
         rows: [{ say: 'Finding people', note: 'LinkedIn, the brokers and the crawl', v: now.spend.src },
           { say: 'Filling in details', note: 'a number and an address', v: now.spend.enrich }] },
-      { k: 'aimy', say: 'AiMY', v: aimyCost, sub: 'the calls it made itself, at compute cost', rows: [] },
+      { k: 'aimy', say: 'AiMY', v: now.spend.aimy,
+        sub: 'the calls it made itself, at compute cost', rows: [] },
     ].filter((r) => r.v > 0);
     const costTop = now.spend.total || 1;
 
@@ -5157,7 +5182,12 @@
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were
            doing. */
-        attFig('What it cost to get', fmtMoney(now.spend.total),
+        /* "What it cost to get" leaves its object dangling on the one tile
+           whose figure is a plain total -- the same defect the page it came
+           from recorded in "Paid off", inherited by the phrase that replaced
+           it. What it is, is what went out; the line underneath says what
+           came back. */
+        attFig('What you spent', fmtMoney(now.spend.total),
           now.payback == null ? 'nothing has closed against it yet'
             : '€' + now.ros.toFixed(2) + ' back for every €1 · ' +
               now.payback.toFixed(1) + ' months to break even') +
@@ -5170,6 +5200,24 @@
             ' this window and only ' + Math.round((un.pc || 0) * 100) + '% of it is logged ' +
             'against a campaign. Show me where the money is going that is not producing anything.') +
         '</div>' +
+        /* == A SHARE IS UNREADABLE WITHOUT ITS WHOLE =====================
+           The column of percentages down the right of this list is each
+           group against everything spent, and everything spent was stated on
+           a tile in a different section -- so "94%" sat on a page that never
+           said 94% of what. The denominator goes at the head of the list
+           that divides by it. */
+        /* ══ A DENOMINATOR IS THE ONE FIGURE THAT MUST NOT BE ROUNDED ═══
+           `fmtMoney` rounds to the thousand above €10k, so two figures a
+           tenth of a percent apart can land a whole thousand apart — and on
+           This year they did: "€186k in all" over a single group reading
+           "€185k · 100%", a €1,000 gap the reader cannot close because the
+           €201 that explains it rounds to nothing. Every other figure here
+           is a quantity somebody reads; this one is a number everything
+           else is divided BY, so it is stated exactly and each rounded
+           group reconciles against it. */
+        '<p class="s-exec-note"><b>€' +
+          esc(Math.round(now.spend.total).toLocaleString('en-GB')) + '</b> across ' +
+          esc(when) + ', and every share below is of that.</p>' +
         '<div class="s-cost">' +
           cost.map((g) => '<div class="s-cost-g">' +
             '<div class="s-cost-row">' +
@@ -5217,7 +5265,19 @@
             '<div class="s-pan-head">' +
               '<span class="s-pan-name">' + esc(c.camp.name) +
                 '<span class="s-pan-state">' + esc(campStateSay(c.camp)) + '</span></span>' +
-              '<span class="s-pan-total">' + esc(fmtMoney(c.total)) + '</span>' +
+              /* == ONE SLOT, TWO OPPOSITE MEANINGS ========================
+                 The panel in the section below holds a product line, and its
+                 figure in this exact position, size and ink is what the line
+                 SIGNED. This one is what the campaign COST. A reader who has
+                 learnt the first reads the second backwards, and neither said
+                 which it was -- while six lines down this same panel labels
+                 its smaller figure "EUR98k signed".
+
+                 `.s-pan-unit` was built for this and rendered nowhere: "the
+                 unit under the count, so 6 reads as six of something without
+                 the word competing with the figure for the same line". */
+              '<span class="s-pan-total">' + esc(fmtMoney(c.total)) +
+                '<span class="s-pan-unit">cost</span></span>' +
             '</div>' +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
@@ -5302,7 +5362,8 @@
                 '<span class="s-pan-name">' + esc(sellSay(r.k)) +
                   '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
                 '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
-                  esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+                  esc(r.arr ? fmtMoney(r.arr) : 'Nothing') +
+                  '<span class="s-pan-unit">signed</span></span>' +
               '</div>' +
               '<div class="s-pan-facts">' +
                 '<span><b>' + r.meetings + '</b> met</span>' +
