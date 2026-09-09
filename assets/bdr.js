@@ -2269,7 +2269,7 @@
            figure and it is already the boldest thing in the row. A number
            to ring is one of several kinds of fact a foot can hold. */
         (isMgr()
-          ? '<span class="b-qcard-num">' + esc(euro(amountOf(c))) + '</span>'
+          ? '<span class="b-qcard-num">' + esc(euro(dealWorth(c))) + '</span>'
           : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
             (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is
@@ -3495,7 +3495,7 @@
   function dealsTake() {
     const all = queue(null, 'all');
     const live = all.filter(dealLive);
-    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const sum = (xs) => xs.reduce((n, c) => n + dealWorth(c), 0);
     const comm = live.filter((c) => stageOf(c) === 'commercial');
     const cold = live.filter((c) => stageOf(c) === 'qual');
     const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
@@ -3557,7 +3557,7 @@
       /* No mark. Every card on the board carries an amount, in the same
          place, bold and in tabular figures — a mark on all of them tells
          one from another not at all, which is the whole job of a mark. */
-      '<span class="b-dc-amt">' + esc(euro(amountOf(c))) + '</span>' +
+      '<span class="b-dc-amt">' + esc(euro(dealWorth(c))) + '</span>' +
     '</button>';
   }
 
@@ -3577,13 +3577,20 @@
         '<div class="b-board">' +
           DEAL_STAGES.map((st) => {
             const rows = by[st.k];
-            const sum = rows.reduce((n, c) => n + amountOf(c), 0);
+            const sum = rows.reduce((n, c) => n + dealWorth(c), 0);
             const end = st.k === 'won' || st.k === 'lost';
             return '<div class="' + (end ? 'b-col is-end' : 'b-col') + '">' +
               '<div class="b-col-head">' +
                 '<span class="b-col-cap">' + esc(st.label) +
                   '<span class="b-col-n">' + commas(rows.length) + '</span></span>' +
-                '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' +
+                /* ══ AN EMPTY COLUMN HAS NO TOTAL, IT HAS NOTHING ═══════════
+                   Lost drew "0" beside its name and "€0" at the far end, over
+                   a column whose body already says Nothing here — three ways
+                   of saying the same absence, one of them set as a figure in
+                   a row of real ones. A total is a fact about the things in
+                   a column; with no things there is no fact, and the count
+                   beside the name is the one place the zero belongs. */
+                (rows.length ? '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' : '') +
               '</div>' +
               (rows.length
                 ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
@@ -4298,11 +4305,18 @@
   const cellOf = (c) => { const k = dealCamp(c); const a = accOf(c);
     return (k && k.sells && k.sells.length ? k.sells[0] : 'qa') + '|' + priceBand(a ? a.size : 300); };
   let CELL_MEANS = null;
+  /* ══ WHAT A DEAL IS WORTH CANNOT DEPEND ON WHO IS LOOKING ══════════════
+     This read `dealBook()` — the deals belonging to whoever has the page
+     open — so the comparable tier existed on a manager's screen and not on
+     a caller's, and the same open deal was worth two different amounts to
+     two people in the same company. Evidence about what a product sells for
+     at a given size is evidence about the business, not about the reader.
+     Every won deal in the book, then, whoever closed it. */
   function cellMeans() {
     if (CELL_MEANS) return CELL_MEANS;
     const m = Object.create(null);
-    dealBook().forEach((c) => {
-      if (stageOf(c) !== 'won') return;
+    DB.con.forEach((c) => {
+      if (!isDeal(c) || stageOf(c) !== 'won') return;
       (m[cellOf(c)] || (m[cellOf(c)] = [])).push(amountOf(c));
     });
     CELL_MEANS = m;
@@ -4317,6 +4331,18 @@
     }
     return { value: amountOf(c), conf: 'low', basis: 'modelled' };
   }
+  /* ══ AND ONE DEAL HAS ONE VALUE, ON EVERY SURFACE ══════════════════════
+     `amountOf` is the price list and `acvOf` is the price list corrected by
+     what comparable deals have actually signed for — so the board summed one
+     and the report summed the other, and the same twelve deals at Proof read
+     €691k on one screen and €672k on the next. Nothing said why, because
+     nothing knew there were two.
+
+     `acvOf` is the better of the two and falls back to `amountOf` when there
+     is no evidence, so it is the one everything draws. `amountOf` stays what
+     it always was — the floor `acvOf` is built on — and is no longer
+     rendered anywhere on its own. */
+  const dealWorth = (c) => acvOf(c).value;
 
   /* When it closed. `stageOf` reads the last phase touchpoint, so the day it
      carries is the day the decision was taken — a deal ended by hand and
@@ -8920,9 +8946,41 @@
      press from the next call and should not need the briefing in between. */
   /* ══ THE DEAL, IN FOUR FACTS ═══════════════════════════════════════════
      What it is worth, when it should land, what we are selling them and who
-     found them. The first two are modelled and say so — no number has been
-     typed on any of these records, and a figure presented as read when it
-     was guessed is the one thing this record must never do. */
+     found them. None of these was typed on the record — a figure presented
+     as read when it was guessed is the one thing this record must never do —
+     so each of them says where it came from. */
+  /* Which of `acvOf`'s three tiers produced the figure beside it, in the
+     words a person would use for that tier. Kept beside `dealBlock` because
+     it exists only to explain that one line. */
+  function worthSay(c, k, sells, a) {
+    if (!k) return 'a placeholder. They are on no campaign, so nothing says what we would sell them.';
+    const v = acvOf(c);
+    const at = a && a.size ? headLabel(a) : 'their size';
+    /* NOT "what they signed for". `acvOf`'s top tier is called `read`
+       because a build that has order forms in it would read the figure off
+       one; this build has none, so a won deal is still priced off the list
+       and saying otherwise would be the exact invention the block above
+       forbids. The tier is honest about being empty. */
+    if (v.basis === 'read') {
+      return 'modelled from ' + esc(sells) + ' at ' + esc(at) +
+        '. They signed — no figure from the order form is on the record.';
+    }
+    if (v.basis === 'comparable') {
+      /* ONE COMPARABLE IS NOT AN AVERAGE, AND THE SENTENCE SAYS WHICH IT IS.
+         The cell is often thin — a single closed deal sets the figure for
+         every open one beside it — and that is left visible rather than
+         smoothed away, because a reader who can see the basis is one deal
+         can discount it, and one who is told "the average" cannot. */
+      const peers = cellMeans()[cellOf(c)] || [];
+      return (peers.length === 1
+        ? 'what the one deal we have closed for '
+        : 'the average of the ' + esc(plural(peers.length, 'deal')) + ' we have closed for ') +
+        esc(sells) + ' at ' + esc(at) +
+        (peers.length === 1 ? ' came out at' : '') + ', rather than the price list.';
+    }
+    return 'modelled from ' + esc(sells) + ' at ' + esc(at) +
+      '. Nothing comparable has closed yet, so this is the price list.';
+  }
   function dealBlock(c) {
     const a = accOf(c);
     const k = dealCamp(c);
@@ -8932,11 +8990,21 @@
     const days = daysBetween(TODAY_ISO, closeBy(c));
     return '<section class="s-block s-block-wide" aria-label="The deal">' +
       '<div class="b-cmeta">' +
-        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(amountOf(c))) + '</b> — ' + (k
-          ? 'modelled from ' + esc(sells) + ' at ' +
-            (a && a.size ? esc(headLabel(a)) : 'their size') + ', not read off a proposal.'
-          : 'a placeholder. They are on no campaign, so nothing says what we would sell them.') +
-          '</p>') +
+        /* ══ THE BASIS HAS TO BE THE BASIS ═════════════════════════════════
+           This said "modelled from <product> at <size>" under every figure,
+           which was true while the only way to price a deal was the price
+           list. It is not the only way any more: once deals in the same
+           product-and-size cell have actually been signed, what THEY signed
+           for is better evidence than the list, and `acvOf` uses it. So the
+           sentence under the figure was describing an arithmetic the figure
+           had not been through.
+
+           Three tiers, three sentences, and the figure says which one it is.
+           A record that explains itself wrongly is worse than one that does
+           not explain itself, because the wrong explanation is the thing a
+           reader would quote in the room. */
+        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(dealWorth(c))) + '</b> — ' +
+          worthSay(c, k, sells, a) + '</p>') +
         cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
           (dealLive(c)
             ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
@@ -12730,7 +12798,7 @@
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(st.tone) + '">' + esc(tagCase(st.label)) + '</span>' +
       '<span class="b-prep-owed">' + esc(dealLive(c)
-        ? 'worth ' + euro(amountOf(c)) + ', expected ' + sayDay(closeBy(c))
+        ? 'worth ' + euro(dealWorth(c)) + ', expected ' + sayDay(closeBy(c))
         : 'decided') + '</span>' +
       (c.next
         ? '<span class="b-prep-due' + (late ? ' is-late' : '') + '">' + esc(c.next.what) + ' · ' +
