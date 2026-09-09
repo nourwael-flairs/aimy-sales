@@ -1971,8 +1971,12 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
-  const DEFAULTS = { q: 'all', on: 'calls' };
+  /* `period` is the money surface's window, and it is in the URL for the
+     same reason every other narrowing is: a quarter somebody is reading is
+     a page somebody can send. It is the one control on that surface, and it
+     moves WHEN rather than which records, so it is not a filter. */
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'period'];
+  const DEFAULTS = { q: 'all', on: 'calls', period: 'q' };
   const S = Object.create(null);
 
   function parse() {
@@ -4010,41 +4014,1074 @@
     '</div>';
   }
 
-  /* ══ THE NUMBERS — A ROOM WITH ITS SHAPE DRAWN AND NOTHING IN IT ═══════
-     A financial report is a real surface with real questions behind it —
-     what closed, at what margin, against what target, by whom — and none of
-     them are answered by this build yet. What is here is the frame: the
-     figures the corpus can honestly carry today, and a plain statement of
-     what is missing. A placeholder that pretends to be finished is worse
-     than an empty room, because somebody demos it and finds out live. */
-  function moneyPage() {
-    const all = queue(null, 'all');
-    const live = all.filter(dealLive);
-    const won = all.filter((c) => stageOf(c) === 'won');
-    const lost = all.filter((c) => stageOf(c) === 'lost');
-    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
-    const fig = (cap, val, sub) => '<div class="s-af">' +
-      '<span class="s-af-cap">' + esc(cap) + '</span>' +
-      '<span class="s-af-val">' + esc(val) + '</span>' +
-      '<span class="s-af-sub">' + esc(sub) + '</span>' +
+  /* ══ 7b. THE ECONOMICS ══════════════════════════════════════════════════
+
+     Ported from the previous build's C-level view, which is the only page
+     either build ever had that answers "is this making money". Everything
+     below derives; nothing new is stored. What changed on the way across is
+     the corpus underneath it: that build counted ACCOUNTS carrying an
+     outcome and a service line, this one counts PEOPLE — a contact climbs a
+     ladder, gets handed over, and becomes a deal that moves through four
+     meetings. So the same figures are read off the events that exist here
+     rather than off fields that do not.
+
+     The one thing that did not survive intact is the reader. That page was
+     the CEO's, and it stood over every campaign in the company; this one is
+     a sales manager's, and it stands over his book. Same derivations, one
+     scope narrower — argued at `bookScope`. */
+
+  /* ── What a figure looks like ────────────────────────────────────────
+
+     `euro` rounds to the nearest thousand, which is right on a card and
+     wrong on this surface: a lead that costs €0.38 to find reads as €0, and
+     the comparison between a €0.03 crawl and a €0.75 broker — the whole
+     reason the sourcing line is on the page — disappears into two zeroes.
+     Sub-hundred figures keep their cents; everything above rounds, because
+     nobody reads cents on a quarter. */
+  function fmtMoney(n) {
+    if (n == null || !isFinite(n)) return '—';
+    const a = Math.abs(n);
+    if (a >= 1e6) return '€' + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.0', '') + 'M';
+    if (a >= 1e4) return '€' + Math.round(n / 1e3) + 'k';
+    if (a >= 100) return '€' + Math.round(n).toLocaleString('en-GB');
+    return '€' + n.toFixed(2).replace(/\.00$/, '');
+  }
+
+  /* ── The period ───────────────────────────────────────────────────────
+
+     The only control this surface carries, and the reason it is allowed
+     here when no filter is: a filter narrows WHICH RECORDS, which is a
+     drill wearing a chip; a period narrows WHEN, which moves the window and
+     leaves the grain alone. */
+  const PERIODS = [
+    { k: 'q',   label: 'This quarter' },
+    { k: 'lq',  label: 'Last quarter' },
+    { k: 'y',   label: 'This year' },
+    { k: 'r12', label: 'Rolling 12 months' },
+  ];
+  const inPeriod = (at, p) => !!at && at >= p.from && at <= p.to;
+
+  /* ══ A PART-FINISHED PERIOD COMPARES AGAINST A PART OF THE LAST ONE ════
+     Q3 to date against the whole of Q2 reads "down 11%" on a book that is
+     up. The prior window is measured in DAYS, not as a fraction of the
+     quarter — Q1 is 90 days, Q2 is 91, Q3 is 92, and "the same 36 days" is
+     what a person means by the comparison. */
+  function periodOf(k) {
+    const y = TODAY.getFullYear();
+    const q = Math.floor(TODAY.getMonth() / 3);
+    const qStart = (yy, qq) => isoDay(new Date(yy, qq * 3, 1));
+    const dayBefore = (d) => isoAdd(d, -1);
+    const row = PERIODS.some((p) => p.k === k) ? k : 'q';
+
+    if (row === 'lq') {
+      const pq = q === 0 ? { y: y - 1, q: 3 } : { y: y, q: q - 1 };
+      const pp = pq.q === 0 ? { y: pq.y - 1, q: 3 } : { y: pq.y, q: pq.q - 1 };
+      const from = qStart(pq.y, pq.q);
+      return { k: row, from: from, to: dayBefore(qStart(y, q)), whole: true, elapsed: 1,
+        prior: { from: qStart(pp.y, pp.q), to: dayBefore(from) } };
+    }
+    if (row === 'y') {
+      const from = isoDay(new Date(y, 0, 1));
+      return { k: row, from: from, to: TODAY_ISO, whole: false,
+        elapsed: (daysBetween(from, TODAY_ISO) + 1) / 365,
+        prior: { from: isoDay(new Date(y - 1, 0, 1)),
+          to: isoDay(new Date(y - 1, TODAY.getMonth(), TODAY.getDate())) } };
+    }
+    if (row === 'r12') {
+      const from = dayAdd(-364);
+      return { k: row, from: from, to: TODAY_ISO, whole: true, elapsed: 1,
+        prior: { from: dayAdd(-729), to: dayBefore(from) } };
+    }
+    /* This quarter, to date — and the prior window is the same count of days
+       from the start of the quarter before it. `span` is the WHOLE quarter,
+       `days` is how much of it has happened: attainment reads the first and
+       pace reads the second. */
+    const from = qStart(y, q);
+    const days = daysBetween(from, TODAY_ISO);
+    const pq = q === 0 ? { y: y - 1, q: 3 } : { y: y, q: q - 1 };
+    const pFrom = qStart(pq.y, pq.q);
+    const span = daysBetween(from, qStart(q === 3 ? y + 1 : y, (q + 1) % 4));
+    return { k: row, from: from, to: TODAY_ISO, whole: false, days: days, span: span,
+      elapsed: Math.min(1, (days + 1) / span),
+      prior: { from: pFrom, to: isoAdd(pFrom, days) } };
+  }
+
+  /* ══ WHAT AN HOUR OF EACH PERSON COSTS ═════════════════════════════════
+     A flat per-touch price says a meeting costs the same whoever took it,
+     which is the one thing an allocation view must not say: the whole
+     question is whether the right people are on the right work, and at one
+     price they are interchangeable. `RATE` is what an hour of a function
+     costs, fully loaded, and a touchpoint already records its own seconds —
+     so the time half of this comes off the record rather than off a table of
+     how long a call is assumed to take. MOCK, like every price here. */
+  const RATE = Object.freeze({ 'sales-manager': 85, bdr: 55 });
+  const WORKING_FNS = ['bdr', 'sales-manager'];
+  const workingHeads = () => REPS.filter((p) => WORKING_FNS.indexOf(p.fn) >= 0).length;
+  const rateOf = (id) => (REP[id] && RATE[REP[id].fn] ? RATE[REP[id].fn] : 0);
+
+  /* ══ PAYROLL COMES OFF THE SAME RATE THE HOURS DO ══════════════════════
+     A blended monthly figure — everybody costs €6,200 — produces a total and
+     nothing else. Off `RATE`, a manager costs more than a BDR, each person's
+     cost is their own, and the hour and the month are the same number
+     multiplied differently rather than two that can disagree. */
+  const WORK_HOURS_MONTH = 160;
+  function payrollRows(p) {
+    const months = (daysBetween(p.from, p.to) + 1) / 30.44;
+    return REPS.filter((x) => WORKING_FNS.indexOf(x.fn) >= 0).map((x) => {
+      const rate = RATE[x.fn] || 0;
+      const hours = WORK_HOURS_MONTH * months;
+      return { id: x.id, name: x.name, fn: x.fn, rate: rate, hours: hours, cost: rate * hours };
+    }).sort((a, b) => b.cost - a.cost);
+  }
+
+  /* ══ WHAT THE SUPPLIERS CHARGE ═════════════════════════════════════════
+     `FINDERS` already names them and carries their hit rates; what it never
+     carried was a price, so every source read as free and the one comparison
+     this page exists to draw could not be drawn. Per company returned for
+     finding, per attempt on one field for filling in. A seat — Sales
+     Navigator — is not metered, so its per-lead figure is a division rather
+     than a price list: the seat against the leads one caller actually pulls
+     from it in a month. Priced explicitly, because the alternative to a
+     number here is not an error, it is LinkedIn silently reading as free.
+
+     `crawl` is our own and costs three cents, which is the floor the bought
+     rows are read against. MOCK. */
+  const PRICE_FIND = Object.freeze({
+    'LinkedIn Sales Navigator': 0.45, Apollo: 0.38, ZoomInfo: 0.75,
+    'Exa / Serper': 0.22, crawl: 0.03,
+  });
+  const PRICE_ENRICH = Object.freeze({
+    'LinkedIn Sales Navigator': 0.30, Apollo: 0.18, ZoomInfo: 0.26,
+    'Exa / Serper': 0.14, crawl: 0.02,
+  });
+  /* AiMY's own cost per touch: compute and telephony, no human in it. The
+     human channels are priced by the hour instead. */
+  const PRICE_TOUCH = 0.09;
+
+  /* Which list a person arrived on, and when. A contact has no arrival date —
+     nothing records when they entered the book — and the list that holds them
+     does, which is the honest proxy: a sourcing charge belongs to the day the
+     list was pulled. Indexed once, because this is asked of every contact in
+     the book on every repaint of the surface. */
+  let SRC_INDEX = null;
+  function srcIndex() {
+    if (SRC_INDEX) return SRC_INDEX;
+    const by = Object.create(null);
+    DB.list.forEach((l) => (l.has || []).forEach((id) => { if (!by[id]) by[id] = l; }));
+    SRC_INDEX = by;
+    return by;
+  }
+  const clearMoney = () => { SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; };
+  const srcOf = (c) => srcIndex()[c.id] || null;
+  /* Nobody on a list came in some other way — they were in the book before
+     the lists were, which is our own crawl finding them. Their arrival date
+     is the first thing anybody did with them, or nothing. */
+  const srcAt = (c) => {
+    const l = srcOf(c);
+    if (l) return l.at;
+    return c.checkpointAt ? c.checkpointAt.slice(0, 10) : null;
+  };
+  const srcVia = (c) => { const l = srcOf(c); return l && l.via ? l.via : 'crawl'; };
+  const srcSpend = (c) => PRICE_FIND[srcVia(c)] || PRICE_FIND.crawl;
+
+  /* One person's enrichment bill. Two fields are worth paying for on a
+     contact — the number and the address — and the chain is walked in the
+     order the builder walks it. A field that is filled bills every supplier
+     up to and including the one that filled it, because the ones before it
+     were asked first. A field that is empty bills the whole chain: every
+     link was asked and every link missed, and THAT is where the money is —
+     it is the honest reading of what filling in details costs. */
+  const ENRICH_FIELDS = ['phone', 'email'];
+  function enrichSpend(c) {
+    const chain = FINDERS.map((f) => f.name);
+    let cost = 0, tried = 0, hit = 0;
+    ENRICH_FIELDS.forEach((f) => {
+      if (c[f]) {
+        /* Which supplier found it is not recorded, so it is charged to the
+           one whose hit rate on that field is highest — the one a waterfall
+           in this order would in fact have stopped at. */
+        const best = FINDERS.slice().sort((a, b) => b[f] - a[f])[0];
+        const at = chain.indexOf(best.name);
+        chain.slice(0, at + 1).forEach((n) => { cost += PRICE_ENRICH[n] || 0; tried += 1; });
+        hit += 1;
+      } else {
+        chain.forEach((n) => { cost += PRICE_ENRICH[n] || 0; tried += 1; });
+      }
+    });
+    return { cost: cost, tried: tried, hit: hit };
+  }
+
+  /* AiMY's touches are a supplier cost. A person's are time, and time is
+     priced by who spent it — off the seconds the record already holds, plus
+     the fixed few minutes of writing it down that a call is not finished
+     without. */
+  const AFTER_CALL_MINS = 4;
+  const touchCost = (t) => (t.auto
+    ? PRICE_TOUCH
+    : ((t.secs || 0) / 3600 + AFTER_CALL_MINS / 60) * rateOf(t.by));
+
+  const touchesOfCon = (c) => (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean);
+
+  /* Sourcing and enrichment are what it cost to GET the lead — one-off, and
+     they land in the period the lead arrived in. Activity is what it costs to
+     WORK it, and that accrues wherever the touchpoints fall. Counting the
+     arrival cost in every period would charge the same euro four times. */
+  function spendOn(c, p) {
+    const arrived = inPeriod(srcAt(c), p);
+    const src = arrived ? srcSpend(c) : 0;
+    const enrich = arrived ? enrichSpend(c).cost : 0;
+    let activity = 0;
+    touchesOfCon(c).forEach((t) => { if (inPeriod(t.at.slice(0, 10), p)) activity += touchCost(t); });
+    return { src: src, enrich: enrich, activity: activity, total: src + enrich + activity };
+  }
+
+  /* ── What a deal is worth ─────────────────────────────────────────────
+
+     `amountOf` prices one off the campaign's product and the company's size,
+     and says so wherever it renders. That is the floor, not the ceiling:
+     once deals have actually been signed, the ones already signed in the
+     same cell are better evidence than the price list is. Three tiers, and
+     the page states which it is reading — a pipeline that cannot say how
+     much of itself is a guess is a pipeline nobody should act on. */
+  const cellOf = (c) => { const k = dealCamp(c); const a = accOf(c);
+    return (k && k.sells && k.sells.length ? k.sells[0] : 'qa') + '|' + priceBand(a ? a.size : 300); };
+  let CELL_MEANS = null;
+  function cellMeans() {
+    if (CELL_MEANS) return CELL_MEANS;
+    const m = Object.create(null);
+    dealBook().forEach((c) => {
+      if (stageOf(c) !== 'won') return;
+      (m[cellOf(c)] || (m[cellOf(c)] = [])).push(amountOf(c));
+    });
+    CELL_MEANS = m;
+    return m;
+  }
+  function acvOf(c) {
+    if (stageOf(c) === 'won') return { value: amountOf(c), conf: 'high', basis: 'read' };
+    const peers = cellMeans()[cellOf(c)];
+    if (peers && peers.length) {
+      return { value: Math.round(peers.reduce((n, v) => n + v, 0) / peers.length),
+        conf: 'medium', basis: 'comparable' };
+    }
+    return { value: amountOf(c), conf: 'low', basis: 'modelled' };
+  }
+
+  /* When it closed. `stageOf` reads the last phase touchpoint, so the day it
+     carries is the day the decision was taken — a deal ended by hand and
+     never written down has no date, and is left out of a period's sums
+     rather than dated to today. */
+  function wonAt(c) {
+    if (stageOf(c) !== 'won') return null;
+    const ph = phasesOf(c);
+    return ph.length ? ph[ph.length - 1].at.slice(0, 10) : null;
+  }
+  /* A meeting in the window, from either half of the process: one of the
+     director's four, or the moment a caller got one into a diary. */
+  function metIn(c, p) {
+    if (phasesOf(c).some((t) => inPeriod(t.at.slice(0, 10), p))) return true;
+    return rank(c.checkpoint) >= rank('meeting-set') &&
+      inPeriod((c.checkpointAt || '').slice(0, 10), p);
+  }
+  const everMet = (c) => phasesOf(c).length > 0 || rank(c.checkpoint) >= rank('meeting-set');
+
+  /* ── Whose book this is ───────────────────────────────────────────────
+
+     ══ ONE SCOPE, AND IT IS THE READER'S OWN ═════════════════════════════
+
+     The page this came from belonged to a CEO, and its scope was the whole
+     company: `sees: () => true` at aggregate grain, because a total computed
+     over half a book is a wrong total. A sales manager is not that reader.
+     He owns campaigns, a director's book of deals sits under him, and the
+     question he opens this for is whether HIS quarter is working — a figure
+     covering desks he does not run would be a number he cannot act on.
+
+     So: every deal on his book, and every person on a campaign he owns. The
+     union, because the two overlap and neither contains the other — a deal
+     can outlive the campaign that produced it, and most people on a campaign
+     never become one. */
+  function bookScope() {
+    const seen = Object.create(null);
+    const out = [];
+    const take = (c) => { if (c && !seen[c.id]) { seen[c.id] = 1; out.push(c); } };
+    dealBook().forEach(take);
+    DB.camp.forEach((k) => { if (mine(k)) membersOf(k.id).forEach(take); });
+    return out;
+  }
+  /* The deals themselves, which is a different question from the scope: the
+     book is what he is selling, the scope is everyone the book came out of. */
+  const dealBook = () => (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
+  /* Before the hand-over a lead is the caller's and has no stage, so asking
+     `stageOf` about one answers Qualification for six hundred people who are
+     not deals. This is the guard. */
+  const isDeal = (c) => c.checkpoint === 'handed-over';
+  const myCamps = () => DB.camp.filter(mine);
+
+  /* ── The aggregate ────────────────────────────────────────────────────
+
+     One pass over a scope, for one window. Called twice by the page — now
+     and the window before it — so the comparison is the same derivation run
+     over different dates rather than a second one that could disagree.
+
+     ══ TWO CLOCKS, AND THEY ARE NOT THE SAME QUESTION ═════════════════════
+     `stage` counts what happened IN the window: contacted this quarter, met
+     this quarter, closed this quarter. `bySrc` counts a COHORT — the leads
+     that arrived in the window, and what they have produced since. The two
+     cannot be merged: a source's leads read by arrival and its meetings read
+     by activity produce "0 leads, 5 meetings, €0 each", a cost per meeting
+     over a denominator from a different set of people. */
+  const FUNNEL = [
+    { k: 'sourced',   label: 'Sourced' },
+    { k: 'reachable', label: 'Reachable' },
+    { k: 'contacted', label: 'Contacted' },
+    { k: 'replied',   label: 'Replied' },
+    { k: 'met',       label: 'Met' },
+    { k: 'won',       label: 'Customers' },
+  ];
+  /* Two config numbers, from finance, set once. Payback reads the margin. */
+  const GROSS_MARGIN = 0.72;
+
+  function bookMoney(scope, p, heads) {
+    const spend = { src: 0, enrich: 0, activity: 0, team: 0, tools: 0, total: 0 };
+    const wins = [];
+    const stage = { sourced: 0, reachable: 0, contacted: 0, replied: 0, met: 0, won: 0 };
+    const bySrc = Object.create(null), byLine = Object.create(null);
+
+    scope.forEach((c) => {
+      const s = spendOn(c, p);
+      spend.src += s.src; spend.enrich += s.enrich; spend.activity += s.activity;
+
+      const ts = touchesOfCon(c).filter((t) => inPeriod(t.at.slice(0, 10), p));
+      const arrived = inPeriod(srcAt(c), p);
+      const met = metIn(c, p);
+      const at = wonAt(c);
+      const won = !!at && inPeriod(at, p);
+      /* A person you cannot ring is a person you cannot work, whatever else
+         is known about them. */
+      const reachable = !!(c.phone || c.email);
+
+      if (arrived) { stage.sourced += 1; if (reachable) stage.reachable += 1; }
+      if (ts.length) stage.contacted += 1;
+      /* Nobody replies to a phone call — they answer it. `reached` is this
+         corpus's word for the same event, and a callback somebody asked for
+         is the strongest form of it. */
+      if (ts.some((t) => t.outcome === 'reached' || t.outcome === 'callback')) stage.replied += 1;
+      if (met) stage.met += 1;
+      if (won) { stage.won += 1; wins.push(Object.assign({ con: c, at: at }, acvOf(c))); }
+
+      /* The cohort. Only leads that arrived in this window are in it, and
+         their meetings count whenever they happened — a lead sourced in July
+         that meets in September was still earned by July's spend. */
+      if (arrived) {
+        const sk = srcVia(c);
+        const sr = bySrc[sk] || (bySrc[sk] = { k: sk, leads: 0, reachable: 0, meetings: 0,
+          spend: 0, unpriced: false });
+        sr.leads += 1;
+        if (reachable) sr.reachable += 1;
+        sr.spend += srcSpend(c) + enrichSpend(c).cost;
+        if (everMet(c)) sr.meetings += 1;
+      }
+
+      /* What we were selling them, which is the campaign's product rather
+         than a field on the person: nobody types a product onto a lead. */
+      const k = dealCamp(c);
+      const lk = (k && k.sells && k.sells.length ? k.sells[0] : null);
+      if (lk) {
+        const lr = byLine[lk] || (byLine[lk] = { k: lk, arr: 0, meetings: 0, spend: 0, pipeline: 0 });
+        lr.spend += s.total;
+        if (met) lr.meetings += 1;
+        if (won) lr.arr += acvOf(c).value;
+        else if (isDeal(c) && dealLive(c)) lr.pipeline += acvOf(c).value;
+      }
+    });
+
+    spend.tools = spend.src + spend.enrich + spend.activity;
+    spend.team = heads === 0 ? 0 : payrollRows(p).reduce((n, r) => n + r.cost, 0);
+    spend.total = spend.tools + spend.team;
+
+    const days = daysBetween(p.from, p.to) + 1;
+    const arr = wins.reduce((n, w) => n + w.value, 0);
+    const perWin = wins.length ? arr / wins.length : 0;
+    return {
+      p: p, days: days, spend: spend, wins: wins, arr: arr,
+      ros: spend.total ? arr / spend.total : null,
+      cac: wins.length ? spend.total / wins.length : null,
+      payback: wins.length && perWin ? spend.total / wins.length / (perWin * GROSS_MARGIN / 12) : null,
+      funnel: FUNNEL.map((s) => ({ k: s.k, label: s.label, n: stage[s.k],
+        cost: stage[s.k] ? spend.total / stage[s.k] : null })),
+      bySrc: Object.keys(bySrc).map((x) => bySrc[x])
+        .map((r) => Object.assign({ each: r.meetings ? r.spend / r.meetings : null,
+          per1k: r.leads ? (r.meetings / r.leads) * 1000 : null }, r))
+        .sort((a, b) => b.leads - a.leads),
+      byLine: Object.keys(byLine).map((x) => byLine[x])
+        .filter((r) => r.meetings || r.arr || r.pipeline)
+        .sort((a, b) => b.arr - a.arr || b.pipeline - a.pipeline),
+    };
+  }
+
+  /* ══ WHERE THE TIME AND THE MONEY WENT, ONE CAMPAIGN AT A TIME ═════════
+     A total with no breakdown behind it is a number you can only believe or
+     disbelieve — there is no third thing to do with it, and the one question
+     a manager actually has about a cost is which of them to stop.
+
+     Three kinds, and they behave differently:
+       · PEOPLE — the seconds logged against the campaign, at each person's
+         rate. Attributed, not payroll: see `unlogged`.
+       · AiMY — its own calls, at compute cost. No human in them.
+       · SUPPLIERS — finding and filling in the people who arrived into this
+         campaign inside the window. */
+  function campaignCost(camp, p) {
+    const mem = membersOf(camp.id);
+    const by = Object.create(null);
+    let aimy = 0, hours = 0;
+
+    mem.forEach((c) => {
+      touchesOfCon(c).forEach((t) => {
+        if (!inPeriod(t.at.slice(0, 10), p)) return;
+        if (t.camp && t.camp !== camp.id) return;
+        if (t.auto) { aimy += PRICE_TOUCH; return; }
+        const h = (t.secs || 0) / 3600 + AFTER_CALL_MINS / 60;
+        hours += h;
+        const r = by[t.by] || (by[t.by] = { id: t.by, hours: 0, rate: rateOf(t.by), cost: 0, touches: 0 });
+        r.hours += h;
+        r.cost += h * r.rate;
+        r.touches += 1;
+      });
+    });
+
+    let suppliers = 0;
+    mem.forEach((c) => {
+      if (!inPeriod(srcAt(c), p)) return;
+      suppliers += srcSpend(c) + enrichSpend(c).cost;
+    });
+
+    const crew = Object.keys(by).map((k) => by[k]).sort((a, b) => b.cost - a.cost);
+    const people = crew.reduce((n, r) => n + r.cost, 0);
+    const won = mem.filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); });
+    return {
+      camp: camp, members: mem.length, crew: crew, people: people, aimy: aimy,
+      suppliers: suppliers, hours: hours, total: people + aimy + suppliers,
+      arr: won.reduce((n, c) => n + acvOf(c).value, 0),
+      wins: won.length,
+      met: mem.filter((c) => metIn(c, p)).length,
+    };
+  }
+
+  /* Every campaign the reader runs, dearest first. Ranked by what it costs,
+     not by when it was made: the ordering is the finding. */
+  const campaignCosts = (p) => myCamps()
+    .map((c) => campaignCost(c, p))
+    .filter((r) => r.total || r.met || r.wins)
+    .sort((a, b) => b.total - a.total);
+
+  /* ══ HOW MUCH OF THE PAYROLL LANDS ON A CAMPAIGN AT ALL ════════════════
+     Hours logged against a campaign are a fraction of hours paid for, and
+     the two must never be added or confused. The logged fraction is small,
+     which is not a defect in the model — it is the finding: a manager
+     reading "8% of what you pay for is attributable to a campaign" has
+     learned something they cannot get anywhere else. Stated, never quietly
+     rolled into a total. */
+  function unlogged(p, heads) {
+    const rows = heads === 0 ? [] : payrollRows(p);
+    const payroll = rows.reduce((n, r) => n + r.cost, 0);
+    const on = Object.create(null);
+    campaignCosts(p).forEach((c) => c.crew.forEach((m) => {
+      const r = on[m.id] || (on[m.id] = { hours: 0, cost: 0 });
+      r.hours += m.hours; r.cost += m.cost;
+    }));
+    const logged = Object.keys(on).reduce((n, k) => n + on[k].cost, 0);
+    return {
+      payroll: payroll, logged: logged, pc: payroll ? logged / payroll : null,
+      people: rows.map((r) => Object.assign({}, r, { onCamp: on[r.id] || { hours: 0, cost: 0 } })),
+    };
+  }
+
+  /* ══ WHICH PRODUCT IS WORKING, AS A VERDICT RATHER THAN A ROW ══════════
+     "QA €70k, Voice €0" is a table; "Voice has taken 11 meetings and closed
+     nothing" is a finding. The difference is a threshold somebody has
+     decided, and deciding it here — once, in the open — is what lets the
+     page say `emerging` or `stalling` instead of leaving the reader to do
+     the arithmetic on six rows. */
+  const LINE_VERDICT = [
+    { k: 'winning',  say: 'winning',  tone: 'ok' },
+    { k: 'emerging', say: 'emerging', tone: 'ok' },
+    { k: 'stalling', say: 'stalling', tone: 'warn' },
+    { k: 'cold',     say: 'not landing', tone: 'err' },
+  ];
+  function lineVerdict(r, best) {
+    if (r.arr && best && r.arr >= best * 0.5) return LINE_VERDICT[0];
+    if (r.arr) return LINE_VERDICT[1];
+    if (r.meetings >= 4) return LINE_VERDICT[3];
+    return LINE_VERDICT[2];
+  }
+
+  /* ══ AiMY'S ODDS ON ONE DEAL ═══════════════════════════════════════════
+     The raw open book is a ceiling, not a forecast: "if everything closed"
+     against a gap of €99k reads as 92× coverage and means nothing. What
+     makes a pipeline figure usable is odds, and the odds have to come from
+     evidence on the record rather than from a stage somebody set by hand.
+
+     The rungs are the deal stages, because on this side of the hand-over
+     that IS what has happened to it: a deal at Commercial has had the price
+     put on the table and one at Qualification has not been spoken to. Every
+     open deal sits on exactly one, and the figure is how many of that group
+     historically close.
+
+     LAPLACE-SMOOTHED, BECAUSE FOUR WINS IS NOT A SAMPLE. `(won + a) / (n +
+     a/prior)` pulls a thin rung toward its prior instead of letting one
+     lucky deal read as a 50% close rate, and pulls an empty rung to the
+     prior exactly rather than to zero. The page says the sample is thin
+     rather than hiding it. */
+  const ODDS_RUNGS = [
+    { k: 'commercial', say: 'Price on the table' },
+    { k: 'proof',      say: 'Seen the solution' },
+    { k: 'discovery',  say: 'Been through discovery' },
+    { k: 'qual',       say: 'Handed over, not yet met' },
+  ];
+  const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
+  const SMOOTH = 2;
+  let ODDS_CACHE = null;
+  function oddsLadder() {
+    if (ODDS_CACHE) return ODDS_CACHE;
+    const by = Object.create(null);
+    ODDS_RUNGS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, n: 0, won: 0 }));
+    /* Learned off every deal that has finished, at the furthest stage it
+       reached before it did — a deal that closed from Commercial is
+       evidence about Commercial, and it is no longer standing there. */
+    dealBook().forEach((c) => {
+      const st = stageOf(c);
+      if (st !== 'won' && st !== 'lost') return;
+      const ph = phasesOf(c).filter((t) => t.phase !== 'resolution');
+      const at = ph.length ? ph[ph.length - 1].phase : 'qual';
+      const row = by[at];
+      if (!row) return;
+      row.n += 1;
+      if (st === 'won') row.won += 1;
+    });
+    ODDS_RUNGS.forEach((r) => {
+      const row = by[r.k];
+      row.p = (row.won + SMOOTH) / (row.n + SMOOTH / ODDS_PRIOR[r.k]);
+    });
+    ODDS_CACHE = by;
+    return by;
+  }
+  const oddsOf = (c) => oddsLadder()[stageOf(c)] || oddsLadder().qual;
+
+  /* Everything still open, at its derived value — the "if everything closed"
+     ceiling, and the split that says how much of it is a guess. Two tiers,
+     because two is how many there are: `read` means the deal closed, and a
+     closed deal is not in the pipeline by definition. */
+  function pipelineOf(deals) {
+    const open = deals.filter(dealLive);
+    const tier = { comparable: 0, modelled: 0 };
+    const rung = Object.create(null);
+    let all = 0, weighted = 0;
+    open.forEach((c) => {
+      const v = acvOf(c);
+      const o = oddsOf(c);
+      tier[v.basis] = (tier[v.basis] || 0) + v.value;
+      all += v.value;
+      weighted += v.value * o.p;
+      const r = rung[o.k] || (rung[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
+      r.n += 1; r.value += v.value;
+    });
+    return { open: open.length, all: all, weighted: weighted, tier: tier,
+      rungs: ODDS_RUNGS.map((o) => rung[o.k]).filter(Boolean) };
+  }
+
+  /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
+     Every figure on this page without one is an absolute with nothing to
+     read it against. €201k booked, €51k spent, 3.95× returned — none of them
+     answer the question the page exists for, which is whether the desk is on
+     track. Same status as the price book: set once, by finance, not derived,
+     because a target is a commitment and a commitment is not a consequence
+     of the work. */
+  const TARGET_QUARTER = 300e3;
+  const PERIOD_QUARTERS = { q: 1, lq: 1, y: 4, r12: 4 };
+  const targetFor = (p) => TARGET_QUARTER * (PERIOD_QUARTERS[p.k] || 1);
+
+  /* Attainment is measured against the WHOLE period's target even when the
+     period is part-finished — you are judged on the quarter, not on the
+     thirty-six days of it that have happened. What the elapsed fraction
+     gives you is PACE: where the bar should have reached by today, which is
+     the difference between "67% of target" and "67% of target with three
+     fifths of the quarter still to run". */
+  function attainment(now, pipe, p) {
+    const target = targetFor(p);
+    const booked = now.arr;
+    const gap = Math.max(0, target - booked);
+    return {
+      target: target, booked: booked, gap: gap,
+      pc: target ? booked / target : null,
+      /* Coverage is weighted pipeline over the GAP, not over the target —
+         what is already booked does not need covering. */
+      coverage: gap ? pipe.weighted / gap : null,
+      /* AiMY'S PROJECTION, AND IT IS THE ONE PREDICTED FIGURE ON THE PAGE.
+         Booked is a fact; this is booked plus what the open book is worth at
+         its own odds. Kept separate from `booked` everywhere it renders,
+         because a forecast printed as an achievement is the oldest lie in
+         sales reporting. */
+      forecast: booked + pipe.weighted * (p.elapsed == null ? 1 : Math.max(0, 1 - p.elapsed)),
+      elapsed: p.elapsed,
+      /* Positive is ahead of pace. */
+      pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null,
+    };
+  }
+
+  /* ══ THE NUMBERS ═══════════════════════════════════════════════════════
+
+     The previous build's C-level view, on this desk. It was the only page
+     either build ever had that answered "is this making money", and what
+     stood here instead was the frame of one: four figures and a paragraph
+     saying the report was not built yet. It is built; it was built before,
+     for a reader one altitude up, and the derivations were the hard half.
+
+     ══ AiMY ANSWERS HERE, IT DOES NOT NARRATE HERE ═══════════════════════
+     Every other surface in this product leads with what AiMY makes of the
+     evidence, and so does this one — but nothing on it is a workbench. A
+     workbench is a place you work WITH the agent; this is a page of figures
+     somebody reads on their own, and the only agent controls on it are
+     doors: a question staged into the bar, never a question answered before
+     it was asked. */
+
+  /* One figure and its caption, divided from the next by a rule rather than
+     boxed away from it. Four of these is the whole supporting row. */
+  const attFig = (cap, val, sub, tone) => '<div class="s-af">' +
+    '<span class="s-af-cap">' + esc(cap) + '</span>' +
+    '<span class="s-af-val' + (tone ? ' tone-' + esc(tone) : '') + '">' + esc(String(val)) + '</span>' +
+    (sub ? '<span class="s-af-sub">' + esc(sub) + '</span>' : '') +
+  '</div>';
+
+  /* Four fixed options, no calendar, no range. */
+  function periodChips() {
+    return '<div class="s-tabcuts" role="group" aria-label="Period">' +
+      PERIODS.map((r) => '<button class="chip' + (S.period === r.k ? ' active' : ' default') +
+        '" type="button" data-period="' + esc(r.k) + '">' + esc(r.label) + '</button>').join('') +
     '</div>';
+  }
+
+  /* A question, beside the heading of the thing it is about. It stages and
+     nothing more: `data-fill` puts the sentence in the bar and leaves the
+     press to the person, which is this build's verb for exactly the promise
+     the old page made with a longer attribute. */
+  const secAsk = (label, ask) => '<button class="s-sec-ask" type="button" data-fill="' +
+    esc(ask) + '">' + aiMark() + esc(label) + '</button>';
+
+  const askRow = (asks) => (asks.length ? '<div class="s-asks">' +
+    '<span class="s-asks-cap">Ask AiMY</span>' +
+    asks.map((a) => '<button class="chip default s-ask" type="button" data-fill="' +
+      esc(a.ask) + '">' + aiMark() + esc(a.label) + '</button>').join('') +
+  '</div>' : '');
+
+  /* Three questions, shaped like the ones this page invites and cannot
+     answer itself — a trade-off, a cause, a forecast. Only conditions that
+     hold produce one, because a question about a figure the page is not
+     showing is a door into an empty room. */
+  function execAsks(now, pipe) {
+    const priced = now.bySrc.filter((r) => r.meetings && !r.unpriced);
+    const cheap = priced.slice().sort((a, b) => a.each - b.each)[0];
+    const best = now.bySrc.filter((r) => r.per1k != null && r.meetings)
+      .sort((a, b) => b.per1k - a.per1k)[0];
+    /* The SAME line the product section names first. Ranked by revenue alone
+       this picked one and the section picked another, so the page offered to
+       explain a product it had not mentioned. */
+    const top = now.byLine.filter((r) => r.arr && r.meetings)[0] || now.byLine.filter((r) => r.arr)[0];
+    const out = [];
+
+    if (cheap && best && cheap.k !== best.k) {
+      out.push({ label: 'Is the cheap source worth it',
+        ask: sourceSay(cheap.k) + ' gets me a meeting for ' + fmtMoney(cheap.each) + ' but ' +
+          sourceSay(best.k) + ' turns more leads into meetings. Work out what I lose in ' +
+          'meetings if I move spend to the cheaper one.' });
+    }
+    if (top && now.arr) {
+      out.push({ label: 'Why ' + sellSay(top.k) + ' is doing all the work',
+        ask: sellSay(top.k) + ' brought in ' + Math.round((top.arr / now.arr) * 100) +
+          '% of everything we signed. Show me whether the other products are reaching too ' +
+          'few people or losing the ones they reach.' });
+    }
+    if (pipe.tier.modelled > pipe.tier.comparable) {
+      out.push({ label: 'How real is the pipeline',
+        ask: 'Most of my ' + fmtMoney(pipe.all) + ' of open deals is valued off the price list ' +
+          'rather than off deals we have actually won. Which of them would make that number ' +
+          'trustworthy fastest?' });
+    }
+    if (now.payback != null) {
+      out.push({ label: 'Why a customer takes so long to pay back',
+        ask: 'It takes ' + now.payback.toFixed(1) + ' months for a customer to repay what they ' +
+          'cost to win. Break that down into cost per meeting, how many meetings become ' +
+          'customers, and deal size — and tell me which one I can actually move.' });
+    }
+    return out.slice(0, 3);
+  }
+
+  const sellSay = (k) => (SELL[k] ? SELL[k].name : k);
+  const sourceSay = (k) => (k === 'crawl' ? 'Our own crawl' : k);
+
+  /* ══ WHAT AiMY MAKES OF THE QUARTER ════════════════════════════════════
+     A paragraph AiMY writes, then the evidence under it — the shape every
+     briefing in this product has, and the argument for it is the same one
+     altitude up: somebody reading this page once, standing up, needs the
+     conclusion drawn rather than assembled out of four sections.
+
+     What makes it a reading rather than a caption is that every clause names
+     something the figures below do NOT say on their face — the campaign
+     whose cost and return are furthest apart, the one that has taken hours
+     and closed nothing, the share of payroll that lands on a campaign at
+     all. Ranked, and the loudest three are said. */
+  function execBrief(now, a, camps, un) {
+    const bits = [];
+    const money = 'You spent <b>' + esc(fmtMoney(now.spend.total)) + '</b> and signed <b>' +
+      esc(fmtMoney(now.arr)) + '</b>';
+    const pace = a.pc == null ? '.' : a.pace == null
+      ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target.'
+      : ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target with ' +
+        esc(Math.round(a.elapsed * 100)) + '% of the time gone, so you are <b>' +
+        esc(plural(Math.abs(Math.round(a.pace * 100)), 'point')) + ' ' +
+        (a.pace >= 0 ? 'ahead' : 'behind') + '</b>.';
+    bits.push(money + pace);
+
+    /* The campaign that returned most per euro, and the one that returned
+       nothing for the most. Both are only visible once cost sits beside
+       outcome, which is the whole reason the breakdown was built. */
+    const paid = camps.filter((c) => c.total > 0);
+    const best = paid.filter((c) => c.arr).sort((x, y) => (y.arr / y.total) - (x.arr / x.total))[0];
+    const worst = paid.filter((c) => !c.arr && c.total > 200).sort((x, y) => y.total - x.total)[0];
+    if (best) bits.push('<b>' + esc(best.camp.name) + '</b> cost ' + esc(fmtMoney(best.total)) +
+      ' and returned <b>' + esc(fmtMoney(best.arr)) + '</b>.');
+    if (worst) bits.push('<b>' + esc(worst.camp.name) + '</b> has cost ' + esc(fmtMoney(worst.total)) +
+      ' across ' + esc(plural(Math.round(worst.hours), 'hour')) + ' and closed nothing.');
+
+    if (un.pc != null && un.pc < 0.5) {
+      bits.push('Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what you pay for lands ' +
+        'on a campaign at all.');
+    }
+    return bits.join(' ');
+  }
+
+  /* This build's own word for where a campaign stands. The page it came from
+     had a four-state lifecycle and this one has "N days left", which is the
+     vocabulary every other campaign surface here already speaks — a second
+     word for the same fact is a second thing to learn. */
+  function campStateSay(k) {
+    if (isDraft(k)) return 'Draft';
+    const left = daysBetween(TODAY_ISO, k.to);
+    return left > 0 ? plural(left, 'day') + ' left' : 'Closed ' + sayWhen(k.to);
+  }
+
+  function moneyPage() {
+    const p = periodOf(S.period);
+    const scope = bookScope();
+    const deals = dealBook();
+    const heads = workingHeads();
+    const now = bookMoney(scope, p, heads);
+    const pipe = pipelineOf(deals);
+    const when = (PERIODS.filter((r) => r.k === p.k)[0] || PERIODS[0]).label.toLowerCase();
+
+    const a = attainment(now, pipe, p);
+    const camps = campaignCosts(p);
+    const un = unlogged(p, heads);
+    const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
+
+    const scale = Math.max(a.target, a.forecast, a.booked) || 1;
+    const pcOf = (v) => Math.max(0, Math.min(100, (v / scale) * 100));
+    const bookedPc = pcOf(a.booked);
+    const fcastPc = Math.max(0, pcOf(a.forecast) - bookedPc);
+    const targetPc = pcOf(a.target);
+    const pacePc = a.elapsed == null ? null : pcOf(a.target * a.elapsed);
+    const ahead = a.pace != null && a.pace >= 0;
+    const done = a.elapsed != null && a.elapsed >= 1;
+
+    /* ══ BOUNDED BY THE TAXONOMY, NOT BY THE POPULATION ═══════════════════
+       This was one row per person, and it does not scale: six people produce
+       nine rows, four of them identical, and a company with forty BDRs
+       produces forty-three. A manager does not read per person. They read
+       per ROLE, and roles are a closed set: this list is three groups and
+       two children whether the desk has two people or two hundred.
+
+       The rule, stated once: a breakdown must be bounded by the taxonomy it
+       groups by, never by the number of things in it. */
+    const byRole = Object.create(null);
+    un.people.forEach((r) => {
+      const g = byRole[r.fn] || (byRole[r.fn] = { fn: r.fn, n: 0, rate: r.rate, cost: 0, hours: 0, on: 0 });
+      g.n += 1; g.cost += r.cost; g.hours += r.hours; g.on += r.onCamp.hours;
+    });
+    const roles = Object.keys(byRole).map((k) => byRole[k]).sort((x, y) => y.cost - x.cost);
+    const aimyCost = camps.reduce((n, c) => n + c.aimy, 0);
+    const cost = [
+      { k: 'people', say: 'People', v: un.payroll,
+        sub: plural(un.people.length, 'person') + ' · ' +
+          Math.round(roles.reduce((n, r) => n + r.on, 0)) + ' of ' +
+          Math.round(roles.reduce((n, r) => n + r.hours, 0)) + ' hours logged against a campaign',
+        rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
+          note: r.n + ' at ' + fmtMoney(r.rate) + '/h', v: r.cost })) },
+      { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
+        sub: 'every attempt, not only the ones that answered',
+        rows: [{ say: 'Finding people', note: 'LinkedIn, the brokers and the crawl', v: now.spend.src },
+          { say: 'Filling in details', note: 'a number and an address', v: now.spend.enrich }] },
+      { k: 'aimy', say: 'AiMY', v: aimyCost, sub: 'the calls it made itself, at compute cost', rows: [] },
+    ].filter((r) => r.v > 0);
+    const costTop = now.spend.total || 1;
+
     return '<div class="s-home">' +
-      '<section class="s-block s-block-wide" aria-label="The numbers">' +
-        '<div class="s-camp-list-head">' +
-          '<h2 class="s-block-h">The numbers</h2>' +
-          '<span class="s-block-say">' + esc(plural(all.length, 'deal')) +
-            ' on your board</span>' +
+      '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') + '</div>' +
+      '<section class="s-block s-block-wide s-exec" aria-label="The book">' +
+      '<header class="s-exec-top">' +
+        '<div>' +
+          '<div class="s-exec-eyebrow">FlairsTech &middot; every campaign</div>' +
+          '<h2 class="s-exec-h">' + esc(when.charAt(0).toUpperCase() + when.slice(1)) + '</h2>' +
         '</div>' +
-        '<div class="s-afs">' +
-          fig('Open', euro(sum(live)), plural(live.length, 'deal') + ' still running') +
-          fig('Signed', euro(sum(won)), plural(won.length, 'deal') + ' closed won') +
-          fig('Lost', euro(sum(lost)), plural(lost.length, 'deal') + ' closed lost') +
-          fig('Average', live.length ? euro(Math.round(sum(live) / live.length)) : '—',
-            'across what is open') +
+        periodChips() +
+      '</header>' +
+
+      '<section class="slv" aria-label="What AiMY makes of it">' +
+        '<div class="slv-head">' +
+          '<svg viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+          '<h1 class="slv-title">Where the money went</h1>' +
+          '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
-        '<p class="b-vfoot">Every figure here is modelled from what we sell and how ' +
-          'big the account is. The report itself — what closed against target, by ' +
-          'month, by campaign and by whoever closed it — is not built yet.</p>' +
+        '<div class="slv-body">' +
+          '<p class="slv-line">' + execBrief(now, a, camps, un) + '</p>' +
+        '</div>' +
+      '</section>' +
+
+      '<div class="s-att">' +
+        '<div class="s-att-head">' +
+          '<span class="s-att-lead">' + esc(fmtMoney(a.booked)) +
+            ' <span class="s-att-of">of ' + esc(fmtMoney(a.target)) + '</span></span>' +
+          '<span class="s-att-pc' + (a.pc >= 1 ? ' tone-ok' : '') + '">' +
+            esc(Math.round(a.pc * 100)) + '% to target</span>' +
+        '</div>' +
+        '<div class="s-att-track" role="img" aria-label="' +
+          esc(fmtMoney(a.booked) + ' signed of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
+            fmtMoney(a.forecast) + '.') + '">' +
+          '<span class="s-att-booked" style="width:' + bookedPc.toFixed(1) + '%"></span>' +
+          '<span class="s-att-fcast" style="width:' + fcastPc.toFixed(1) + '%"></span>' +
+          '<span class="s-att-target" style="left:' + targetPc.toFixed(1) + '%"></span>' +
+          (done || pacePc == null ? ''
+            : '<span class="s-att-pace" style="left:' + pacePc.toFixed(1) + '%"></span>') +
+        '</div>' +
+        '<div class="s-att-keys">' +
+          '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Signed so far') + '</span>' +
+          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'AiMY expects ' +
+            esc(fmtMoney(a.forecast)) + ' by the end</span>') +
+          '<span class="s-att-key is-target">The target</span>' +
+          (done || pacePc == null ? ''
+            : '<span class="s-att-key is-pace">Where you should be today</span>') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="s-afs">' +
+        /* ══ THE FIRST TILE HAS TO POINT BACK AT THE HEADLINE ═══════════
+           "€201k of €300k" above, "Left to hit target €99k" below — the same
+           two numbers, named the same way twice. It said "Still to sell" for
+           a while, which is an action with no object on the one tile whose
+           whole job is to say what is left of the figure directly above. */
+        attFig('Left to hit target', a.gap ? fmtMoney(a.gap) : 'Nothing',
+          a.gap ? (done ? 'the window is closed'
+            : plural(Math.max(0, Math.round((1 - a.elapsed) * (p.span || 92))), 'day') + ' to do it')
+            : 'the target is already met',
+          a.gap ? null : 'ok') +
+        /* ══ A WEIGHTED FIGURE NEEDS ITS DENOMINATOR ═════════════════════
+           "Likely to close · €351k" could be read three ways: the whole open
+           book, a date, or an expected value. It is the third — every open
+           deal at the rate its stage historically closes — and the one thing
+           that settles it is the number it came FROM. A reader sees a slice
+           and its whole in one line, which is what "expected" means.
+
+           THE MONEY GOES IN THE VALUE, THE RATIO QUALIFIES IT. This read
+           "3.5× what is left", and a ratio is a derived thing: three of the
+           four tiles show an amount, so the eye arrives expecting one and
+           has to translate. */
+        attFig('Expected from open deals', fmtMoney(pipe.weighted),
+          a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
+            : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed')
+            : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
+          a.coverage == null ? null : a.coverage >= 3 ? 'ok' : 'warn') +
+        attFig('Selling faster than the clock', a.pace == null ? '—'
+            : plural(Math.abs(Math.round(a.pace * 100)), 'point') + ' ' + (ahead ? 'ahead' : 'behind'),
+          done ? 'the window has closed'
+            : Math.round(a.pc * 100) + '% of the target sold, ' +
+              Math.round(a.elapsed * 100) + '% of the time used',
+          a.pace == null ? null : ahead ? 'ok' : 'warn') +
+        /* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost of
+           winning one customer, and how long that customer takes to earn it
+           back — a different sentence from the one the two words were
+           doing. */
+        attFig('What it cost to get', fmtMoney(now.spend.total),
+          now.payback == null ? 'nothing has closed against it yet'
+            : '€' + now.ros.toFixed(2) + ' back for every €1 · ' +
+              now.payback.toFixed(1) + ' months to break even') +
+      '</div>' +
+
+      '<section class="s-exec-sec">' +
+        '<div class="s-sec-head">' +
+          '<div class="s-exec-eyebrow">What the money went on</div>' +
+          secAsk('Where could I spend less', 'My people cost ' + fmtMoney(un.payroll) +
+            ' this window and only ' + Math.round((un.pc || 0) * 100) + '% of it is logged ' +
+            'against a campaign. Show me where the money is going that is not producing anything.') +
+        '</div>' +
+        '<div class="s-cost">' +
+          cost.map((g) => '<div class="s-cost-g">' +
+            '<div class="s-cost-row">' +
+              '<span class="s-cost-say">' + esc(g.say) +
+                '<span class="s-cost-sub">' + esc(g.sub) + '</span></span>' +
+              '<span class="s-cost-v">' + esc(fmtMoney(g.v)) + '</span>' +
+              '<span class="s-cost-pc">' + esc(g.v / costTop >= 0.005
+                ? Math.round((g.v / costTop) * 100) + '%' : '<1%') + '</span>' +
+            '</div>' +
+            (g.rows.length ? '<div class="s-cost-kids">' +
+              g.rows.map((r) => '<div class="s-cost-kid">' +
+                '<span class="s-cost-say">' + esc(r.say) +
+                  ' <span class="s-cost-note">' + esc(r.note) + '</span></span>' +
+                '<span class="s-cost-v">' + esc(fmtMoney(r.v)) + '</span>' +
+              '</div>').join('') +
+            '</div>' : '') +
+          '</div>').join('') +
+        '</div>' +
+        /* AiMY'S, AND IT LOOKS LIKE IT. This was a grey paragraph under a
+           list — the same words, with nothing saying whose reading they are.
+           A claim about what most of the payroll is NOT doing is exactly the
+           kind that has to be attributable. */
+        (un.pc == null ? '' : '<div class="s-insight">' +
+          '<svg class="s-insight-mark" viewBox="0 0 18 20" aria-hidden="true">' +
+            '<use href="#aimy-logo-small"/></svg>' +
+          '<span class="s-insight-txt">Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what ' +
+            'you pay for is logged against a named campaign &mdash; <b>' + esc(fmtMoney(un.logged)) +
+            '</b> of <b>' + esc(fmtMoney(un.payroll)) + '</b>. The rest is time nobody attributed ' +
+            'to one, so it cannot be judged against what it produced.</span>' +
+        '</div>') +
+      '</section>' +
+
+      '<section class="s-exec-sec">' +
+        '<div class="s-sec-head">' +
+          '<div class="s-exec-eyebrow">Campaigns, by what they cost</div>' +
+          secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
+            'against what they have returned, and tell me which one I should stop and what I ' +
+            'would lose by stopping it.') +
+        '</div>' +
+        '<p class="s-exec-note">Every minute logged against the campaign at the rate of whoever ' +
+          'spent it, plus the calls AiMY made itself and what the suppliers charged to find and ' +
+          'fill in the people on it.</p>' +
+        (camps.length ? '<div class="s-pans">' +
+          camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
+            '<div class="s-pan-head">' +
+              '<span class="s-pan-name">' + esc(c.camp.name) +
+                '<span class="s-pan-state">' + esc(campStateSay(c.camp)) + '</span></span>' +
+              '<span class="s-pan-total">' + esc(fmtMoney(c.total)) + '</span>' +
+            '</div>' +
+            '<div class="s-pan-facts">' +
+              '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
+              '<span><b>' + Math.round(c.hours) + '</b> ' +
+                (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
+              '<span><b>' + c.met + '</b> met</span>' +
+              '<span class="' + (c.arr ? 'is-good' : '') + '"><b>' +
+                esc(c.arr ? fmtMoney(c.arr) : 'nothing') + '</b> signed</span>' +
+            '</div>' +
+            (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
+              /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
+                 Five names is a readable list and twenty is a wall. This
+                 panel has to survive a campaign with a whole desk on it, so
+                 the crew collapses to one line — how many, how long, what it
+                 cost, and the blended rate — and opens to the names. AiMY
+                 and Suppliers stay outside it: one line each whatever the
+                 size of the team, so folding them would hide something that
+                 was never in the way.
+
+                 A DISCLOSURE IS NOT A DRILL. This page refuses every control
+                 that opens a record, and this opens nothing — it shows more
+                 of what is already here. `<details>` is the design system's
+                 own accordion, so it is keyboard-operable and needs no
+                 state, no handler and no data attribute. Open at three
+                 people or fewer, because an accordion around two names costs
+                 more than it saves. */
+              (c.crew.length ? '<details class="s-crew"' + (c.crew.length <= 3 ? ' open' : '') + '>' +
+                '<summary class="s-crew-sum">' +
+                  '<span class="s-crew-who">' +
+                    '<b>' + esc(plural(c.crew.length, 'person')) + '</b>' +
+                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours at ' +
+                      esc(fmtMoney(c.hours ? c.people / c.hours : 0)) + ' an hour on average</span>' +
+                  '</span>' +
+                  '<span class="s-pan-cost">' + esc(fmtMoney(c.people)) + '</span>' +
+                '</summary>' +
+                '<div class="s-crew-list">' +
+                  /* A NAME AND ITS TERMS ARE TWO FACTS, NOT ONE STRING. The
+                     name and what it cost are what a reader scans; the role,
+                     the hours and the rate are what they check afterwards. */
+                  c.crew.map((m) => '<span class="s-pan-p">' +
+                    '<span class="s-pan-who">' +
+                      '<b>' + esc((REP[m.id] || {}).name || m.id) + '</b>' +
+                      '<span class="s-pan-meta">' + esc(JOB[(REP[m.id] || {}).fn] || '') +
+                        ' &middot; ' + esc(m.hours.toFixed(1)) + ' hours at ' +
+                        esc(fmtMoney(m.rate)) + ' an hour</span>' +
+                    '</span>' +
+                    '<span class="s-pan-cost">' + esc(fmtMoney(m.cost)) + '</span>' +
+                  '</span>').join('') +
+                '</div>' +
+              '</details>' : '') +
+              (c.aimy ? '<span class="s-pan-p is-ai">' +
+                '<span class="s-pan-who">' +
+                  '<b>' + aiMark() + 'AiMY</b>' +
+                  '<span class="s-pan-meta">the calls it made itself, at compute cost</span>' +
+                '</span>' +
+                '<span class="s-pan-cost">' + esc(fmtMoney(c.aimy)) + '</span>' +
+              '</span>' : '') +
+              (c.suppliers ? '<span class="s-pan-p">' +
+                '<span class="s-pan-who">' +
+                  '<b>Suppliers</b>' +
+                  '<span class="s-pan-meta">finding the people and filling them in</span>' +
+                '</span>' +
+                '<span class="s-pan-cost">' + esc(fmtMoney(c.suppliers)) + '</span>' +
+              '</span>' : '') +
+            '</div>' : '<p class="s-pan-none">Nothing has been spent on it in this window.</p>') +
+          '</div>').join('') +
+        '</div>' : '<p class="s-none">Nothing has cost anything in this window.</p>') +
+      '</section>' +
+
+      '<section class="s-exec-sec">' +
+        '<div class="s-sec-head">' +
+          '<div class="s-exec-eyebrow">What is working, and what is not</div>' +
+          secAsk('Why are these not landing', 'Some of my product lines have taken meetings and ' +
+            'closed nothing. Show me whether they are reaching the wrong people or losing the ' +
+            'ones they reach.') +
+        '</div>' +
+        (now.byLine.length ? '<div class="s-pans">' +
+          now.byLine.map((r, i) => {
+            const v = lineVerdict(r, bestArr);
+            return '<div class="s-pan" style="--i:' + i + '">' +
+              '<div class="s-pan-head">' +
+                '<span class="s-pan-name">' + esc(sellSay(r.k)) +
+                  '<span class="s-pan-state tone-' + esc(v.tone) + '">' + esc(v.say) + '</span></span>' +
+                '<span class="s-pan-total' + (r.arr ? '' : ' is-none') + '">' +
+                  esc(r.arr ? fmtMoney(r.arr) : 'Nothing') + '</span>' +
+              '</div>' +
+              '<div class="s-pan-facts">' +
+                '<span><b>' + r.meetings + '</b> met</span>' +
+                '<span><b>' + esc(r.arr && r.meetings ? fmtMoney(r.arr / r.meetings) : '—') +
+                  '</b> a meeting</span>' +
+                '<span><b>' + esc(fmtMoney(r.pipeline)) + '</b> still open</span>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' : '<p class="s-none">Nothing has moved in any product this window.</p>') +
+      '</section>' +
+
+      '<div class="s-odds">' +
+        '<span class="s-odds-cap">' + aiMark() + 'How many close, by how far they have got</span>' +
+        '<div class="s-odds-rows">' +
+          pipe.rungs.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
+            '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
+            '<span class="s-odds-say">' + esc(r.say) + '</span>' +
+            '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + ' &middot; ' +
+              esc(fmtMoney(r.value)) + ' open</span>' +
+          '</div>').join('') +
+        '</div>' +
+        '<p class="s-odds-note">From deals this desk has actually closed, not an industry ' +
+          'average. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
+            ' closed in this window' : 'Nothing closed in this window') + ', so each rate is ' +
+          'smoothed &mdash; one deal cannot swing it.</p>' +
+      '</div>' +
+
+      askRow(execAsks(now, pipe)) +
       '</section>' +
     '</div>';
   }
@@ -12908,6 +13945,12 @@
        somewhere you cannot see and leaves the cursor in a box that is not
        there. */
     if (t.closest('[data-mic]')) { micStart(); return; }
+
+    /* The money surface's window. It changes what is counted and nothing
+       about where you are, so it rides the URL like every other narrowing
+       and the page repaints from it. */
+    const per = t.closest('[data-period]');
+    if (per) { go({ period: per.getAttribute('data-period') }); return; }
 
     const fill = t.closest('[data-fill]');
     if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
