@@ -6418,28 +6418,36 @@
       reg: REGION[k.region] ? REGION[k.region].label : null,
     };
   }
-  /* The sentence, once, so the card and the record cannot drift apart. */
-  function campGoalSay(k) {
-    /* Written wins. `campGoal` derives one for every campaign in the book
-       because none of them was ever asked; a campaign somebody filled in by
-       hand has an answer, and a derivation that overrode it would be the
-       product telling the manager what his own campaign is for. */
-    if (k.aim) return esc(k.aim);
-    const g = campGoal(k);
-    const who = esc(g.forWhom);
+  /* The four shapes, given the parts rather than a record — so the builder
+     can offer them as ANSWERS, with the kind chosen instead of dealt. What
+     you pick in the canvas is then the sentence the record prints, which is
+     the whole point of asking: the campaign says what you said it was for.
+
+     Plain text out; `campGoalSay` escapes. It used to escape each part on
+     the way in, which is the same string escaped twice the moment anything
+     but this reads it. */
+  function goalSay(g) {
+    const who = g.forWhom;
     /* The foothold reads as a goal only where the book knows the market it
        is trying to get into; without both halves it falls back to logos. */
     if (g.kind === 2 && g.ind && g.reg) {
       /* Two of these regions are plural or a group and take the article:
          "in the Netherlands", "in the Nordics", against "in DACH". */
       const where = (g.reg === 'Netherlands' || g.reg === 'Nordics' ? 'the ' : '') + g.reg;
-      return 'Our first ' + esc(g.ind) + ' client in ' + esc(where) + ' for ' + who + '.';
+      return 'Our first ' + g.ind + ' client in ' + where + ' for ' + who + '.';
     }
-    if (g.kind === 1) return esc(euro(g.money)) + ' of new business for ' + who + '.';
-    if (g.kind === 3) {
-      return esc(plural(g.n, 'account')) + ' won off a competitor for ' + who + '.';
-    }
-    return esc(plural(g.n, 'new client')) + ' for ' + who + '.';
+    if (g.kind === 1) return euro(g.money) + ' of new business for ' + who + '.';
+    if (g.kind === 3) return plural(g.n, 'account') + ' won off a competitor for ' + who + '.';
+    return plural(g.n, 'new client') + ' for ' + who + '.';
+  }
+
+  /* The sentence, once, so the card and the record cannot drift apart. */
+  function campGoalSay(k) {
+    /* Written wins. `campGoal` derives one for every campaign in the book
+       because none of them was ever asked; a campaign somebody filled in by
+       hand has an answer, and a derivation that overrode it would be the
+       product telling the manager what his own campaign is for. */
+    return esc(k.aim || goalSay(campGoal(k)));
   }
 
   function campStand(k) {
@@ -10772,6 +10780,7 @@
 
     if (CBUILD) {
       if (CBUILD.step === 'who') { cbuildWho(t); return; }
+      if (CBUILD.step === 'goal') { say('you', esc(t)); cbuildGoal(t); return; }
       if (CBUILD.step === 'many') {
         const m = cbuildReadMany(t);
         cbuildMany(m.n, m.weeks);
@@ -11710,9 +11719,10 @@
      here come from the clock and never go backwards. */
   let CBUILD = null;
 
-  function cbuildPush(text, opts, hint) {
+  function cbuildPush(text, opts, hint, card) {
     lbuildSpend();
-    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '', step: 'cbuild' });
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '',
+      card: card || '', step: 'cbuild' });
     paintThread();
   }
 
@@ -11754,24 +11764,89 @@
       [], 'Something like \u201clogistics companies in the Netherlands\u201d.');
   }
 
+  /* ══ THE MARKET IS TWO FACTS AND IT TOOK EITHER ═══════════════════════
+     It asked for "a sector and a country at least" and then accepted one of
+     them, because the guard only refused when BOTH were missing — and what
+     it did with the half you never said was fill it in from the top of the
+     list. Say "companies in Belgium" and the campaign came out asserting
+     Software, in its name, in its pitch, in the case study attached to it
+     and in the persona a caller reads before dialling. A default is a fine
+     answer to a question nobody cares about; this is not one of those.
+
+     So each half is asked for until it has one, with the options on screen —
+     answering a builder by clicking should be possible the whole way down.
+     Whatever was read out of the sentence is kept, so the second turn only
+     ever asks for what is still missing. */
   function cbuildWho(text) {
     const pairs = readSaid(text, 'acc');
     const ind = pairs.filter((p) => p[0] === 'industry')[0];
     const cc = pairs.filter((p) => p[0] === 'where')[0];
-    if (!ind && !cc) {
+    TURNS.push({ who: 'you', html: esc(text) });
+    if (ind) CBUILD.industry = ind[1];
+    if (cc) CBUILD.region = regionOfCC(cc[1]);
+    if (!CBUILD.industry && !CBUILD.region) {
       cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
-        '\u201chealthcare in Belgium\u201d — and I will take it from there.', [], '');
+        '\u201chealthcare in Belgium\u201d — or pick from these.',
+        INDUSTRIES.map((x) => ({ k: 'ind-' + x.k, label: x.label })), '');
       return;
     }
-    CBUILD.industry = ind ? ind[1] : null;
-    CBUILD.region = cc ? regionOfCC(cc[1]) : null;
+    cbuildMarket();
+  }
+
+  /* Asked until both halves are in, then on to what it is for. */
+  function cbuildMarket() {
+    if (!CBUILD.industry) {
+      cbuildPush('<b>' + esc(regionLabel(CBUILD.region)) + '</b>. Which sector?',
+        INDUSTRIES.map((x) => ({ k: 'ind-' + x.k, label: x.label })),
+        'The pitch and the case study are chosen from it, so a campaign without ' +
+        'one is a campaign the caller has to invent a story for.');
+      return;
+    }
+    if (!CBUILD.region) {
+      cbuildPush('<b>' + esc(INDUSTRY[CBUILD.industry].label) + '</b>. And where?',
+        REGIONS.map((x) => ({ k: 'reg-' + x.k, label: x.label })),
+        'It is in the name, on the card, and in the first line a caller says.');
+      return;
+    }
+    cbuildGoalStep();
+  }
+
+  /* ══ WHAT IT IS WORTH HAVING WORKED ═══════════════════════════════════
+     The one field the hand-filled page will not run without, and the flow
+     never asked for it: a campaign built here came out with no goal at all
+     and the record derived one off the id, which is the product deciding
+     what the manager's campaign is for.
+
+     The four answers are the four the book already speaks in — logos, money,
+     a foothold, a competitor's account — written from what has just been
+     said, so picking one is picking the sentence the record will print. */
+  function cbuildGoalParts(kind) {
+    const x = SELL[CBUILD.sell];
+    const n = 2 + (Math.abs(hash(CBUILD.sell + ':' + CBUILD.industry + ':goal')) % 3);
+    const band = PRICE[CBUILD.sell] ? PRICE[CBUILD.sell][1] : 40000;
+    return { n: n, forWhom: x ? x.name : 'us', kind: kind,
+      money: Math.round((band * n) / 10000) * 10000,
+      ind: INDUSTRY[CBUILD.industry] ? INDUSTRY[CBUILD.industry].label.toLowerCase() : null,
+      reg: REGION[CBUILD.region] ? REGION[CBUILD.region].label : null };
+  }
+
+  function cbuildGoalStep() {
+    CBUILD.step = 'goal';
+    const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region);
+    cbuildPush('<b>' + esc(said) + '</b>. What is it worth having worked?',
+      [0, 1, 2, 3].map((kind) => ({ k: 'goal-' + kind, label: goalSay(cbuildGoalParts(kind)) })),
+      'The outcome at the end of it, not the calls along the way — say it in ' +
+      'your own words if none of those is it.');
+  }
+
+  function cbuildGoal(aim) {
+    CBUILD.aim = String(aim).slice(0, 120);
     CBUILD.step = 'win';
-    const said = [CBUILD.industry ? INDUSTRY[CBUILD.industry].label : null,
-      CBUILD.region ? regionLabel(CBUILD.region) : null].filter(Boolean).join(' in ');
-    cbuildPush('<b>' + esc(said) + '</b>. What counts as a win on this one?',
-      [{ k: 'win-meeting', label: 'A meeting in the diary' },
-        { k: 'win-conversation', label: 'A real conversation' }],
-      'It is what the campaign gets measured against, so it is the thing a caller is asking for.');
+    cbuildPush('<b>' + esc(CBUILD.aim) + '</b> What are we counting week to week?',
+      [{ k: 'win-meeting', label: 'Meetings in the diary' },
+        { k: 'win-conversation', label: 'Conversations had' }],
+      'The bar the campaign is measured against — not what it is for, which ' +
+      'you have just said.');
   }
 
   function cbuildWin(noun) {
@@ -11782,16 +11857,38 @@
       'Or say it \u2014 \u201c30 by the end of November\u201d.');
   }
 
+  /* ══ IT SHOWS WHAT IT IS ABOUT TO MAKE ════════════════════════════════
+     Five answers went in and sixteen fields came out — the persona, the
+     pitch, the objections and their answers, the one-pagers, the team — all
+     written unseen, and the only thing the last turn restated was the count
+     and the closing date. This is the card the record will carry, drawn by
+     the renderer the record uses, before anything is written. */
+  function cbuildCard() {
+    const x = SELL[CBUILD.sell];
+    const crew = BDRS.map((r) => r.name);
+    return '<div class="b-cmeta b-cb-card">' +
+      draftField('The goal', esc(CBUILD.aim)) +
+      draftField('What we sell them', esc(x ? x.name : '—')) +
+      draftField('Client', 'FlairsTech') +
+      draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
+      draftField('Region', esc(regionLabel(CBUILD.region))) +
+      draftField('The team', esc(listSay(crew))) +
+      draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
+      draftField('Timeframe', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
+        sayDay(dayAdd(CBUILD.weeks * 7)))) +
+    '</div>';
+  }
+
   function cbuildMany(n, weeks) {
     CBUILD.n = n;
     CBUILD.weeks = weeks;
     CBUILD.step = 'name';
     CBUILD.name = cbuildAutoName();
-    cbuildPush('<b>' + commas(n) + ' ' + esc(CBUILD.noun) + 's</b> in ' +
-      esc(plural(weeks, 'week')) + ', so it closes <b>' + esc(sayDay(dayAdd(weeks * 7))) +
-      '</b>. Call it \u201c' + esc(CBUILD.name) + '\u201d?',
+    cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
+      'Nobody is on it yet — a list goes on from its own page.',
       [{ k: 'make', label: 'Make it' }],
-      'Or type a different name and I will use that.');
+      'Or type a different name and I will use that.',
+      cbuildCard());
   }
 
   /* Read a count and a length out of one sentence. Neither is required —
@@ -11929,6 +12026,12 @@
     const askFor = ASK_OF[b.sell];
     const k = {
       id: id, name: b.name || cbuildAutoName(), client: null,
+      /* Asked for, not derived: the record prints what was said here. */
+      aim: b.aim || '',
+      /* And nobody is on it, which is what the toast says and what the
+         campaign's own page is for. The field exists so both ways of making
+         one come out the same shape. */
+      lists: [],
       target: { n: b.n, noun: b.noun },
       persona: { who: askFor,
         at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
@@ -11950,8 +12053,10 @@
       /* Somebody has to work it, and there is one desk that rings. */
       crew: BDRS.map((r) => r.id),
       state: 'running',
-      industry: b.industry || INDUSTRIES[0].k,
-      region: b.region || REGIONS[0].k,
+      /* Both are asked for now, so neither falls back to the top of a list
+         and asserts a market nobody named. */
+      industry: b.industry,
+      region: b.region,
     };
     CBUILD = null;
     DB.camp.push(k);
@@ -11977,6 +12082,9 @@
        behind it rather than sitting over the fields it just handed you. */
     if (key === 'way-hand') { CBUILD = null; lbuildSpend(); closeCanvas(); emptyCamp(); return; }
     if (key.indexOf('sell-') === 0) { cbuildSell(key.slice(5)); return; }
+    if (key.indexOf('ind-') === 0) { CBUILD.industry = key.slice(4); cbuildMarket(); return; }
+    if (key.indexOf('reg-') === 0) { CBUILD.region = key.slice(4); cbuildMarket(); return; }
+    if (key.indexOf('goal-') === 0) { cbuildGoal(goalSay(cbuildGoalParts(+key.slice(5)))); return; }
     if (key === 'win-meeting') { cbuildWin('meeting'); return; }
     if (key === 'win-conversation') { cbuildWin('conversation'); return; }
     if (key === 'many-12') { cbuildMany(20, 12); return; }

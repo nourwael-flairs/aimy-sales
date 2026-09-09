@@ -2954,3 +2954,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The kind line on the left, the two decisions on the right, on one line. */
 .b-draft-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* The read-back's card. The record's own metadata grid, at two columns
+   because a canvas turn is half the width of a page. */
+.b-cb-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px; max-width: 100%;
+}
+@media (max-width: 719.98px) { .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
