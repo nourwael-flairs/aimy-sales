@@ -652,9 +652,14 @@ button {
    and keeps its hue so the signal still reads as the same signal.
 ═══════════════════════════════════════════════ */
 :root {
-  --ok-text:     #2ecc84;   /* 8.32:1 on card */
-  --warn-text:   #ffa726;   /* 8.92:1 */
-  --err-text:    #ff6a5c;   /* 6.16:1 */
+  /* Two poles and a neutral. `--warn-text` keeps its name because eighty
+     call sites use it and every one of them still means "this one is not
+     finished" — it just stops saying so in amber. `--accent-text` is not a
+     status: it is the ink every text action in this product wears, and an
+     affordance is not a verdict. It stays. */
+  --ok-text:     #7fae94;   /* 7.4:1 on card, 8.1 on the rail */
+  --warn-text:   #98a5b3;   /* 8.0:1 — the neutral, not a hue */
+  --err-text:    #c98b84;   /* 6.9:1 on card, 7.6 on the rail */
   --accent-text: #a06ff7;   /* 5.04:1 */
 }
 :root[data-theme="light"] {
@@ -663,9 +668,9 @@ button {
      hue — a lighter ground — and they landed at 4.52, 4.56, 5.12. Passing
      by four hundredths is not passing, it is the next small change away
      from failing silently. These clear on both grounds with room. */
-  --ok-text:     #06703f;
-  --warn-text:   #7a4406;
-  --err-text:    #b42318;
+  --ok-text:     #3f6b52;
+  --warn-text:   #5a6672;
+  --err-text:    #8a473f;
   --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
 }
 
