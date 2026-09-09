@@ -481,9 +481,17 @@
 .b-fn-fill.tone-ok { background: var(--ok-text); }
 .b-fn-fill.tone-warn { background: var(--warn-text); }
 .b-fn-fill.tone-neutral { background: var(--d300); }
+/* Right, like every other column of figures on the page. It carried
+   `tabular-nums` and left alignment, which is the two halves of the job
+   pulling opposite ways: the digits were all one width and then set from the
+   left, so 35 over 9 put the tens of one over the units of the other and the
+   column read ragged down its right edge — the edge the eye compares on. Its
+   own neighbour `.b-fn-conv` was already right, and so are the counts in
+   What is in the way two sections below. The header cell inherits it, so the
+   caption sits over the edge its column is set against. */
 .b-fn-n {
   font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums; text-align: right;
 }
 /* The ways off the ladder. A sentence, not a fourth bar: three counts that
    share one fact — these people are no longer callable — read as a sentence,

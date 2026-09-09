@@ -6289,7 +6289,10 @@
     if (stuck) {
       const h = hourOf(here);
       stops.push({
-        n: stuck, of: members.length, unit: 'person', name: 'called four times, never picked up',
+        /* Capitalised like its three siblings. It is a name in a column of
+           names — "Stopped at reception", "Pricing", "Timing" — and it was
+           the only one starting lower case. */
+        n: stuck, of: members.length, unit: 'person', name: 'Called four times, never picked up',
         sub: 'Past the fourth attempt a fifth is worth less than a colleague.',
         beats: (h ? 'This campaign gets through around ' + h.hour + ':00. ' : '') +
           'Try that hour, or open their company and call somebody else there.',
