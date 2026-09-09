@@ -160,6 +160,23 @@
   /* The verb alone, for a sentence that already carries its own number. */
   const verbFor = (n, one) => (n === 1 ? one : IRREGULAR[one] || one + 's');
 
+  /* ══ A TAG IS A NAME, SO IT IS CAPITALISED LIKE ONE ═════════════════════
+     Sentence case is right for anything with a verb doing work — a button,
+     a cut, a line of prose. A tag is none of those. "Meeting Set" is the
+     NAME of a state; "meeting set" is a thing that happened to somebody.
+     Both words take the capital, the way a proper noun does.
+
+     Past two words it has stopped being a name and become a phrase, and
+     title-casing a phrase turns it into a headline — so those are left
+     alone. The same string can be a tag here and a button there; this runs
+     where the pill is drawn, never on the table it came from. */
+  const tagCase = (s) => {
+    const w = String(s == null ? '' : s).split(' ');
+    return w.length === 2
+      ? w.map((x) => x.replace(/^./, (c) => c.toUpperCase())).join(' ')
+      : String(s == null ? '' : s);
+  };
+
   /* ══ 2. VOCABULARY ══════════════════════════════════════════════════════ */
 
   /* ══ THE LADDER — where one lead stands with this BDR ══════════════════
@@ -173,19 +190,29 @@
      and every stored checkpoint below it keeps its NAME and changes its
      POSITION — so add at the end, or renumber deliberately. */
   const LADDER = [
+    /* ══ A RUNG IS NOT A VERDICT ══════════════════════════════════════
+       Five of these eight were green and one was amber, so green meant
+       five different things and the ladder read as a scoreboard. They are
+       positions on a track: the track says which is further along, and the
+       word says which one it is. The only one that keeps a colour is the
+       last, because reaching the end of the caller's job is the one thing
+       on this list that has actually been decided. */
     { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
     { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
+    /* The one rung that is not only a position: somebody named a time and
+       is expecting the phone to ring. It is also the cut this desk works
+       first, so it earns the one hue on the ladder. */
     { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
-    { k: 'answered',    label: 'Answered',     tone: 'ok',      say: 'you got them on the phone' },
-    { k: 'meeting-set', label: 'Meeting set',  tone: 'ok',      say: 'time in a diary' },
-    { k: 'showed-up',   label: 'Showed up',    tone: 'ok',      say: 'they came to the meeting' },
-    { k: 'interested',  label: 'Interested',   tone: 'ok',      say: 'they want to go further' },
+    { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
+    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', say: 'time in a diary' },
+    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', say: 'they came to the meeting' },
+    { k: 'interested',  label: 'Interested',   tone: 'neutral', say: 'they want to go further' },
     { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
   /* The ways out. Not rungs: a lead does not climb to "declined", it leaves. */
   const EXITS = [
     { k: 'declined',     label: 'Declined',      tone: 'neutral', say: 'they said no' },
-    { k: 'wrong-number', label: 'Wrong number',  tone: 'warn',    say: 'the number is not theirs' },
+    { k: 'wrong-number', label: 'Wrong number',  tone: 'neutral', say: 'the number is not theirs' },
     { k: 'do-not-call',  label: 'Do not call',   tone: 'err',     say: 'they opted out' },
   ];
   const called = Object.create(null);
@@ -203,12 +230,16 @@
      answerphone and rang-out into no-answer, so writing "left a voicemail"
      ticks Not connected without anybody choosing an eighth button. */
   const OUTCOMES = [
-    { k: 'reached',        label: 'Connected',      key: '1', tone: 'ok',      writes: true },
-    { k: 'callback',       label: 'Callback',       key: '2', tone: 'ok',      writes: true },
+    /* Seven ways a call can end, and they are kinds rather than rungs —
+       you press one of these, you do not climb them. The three where
+       somebody actually spoke get a hue; the three where nobody did stay
+       out of the way; the one that shuts the door for good is the verdict. */
+    { k: 'reached',        label: 'Connected',      key: '1', tone: 'teal',    writes: true },
+    { k: 'callback',       label: 'Callback',       key: '2', tone: 'warn',    writes: true },
     { k: 'no-answer',      label: 'No answer',      key: '3', tone: 'neutral', writes: false },
-    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'warn',    writes: true },
+    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'accent',  writes: true },
     { k: 'not-interested', label: 'Not interested', key: '5', tone: 'neutral', writes: true },
-    { k: 'wrong-number',   label: 'Wrong number',   key: '6', tone: 'warn',    writes: true },
+    { k: 'wrong-number',   label: 'Wrong number',   key: '6', tone: 'neutral', writes: true },
     { k: 'do-not-call',    label: 'Do not call',    key: '7', tone: 'err',     writes: true },
   ];
   const OUTCOME = Object.create(null);
@@ -1715,7 +1746,7 @@
   /* What a load applies over the seed. Anything not in here came from the
      seed and is identical on every machine. */
   let DELTA = { v: 1, con: Object.create(null), touch: [], list: [], session: [],
-    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [] };
+    dismissed: [], read: [], made: [], meet: Object.create(null), camp: [], cal: [] };
 
   let saveTimer = null;
   /* A write flags the next paint, so the figures it changed can tick. */
@@ -1776,6 +1807,14 @@
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
+    /* The campaign remembers which lists are on it; the list is told again
+       here, so every other room reads the same answer after a reload. It
+       overrules what the seed says — the seed is where a list starts and this
+       is somebody having moved it — and delta campaigns are concatenated
+       after the seeded ones, so the later claim is the newer one. */
+    DB.camp.forEach((c) => (c.lists || []).forEach((id) => {
+      if (DB.byList[id]) DB.byList[id].for = c.id;
+    }));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
@@ -1811,7 +1850,7 @@
         const d = JSON.parse(raw);
         if (d && d.v === 1) {
           DELTA = Object.assign({ v: 1, con: {}, touch: [], list: [], session: [],
-            dismissed: [], read: [], made: [], meet: {}, camp: [] }, d);
+            dismissed: [], read: [], made: [], meet: {}, camp: [], cal: [] }, d);
           /* The accounts and people a saved list minted come back before the
              contact patches are applied, or a patch would have nothing to
              land on and the list would open on an empty roster. */
@@ -1888,7 +1927,12 @@
      closed campaign stays yours to read, and stops feeding your queue: the
      surface said "past its end date" over a card that said "Work it" and
      84 people to call. */
-  const campOpen = (k) => k.state !== 'done' && k.to >= TODAY_ISO;
+  /* A draft is a campaign nobody has started: it is not closed, it is not
+     running, and nothing on it should be dialled — so every surface that
+     asks "is this live" gets no for a draft, and the one surface that lists
+     what you own says so on the card. */
+  const isDraft = (k) => !!k && k.state === 'draft';
+  const campOpen = (k) => k.state !== 'done' && !isDraft(k) && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
   /* A follow-up that has come due. `overdue` and `dueToday` were separate and
@@ -1927,7 +1971,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'cal'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -1998,6 +2042,10 @@
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
+    /* Every control in the drawer is a way out of it, and a drawer still
+       standing over the page it just sent you to is one you have to dismiss
+       to see what you asked for. */
+    railOpen(false);
     parse();
     paint();
     /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
@@ -2103,7 +2151,8 @@
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'notes' ? notesPage()
-      : S.on === 'cal' ? calPage()
+      : S.on === 'cal' ? diaryPage()
+      : S.on === 'money' ? moneyPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -2155,7 +2204,7 @@
       'style="--i:' + Math.min(i || 0, 8) + '" ' +
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
+        '<span class="tag tag-' + esc(r.tone) + '">' + esc(tagCase(r.label)) + '</span>' +
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
@@ -2469,13 +2518,21 @@
     return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '" ' +
       'style="--i:' + Math.min(i || 0, 8) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
-          (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+        '<span class="tag tag-' + (isDraft(k) ? 'neutral' : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
+          (isDraft(k) ? 'Draft'
+            : left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
+        /* ══ A CARD FOR ONE THAT IS NOT FINISHED BEING WRITTEN ═══════════
+           Every lookup here assumed a complete campaign — `SELL[k.sells[0]]`
+           on a draft with nothing chosen threw, and the whole campaigns page
+           came back empty because one card in it could not be drawn. A draft
+           is a campaign with holes in it by definition, so the card says what
+           is there and stays quiet about what is not. */
         '<span class="tc-type b-fact">' + chIcon('industry') +
-          '<span>' + esc(SELL[k.sells[0]].name) + '</span></span>' +
+          '<span>' + esc(SELL[k.sells[0]] ? SELL[k.sells[0]].name : 'Nothing chosen yet') +
+          '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
-        esc(k.name) + '</button>' +
+        esc(k.name || 'Unnamed campaign') + '</button>' +
       /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
          `.tc-summary` is the shell's description slot — 11.5px at --d400,
          the quietest thing on the card — and what sat in it was `k.goal`,
@@ -2496,19 +2553,27 @@
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
       '<p class="tc-summary b-qcard-what"><b>Goal</b> ' + campGoalSay(k) + '</p>' +
-      (campOpen(k)
+      (isDraft(k)
+        ? '<div class="b-qcard-why">' + (members.length
+          ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
+          : 'Nobody on it yet') + '</div>'
+        : campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
           (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
           (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '') + '</div>'
         : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
           '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
-      aimyBlock(campSays(k, q, back, fresh, left)) +
+      /* Nothing has happened on a draft, so there is nothing to read off it
+         and a reading invented from an empty campaign is the one thing this
+         block must never do. */
+      (isDraft(k) ? '' : aimyBlock(campSays(k, q, back, fresh, left))) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num b-fact">' + chIcon('user') +
           '<span>' + esc(actor(k.owner).name) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
-          '" type="button" data-camp="' + esc(k.id) + '">' + (campOpen(k) ? 'Work it' : 'Open') + '</button>' +
+          '" type="button" data-camp="' + esc(k.id) + '">' +
+          (isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
   }
@@ -2840,7 +2905,11 @@
     if (isMgr()) {
       const live = q.filter(dealLive);
       const now = live.filter((c) => dealRank(c) <= 2);
-      const worth = live.reduce((n, c) => n + amountOf(c), 0);
+      /* What is in the diary between now and this day next week. The pill
+         here used to be the open figure, which the door under this card now
+         carries at four times the size — so the slot goes to the one fact
+         the rail holds and nothing else on any surface does. */
+      const week = meetings(TODAY_ISO, dayAdd(7)).length;
       return {
         eyebrow: 'Your book', subject: null,
         card: {
@@ -2849,7 +2918,8 @@
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
               ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
             : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
-          evidence: [{ val: euro(worth), cap: 'open' }, { val: camps.length, cap: 'campaigns' }],
+          evidence: [{ val: commas(week), cap: 'in the diary this week' },
+            { val: camps.length, cap: 'campaigns' }],
           act: null, q: null,
         },
       };
@@ -3056,7 +3126,15 @@
       touched.push({ id: c.id, add: add });
     });
     const dl = l ? DELTA.list.filter((x) => x.id === id)[0] : null;
-    if (l && !l.for) { l.for = ks[0].id; if (dl) dl.for = ks[0].id; }
+    /* And the campaign is told, because `l.for` alone does not survive the
+       night: a seeded list is rebuilt from the seed on every load, and only
+       the campaign is in `DELTA.camp`. Without this the people stayed on the
+       campaign and the list said it was still on the one the seed named. */
+    if (l && !l.for) {
+      l.for = ks[0].id;
+      if (dl) dl.for = ks[0].id;
+      campSet(ks[0], { lists: (ks[0].lists || []).concat([id]) });
+    }
     if (!touched.length) {
       toast('They are all on ' + listSay(ks.map((k) => k.name)) + ' already.');
       return;
@@ -3069,9 +3147,39 @@
         const c = DB.byCon[x.id];
         patchCon(c, { camps: c.camps.filter((y) => x.add.indexOf(y) < 0) });
       });
-      if (l) { l.for = before; if (dl) dl.for = before; }
+      if (l) {
+        l.for = before;
+        if (dl) dl.for = before;
+        campSet(ks[0], { lists: (ks[0].lists || []).filter((x) => x !== id) });
+      }
       reindex(); save(); paint();
     });
+  }
+
+  /* ══ A LIST GOES ON, AND COMES BACK OFF ════════════════════════════════
+     `putOn` only ever attaches, because everywhere else in the product the
+     act is "put these people on that campaign" and there is nothing to take
+     back. A multiselect has to be able to un-tick, so this is the pair: the
+     same two writes, run in both directions.
+
+     Which lists are on a campaign is kept ON THE CAMPAIGN. `l.for` alone
+     would not survive the night — only lists this browser built are in
+     `DELTA.list`, so a seeded list would be back to the seed's answer every
+     morning while its people still carried the campaign in `camps`. The
+     campaign is in `DELTA.camp` from the moment it exists, so it is the half
+     that remembers, and `reindex` tells the list again. */
+  function listOnCamp(id, k) {
+    const l = DB.byList[id];
+    if (!l || (l.for && l.for !== k.id)) return;
+    const dl = DELTA.list.filter((x) => x.id === id)[0];
+    const off = l.for === k.id;
+    l.has.map((x) => DB.byCon[x]).filter(Boolean).forEach((c) => {
+      if (off) patchCon(c, { camps: c.camps.filter((y) => y !== k.id) });
+      else if (c.camps.indexOf(k.id) < 0) patchCon(c, { camps: c.camps.concat([k.id]) });
+    });
+    l.for = off ? null : k.id;
+    if (dl) dl.for = l.for;
+    campSet(k, { lists: (k.lists || []).filter((x) => x !== id).concat(off ? [] : [id]) });
   }
 
   /* ══ THE HAND-OVER NAMES ITS MANAGER ═══════════════════════════════════
@@ -3131,6 +3239,7 @@
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
+    if (S.on === 'money') return backBtn('data-back', 'Back to today');
     if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
   }
@@ -3153,15 +3262,39 @@
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
       (isMgr()
+        /* ══ BOTH, BECAUSE THEY ARE TWO DIFFERENT QUESTIONS ═════════════
+           The gate under Today answers "what is on today" without leaving
+           the page, which is the right shape for a glance and the reason it
+           was built. It is the wrong shape for the other half of the job:
+           reading a month, stepping through it, and working the meetings
+           that have been and gone with nothing written down. That is a list
+           you sit with, and a list you sit with is a page.
+
+           They are the same component either way — `calBody` draws the
+           month and the day, and the only difference is what it stands in. */
         ? one('today', 'Today', null, cleared()) +
           one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
-          one('cal', 'Diary', meetings(TODAY_ISO, dayAdd(30)).length,
-            Object.assign(cleared(), { on: 'cal' }))
+          one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
         : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
     '</h2>';
+  }
+
+  /* The rail, the scrim over the page behind it and the button that says
+     which way it is, in one place. Above 918px the drawer rules do not
+     apply and the class does nothing, which is why there is no breakpoint
+     in here. */
+  function railOpen(on) {
+    byId('appRail').classList.toggle('is-open', on);
+    byId('railScrim').classList.toggle('is-open', on);
+    const b = byId('railToggle');
+    if (b) {
+      b.setAttribute('aria-expanded', String(on));
+      b.setAttribute('aria-label', on ? 'Close what is here' : 'Open what is here');
+    }
+    if (on) { try { byId('appRail').focus({ preventScroll: true }); } catch (e) {} }
   }
 
   function paintRail() {
@@ -3187,7 +3320,9 @@
               (c.q ? ' data-q="' + esc(c.q) + '"' : ' data-home') + '>' + esc(c.act) + '</button>'
             : '') +
         '</div>' +
-      '</div>';
+      '</div>' +
+      /* Only this desk has a day and a book to stand here. */
+      (isMgr() ? railDoors() : '');
   }
 
   /* ══ THE PILL IS THE DOOR TO THE OTHER DESK ════════════════════════════
@@ -3240,48 +3375,6 @@
      that do, and the board one tab along holds the rest. */
   /* Today's diary, at the top of today. Three at most and a door — a month
      grid inside a briefing is the block that ate two thirds of the page. */
-  function dayBlock() {
-    const on = meetingsOn(TODAY_ISO);
-    const un = unrecorded().length;
-    if (!on.length) {
-      return '<section class="s-block s-block-wide" aria-label="Your day">' +
-        '<h2 class="s-block-h">Your day</h2>' +
-        '<p class="s-block-sub">Nothing in the diary today.' +
-          (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
-            ' still unrecorded.' : '') + ' ' +
-          '<button class="s-inline-btn" type="button" data-go="' +
-            esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">Open the diary</button>' +
-        '</p>' +
-      '</section>';
-    }
-    return '<section class="s-block s-block-wide" aria-label="Your day">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Your day</h2>' +
-        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the diary</span>' +
-      '</div>' +
-      '<div class="b-cal-agenda b-day">' +
-        on.slice(0, 3).map((m, i) => {
-          const k = MEET_KIND[m.kind];
-          return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
-            'style="--i:' + Math.min(i, 8) + '">' +
-            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
-            '<span class="b-cal-ename">' + esc(m.con.name) +
-              '<span class="b-cal-ewhat">' + esc(m.title) +
-                (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
-            '</span>' +
-            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
-          '</button>';
-        }).join('') +
-      '</div>' +
-      (on.length > 3
-        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">The other ' +
-          commas(on.length - 3) + ' in the diary</button></div>'
-        : '') +
-    '</section>';
-  }
-
   /* ══ WHAT YOU SAID, BY THE DAY YOU SAID IT ═════════════════════════════
      The notebook these managers still carry is not a filing system — it is
      a running page of what happened, and its whole advantage is that you
@@ -3342,7 +3435,15 @@
     const more = now.length - rows.length;
     return '<div class="s-home">' +
       topBrief('today') +
-      dayBlock() +
+      /* ══ TWO THINGS THAT ARE NOT PLACES ═══════════════════════════════
+         The diary and the numbers are both things this desk looks AT rather
+         than works IN, so neither belongs in the switcher beside Today and
+         Deals — a tab says "this is one of the rooms you live in", and these
+         are two you glance into. They sit under the briefing as a pair of
+         gates, each carrying the one fact that says whether it is worth
+         opening: how much is in the diary today, and what the book is worth.
+         One opens where it stands; the other is a page, because a report is
+         something you read down. */
       '<section class="s-block s-block-wide" aria-label="What wants you today">' +
         '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
         (rows.length
@@ -3506,7 +3607,6 @@
      these to the rule that colours it. */
   const DOT_CLASS = { meeting: 'b-cal-dot k-meeting', demo: 'b-cal-dot k-demo',
     dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', owed: 'b-cal-dot k-owed' };
-  const calDay = () => (S.cal && /^\d{4}-\d{2}-\d{2}$/.test(S.cal) ? S.cal : TODAY_ISO);
   /* The same day next month, or the last of it — 31 January plus a month is
      not 3 March. */
   function monthStep(iso, step) {
@@ -3517,20 +3617,90 @@
     return isoDay(new Date(t.getFullYear(), t.getMonth(), Math.min(want, last)));
   }
 
-  function calPage() {
-    const sel = calDay();
+  /* ══ THE DIARY IS A PANEL, NOT A PLACE ═════════════════════════════════
+     A month grid was a tab of its own beside Today, Deals, Campaigns and
+     Lists — which put "what am I doing on the 14th" on the same footing as
+     the four surfaces this desk actually works in, and made a glance at next
+     Tuesday a navigation with a way back. A diary is not somewhere you go.
+     It is something you open, look at, and shut.
+
+     So it is a `.b-menu` panel: the build's one popover idiom, which brings
+     one-open-at-a-time, Escape and an outside click with it, and closes when
+     you press a meeting because opening a record IS somewhere you go.
+
+     THE MONTH TURNS IN THE DOM, NOT THROUGH THE URL. `go()` repaints, and a
+     repaint under an open panel is the panel closing in the hand using it —
+     the same reason the pickers do their choosing in the DOM. `CALSEL` holds
+     the day the panel is showing for exactly as long as it is open. */
+  let CALSEL = null;
+
+  /* A row on the day you are reading: the hour, what kind of thing it is,
+     who it is with and what it says about itself. */
+  function calRow(m, i) {
+    const k = MEET_KIND[m.kind];
+    return (m.con.id
+      ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
+      : '<div class="b-cal-ev is-plain" ') +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="b-cal-evtop">' +
+        '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+        '<span class="b-cal-etime">' +
+          esc(m.h == null ? 'all day' : clockOf(m)) + '</span>' +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span>' +
+      '</span>' +
+      '<span class="b-cal-ename">' + esc(m.con.name) +
+        '<span class="b-cal-ewhat">' + esc(m.title) +
+          (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
+        '</span>' +
+      '</span>' +
+    (m.con.id ? '</button>' : '</div>');
+  }
+
+  /* ══ AND A ROW ABOUT A DAY YOU ARE NOT ON ══════════════════════════════
+     Drawn as the row above, three of what is coming made the column taller
+     than the month beside it — the empty half filled and then some, which
+     is the same fault the other way round. And it read wrong before it
+     measured wrong: a meeting next Friday given the same weight as the one
+     at eight tonight says the two are the same kind of fact.
+
+     So it is a line rather than a block. When, who, and the colour of the
+     thing — enough to know whether to press it, and nothing that competes
+     with the day you actually opened. */
+  function calNext(m, i) {
+    return (m.con.id
+      ? '<button class="b-cal-nrow" type="button" data-con="' + esc(m.con.id) + '" '
+      : '<div class="b-cal-nrow is-plain" ') +
+      'style="--i:' + Math.min(i, 8) + '">' +
+      '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+      '<span class="b-cal-nwhen">' + esc(sayDay(m.iso)) +
+        (m.h == null ? '' : ' · ' + esc(clockOf(m))) + '</span>' +
+      '<span class="b-cal-nwho">' + esc(m.con.name) + '</span>' +
+    (m.con.id ? '</button>' : '</div>');
+  }
+
+  function calBody(selIn) {
+    const sel = selIn || TODAY_ISO;
     const d = new Date(sel + 'T00:00:00');
     const y = d.getFullYear(), mo = d.getMonth();
     /* Monday first: the book is EMEA and so is everybody reading this. */
     const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
     const start = new Date(y, mo, 1 - lead);
     const cells = [];
-    for (let i = 0; i < 42; i++) {
+    /* ══ AS MANY WEEKS AS THE MONTH HAS ═══════════════════════════════
+       Six rows every month, always — so September 2026, which runs Monday
+       the 31st of August to Sunday the 4th of October in five, drew a sixth
+       holding the 5th to the 11th of the month after. Forty-six pixels of
+       calendar about a month you are not looking at, on a panel that was
+       fighting for forty. Most months need five; the ones that genuinely
+       span six still get six. */
+    const span = lead + new Date(y, mo + 1, 0).getDate();
+    const n = span > 35 ? 42 : 35;
+    for (let i = 0; i < n; i++) {
       const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
       cells.push({ iso: isoDay(dt), day: dt.getDate(), out: dt.getMonth() !== mo,
         end: dt.getDay() === 0 || dt.getDay() === 6 });
     }
-    const all = meetings(cells[0].iso, cells[41].iso);
+    const all = meetings(cells[0].iso, cells[cells.length - 1].iso);
     const byDay = Object.create(null);
     all.forEach((m) => (byDay[m.iso] || (byDay[m.iso] = [])).push(m));
     const inMonth = all.filter((m) => {
@@ -3544,7 +3714,7 @@
       return '<button class="' +
         ('b-cal-day' + (c.out ? ' is-out' : '') + (c.iso === sel ? ' is-sel' : '') +
           (c.iso === TODAY_ISO ? ' is-today' : '') + (c.end ? ' is-end' : '')) +
-        '" type="button" data-cal="' + esc(c.iso) + '" ' +
+        '" type="button" data-calpick="' + esc(c.iso) + '" ' +
         'aria-label="' + esc(sayDay(c.iso) + ', ' + plural(on.length, 'thing')) + '"' +
         (c.iso === sel ? ' aria-current="date"' : '') + ' style="--i:' + (i % 7) + '">' +
         '<span class="b-cal-bg"></span>' +
@@ -3556,56 +3726,236 @@
     }).join('');
 
     const agenda = today.length
-      ? today.map((m, i) => {
-        const k = MEET_KIND[m.kind];
-        return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
-          'style="--i:' + Math.min(i, 8) + '">' +
-          '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-          '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
-          '<span class="b-cal-ename">' + esc(m.con.name) +
-            '<span class="b-cal-ewhat">' + esc(m.title) +
-              (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
-          '</span>' +
-          '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
-        '</button>';
-      }).join('')
-      : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
+      ? today.map((m, i) => calRow(m, i)).join('')
+      : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
 
-    return '<div class="s-home">' +
-      '<section class="s-block s-block-wide" aria-label="The diary">' +
-        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
-        '<div class="b-cal">' +
+    /* ══ AND WHAT IS AFTER IT ═════════════════════════════════════════════
+       Beside a month five rows tall, a day with two things in it leaves two
+       hundred pixels of column with nothing in it — and the answer to that
+       is not to stretch two rows to fill it, it is to put something worth
+       having there. What is coming is the thing this page could not say:
+       the dots on the month tell you WHICH days have something on them and
+       the column now tells you what.
+
+       Forward only, from the day you are standing on, and three of them: it
+       is the tail of a column, not a second agenda. Empty at the end of the
+       diary, where a shorter column is the honest answer. */
+    const from = new Date(sel + 'T00:00:00');
+    const at = (n) => isoDay(new Date(from.getFullYear(), from.getMonth(), from.getDate() + n));
+    const soon = meetings(at(1), at(60)).slice(0, 3);
+
+    /* ══ THE MONTH BESIDE THE DAY, NOT ABOVE IT ══════════════════════════
+       Stacked, this ran 644px: 336 of month over 163 of agenda, and it hung
+       off a card 582px down a 698px window — so there were 116px below it
+       and it opened as a letterbox you had to scroll twice to read. Neither
+       half can shrink; the type is already at the floor where a date is
+       legible. Side by side they stop competing for height and share width
+       instead, which is the axis a page has spare, and the taller half sets
+       the height rather than the sum of both. The rule that separates them
+       turns with them — a divider between two columns is vertical.
+
+       ══ AND THE HEAD IS PART OF THE MONTH, NOT A LABEL ABOVE IT ══════════
+       The name and the two steppers stood on the page's own ground with the
+       card starting underneath them, so the card read as something the
+       heading pointed at rather than as the thing the heading belongs to —
+       and the controls that change what is inside the card sat outside it.
+       They are in it now, across the top of both columns, separated by the
+       same inset rule that already stands between the month and the day. */
+    return '<div class="b-cal">' +
+        '<div class="b-cal-panel">' +
           '<div class="b-cal-head">' +
             '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
               '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
             '<div class="b-cal-nav">' +
-              '<button class="b-cal-btn is-word" type="button" data-cal="' + esc(TODAY_ISO) +
+              '<button class="b-cal-btn is-word" type="button" data-calstep="' + esc(TODAY_ISO) +
                 '">Today</button>' +
-              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, -1)) +
+              '<button class="b-cal-btn" type="button" data-calstep="' + esc(monthStep(sel, -1)) +
                 '" aria-label="The month before">' + chIcon('back') + '</button>' +
-              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, 1)) +
+              '<button class="b-cal-btn" type="button" data-calstep="' + esc(monthStep(sel, 1)) +
                 '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
             '</div>' +
           '</div>' +
-          '<div class="b-cal-panel">' +
-            '<div class="b-cal-week">' +
-              WD_SHORT.map((w, i) => '<span class="' +
-                (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+            '<div class="b-cal-mo">' +
+              '<div class="b-cal-week">' +
+                WD_SHORT.map((w, i) => '<span class="' +
+                  (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+              '</div>' +
+              '<div class="b-cal-grid" role="grid" aria-label="' +
+                esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
             '</div>' +
-            '<div class="b-cal-grid" role="grid" aria-label="' +
-              esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
-            '<div class="b-cal-rule"></div>' +
-            '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
-              ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
-            '<div class="b-cal-agenda">' + agenda + '</div>' +
-            '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
-              '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
-              'Put something in the diary</button>' +
+            '<div class="b-cal-side">' +
+              /* ══ YOUR DAY IS THE DAY YOU ARE LOOKING AT ═══════════════
+                 "Your day" was a section of its own on Today, listing the
+                 same meetings this column lists, because on a page with no
+                 month to step through the two could not disagree. On the
+                 diary they can — and the one you are looking at is the one
+                 you picked — so there is one list and its heading says which
+                 day it is. The weekday gives way to the more useful word on
+                 the one day the reader already knows the weekday for. */
+              '<h4 class="b-cal-cap">' +
+                esc((sel === TODAY_ISO ? 'Today' : DAY_FULL[d.getDay()]) + ', ' + sayDay(sel)) +
+                ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
+              '<div class="b-cal-agenda">' + agenda + '</div>' +
+              /* The prompt is the sentence AiMY can act on, not a hint that
+                 something might work. "Meeting with " read as the start of a
+                 note about a meeting and came back as conversation; "Add to
+                 calendar:" is the one opening the reader below is built for,
+                 so whatever follows it lands in the calendar. */
+              '<button class="b-cal-add" type="button" data-fill="Add to calendar: ">' +
+                '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
+                'Add to calendar</button>' +
+              /* Adding to the calendar belongs to the day above it, so it
+                 stays with that day and what is coming sits after it. */
+              (soon.length
+                ? '<div class="b-cal-next">' +
+                  '<h4 class="b-cal-cap">Next in the diary</h4>' +
+                  '<div class="b-cal-agenda">' +
+                    soon.map((m, i) => calNext(m, i)).join('') +
+                  '</div>' +
+                '</div>'
+                : '') +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        openLoop() +
-      '</section>' +
+        '</div>';
+  }
+
+  /* ══ A GATE CARRIES THE REASON TO OPEN IT ═══════════════════════════════
+     A door labelled "The diary" is a menu item. A door that says three
+     things are in it and the first is at ten is a fact you can act on
+     without opening anything — which is what stops these two reading as
+     navigation. Neither says "open" or "view": the label is the thing, the
+     line under it is where that thing stands. */
+  /* ══ A DOOR IS A SPECIMEN OF WHAT IS BEHIND IT ═════════════════════════
+     The first cut of these two was an icon in a circle, a heading and a line
+     of grey underneath — twice, side by side, at identical size. That is the
+     shape every dashboard in the world puts its navigation in, and it was
+     navigation: nothing on either one told you anything you did not already
+     know from its label, so the only reason to press was to find out.
+
+     They are drawn as small readings instead. The diary door IS the day: a
+     rail from eight to nine at night with today's meetings sitting on it at
+     the hour they happen, in the same colours the calendar uses, so the
+     shape of the day is legible before anything opens — three in the morning
+     and nothing after reads differently from one dinner at eight. The
+     numbers door IS the figure, at the size a figure that size deserves,
+     over a bar in the proportion the board actually stands at.
+
+     No icons on either. An icon beside a word is what you reach for when the
+     word is all you have; both of these have the thing itself. And the pair
+     is asymmetric — the rail needs the room, the figure does not — because
+     two equal halves is the other tell of a control tray. */
+  /* A RAIL WITH ONE DOT ON IT IS A LINE. The day was drawn as an eight-to-
+     nine scale with the meetings standing where they happen, which is a good
+     drawing of a full day and an empty one of a real one: most days on this
+     desk hold one or two things, so what the card actually showed was a
+     hundred and forty pixels of hairline with a dot near the end.
+
+     It leads with the time instead, at the size the other card leads with its
+     figure — the two are the same shape now, a caption over the one number
+     that matters over the thing it belongs to over the count. A time and an
+     amount are both figures, both tabular, and both the first thing anybody
+     wants off these two surfaces. */
+  function dayHead() {
+    const on = meetingsOn(TODAY_ISO);
+    const timed = on.filter((m) => m.h != null);
+    const first = timed[0] || on[0];
+    if (!on.length) {
+      const soon = meetings(dayAdd(1), dayAdd(14));
+      return '<span class="b-door-fig is-quiet">Clear</span>' +
+        '<span class="b-door-who">Nothing is in the calendar</span>' +
+        '<span class="b-door-say">' + (soon.length
+          ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
+          : 'and nothing in the fortnight ahead') + '</span>';
+    }
+    const k = MEET_KIND[first.kind];
+    /* The mark only where there is a time to mark. "All day" is the absence
+       of one and "Clear" is the absence of the whole day, and a clock face
+       beside either says the opposite of what the word does. The other card
+       needs no mark for the same reason its figure already carries one: a
+       euro sign is what a clock is to a time. */
+    return '<span class="b-door-fig">' +
+        (first.h == null ? 'All day'
+          : '<span class="b-door-clock">' + chIcon('clock') + '</span>' + esc(clockOf(first))) +
+      '</span>' +
+      '<span class="b-door-who">' + esc(first.con.name) +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span></span>' +
+      '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
+        ' in the calendar today</span>';
+  }
+
+  /* Open, signed and lost as one bar in the proportion they stand at, so the
+     figure above it is not the only thing said about the book. */
+  function bookBar() {
+    const all = queue(null, 'all');
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const open = sum(all.filter(dealLive));
+    const won = sum(all.filter((c) => stageOf(c) === 'won'));
+    const lost = sum(all.filter((c) => stageOf(c) === 'lost'));
+    const tot = open + won + lost || 1;
+    const seg = (cls, v) => (v ? '<span class="' + cls + '" style="width:' +
+      ((v / tot) * 100).toFixed(1) + '%"></span>' : '');
+    return '<span class="b-door-bar">' +
+      seg('b-door-seg is-open', open) +
+      seg('b-door-seg is-won', won) +
+      seg('b-door-seg is-lost', lost) +
+    '</span>';
+  }
+
+  /* ══ NOT THE NUMBER THE CARD ABOVE IT ALREADY SAID ═════════════════════
+     "27 open" sat under this figure while the reading card two inches above
+     said "out of the 27 you are running" — the same fact twice in one
+     column, and the count belongs to the card whose sentence is about what
+     wants you. What this door has and nothing else does is where the money
+     is standing: commercial is the last stage before somebody signs, so it
+     is the half of the bar worth naming. */
+  function bookSay() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    const won = all.filter((c) => stageOf(c) === 'won').length;
+    const com = live.filter((c) => stageOf(c) === 'commercial');
+    const sum = com.reduce((n, c) => n + amountOf(c), 0);
+    return (sum
+      ? euro(sum) + ' in ' + DEAL_STAGE.commercial.label.toLowerCase()
+      : commas(live.length) + ' open') +
+      (won ? ' · ' + commas(won) + ' signed' : '');
+  }
+
+  /* The promise, at the foot of both cards so the two line up whatever
+     height the middle of them runs to. */
+  function doorGo(label) {
+    return '<span class="b-door-go">' + esc(label) + chIcon('fwd') + '</span>';
+  }
+
+  /* ══ THE TWO STANDING FACTS STAND IN THE RAIL ══════════════════════════
+     Neither of these is a thing to do. They are what the day and the book
+     look like right now, which is exactly what the rail is for and what
+     every other block on Today is not — and the rail comes with you. The
+     clock and the money were on one page; they are beside you on all of
+     them now, which on a desk that spends the day in other people's rooms
+     is the whole point of having them at all.
+
+     The calendar's card opened a panel where it stood, which was the right
+     answer for as long as the diary had nowhere else to be. Hanging off a
+     rail card it would open from the far left across the page, which is an
+     overlay with another name and the one thing this build refuses. The
+     diary is a page now, so the gate is a gate. */
+  function railDoors() {
+    const worth = queue(null, 'all').filter(dealLive).reduce((n, c) => n + amountOf(c), 0);
+    return '<div class="rail-doors">' +
+      '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
+        '<span class="b-door-cap">Today</span>' + dayHead() +
+        doorGo('Open the diary') +
+      '</button>' +
+      '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
+        '<span class="b-door-cap">The numbers</span>' +
+        '<span class="b-door-fig">' + esc(euro(worth)) + '</span>' +
+        bookBar() +
+        '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
+        doorGo('Open the report') +
+      '</button>' +
     '</div>';
   }
 
@@ -3635,6 +3985,70 @@
     '</div>';
   }
 
+  /* What is left in it this month. The tab counts what is still ahead of
+     you, which is the question a diary is open for; the month's own badge
+     counts the whole month, which is the question the page is answering once
+     you are on it. Two numbers because they are two facts, and the one on
+     the tab is the one you can act on. */
+  function diaryLeft() {
+    const d = new Date(TODAY_ISO + 'T00:00:00');
+    return meetings(TODAY_ISO, isoDay(new Date(d.getFullYear(), d.getMonth() + 1, 0))).length;
+  }
+
+  /* ══ THE DIARY, AS A SURFACE ═══════════════════════════════════════════
+     The month, the day under it, and the meetings nobody wrote down. Stacked
+     rather than side by side: the panel goes landscape only inside the
+     pop-out, where width is the axis with room to spare and height is the
+     axis that clips. A page has the height. */
+  function diaryPage() {
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The diary">' +
+        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
+        '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
+        openLoop() +
+      '</section>' +
+    '</div>';
+  }
+
+  /* ══ THE NUMBERS — A ROOM WITH ITS SHAPE DRAWN AND NOTHING IN IT ═══════
+     A financial report is a real surface with real questions behind it —
+     what closed, at what margin, against what target, by whom — and none of
+     them are answered by this build yet. What is here is the frame: the
+     figures the corpus can honestly carry today, and a plain statement of
+     what is missing. A placeholder that pretends to be finished is worse
+     than an empty room, because somebody demos it and finds out live. */
+  function moneyPage() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    const won = all.filter((c) => stageOf(c) === 'won');
+    const lost = all.filter((c) => stageOf(c) === 'lost');
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const fig = (cap, val, sub) => '<div class="s-af">' +
+      '<span class="s-af-cap">' + esc(cap) + '</span>' +
+      '<span class="s-af-val">' + esc(val) + '</span>' +
+      '<span class="s-af-sub">' + esc(sub) + '</span>' +
+    '</div>';
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The numbers">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">The numbers</h2>' +
+          '<span class="s-block-say">' + esc(plural(all.length, 'deal')) +
+            ' on your board</span>' +
+        '</div>' +
+        '<div class="s-afs">' +
+          fig('Open', euro(sum(live)), plural(live.length, 'deal') + ' still running') +
+          fig('Signed', euro(sum(won)), plural(won.length, 'deal') + ' closed won') +
+          fig('Lost', euro(sum(lost)), plural(lost.length, 'deal') + ' closed lost') +
+          fig('Average', live.length ? euro(Math.round(sum(live) / live.length)) : '—',
+            'across what is open') +
+        '</div>' +
+        '<p class="b-vfoot">Every figure here is modelled from what we sell and how ' +
+          'big the account is. The report itself — what closed against target, by ' +
+          'month, by campaign and by whoever closed it — is not built yet.</p>' +
+      '</section>' +
+    '</div>';
+  }
+
   /* ══ THE CAMPAIGNS YOU ARE ON ═══════════════════════════════════════════
      Its own surface, not a block under a thousand people. Paged like every
      other worklist, because fourteen today is forty next quarter. */
@@ -3647,11 +4061,18 @@
     return '<div class="s-home">' +
       topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
+        /* ══ THE WAY IN IS WHERE EVERY OTHER WAY IN IS ═══════════════════
+           Two buttons stood here — one for each way of making a campaign —
+           beside the switcher and the search, which is the row for finding
+           the campaigns that already exist rather than the row for making
+           one. And a choice between two ways of doing a thing is not two
+           doors: it is one door and a question, which is exactly how
+           finding leads already works.
+
+           So the door is Build a campaign, in the brief above with the
+           other three ways to start the day, and the question is the first
+           thing the canvas asks. */
         '<div class="s-camp-list-head">' + switcher('camps') +
-          (isMgr()
-            ? '<button class="s-insight-lnk primary" type="button" data-start="newcamp">' +
-              'New campaign</button>'
-            : '') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
         /* The count is on the switcher, the order is visible in the order,
            and what each card says is said by the card. */
@@ -3743,10 +4164,33 @@
             : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
     }
     if (isMgr()) {
-      return all.length
+      /* ══ A DESK THAT IS IN MEETINGS ALL DAY IS TOLD ABOUT THE MEETINGS ══
+         The sentence counted leads and campaigns and said nothing at all
+         about the day, on the one desk that spends most of it in rooms with
+         other people. What is in the diary goes first, because it is the
+         only part of this paragraph with a clock on it — the leads will
+         still be there at six. */
+      const on = meetingsOn(TODAY_ISO);
+      const first = on.filter((m) => m.h != null)[0];
+      /* Never written down moved to the diary with the day it belongs to,
+         and it is the only p1 this desk has — so the paragraph names it and
+         the phrase is the way there. Silence about it on the surface a
+         manager opens first is how it goes on being unwritten. */
+      const un = unrecorded().length;
+      const owed = un
+        ? ' <button class="slv-n" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
+          esc(plural(un, 'meeting')) + '</button> ' + (un === 1 ? 'has' : 'have') +
+          ' been and gone with nothing said about ' + (un === 1 ? 'it' : 'them') + '.'
+        : '';
+      const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
           ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
         : 'Nothing has been handed to you yet.';
+      if (!on.length) return 'Nothing is in the calendar today.' + owed + ' ' + book;
+      return '<b>' + plural(on.length, 'thing') + '</b> in the calendar today' +
+        (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
+          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book;
     }
     return openerText(counts, all, camps);
   }
@@ -3870,9 +4314,19 @@
       opens = [
         { k: 'callnext', label: 'Warm-call the next one',
           why: top ? esc(top.name) + ' is top of your deals' : 'nothing is waiting on a call' },
-        { k: 'prep', label: 'Prepare me',
-          why: top ? 'the brief on ' + esc(top.name) + ' before you dial'
-            : 'nothing to prepare for yet' },
+        /* ══ THE BRIEF IS NOT A WAY TO START ═══════════════════════════
+           "Prepare me" sat here offering the brief on whoever is top of the
+           deals — which is the sheet the record itself hands you, the bell
+           hands you, and the day block hands you at the row for the meeting
+           it is about. Three doors onto one sheet, and this was the only one
+           that had to guess who you meant.
+
+           A campaign is the other half of the job and had no door on this
+           page at all: a manager who wanted a new one had to go to Campaigns
+           to start it, which is the surface for the ones that already exist.
+           So the slot goes to the thing that could not be done from here. */
+        { k: 'newcamp', label: 'Build a campaign',
+          why: 'what you sell, to whom, and how many you want' },
         /* The board is already the tab beside this one and the door under
            the cards; a third way in is not a way in. This slot goes to the
            thing the desk could not do at all. */
@@ -4317,7 +4771,7 @@
           esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div><span>' + esc(l.crit) + '</span></div>' +
@@ -5205,7 +5659,7 @@
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Looking · ' + esc(kind) + ' · via ' + esc(f.name) + '</span>' +
         '<div class="s-rec-title"><h1 class="s-rec-name">' + esc(buildName()) + '</h1>' +
-          '<span class="s-meta-st tone-warn">not saved</span></div>' +
+          '<span class="s-meta-st tone-warn">Not Saved</span></div>' +
         '<div class="s-rec-facts"><div><span>' + esc(describeTerms(terms())) + '</span></div></div>' +
       '</section>' +
       '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
@@ -5347,7 +5801,7 @@
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
-        '<span class="work-state ws-staged" data-work-state="staged">Awaiting you</span>' +
+        '<span class="work-state ws-staged" data-work-state="staged">Awaiting You</span>' +
       '</div>' +
       '<p class="s-lead-deck">This list is not saved. <b>' + esc(plural(n, 'person')) +
         '</b> came back and nothing is working them.</p>' +
@@ -5668,6 +6122,142 @@
 
      ONLY CAMPAIGNS YOU ARE ON. A URL to any other one says so and stops,
      rather than rendering somebody else's work as though it were yours. */
+  /* ══ A DRAFT IS THE SAME PAGE, ANSWERABLE ══════════════════════════════
+     Not a form on a surface of its own. The campaign page already says what
+     a campaign is — its market, its window, what we sell them, whose it is —
+     and a draft is that page with the answers missing, so it is that page
+     with the answers as fields. Learn it once.
+
+     Nothing derived is drawn here. No lead reading, no funnel, no blockers,
+     no queue: every one of them is a sentence about calls that have not
+     happened, and a campaign with nothing on it reading "0% got through" is
+     the product inventing a fact about an empty room. */
+  function draftMenu(id, label, cap, items) {
+    return '<span class="b-menu-wrap">' +
+      '<button class="b-draft-pick b-menu-open" type="button" data-pickopen="' + esc(id) + '" ' +
+        'aria-haspopup="menu">' + (label || '<span class="b-draft-none">Choose</span>') + '</button>' +
+      '<div class="b-menu" id="' + esc(id) + '" role="menu" hidden>' +
+        '<span class="b-menu-cap">' + esc(cap) + '</span>' + items +
+      '</div>' +
+    '</span>';
+  }
+  function draftItem(field, val, name, on, sub2) {
+    return '<button class="b-menu-item' + (on ? ' is-on' : '') + '" type="button" role="menuitem" ' +
+      'data-cset="' + esc(field + '|' + val) + '">' +
+      '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
+      (sub2 ? '<span class="b-menu-sub">' + esc(sub2) + '</span>' : '') + '</span></button>';
+  }
+  function draftField(cap, html) {
+    return '<div class="b-cmeta-part"><span class="b-cmeta-cap">' + esc(cap) + '</span>' +
+      '<div class="b-cmeta-say">' + html + '</div></div>';
+  }
+  function draftText(field, val, ph) {
+    return '<input class="b-draft-in" type="text" data-cfield="' + esc(field) + '" ' +
+      'value="' + esc(val || '') + '" placeholder="' + esc(ph) + '" spellcheck="false" />';
+  }
+
+  function campDraftPage(k) {
+    const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
+    const cl = k.client ? CLIENT[k.client] : null;
+    const weeks = Math.max(1, Math.round(daysBetween(k.from, k.to) / 7));
+    const crew = k.crew.map((id) => actor(id)).filter(Boolean);
+    /* What is still missing, named. A disabled button that will not say why
+       is the worst control in software. */
+    const miss = [];
+    if (!k.name) miss.push('a name');
+    if (!k.aim) miss.push('a goal');
+    if (!k.sells.length) miss.push('something to sell');
+    if (!k.industry || !k.region) miss.push('a market');
+    if (!k.crew.length) miss.push('somebody to work it');
+    return '<div class="s-home">' +
+      backBtn('data-home', 'Back to the briefing') +
+      '<section class="s-rec-head s-block-wide">' +
+        /* ══ THE TWO DECISIONS SIT WHERE DECISIONS SIT ═══════════════════
+           They were under the fields, which is where a form puts its Submit
+           — and a form's Submit is at the bottom because you are meant to
+           have finished. This is not a form you finish; it is a page you keep
+           coming back to, and on every other record in this build the thing
+           you can do with it is at the top beside what it is. */
+        '<div class="b-draft-top">' +
+          '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
+            '<span class="tag tag-neutral">Draft</span></span>' +
+          '<span class="b-draft-acts">' +
+            '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
+              (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>' +
+            '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>' +
+          '</span>' +
+        '</div>' +
+        '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
+          'placeholder="Name this campaign" spellcheck="false" aria-label="The name" />' +
+        '<div class="b-cmeta b-draft-meta">' +
+          draftField('The goal', draftText('aim', k.aim,
+            'What it is worth having worked — 2 new clients for AiMY QA')) +
+          draftField('What we sell them', draftMenu('dSell',
+            sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
+            'What is on this one', SELLS.map((x) =>
+              draftItem('sell', x.k, x.name, k.sells.indexOf(x.k) >= 0, x.kind)).join(''))) +
+          draftField('Client', draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
+            'Whose offer this is',
+            draftItem('client', '', 'FlairsTech', !k.client, 'our own book') +
+            CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
+              .map((x) => SELL[x] && SELL[x].name).filter(Boolean).join(', '))).join(''))) +
+          /* Sector and region are two decisions, not one field with two
+             menus in it: you can know the market and not the country, and a
+             caption that covers both leaves neither named. */
+          draftField('Industry', draftMenu('dInd',
+            k.industry ? esc(INDUSTRY[k.industry].label) : '', 'Which sector',
+            INDUSTRIES.map((x) => draftItem('ind', x.k, x.label, k.industry === x.k)).join(''))) +
+          draftField('Region', draftMenu('dReg',
+            k.region ? esc(REGION[k.region].label) : '', 'Where it is aimed',
+            REGIONS.map((x) => draftItem('reg', x.k, x.label, k.region === x.k)).join(''))) +
+          draftField('The team', draftMenu('dCrew',
+            crew.length ? crew.map((r) => esc(r.name)).join(', ') : '', 'Who works it',
+            BDRS.map((r) => draftItem('crew', r.id, r.name,
+              k.crew.indexOf(r.id) >= 0, JOB[r.fn])).join(''))) +
+          /* ══ THE LISTS YOU ALREADY HAVE ═══════════════════════════════
+             A campaign with nobody on it is a campaign nobody can work, and
+             the people are already in the book — found, run and saved as
+             lists. "Its people" named the roster and then offered the lists,
+             which is one thing described as another; the caption is the act.
+
+             It ticks like the sells and the crew do, because a list you can
+             put on and cannot take off is a decision you make once by
+             accident. Lists already on another campaign are not offered —
+             taking one would empty a campaign somebody else is working. */
+          draftField('Add a list', (function () {
+            const free = DB.list.filter((l) => !l.for || l.for === k.id);
+            const on = DB.list.filter((l) => l.for === k.id);
+            return draftMenu('dList',
+              on.length ? esc(on.map((l) => l.name).join(', ')) : '',
+              free.length ? 'The lists you have' : 'Every list is on another campaign',
+              free.map((l) => draftItem('list', l.id, l.name, l.for === k.id,
+                plural(l.has.length, 'person') + ' on it')).join('') ||
+                '<span class="b-menu-sub b-draft-empty">Nothing is waiting to be put on ' +
+                'a campaign. Find leads and what comes back is a list.</span>');
+          })()) +
+          /* How long it runs, which is the only thing "the window" was ever
+             saying. A number to pace against is what a campaign learns from
+             running; guessing at it before the first call is made was asking
+             for a fact nobody in the room has. */
+          draftField('Timeframe', draftText('weeks', String(weeks), '6') +
+            '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
+        '</div>' +
+        /* What is still missing stays down here with the fields it is about.
+           Run it is greyed from the first moment and this is the sentence
+           saying why — a control that appears only once you are allowed to
+           press it never teaches you what it wanted. */
+        '<div class="s-rec-actions">' +
+          (miss.length
+            ? '<span class="b-draft-miss">It still wants ' +
+              esc(miss.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.</span>'
+            : '<span class="b-draft-saved">Everything it needs is in it. Saved as you type.</span>') +
+          '<button class="b-ghost b-draft-bin" type="button" data-cdrop="' + esc(k.id) +
+            '">Discard</button>' +
+        '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
   function campPage() {
     const k = DB.byCamp[S.camp];
     if (!k) {
@@ -5677,6 +6267,7 @@
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
+    if (isDraft(k) && mine(k)) return campDraftPage(k);
     if (!mine(k)) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
@@ -5724,7 +6315,7 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
-            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
@@ -5842,7 +6433,8 @@
          it was a second copy of it in the smallest type on the page. */
       cmPart('What we sell them', sells.map((x) =>
         '<p class="b-cmeta-p"><b>' + esc(x.name) + '</b> ' +
-          '<span class="tag tag-neutral">' + esc(x.kind || 'offer') + '</span></p>').join('')) +
+          '<span class="tag tag-neutral">' +
+            esc((x.kind || 'offer').replace(/^./, (c) => c.toUpperCase())) + '</span></p>').join('')) +
       /* The name, and nothing after it. What the engagement is does not
          change a single thing a caller does in the next eight minutes. */
       cmPart('Client', '<p class="b-cmeta-p"><b>' +
@@ -5925,23 +6517,36 @@
       reg: REGION[k.region] ? REGION[k.region].label : null,
     };
   }
-  /* The sentence, once, so the card and the record cannot drift apart. */
-  function campGoalSay(k) {
-    const g = campGoal(k);
-    const who = esc(g.forWhom);
+  /* The four shapes, given the parts rather than a record — so the builder
+     can offer them as ANSWERS, with the kind chosen instead of dealt. What
+     you pick in the canvas is then the sentence the record prints, which is
+     the whole point of asking: the campaign says what you said it was for.
+
+     Plain text out; `campGoalSay` escapes. It used to escape each part on
+     the way in, which is the same string escaped twice the moment anything
+     but this reads it. */
+  function goalSay(g) {
+    const who = g.forWhom;
     /* The foothold reads as a goal only where the book knows the market it
        is trying to get into; without both halves it falls back to logos. */
     if (g.kind === 2 && g.ind && g.reg) {
       /* Two of these regions are plural or a group and take the article:
          "in the Netherlands", "in the Nordics", against "in DACH". */
       const where = (g.reg === 'Netherlands' || g.reg === 'Nordics' ? 'the ' : '') + g.reg;
-      return 'Our first ' + esc(g.ind) + ' client in ' + esc(where) + ' for ' + who + '.';
+      return 'Our first ' + g.ind + ' client in ' + where + ' for ' + who + '.';
     }
-    if (g.kind === 1) return esc(euro(g.money)) + ' of new business for ' + who + '.';
-    if (g.kind === 3) {
-      return esc(plural(g.n, 'account')) + ' won off a competitor for ' + who + '.';
-    }
-    return esc(plural(g.n, 'new client')) + ' for ' + who + '.';
+    if (g.kind === 1) return euro(g.money) + ' of new business for ' + who + '.';
+    if (g.kind === 3) return plural(g.n, 'account') + ' won off a competitor for ' + who + '.';
+    return plural(g.n, 'new client') + ' for ' + who + '.';
+  }
+
+  /* The sentence, once, so the card and the record cannot drift apart. */
+  function campGoalSay(k) {
+    /* Written wins. `campGoal` derives one for every campaign in the book
+       because none of them was ever asked; a campaign somebody filled in by
+       hand has an answer, and a derivation that overrode it would be the
+       product telling the manager what his own campaign is for. */
+    return esc(k.aim || goalSay(campGoal(k)));
   }
 
   function campStand(k) {
@@ -6691,7 +7296,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -7047,7 +7652,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(tagCase(rg.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
@@ -7607,6 +8212,16 @@
      never go into it. The hour is derived from the id — the same every time
      it is asked, on every machine — until somebody sets one, and a derived
      hour is drawn as a guess rather than as a booking. */
+  /* ══ A KIND IS EXACTLY WHAT COLOUR IS FOR ═════════════════════════════
+     These five are not a sequence — a dinner does not come after a demo —
+     they are different kinds of thing, and telling them apart at a glance
+     is the one job a hue does better than a word. The reason they were
+     wrong before was chroma, not licence: a #f79009 dinner beside a
+     #17b26a held read as a warning beside a success. At the label family's
+     quarter of that, they read as a dinner beside a meeting.
+
+     `owed` stays neutral because it is the absence of a kind — a next step
+     that is not an appointment at all. */
   const MEET_KINDS = [
     { k: 'meeting', label: 'Meeting', tone: 'accent' },
     { k: 'demo',    label: 'Demo',    tone: 'info' },
@@ -7637,8 +8252,24 @@
   const clockOf = (m) => (m.h == null ? '' : m.h + ':' + String(m.m).padStart(2, '0'));
 
   /* Everything between two days, held and planned, in the order it happens. */
+  /* ══ NOT EVERYTHING IN A CALENDAR IS A DEAL ════════════════════════════
+     Every entry here hangs off a contact: a phase touchpoint that happened
+     or a `next` that is going to. That is right for the work and wrong for
+     a calendar, which also holds the dentist, the board, and a dinner with
+     somebody who is not in the book yet — and asked to put one in, the
+     product could only answer that nobody answers to that name.
+
+     `DELTA.cal` is the rest: what was said, who with, when, and why, with no
+     record behind it. They read the same as everything else in the day and
+     open nothing, because there is nothing to open. */
   function meetings(from, to) {
     const out = [];
+    (DELTA.cal || []).forEach((e) => {
+      if (!e || e.iso < from || e.iso > to) return;
+      out.push({ con: { id: '', name: e.who }, iso: e.iso, h: e.h, m: e.m,
+        set: e.h != null, kind: e.kind || 'meeting', held: false, free: true,
+        title: e.why || 'In the calendar' });
+    });
     queue(null, 'all').forEach((c) => {
       phasesOf(c).forEach((t) => {
         const iso = t.at.slice(0, 10);
@@ -7666,7 +8297,8 @@
      This is the whole reason the loop needs closing: the manager walks out
      of the room and the record never hears about it. */
   function unrecorded() {
-    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.held && m.kind !== 'owed' &&
+    /* A free entry moves no deal, so there is nothing for it to be late for. */
+    return meetings(dayAdd(-45), dayAdd(-1)).filter((m) => !m.free && !m.held && m.kind !== 'owed' &&
       !phasesOf(m.con).some((t) => t.at.slice(0, 10) >= m.iso));
   }
 
@@ -8689,6 +9321,8 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    clock: '<circle cx="12" cy="12" r="10"/> <polyline points="12 6 12 12 16 14"/>',
+    money: '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
     linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
@@ -9872,6 +10506,158 @@
   /* ══ THE READ-BACK, AND ONE PRESS ══════════════════════════════════════
      The same shape a logged call ends on: what I heard, what I am about to
      write, and a correction is another sentence rather than a form. */
+  /* ══ PUTTING SOMETHING IN IS NOT REPORTING SOMETHING BACK ══════════════
+     `readMeet` reads a meeting that HAPPENED — it wants a stage in the past
+     tense or a next step — so "Add to calendar: Leo Smith Thursday 3pm"
+     matched nothing, fell past every reader, and came back as canvas chat.
+     The button that filled the bar promised the calendar and the bar
+     answered with conversation.
+
+     A booking is the other direction: nobody is reporting a stage, they are
+     naming a person, a day and an hour. It writes the next step and the time
+     and moves no deal, because nothing has happened yet. */
+  /* `readWhen` answers "a week" when it recognises nothing, which is the
+     right default for a follow-up and an invention in a calendar. This one
+     says so when nothing was said. */
+  const WHEN_RE = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|tonight|next week|next month)\b/i;
+  const saidWhen = (text) => (WHEN_RE.test(text)
+    ? (/\b(today|tonight)\b/i.test(text) ? 0 : readWhen(text.toLowerCase())) : null);
+
+  const BOOK_RE = /\b(?:add to calendar|put in the calendar|book|schedule)\b/i;
+  const BOOK_KIND = [
+    [/\bdinner\b/i, 'dinner', 'Dinner with them'],
+    [/\bdemo\b/i, 'demo', 'Demo for them'],
+    [/\blunch\b/i, 'dinner', 'Lunch with them'],
+    [/\b(meeting|meet|call|coffee|catch up)\b/i, 'meeting', 'Meeting with them'],
+  ];
+  /* ══ A FIRST NAME IS A NAME ════════════════════════════════════════════
+     Matching whole names only, "meeting with jeff at 8pm" found nobody and
+     fell past every reader to the caller's "who was that with?" — which asks
+     for the thing the sentence already had. Nobody types the surname of the
+     person they are having dinner with tonight.
+
+     So a first name counts when exactly one person in the book answers to
+     it. Two Jeffs is a question worth asking and it gets asked by name; no
+     Jeff at all is worth saying outright, because "put the name in the
+     sentence" to somebody who did is the reply that makes a product feel
+     deaf. Whole names still win over first names, and the longest whole name
+     wins over a shorter one inside it. */
+  function whoIn(text) {
+    const lower = ' ' + text.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ') + ' ';
+    const book = queue(null, 'all');
+    let full = null;
+    book.forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(' ' + n + ' ') >= 0 && (!full || n.length > full.name.length)) full = c;
+    });
+    if (full) return { con: full };
+    const hits = book.filter((c) =>
+      lower.indexOf(' ' + String(c.name).split(' ')[0].toLowerCase() + ' ') >= 0);
+    if (hits.length === 1) return { con: hits[0] };
+    if (hits.length > 1) return { many: hits.slice(0, 4) };
+    return null;
+  }
+
+  function readBook(text) {
+    if (!BOOK_RE.test(text)) return null;
+    /* Past tense means it is a report, whatever words it opens with. */
+    if (/\b(had|held|went|was|were|did|met)\b/i.test(text)) return null;
+    /* WHOEVER IT IS. A name in the book attaches the entry to that record so
+       the deal and the diary stay one thing; a name that is not is still a
+       name, and refusing it made the calendar a list of our customers rather
+       than a calendar. What is left after the phrase that introduced them
+       and before the clause that says why is the name. */
+    const who = whoIn(text);
+    if (who && who.many) return { many: who.many };
+    const con = who ? who.con : null;
+    let free = null;
+    if (!con) {
+      const m = text.replace(BOOK_RE, ' ').match(/\b(?:with|for)\s+(.+?)(?=\s+(?:to|about|on|at|next|tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|[,.]|$)/i);
+      free = m ? m[1].trim().replace(/\s+/g, ' ') : null;
+      if (!free) return { miss: true };
+    }
+    /* The kind travels with the label. Deriving it back out of "Lunch with
+       them" through `kindOfNext` — which knows meetings, demos and dinners —
+       returned "owed", so a lunch you had just booked was tagged as something
+       overdue. What was read is what is kept. */
+    let what = 'Meeting with them';
+    let kind = 'meeting';
+    for (let i = 0; i < BOOK_KIND.length; i++) {
+      if (BOOK_KIND[i][0].test(text)) { kind = BOOK_KIND[i][1]; what = BOOK_KIND[i][2]; break; }
+    }
+    /* The reason, which is the half of a calendar entry a CRM never keeps.
+       Read off the sentence WITHOUT its opening — "Add to calendar: meeting
+       with jeff to finalize the qa deal" has two "to"s in it and the first
+       one belongs to the instruction, so the reason came back as "calendar:
+       meeting with jeff". The phrase that opened it is not part of what it
+       says. */
+    const body = text.replace(BOOK_RE, ' ').replace(/^\s*[:,-]\s*/, ' ');
+    /* The day is not part of the reason. "to sign the contract monday" gave
+       back "sign the contract monday", so the entry carried a weekday inside
+       its own description and read as a note somebody forgot to finish. */
+    const rm = body.match(/\bto\s+((?!\d)(?:(?!\bat\b|\bon\b|\btomorrow\b|\btoday\b|\btonight\b|\bnext\b|\bmonday\b|\btuesday\b|\bwednesday\b|\bthursday\b|\bfriday\b|\bsaturday\b|\bsunday\b).)+)/i);
+    const why = rm ? rm[1].trim().replace(/[.\s]+$/, '') : null;
+    return { con: con, free: free, what: what, kind: kind, why: why,
+      when: saidWhen(text), clock: readClock(text) };
+  }
+
+  /* The sentence read back to the reader is the one they actually said,
+     plus the day they just added to it. */
+  const PENDING_TEXT_OF = (f, day) =>
+    (f.why ? 'To ' + f.why : f.what) + ' with ' + (f.free || (f.con && f.con.name)) + ', ' + day;
+
+  function bookPropose(text, f) {
+    /* Both of these are the sentence answering back rather than a form
+       refusing it: one names the people it could have meant, the other says
+       plainly that nobody in the book answers to that. */
+    if (f.many || f.miss) {
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', f.many
+        ? 'More than one of yours answers to that — ' +
+          f.many.map((c) => '<b>' + esc(c.name) + '</b>').join(', ').replace(/, ([^,]*)$/, ' or $1') +
+          '. Say which and I will put it in.'
+        : 'Nobody on your book answers to that name. Say it as it is on the ' +
+          'record and I will put it in the calendar.');
+      return true;
+    }
+    /* ONE QUESTION, FOR THE ONE THING NOTHING CAN SUPPLY. An hour can be
+       placed and says so on the row; a day cannot be guessed at all, and a
+       calendar that picks one is worse than a calendar that asks. So the
+       entry is held with everything already heard in it and the answer only
+       has to carry the day. */
+    if (f.when == null) {
+      PENDING = { kind: 'bookday', book: f, note: text };
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', 'What day? Everything else is down — <b>' +
+        esc(f.free || f.con.name) + '</b>' +
+        (f.clock ? ' at <b>' + f.clock.h + ':' + String(f.clock.m).padStart(2, '0') + '</b>' : '') +
+        (f.why ? ', to ' + esc(f.why) : '') + '.');
+      return true;
+    }
+    const due = dayAdd(f.when);
+    const who = f.free || f.con.name;
+    PENDING = { kind: 'meet', con: f.con ? f.con.id : '', to: null, next: f.what,
+      free: f.free, why: f.why, sort: f.kind,
+      when: f.when, clock: f.clock, note: text };
+    openCanvas();
+    say('you', esc(text));
+    TURNS.push({
+      who: 'aimy',
+      html: 'Putting <b>' + esc(f.why || f.what.toLowerCase()) + '</b> in the calendar with <b>' +
+        esc(who) + '</b> on <b>' + esc(sayDay(due)) + '</b>' +
+        (f.clock ? ' at <b>' + f.clock.h + ':' + String(f.clock.m).padStart(2, '0') + '</b>'
+          : ', and I will place the hour until you name one') + '.' +
+        (f.free ? ' Nobody on your book answers to that name, so it goes in as its own entry.' : ''),
+      hint: 'Or say what I got wrong — "make it Thursday", "it is a dinner", "at 4pm".',
+      step: 'meetlog',
+      opts: [{ k: 'go', label: 'Put it in' }, { k: 'drop', label: 'Leave it', quiet: true }],
+    });
+    paintThread();
+    return true;
+  }
+
   function meetPropose(text, f) {
     const c = f.con;
     const at = stageRank(stageOf(c));
@@ -9914,8 +10700,19 @@
     if (!p || p.kind !== 'meet') return;
     const c = DB.byCon[p.con];
     PENDING = null;
+    /* An entry about nobody on the book has no record to patch, so it is
+       written where those live and the calendar picks it up from there. */
+    if (!c && p.free) {
+      DELTA.cal.push({ who: p.free, why: p.why, kind: p.sort || 'meeting',
+        iso: dayAdd(p.when), h: p.clock ? p.clock.h : null, m: p.clock ? p.clock.m : 0 });
+      saveNow();
+      toast('In the calendar with ' + p.free + '.');
+      showCalOn(dayAdd(p.when));
+      return;
+    }
     if (!c) { paintThread(); return; }
-    setStage(c.id, p.to, p.note);
+    /* A booking moves no deal: nothing has happened, something is going to. */
+    if (p.to) setStage(c.id, p.to, p.note);
     if (p.next) {
       const due = dayAdd(p.when);
       patchCon(c, { next: { what: p.next, due: due } });
@@ -9923,8 +10720,24 @@
         DELTA.meet[c.id] = { h: p.clock.h, m: p.clock.m };
         saveNow();
       }
+      /* Something went into the calendar, so the calendar is what you want to
+         see — not the thread you were saying it in. */
+      if (!p.to) { showCalOn(due); return; }
     }
     paint();
+  }
+
+  /* ══ WHERE IT WENT, NOT WHERE YOU SAID IT ══════════════════════════════
+     Confirming an entry left you looking at the conversation that made it,
+     with the thing itself somewhere behind. The canvas shuts and the diary
+     opens on the day it landed on, which is both the receipt and the place
+     to change it. It used to open a panel over whatever page you happened to
+     be on; now there is a page for this and `CALSEL` is the day it lands
+     showing. */
+  function showCalOn(iso) {
+    CALSEL = iso;
+    closeCanvas();
+    go(Object.assign(cleared(), { on: 'cal' }));
   }
 
   const CALL_RE = /^(call|call|dial)\b/i;
@@ -10031,6 +10844,23 @@
 
     /* A call being logged owns the sentence. It is the one moment where what
        you type is unambiguously about the thing in front of you. */
+    /* The day, and nothing else needed. Whatever was already heard is still
+       in `PENDING.book`; this reply only has to carry a date. */
+    if (PENDING && PENDING.kind === 'bookday') {
+      const f = PENDING.book;
+      const when = saidWhen(t);
+      PENDING = null;
+      if (when == null) {
+        openCanvas();
+        say('you', esc(t));
+        say('aimy', 'I could not find a day in that. Say it as a day — ' +
+          '"tomorrow", "Thursday", "next week" — and it goes in.');
+        return;
+      }
+      f.when = when;
+      bookPropose(PENDING_TEXT_OF(f, t), f);
+      return;
+    }
     if (PENDING && PENDING.kind === 'meet') {
       /* A correction re-reads the sentence alone, the same rule the call's
          read-back follows: the newest thing you said wins outright. The
@@ -10055,6 +10885,7 @@
 
     if (CBUILD) {
       if (CBUILD.step === 'who') { cbuildWho(t); return; }
+      if (CBUILD.step === 'goal') { say('you', esc(t)); cbuildGoal(t); return; }
       if (CBUILD.step === 'many') {
         const m = cbuildReadMany(t);
         cbuildMany(m.n, m.weeks);
@@ -10164,6 +10995,10 @@
          meeting, and reading it as a call would write a touchpoint that
          says a phone rang. */
       if (isMgr()) {
+        /* Booking first: "add to calendar" is unambiguous and `readMeet`
+           would otherwise take the same sentence and guess a stage from it. */
+        const bk = readBook(t);
+        if (bk) { if (bookPropose(t, bk)) return; }
         const mt = readMeet(t);
         if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
       }
@@ -10479,7 +11314,7 @@
 
     /* ── 2. where the deal stands ── */
     body += '<div class="b-prep-state">' +
-      '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
+      '<span class="tag tag-' + esc(st.tone) + '">' + esc(tagCase(st.label)) + '</span>' +
       '<span class="b-prep-owed">' + esc(dealLive(c)
         ? 'worth ' + euro(amountOf(c)) + ', expected ' + sayDay(closeBy(c))
         : 'decided') + '</span>' +
@@ -10526,7 +11361,8 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<span class="tag tag-warn b-back-k">' +
+              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -10570,7 +11406,7 @@
     /* ── 1. where they stand, and what is owed ── */
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
-        esc(rg.label) + '</span>' +
+        esc(tagCase(rg.label)) + '</span>' +
       '<span class="b-prep-owed">' + esc(rg.say) +
         (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
       (c.next
@@ -10611,7 +11447,8 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<span class="tag tag-warn b-back-k">' +
+              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -10923,7 +11760,7 @@
         '.</p>' +
       '<div class="b-cuts">' + Object.keys(by).map((k) =>
         '<span class="tag tag-' + esc((OUTCOME[k] || { tone: 'neutral' }).tone) + '">' +
-        by[k] + ' ' + esc((OUTCOME[k] || { label: k }).label) + '</span>').join('') + '</div>' +
+        by[k] + ' ' + esc(tagCase((OUTCOME[k] || { label: k }).label)) + '</span>').join('') + '</div>' +
       '<div class="s-callsum-rows">' +
         '<div class="s-callsum-row"><span class="s-callsum-mem">What it was worth</span>' +
           '<span class="s-callsum-val">' + (got
@@ -10989,9 +11826,10 @@
      here come from the clock and never go backwards. */
   let CBUILD = null;
 
-  function cbuildPush(text, opts, hint) {
+  function cbuildPush(text, opts, hint, card) {
     lbuildSpend();
-    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '', step: 'cbuild' });
+    TURNS.push({ who: 'aimy', html: text, opts: opts || [], hint: hint || '',
+      card: card || '', step: 'cbuild' });
     paintThread();
   }
 
@@ -10999,11 +11837,26 @@
     if (!isMgr()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
-    CBUILD = { step: 'sell', sell: null, industry: null, region: null,
+    CBUILD = { step: 'way', sell: null, industry: null, region: null,
       who: null, noun: null, n: null, weeks: null, name: null };
     TURNS.length = 0;
     openCanvas();
-    cbuildPush('A new campaign. What are we selling on this one?',
+    /* ══ WHICH WAY, BEFORE WHAT ARE WE SELLING ════════════════════════
+       Two different mornings: you know roughly what you want and would
+       rather be asked, or you already know exactly what this campaign is
+       and want the fields. Asking which is one turn and it is the same
+       turn the lead builder opens with. */
+    cbuildPush('A new campaign. Shall I ask you through it, or would you rather ' +
+      'fill it in yourself?',
+      [{ k: 'way-ask', label: 'Ask me through it' },
+        { k: 'way-hand', label: 'I will fill it in' }],
+      'Five questions and it is running \u2014 or an empty page with every field on it, ' +
+      'saved as you type.');
+  }
+
+  function cbuildAsk() {
+    CBUILD.step = 'sell';
+    cbuildPush('What are we selling on this one?',
       SELLS.map((x) => ({ k: 'sell-' + x.k, label: x.name })),
       'Everything else follows from this — what we say, what they push back on, and who to ask for.');
   }
@@ -11018,24 +11871,89 @@
       [], 'Something like \u201clogistics companies in the Netherlands\u201d.');
   }
 
+  /* ══ THE MARKET IS TWO FACTS AND IT TOOK EITHER ═══════════════════════
+     It asked for "a sector and a country at least" and then accepted one of
+     them, because the guard only refused when BOTH were missing — and what
+     it did with the half you never said was fill it in from the top of the
+     list. Say "companies in Belgium" and the campaign came out asserting
+     Software, in its name, in its pitch, in the case study attached to it
+     and in the persona a caller reads before dialling. A default is a fine
+     answer to a question nobody cares about; this is not one of those.
+
+     So each half is asked for until it has one, with the options on screen —
+     answering a builder by clicking should be possible the whole way down.
+     Whatever was read out of the sentence is kept, so the second turn only
+     ever asks for what is still missing. */
   function cbuildWho(text) {
     const pairs = readSaid(text, 'acc');
     const ind = pairs.filter((p) => p[0] === 'industry')[0];
     const cc = pairs.filter((p) => p[0] === 'where')[0];
-    if (!ind && !cc) {
+    TURNS.push({ who: 'you', html: esc(text) });
+    if (ind) CBUILD.industry = ind[1];
+    if (cc) CBUILD.region = regionOfCC(cc[1]);
+    if (!CBUILD.industry && !CBUILD.region) {
       cbuildPush('I could not find a sector or a country in that. Name one of each — ' +
-        '\u201chealthcare in Belgium\u201d — and I will take it from there.', [], '');
+        '\u201chealthcare in Belgium\u201d — or pick from these.',
+        INDUSTRIES.map((x) => ({ k: 'ind-' + x.k, label: x.label })), '');
       return;
     }
-    CBUILD.industry = ind ? ind[1] : null;
-    CBUILD.region = cc ? regionOfCC(cc[1]) : null;
+    cbuildMarket();
+  }
+
+  /* Asked until both halves are in, then on to what it is for. */
+  function cbuildMarket() {
+    if (!CBUILD.industry) {
+      cbuildPush('<b>' + esc(regionLabel(CBUILD.region)) + '</b>. Which sector?',
+        INDUSTRIES.map((x) => ({ k: 'ind-' + x.k, label: x.label })),
+        'The pitch and the case study are chosen from it, so a campaign without ' +
+        'one is a campaign the caller has to invent a story for.');
+      return;
+    }
+    if (!CBUILD.region) {
+      cbuildPush('<b>' + esc(INDUSTRY[CBUILD.industry].label) + '</b>. And where?',
+        REGIONS.map((x) => ({ k: 'reg-' + x.k, label: x.label })),
+        'It is in the name, on the card, and in the first line a caller says.');
+      return;
+    }
+    cbuildGoalStep();
+  }
+
+  /* ══ WHAT IT IS WORTH HAVING WORKED ═══════════════════════════════════
+     The one field the hand-filled page will not run without, and the flow
+     never asked for it: a campaign built here came out with no goal at all
+     and the record derived one off the id, which is the product deciding
+     what the manager's campaign is for.
+
+     The four answers are the four the book already speaks in — logos, money,
+     a foothold, a competitor's account — written from what has just been
+     said, so picking one is picking the sentence the record will print. */
+  function cbuildGoalParts(kind) {
+    const x = SELL[CBUILD.sell];
+    const n = 2 + (Math.abs(hash(CBUILD.sell + ':' + CBUILD.industry + ':goal')) % 3);
+    const band = PRICE[CBUILD.sell] ? PRICE[CBUILD.sell][1] : 40000;
+    return { n: n, forWhom: x ? x.name : 'us', kind: kind,
+      money: Math.round((band * n) / 10000) * 10000,
+      ind: INDUSTRY[CBUILD.industry] ? INDUSTRY[CBUILD.industry].label.toLowerCase() : null,
+      reg: REGION[CBUILD.region] ? REGION[CBUILD.region].label : null };
+  }
+
+  function cbuildGoalStep() {
+    CBUILD.step = 'goal';
+    const said = INDUSTRY[CBUILD.industry].label + ' in ' + regionLabel(CBUILD.region);
+    cbuildPush('<b>' + esc(said) + '</b>. What is it worth having worked?',
+      [0, 1, 2, 3].map((kind) => ({ k: 'goal-' + kind, label: goalSay(cbuildGoalParts(kind)) })),
+      'The outcome at the end of it, not the calls along the way — say it in ' +
+      'your own words if none of those is it.');
+  }
+
+  function cbuildGoal(aim) {
+    CBUILD.aim = String(aim).slice(0, 120);
     CBUILD.step = 'win';
-    const said = [CBUILD.industry ? INDUSTRY[CBUILD.industry].label : null,
-      CBUILD.region ? regionLabel(CBUILD.region) : null].filter(Boolean).join(' in ');
-    cbuildPush('<b>' + esc(said) + '</b>. What counts as a win on this one?',
-      [{ k: 'win-meeting', label: 'A meeting in the diary' },
-        { k: 'win-conversation', label: 'A real conversation' }],
-      'It is what the campaign gets measured against, so it is the thing a caller is asking for.');
+    cbuildPush('<b>' + esc(CBUILD.aim) + '</b> What are we counting week to week?',
+      [{ k: 'win-meeting', label: 'Meetings in the diary' },
+        { k: 'win-conversation', label: 'Conversations had' }],
+      'The bar the campaign is measured against — not what it is for, which ' +
+      'you have just said.');
   }
 
   function cbuildWin(noun) {
@@ -11046,16 +11964,38 @@
       'Or say it \u2014 \u201c30 by the end of November\u201d.');
   }
 
+  /* ══ IT SHOWS WHAT IT IS ABOUT TO MAKE ════════════════════════════════
+     Five answers went in and sixteen fields came out — the persona, the
+     pitch, the objections and their answers, the one-pagers, the team — all
+     written unseen, and the only thing the last turn restated was the count
+     and the closing date. This is the card the record will carry, drawn by
+     the renderer the record uses, before anything is written. */
+  function cbuildCard() {
+    const x = SELL[CBUILD.sell];
+    const crew = BDRS.map((r) => r.name);
+    return '<div class="b-cmeta b-cb-card">' +
+      draftField('The goal', esc(CBUILD.aim)) +
+      draftField('What we sell them', esc(x ? x.name : '—')) +
+      draftField('Client', 'FlairsTech') +
+      draftField('Industry', esc(INDUSTRY[CBUILD.industry].label)) +
+      draftField('Region', esc(regionLabel(CBUILD.region))) +
+      draftField('The team', esc(listSay(crew))) +
+      draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
+      draftField('Timeframe', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
+        sayDay(dayAdd(CBUILD.weeks * 7)))) +
+    '</div>';
+  }
+
   function cbuildMany(n, weeks) {
     CBUILD.n = n;
     CBUILD.weeks = weeks;
     CBUILD.step = 'name';
     CBUILD.name = cbuildAutoName();
-    cbuildPush('<b>' + commas(n) + ' ' + esc(CBUILD.noun) + 's</b> in ' +
-      esc(plural(weeks, 'week')) + ', so it closes <b>' + esc(sayDay(dayAdd(weeks * 7))) +
-      '</b>. Call it \u201c' + esc(CBUILD.name) + '\u201d?',
+    cbuildPush('Call it \u201c' + esc(CBUILD.name) + '\u201d and this is what it will be. ' +
+      'Nobody is on it yet — a list goes on from its own page.',
       [{ k: 'make', label: 'Make it' }],
-      'Or type a different name and I will use that.');
+      'Or type a different name and I will use that.',
+      cbuildCard());
   }
 
   /* Read a count and a length out of one sentence. Neither is required —
@@ -11082,6 +12022,100 @@
      back. What it does not make is members — a campaign with nobody on it
      is exactly what the finder on its own page is for, and inventing an
      audience here would be a second list builder in a worse place. */
+  /* ══ ONE YOU FILL IN YOURSELF ══════════════════════════════════════════
+     The conversational builder asks five questions and writes the other
+     eleven fields itself, which is the right trade when you want a campaign
+     running in a minute and the wrong one when you already know exactly what
+     this campaign is. So there is a blank one: every field empty, nothing
+     asserted, and the page it lands on is the campaign's own page with its
+     facts turned into things you can type in.
+
+     It is a draft from the moment it exists, because a campaign that is half
+     filled in is not a campaign anybody should be dialling. */
+  function emptyCamp() {
+    const id = 'k' + Date.now().toString(36);
+    const k = {
+      id: id, name: '', client: null, aim: '',
+      target: { n: 0, noun: 'meeting' },
+      persona: { who: '', at: '', why: '' },
+      goal: '', pitch: '',
+      sells: [], objections: [], resources: [],
+      from: TODAY_ISO, to: dayAdd(42),
+      owner: me().id, crew: [], state: 'draft',
+      industry: '', region: '', lists: [],
+    };
+    DB.camp.push(k);
+    DELTA.camp.push(k);
+    reindex();
+    saveNow();
+    go(Object.assign(cleared(), { camp: id }));
+  }
+
+  /* Every write goes through here so the delta and the book cannot disagree:
+     `DB.camp` holds the object the page reads and `DELTA.camp` holds the copy
+     that survives a reload, and they are the same object. */
+  function campSet(k, patch) {
+    Object.assign(k, patch);
+    if (!DELTA.camp.some((c) => c.id === k.id)) DELTA.camp.push(k);
+    reindex();
+    saveNow();
+  }
+
+  /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
+     What a manager knows is what it is for, who it is aimed at and who works
+     it. What the objections usually are, which one-pager goes with the
+     product, and the sentence to open on are the book's, not his — the
+     conversational builder writes exactly those and there is no reason a
+     hand-filled campaign should go without them. Anything he DID write is
+     left alone; this only fills what is still empty. */
+  function campRun(k) {
+    if (!k) return;
+    const sell = k.sells[0];
+    const x = SELL[sell];
+    const ind = INDUSTRY[k.industry];
+    const regL = k.region ? REGION[k.region].label : 'the region';
+    const askFor = ASK_OF[sell] || 'whoever owns it';
+    const patch = { state: 'running', from: TODAY_ISO };
+    if (!k.persona || !k.persona.who) {
+      patch.persona = { who: askFor,
+        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
+        why: WHY_NOW[sell] || '' };
+    }
+    if (!k.goal) {
+      patch.goal = k.target.noun === 'meeting'
+        ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
+        : 'A real conversation with ' + askFor + ' about what this is costing them today';
+    }
+    if (!k.pitch && x) {
+      patch.pitch = 'They are in ' + regL + ', and they are running this with people rather ' +
+        'than with a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them ' +
+        'today, not on what we do.';
+    }
+    if (!k.objections || !k.objections.length) {
+      const h = Math.abs(hash(k.id + ':camp'));
+      const pool = OBJECTIONS.slice();
+      const objs = [];
+      for (let i = 0; i < 3 && pool.length; i++) {
+        const o = pool.splice((h >> (i * 3)) % pool.length, 1)[0];
+        objs.push({ k: o.k, say: ANSWERS[o.k] });
+      }
+      patch.objections = objs;
+    }
+    if ((!k.resources || !k.resources.length) && x) {
+      patch.resources = [
+        { name: x.name + ' \u2014 one pager', kind: 'deck' },
+        { name: 'What it costs, and against what', kind: 'pricing' },
+      ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []);
+    }
+    if (!k.target.n) patch.target = { n: 12, noun: k.target.noun };
+    campSet(k, patch);
+    go(Object.assign(cleared(), { camp: k.id }));
+    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+      campSet(k, { state: 'draft' });
+      go(Object.assign(cleared(), { camp: k.id }));
+    });
+  }
+
   function cbuildMake() {
     const b = CBUILD;
     if (!b || !b.sell) return;
@@ -11099,6 +12133,12 @@
     const askFor = ASK_OF[b.sell];
     const k = {
       id: id, name: b.name || cbuildAutoName(), client: null,
+      /* Asked for, not derived: the record prints what was said here. */
+      aim: b.aim || '',
+      /* And nobody is on it, which is what the toast says and what the
+         campaign's own page is for. The field exists so both ways of making
+         one come out the same shape. */
+      lists: [],
       target: { n: b.n, noun: b.noun },
       persona: { who: askFor,
         at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
@@ -11120,8 +12160,10 @@
       /* Somebody has to work it, and there is one desk that rings. */
       crew: BDRS.map((r) => r.id),
       state: 'running',
-      industry: b.industry || INDUSTRIES[0].k,
-      region: b.region || REGIONS[0].k,
+      /* Both are asked for now, so neither falls back to the top of a list
+         and asserts a market nobody named. */
+      industry: b.industry,
+      region: b.region,
     };
     CBUILD = null;
     DB.camp.push(k);
@@ -11142,7 +12184,14 @@
 
   function cbuildOpt(key) {
     if (!CBUILD) return;
+    if (key === 'way-ask') { cbuildAsk(); return; }
+    /* The empty page is a page, not a conversation, so the canvas closes
+       behind it rather than sitting over the fields it just handed you. */
+    if (key === 'way-hand') { CBUILD = null; lbuildSpend(); closeCanvas(); emptyCamp(); return; }
     if (key.indexOf('sell-') === 0) { cbuildSell(key.slice(5)); return; }
+    if (key.indexOf('ind-') === 0) { CBUILD.industry = key.slice(4); cbuildMarket(); return; }
+    if (key.indexOf('reg-') === 0) { CBUILD.region = key.slice(4); cbuildMarket(); return; }
+    if (key.indexOf('goal-') === 0) { cbuildGoal(goalSay(cbuildGoalParts(+key.slice(5)))); return; }
     if (key === 'win-meeting') { cbuildWin('meeting'); return; }
     if (key === 'win-conversation') { cbuildWin('conversation'); return; }
     if (key === 'many-12') { cbuildMany(20, 12); return; }
@@ -11563,16 +12612,6 @@
       if (k === 'deals') { go(Object.assign(cleared(), { on: 'deals' })); return; }
       if (k === 'lead') { fillBar('Add a lead: '); return; }
       if (k === 'newcamp') { cbuildStart(); return; }
-      if (k === 'prep') {
-        /* The next thing in the diary, else the top of the queue: a manager
-           prepares for the room he is walking into, not for the deal that
-           happens to rank first. */
-        const soon = isMgr() ? meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed')[0] : null;
-        const top = soon ? soon.con : queue(null, S.q)[0];
-        if (!top) { toast('Nothing to prepare for yet.'); return; }
-        if (isMgr() && top.checkpoint === 'handed-over') meetPrep(top); else callPrep(top);
-        return;
-      }
       if (k === 'callnext') {
         /* A manager's next call is the deal at the top of his own ranking —
            nobody on it is `callable`, because callable means the caller has
@@ -11592,6 +12631,81 @@
       } else {
         go(Object.assign(cleared(), { q: k }));
       }
+      return;
+    }
+
+    /* ══ A DRAFT IS EDITED IN THE DOM, WRITTEN AS YOU GO ═══════════════
+       Choosing repaints, because what you chose changes what the page says
+       about itself — what is still missing, when it closes. A menu you are
+       ticking several things in reopens itself afterwards, since closing it
+       between two sells would make picking two a chore. */
+    const cset = t.closest('[data-cset]');
+    if (cset) {
+      const k = DB.byCamp[S.camp];
+      if (!k) return;
+      const bits = String(cset.getAttribute('data-cset')).split('|');
+      const f = bits[0];
+      const v = bits.slice(1).join('|');
+      let stay = null;
+      if (f === 'sell') {
+        const at = k.sells.indexOf(v);
+        campSet(k, { sells: at >= 0 ? k.sells.filter((x) => x !== v) : k.sells.concat([v]) });
+        stay = 'dSell';
+      } else if (f === 'crew') {
+        const at = k.crew.indexOf(v);
+        campSet(k, { crew: at >= 0 ? k.crew.filter((x) => x !== v) : k.crew.concat([v]) });
+        stay = 'dCrew';
+      } else if (f === 'client') campSet(k, { client: v || null });
+      else if (f === 'ind') campSet(k, { industry: v });
+      else if (f === 'reg') campSet(k, { region: v });
+      else if (f === 'list') { listOnCamp(v, k); stay = 'dList'; }
+      paint();
+      if (stay) {
+        const again = document.querySelector('[data-pickopen="' + stay + '"]');
+        if (again) again.click();
+      }
+      return;
+    }
+
+    const crun = t.closest('[data-crun]');
+    if (crun) {
+      if (crun.disabled) return;
+      campRun(DB.byCamp[crun.getAttribute('data-crun')]);
+      return;
+    }
+
+    /* It has been saved on every keystroke; this is the door out, and saying
+       so is the whole job — a Save that saves nothing new still has to exist,
+       because leaving without pressing anything feels like losing it. */
+    const ckeep = t.closest('[data-ckeep]');
+    if (ckeep) {
+      toast('Kept as a draft.');
+      go(Object.assign(cleared(), { on: 'camps' }));
+      return;
+    }
+
+    const cdrop = t.closest('[data-cdrop]');
+    if (cdrop) {
+      const id = cdrop.getAttribute('data-cdrop');
+      /* Its lists go back to being nobody's. A list left pointing at a
+         campaign that no longer exists is a list the product will never
+         offer again and never explain why, and a list this browser built is
+         in `DELTA.list`, so nothing would put it right in the morning. */
+      const k = DB.byCamp[id];
+      (k ? (k.lists || []) : []).forEach((lid) => {
+        const l = DB.byList[lid];
+        const dl = DELTA.list.filter((x) => x.id === lid)[0];
+        if (l && l.for === id) l.for = null;
+        if (dl && dl.for === id) dl.for = null;
+      });
+      DB.con.forEach((c) => {
+        if (c.camps.indexOf(id) >= 0) patchCon(c, { camps: c.camps.filter((y) => y !== id) });
+      });
+      DB.camp = DB.camp.filter((c) => c.id !== id);
+      DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
+      reindex();
+      saveNow();
+      go(Object.assign(cleared(), { on: 'camps' }));
       return;
     }
 
@@ -11733,8 +12847,21 @@
       return;
     }
 
-    const cal = t.closest('[data-cal]');
-    if (cal) { go({ on: 'cal', cal: cal.getAttribute('data-cal') }); return; }
+    /* THE PANEL REDRAWS ITSELF. Two verbs rather than one because the audit
+       pairs every rendered `data-x` with a handler that closes on it, and a
+       month step and a day pick are two different presses to a reader even
+       though they land in the same place. */
+    const step = t.closest('[data-calstep]');
+    const pick = step ? null : t.closest('[data-calpick]');
+    if (step || pick) {
+      CALSEL = (step || pick).getAttribute(step ? 'data-calstep' : 'data-calpick');
+      /* Whichever one is on screen. The pop-out and the page never coexist —
+         the gate is drawn on Today and the page is a tab along — so this is
+         one of the two, never both. */
+      const box = byId('calPage');
+      if (box) box.innerHTML = calBody(CALSEL);
+      return;
+    }
 
     const dl = t.closest('[data-deal]');
     if (dl) {
@@ -11785,13 +12912,16 @@
     const fill = t.closest('[data-fill]');
     if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
 
+    /* ══ THE CLASS THE STYLESHEET WAS WAITING FOR ══════════════════════
+       The button toggled `rail-open` on the body; the shell opens the drawer
+       on `.is-open`, on the rail and on the scrim behind it. Two names for
+       one state, and nothing anywhere reads the body's — so under 918px this
+       control has never opened anything. It cost little while the rail held
+       one reading you could live without on a phone. It holds the day and
+       the book now, and the report has no other door. */
     const railToggle = t.closest('#railToggle');
-    if (railToggle) {
-      document.body.classList.toggle('rail-open');
-      railToggle.setAttribute('aria-expanded', String(document.body.classList.contains('rail-open')));
-      return;
-    }
-    if (t.closest('#railScrim')) { document.body.classList.remove('rail-open'); return; }
+    if (railToggle) { railOpen(!byId('appRail').classList.contains('is-open')); return; }
+    if (t.closest('#railScrim')) { railOpen(false); return; }
 
     const closeC = t.closest('[data-overlay-close]');
     /* Through `closeCanvas`, not straight at the class. This branch removed
@@ -11867,6 +12997,26 @@
        take the focus out of the box being typed in. */
     const ps = e.target.closest && e.target.closest('[data-picksearch]');
     if (ps) { pickFilter(ps); return; }
+    /* A field writes on every keystroke and redraws on none of them: a
+       repaint mid-word takes the caret with it. The page catches up when you
+       leave the field, which is also when what is still missing changes. */
+    const cf = e.target.closest && e.target.closest('[data-cfield]');
+    if (cf) {
+      const k = DB.byCamp[S.camp];
+      if (k) {
+        const f = cf.getAttribute('data-cfield');
+        const v = cf.value;
+        if (f === 'weeks') {
+          const w = Math.max(1, Math.min(52, parseInt(v, 10) || 1));
+          campSet(k, { to: dayAdd(w * 7) });
+        } else {
+          const p = {};
+          p[f] = v;
+          campSet(k, p);
+        }
+      }
+      return;
+    }
     const box = e.target.closest && e.target.closest('[data-find]');
     if (!box) return;
     const at = box.selectionStart;
@@ -12052,6 +13202,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (byId('appRail').classList.contains('is-open')) { railOpen(false); return; }
     if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
     /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
