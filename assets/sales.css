@@ -7697,13 +7697,19 @@ body.is-figures .filter-tray { display: none; }
    a page about money.
 
    So hierarchy comes from weight and size within Urbanist, which loads
-   400 through 800. Captions sit at 600 because the skill's floor is 400 or
-   heavier below 18px and 11px uppercase needs the extra body. */
+   400 through 800. Captions sit at 600 because the floor is 400 or heavier
+   below 18px and uppercase at the minimal step needs the extra body.
+
+   THE SIZE IN THIS PARAGRAPH WAS STALE. It argued for 11px, which the type
+   floor removed — the scale is even from 12 now, and 12 is the
+   minimal-component step: a tag, a state, a timestamp, a caption over a
+   figure. Never a sentence. Every caption on this surface is one of the
+   first four. */
 .s-exec-eyebrow {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--ink-muted);
+  color: var(--ink-faint);
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
 
@@ -7726,7 +7732,7 @@ body.is-figures .filter-tray { display: none; }
    32px at 800 beside 16px at 500 needs more than a word space to read as
    two things. `nowrap` keeps "of €300k" from ever breaking across lines. */
 .s-att-of {
-  font-size: var(--fs-lg); font-weight: var(--fw-medium); color: var(--ink-muted);
+  font-size: var(--fs-lg); font-weight: var(--fw-medium); color: var(--ink-quiet);
   letter-spacing: 0; white-space: nowrap; margin-left: 4px;
 }
 .s-att-pc { font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
@@ -7753,7 +7759,7 @@ body.is-figures .filter-tray { display: none; }
 .s-att-target { background: var(--d50); }
 .s-att-pace { background: var(--d300); }
 
-.s-att-keys { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--ink-muted); }
+.s-att-keys { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--ink-quiet); }
 .s-att-key { display: inline-flex; align-items: center; gap: 8px; }
 .s-att-key::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-sm); flex-shrink: 0; }
 .s-att-key.is-booked::before { background: var(--accent); }
@@ -7768,7 +7774,7 @@ body.is-figures .filter-tray { display: none; }
 .s-af-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d200);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-af-val {
   font-family: var(--font-sans); font-size: var(--fs-2xl);
@@ -7777,7 +7783,7 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-af-val.tone-ok { color: var(--ok-text); }
 .s-af-val.tone-warn { color: var(--warn-text); }
-.s-af-sub { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); text-wrap: pretty; }
+.s-af-sub { font-size: var(--fs-xs); color: var(--ink-quiet); line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ── Where the projection comes from ── */
 .s-odds {
@@ -7793,7 +7799,7 @@ body.is-figures .filter-tray { display: none; }
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
 }
 .s-odds-cap svg { color: var(--ai-text); }
 .s-odds-rows { display: flex; flex-direction: column; margin-top: 12px; }
@@ -7804,11 +7810,17 @@ body.is-figures .filter-tray { display: none; }
   font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
   color: var(--d50); min-width: 56px; text-align: right;
 }
-.s-odds-say { font-size: var(--fs-xs); color: var(--d200); flex: 1 1 auto; min-width: 0; }
-.s-odds-n { font-size: var(--fs-xs); color: var(--ink-muted); white-space: nowrap; }
+.s-odds-say {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  flex: 1 1 auto; min-width: 0;
+}
+.s-odds-n {
+  font-size: var(--fs-xs); color: var(--ink-quiet); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
-.s-odds-note { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
+.s-odds-note { font-size: var(--fs-xs); color: var(--ink-faint); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
 
 
 @media (prefers-reduced-motion: no-preference) {
@@ -7832,7 +7844,7 @@ body.is-figures .filter-tray { display: none; }
    and how sure the open half is. Divided by rules and space; no boxes. */
 .s-exec-sec { padding-top: 40px; }
 .s-exec-note {
-  font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base);
+  font-size: var(--fs-xs); color: var(--ink-quiet); line-height: var(--lh-base);
   max-width: 76ch; margin: 8px 0 20px; text-wrap: pretty;
 }
 .s-exec-note b { color: var(--d200); }
@@ -7896,7 +7908,7 @@ body.is-figures .filter-tray { display: none; }
   text-align: right; min-width: 96px;
 }
 .s-cost-pc {
-  font-size: var(--fs-sm); color: var(--ink-muted);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-quiet);
   font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
 }
 /* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
@@ -7915,9 +7927,9 @@ body.is-figures .filter-tray { display: none; }
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline; gap: 16px;
 }
-.s-cost-kid .s-cost-say { font-size: var(--fs-xs); color: var(--d200); }
+.s-cost-kid .s-cost-say { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
 .s-cost-kid .s-cost-v { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); min-width: 72px; }
-.s-cost-note { color: var(--ink-muted); }
+.s-cost-note { color: var(--ink-quiet); font-weight: var(--fw-regular); }
 
 /* One question per section, beside the heading it belongs to. A single row
    of three at the foot of the page could only ever be about the page; these
@@ -7983,7 +7995,7 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-name { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
 .s-pan-state {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
+  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
 }
 /* A product line's state is a VERDICT, so it carries a tone the campaign's
    never needs — running and finished are facts, "not landing" is a call. */
@@ -7993,6 +8005,17 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-total {
   font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* NOTHING IS NOT A FIGURE. A product line that has closed nothing renders
+   the word where every other panel renders an amount, and at 24px in the
+   brightest ink it read as the loudest number in a row of real ones. The
+   class was rendered by the page it came from and defined in neither
+   stylesheet, so it has been saying nothing about nothing since it was
+   written. It is the absence of a figure, so it is set like the absence of
+   one: the caption's weight and the caption's ink. */
+.s-pan-total.is-none {
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--ink-faint);
+  letter-spacing: 0;
 }
 /* ══ THE ONE PANEL THAT DOES OPEN ══════════════════════════════════════
 
@@ -8016,13 +8039,13 @@ body.is-figures .filter-tray { display: none; }
    word competing with the figure for the same line. */
 .s-pan-unit {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em;
   text-align: right; margin-top: 4px;
 }
 
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
-  font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 16px;
+  font-size: var(--fs-xs); color: var(--ink-quiet); margin-top: 16px;
 }
 .s-pan-facts b { color: var(--d100); font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
 .s-pan-facts .is-good b { color: var(--ok-text); }
@@ -8042,7 +8065,20 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-pan-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-pan-who b { color: var(--d50); font-weight: var(--fw-semibold); }
-.s-pan-meta { color: var(--ink-muted); }
+/* A COST IS A FIGURE, AND IT WAS WEARING THE FACE OF THE LINE BESIDE IT.
+   `.s-pan-cost` inherited its row and landed one step of ink from
+   `.s-pan-meta` with the same size and the same weight — one axis of
+   difference, which is what a flat block looks like from the inside. Weight
+   is what every other figure on this page uses to separate itself from its
+   own caption. */
+.s-pan-cost { font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+/* ONE LEVEL DEEPER THAN THE FACTS ROW, SO IT READS AS ONE LEVEL DEEPER.
+   The panel's facts are about the campaign; this is about one person inside
+   it, and it restates the arithmetic of the figure beside it — 9.0 hours at
+   EUR55 an hour, next to EUR497. A caption repeating what is already visible
+   is the definition of the ambient step, and at the attribution step it wore
+   the same face as the row above it. */
+.s-pan-meta { color: var(--ink-faint); }
 
 /* ══ THE CREW FOLDS, AND THE MARKER SAYS WHICH WAY ═════════════════════
    Native `<details>`, the same component the design system ships and the
@@ -8137,7 +8173,7 @@ body.is-figures .filter-tray { display: none; }
 .s-asks-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
   margin-right: 4px;
 }
 .s-ask { display: inline-flex; align-items: center; gap: 8px; }
