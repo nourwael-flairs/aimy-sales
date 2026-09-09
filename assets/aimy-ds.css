@@ -1326,7 +1326,11 @@
     .float-badge {
       position: absolute; top: -3px; right: -3px;
       min-width: 16px; height: 16px; border-radius: var(--r-pill);
-      background: var(--err); border: 1.5px solid #0f1215;
+      /* NOT --err, which is a label hue: this is the one mark whose whole
+         job is "now". It rendered at #f04438 until --err moved to the muted
+         family under it, taking white-on-red from 3.76:1 to 2.91:1 without
+         anyone touching the rule. --err-strong holds it where it was. */
+      background: var(--err-strong); border: 1.5px solid var(--body-bg);
       font-size: 9px; font-weight: 800; color: #fff;
       display: flex; align-items: center; justify-content: center;
       padding: 0 3px; letter-spacing: 0.02em;
