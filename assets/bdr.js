@@ -3265,13 +3265,23 @@
           const k = MEET_KIND[m.kind];
           return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
             'style="--i:' + Math.min(i, 8) + '">' +
-            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+            /* ══ WHEN AND WHAT KIND, THEN WHO AND WHAT ═══════════════════════
+               One line held a dot, a time, a two-line name block and a tag, which
+               works at the width of a page and not at the width of a column beside a
+               month: the name took 143px, wrapped, and the row ran to four lines of
+               ragged text. Stacked, the hour and the kind of thing it is sit together
+               as one mark — they answer the same question and pushed to opposite ends
+               they read as two facts sharing a row — and the sentence runs under them
+               with the whole column to itself. */
+            '<span class="b-cal-evtop">' +
+              '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+              '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+              '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+            '</span>' +
             '<span class="b-cal-ename">' + esc(m.con.name) +
               '<span class="b-cal-ewhat">' + esc(m.title) +
                 (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
             '</span>' +
-            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
           '</button>';
         }).join('') +
       '</div>' +
@@ -3606,13 +3616,15 @@
         const k = MEET_KIND[m.kind];
         return '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" ' +
           'style="--i:' + Math.min(i, 8) + '">' +
-          '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-          '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+          '<span class="b-cal-evtop">' +
+            '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
+            '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
+            '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+          '</span>' +
           '<span class="b-cal-ename">' + esc(m.con.name) +
             '<span class="b-cal-ewhat">' + esc(m.title) +
               (m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') + '</span>' +
           '</span>' +
-          '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
         '</button>';
       }).join('')
       : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
@@ -3631,20 +3643,35 @@
                 '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
             '</div>' +
           '</div>' +
+          /* ══ THE MONTH BESIDE THE DAY, NOT ABOVE IT ══════════════════
+             Stacked, this ran 644px: 336 of month over 163 of agenda, and it
+             hangs off a card 582px down a 698px window — so there were 116px
+             below it and it opened as a letterbox you had to scroll twice to
+             read. Neither half can shrink; the type is already at the floor
+             where a date is legible.
+
+             Side by side they stop competing for height and share width
+             instead, which is the axis a panel under a full-width card has
+             spare: about 360 tall and 620 wide, and the tallest half sets the
+             height rather than the sum of both. The rule that separated them
+             turns with them — a divider between two columns is vertical. */
           '<div class="b-cal-panel">' +
-            '<div class="b-cal-week">' +
-              WD_SHORT.map((w, i) => '<span class="' +
-                (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+            '<div class="b-cal-mo">' +
+              '<div class="b-cal-week">' +
+                WD_SHORT.map((w, i) => '<span class="' +
+                  (i >= 5 ? 'b-cal-wd is-end' : 'b-cal-wd') + '">' + w + '</span>').join('') +
+              '</div>' +
+              '<div class="b-cal-grid" role="grid" aria-label="' +
+                esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
             '</div>' +
-            '<div class="b-cal-grid" role="grid" aria-label="' +
-              esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
-            '<div class="b-cal-rule"></div>' +
-            '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
-              ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
-            '<div class="b-cal-agenda">' + agenda + '</div>' +
-            '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
-              '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
-              'Put something in the diary</button>' +
+            '<div class="b-cal-side">' +
+              '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
+                ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
+              '<div class="b-cal-agenda">' + agenda + '</div>' +
+              '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
+                '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
+                'Put something in the diary</button>' +
+            '</div>' +
           '</div>' +
         '</div>';
   }
@@ -11917,15 +11944,45 @@
       if (!panel.hidden && panel.classList.contains('b-menu')) {
         panel.classList.remove('is-right');
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
-        /* A MONTH IS TALLER THAN A MENU. `max-height` in the sheet can only
-           be measured against the window, and this panel hangs off a door
-           part-way down the page — so 620px of calendar started 311px down
-           and finished 87px past the bottom, with no way to reach the last
-           week. The room BELOW the panel is only knowable once it is shown,
-           which is where this already stands. */
+        /* A MONTH IS TALLER THAN A MENU, AND THE ROOM IS WHERE IT IS. The
+           door these hang off sits low on the page — 582px down a 698px
+           window on a laptop — so there is a third of the room below it that
+           there is above. A menu that only ever drops is a menu that only
+           works at the top of a page.
+
+           So it hangs the way the room is, the same edge-flip `is-right`
+           already does on the other axis, and only clamps if neither side can
+           hold it. Measured after it is shown and with the previous answer
+           cleared first, because a panel still carrying last time's cap
+           reports last time's height. */
         if (panel.classList.contains('b-cal-pop')) {
-          const room = window.innerHeight - panel.getBoundingClientRect().top - 16;
-          panel.style.maxHeight = Math.max(260, room) + 'px';
+          panel.classList.remove('is-up');
+          panel.style.maxHeight = '';
+          /* On a phone it is a sheet in the middle of the screen, sized by the
+             stylesheet — there is no room to hang off anything and nothing to
+             hang it from. Measuring here would only fight that. */
+          if (window.innerWidth <= 720) return;
+          const anchor = po.getBoundingClientRect();
+          const need = panel.getBoundingClientRect().height;
+          const below = window.innerHeight - anchor.bottom - 16;
+          const above = anchor.top - 16;
+          if (need > below && above > below) panel.classList.add('is-up');
+          /* ALWAYS THE CLAMP, NOT ONLY WHEN IT LOOKS NEEDED. Capping only if
+             `need > room` left every case the measurement got wrong with no
+             floor under it — and hanging upward it is the TOP that goes, off
+             the screen, where there is nothing to scroll back to. Setting the
+             room as a ceiling costs nothing when the panel is shorter than it
+             and is the whole difference when it is not. */
+          panel.style.maxHeight = Math.max(240, Math.max(below, above)) + 'px';
+          /* And the answer checked against the result, because the room was
+             measured from the door and the panel is placed against the
+             wrapper: eight pixels of gap, a border, a scrollbar appearing.
+             Whatever is left over comes off the ceiling. */
+          const box = panel.getBoundingClientRect();
+          const over = Math.max(8 - box.top, box.bottom - (window.innerHeight - 8));
+          if (over > 0) {
+            panel.style.maxHeight = Math.max(240, box.height - over) + 'px';
+          }
         }
       }
       return;

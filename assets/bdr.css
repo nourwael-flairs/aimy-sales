@@ -2420,7 +2420,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .k-held { background: var(--ok); }
 .k-owed { background: var(--d300); }
 
-.b-cal-rule { height: 1px; margin: 10px 6px 0; background: var(--card-border); }
 .b-cal-cap {
   margin: 0; padding: 16px 8px 8px;
   font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em;
@@ -2428,7 +2427,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-cal-agenda { display: flex; flex-direction: column; }
 .b-cal-ev {
-  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px;
+  width: 100%; text-align: left;
   padding: 9px 8px; border: 0; border-radius: var(--r-md);
   background: none; cursor: pointer; font-family: inherit;
   transition: background-color var(--t-fast);
@@ -2438,9 +2438,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-ev:hover { background: rgba(var(--accent-rgb), 0.10); }
 .b-cal-ev:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-cal-ev .b-cal-dot { width: 8px; height: 8px; }
+/* The hour and the kind of thing it is, together as one mark. */
+.b-cal-evtop { display: flex; align-items: center; gap: 8px; }
+.b-cal-evtop .tag { flex: none; }
 .b-cal-etime {
-  width: 48px; flex: none; font-size: var(--t-micro); color: var(--d200);
-  font-variant-numeric: tabular-nums;
+  flex: none; font-size: var(--t-micro); font-weight: var(--fw-semibold);
+  color: var(--d200); font-variant-numeric: tabular-nums;
 }
 .b-cal-ename {
   flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
@@ -2729,10 +2732,51 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The panel. `.b-menu`'s machinery, a month's width, and its own scroll so a
    long agenda cannot push it past the bottom of the window. */
 .b-cal-pop {
-  width: min(420px, calc(100vw - 32px)); padding: 12px;
-  max-height: min(620px, calc(100vh - 140px)); overflow: auto;
+  width: min(720px, calc(100vw - 32px)); padding: 12px; overflow: auto;
+  /* `.b-menu` caps itself at 328px and scrolls — right for a list of names,
+     and the reason every version of this panel scrolled no matter what came
+     out of its content. A month is not a list: it is one object with a fixed
+     shape, and 328px cuts it below the fourth week. The clamp that belongs
+     here is the one measured against the room on screen, which the opener
+     sets when it needs to and leaves off when it does not. */
+  max-height: none;
 }
-.b-cal-pop .b-cal { margin: 0; }
+/* `.b-cal` carries `max-width: 560px` from the page it used to be, which is
+   the right measure for a month grid sitting alone in a column and the wrong
+   one for a panel that has been given its own width. Capped at 560 the agenda
+   column came out 197px wide, every row wrapped a name onto two lines and a
+   description onto four, and the panel grew to 438px — so the cramping and
+   the scrolling were the same fault. */
+.b-cal-pop .b-cal { margin: 0; max-width: none; }
+/* The two halves. 296px is seven day cells at the size a date stays legible;
+   the agenda takes the rest and the taller of the two sets the height. */
+.b-cal-pop .b-cal-panel {
+  display: grid; grid-template-columns: 296px minmax(0, 1fr); align-items: start;
+}
+/* A grid inside a grid track needs telling that it may be narrower than its
+   content, or the seven columns push the track wider than it was given. */
+.b-cal-mo { min-width: 0; }
+.b-cal-side {
+  padding-left: 14px; margin-left: 14px; min-width: 0;
+  border-left: 1px solid var(--card-border);
+}
+.b-cal-side .b-cal-cap { margin-top: 0; }
+@media (max-width: 719.98px) {
+  .b-cal-pop .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
+  .b-cal-side {
+    padding-left: 0; margin-left: 0; padding-top: 10px; margin-top: 10px;
+    border-left: 0; border-top: 1px solid var(--card-border);
+  }
+}
+/* Hanging upward: the panel sits on top of the door instead of under it, and
+   the scale it grows from moves to the edge it is attached to. */
+.b-cal-pop.is-up { top: auto; bottom: calc(100% + 8px); transform-origin: bottom left; }
+.b-cal-pop.is-up.is-right { transform-origin: bottom right; }
+.b-cal-pop.is-up { animation-name: b-menu-up; }
+@keyframes b-menu-up {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
 @media (prefers-reduced-motion: reduce) { .b-gate:active { transform: none; } }
 
 /* The promise each door keeps, in the ink this product uses for a text action
@@ -2760,3 +2804,48 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   vertical-align: baseline; color: var(--d400);
 }
 .b-door-clock svg { width: 0.62em; height: 0.62em; }
+
+/* ── the day's list scrolls, the month never does ──────────────────────────
+   The panel as a whole carried the overflow, so a day with four things in it
+   took the month down with it and you scrolled a calendar to see the
+   fourteenth. The month is fixed furniture — it is the thing you opened this
+   for — and the list beside it is the only part whose length is a guess. */
+.b-cal-pop .b-cal-agenda { max-height: 232px; overflow: auto; }
+
+/* ══ 82. ON A PHONE THE DIARY IS A SHEET ═══════════════════════════════════
+   Everywhere else this hangs off the door that opened it, which is what keeps
+   it from being a modal: it is attached to the thing you pressed. A phone has
+   no room to attach anything to — the door is most of the width and the panel
+   is most of the height — so the honest form there is the one the platform
+   already uses for exactly this, a sheet over the page. Portrait, because a
+   month beside an agenda does not fit in 390px and the stylesheet above
+   already stacks them back at this width. */
+@media (max-width: 719.98px) {
+  .b-cal-pop, .b-cal-pop.is-up {
+    position: fixed; inset: auto; top: 50%; left: 50%; right: auto; bottom: auto;
+    width: calc(100vw - 24px); max-height: calc(100vh - 48px);
+    transform: translate(-50%, -50%); transform-origin: center;
+    animation: b-sheet-in 160ms var(--ease-out) both;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+  @keyframes b-sheet-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.97); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  /* The list has the whole sheet to run in, so it stops being the only part
+     that scrolls and the sheet itself takes it. */
+  .b-cal-pop .b-cal-agenda { max-height: none; overflow: visible; }
+}
+@media (max-width: 719.98px) and (prefers-reduced-motion: reduce) {
+  .b-cal-pop, .b-cal-pop.is-up { animation: none; }
+}
+
+/* ── the last forty pixels ─────────────────────────────────────────────────
+   Landscape got the panel from 644 to 438 and the room above the door is 396,
+   so it still came up short by about a row of days. The type does not move —
+   that is the floor where a date stays legible — but the air around it does:
+   54px cells over six rows is 324 of the panel's height, and 46 is still
+   twice the 28px the number and its dots actually occupy. Eight pixels a row
+   is forty-eight, which is the gap, and the head gives back the rest. */
+.b-cal-pop .b-cal-day { height: 46px; }
+.b-cal-pop .b-cal-head { padding-bottom: 10px; }
