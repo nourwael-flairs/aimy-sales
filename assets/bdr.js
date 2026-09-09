@@ -2677,15 +2677,49 @@
     const p2 = (x) => String(x).padStart(2, '0');
     return p2(d.getHours()) + ':' + p2(d.getMinutes());
   };
+  /* ══ WHAT HAPPENED IS THE POINT OF THE ROW ═════════════════════════════
+     Every part of this row but the name came out at 13/400/--d200: the
+     outcome, who did it, the hour, and the words they said, four different
+     ranks of thing set identically. The outcome is the one the reader came
+     for — it is what the section is called — and it was the hardest to find,
+     buried mid-run between a name and a timestamp.
+
+     The record's own timeline ranks the same fact properly, with weight and
+     the tone of how it went, and this row already computed `OUTCOME[...]`
+     and threw it away. So it is drawn the way the timeline draws it, and the
+     bookkeeping behind it drops a step:
+
+       13 / 700 / d50     who it was          the subject
+       13 / 600 / tone    what happened       green good, amber stuck, red out
+       13 / 400 / d200    what they said      their words, still the content
+       13 / 400 / d400    who and when        true, and nobody scans for it
+
+     Neutral outcomes take --d100 rather than the `tone-neutral` utility's
+     --d400: "Moved by hand" is not a lesser event than "Connected", it is
+     one the tones have nothing to say about, and dimming it below the note
+     would have put the row's subject at the bottom of its own ramp. Written
+     out per tone rather than composed, for the audit, as `TL_TONE` is. */
+  const FEED_TONE = {
+    ok: 'b-feed-out tone-ok', warn: 'b-feed-out tone-warn',
+    err: 'b-feed-out tone-err', neutral: 'b-feed-out',
+  };
   function campTouchRow(t, underDay) {
     const c = DB.byCon[t.con];
     const o = OUTCOME[t.outcome];
+    /* A phase has no outcome row of its own; a lost resolution is the one
+       that reads as a way out rather than a step forward. */
+    const tone = o ? o.tone
+      : (t.outcome === 'phase' ? (t.decision === 'lost' ? 'warn' : 'ok') : 'neutral');
     const head = kindLabel(t);
     return '<div class="s-qrow-id">' +
         '<button class="s-qrow-name" type="button" data-con="' + esc(t.con) + '">' +
           esc(c ? c.name : 'Somebody') + '</button>' +
-        '<span class="s-qrow-sub">' + esc(head) + ' · ' + esc(whoDid(t).name) +
-          ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
+        '<span class="s-qrow-sub">' +
+          '<span class="' + (FEED_TONE[tone] || FEED_TONE.neutral) + '">' +
+            esc(head) + '</span>' +
+          '<span class="b-feed-meta"> · ' + esc(whoDid(t).name) +
+            ' · ' + esc(underDay ? timeOf(t.at) : sayWhen(t.at)) + '</span>' +
+        '</span>' +
       '</div>' +
       '<div class="s-qrow-why"><span class="s-qrow-because">' + esc(t.note) + '</span></div>';
   }
