@@ -3247,18 +3247,18 @@
     if (!on.length) {
       return '<section class="s-block s-block-wide" aria-label="Your day">' +
         '<h2 class="s-block-h">Your day</h2>' +
-        '<p class="s-block-sub">Nothing in the diary today.' +
+        '<p class="s-block-sub">Nothing in the calendar today.' +
           (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
             ' still unrecorded.' : '') + ' ' +
           '<button class="s-inline-btn" type="button" data-pickopen="calPop" ' +
-            'aria-haspopup="dialog">Open the diary</button>' +
+            'aria-haspopup="dialog">Open the calendar</button>' +
         '</p>' +
       '</section>';
     }
     return '<section class="s-block s-block-wide" aria-label="Your day">' +
       '<div class="s-camp-list-head">' +
         '<h2 class="s-block-h">Your day</h2>' +
-        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the diary</span>' +
+        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the calendar</span>' +
       '</div>' +
       '<div class="b-cal-agenda b-day">' +
         on.slice(0, 3).map((m, i) => {
@@ -3288,7 +3288,7 @@
       (on.length > 3
         ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" ' +
           'data-pickopen="calPop" aria-haspopup="dialog">The other ' +
-          commas(on.length - 3) + ' in the diary</button></div>'
+          commas(on.length - 3) + ' in the calendar</button></div>'
         : '') +
     '</section>';
   }
@@ -3581,12 +3581,21 @@
     const lead = (new Date(y, mo, 1).getDay() + 6) % 7;
     const start = new Date(y, mo, 1 - lead);
     const cells = [];
-    for (let i = 0; i < 42; i++) {
+    /* ══ AS MANY WEEKS AS THE MONTH HAS ═══════════════════════════════
+       Six rows every month, always — so September 2026, which runs Monday
+       the 31st of August to Sunday the 4th of October in five, drew a sixth
+       holding the 5th to the 11th of the month after. Forty-six pixels of
+       calendar about a month you are not looking at, on a panel that was
+       fighting for forty. Most months need five; the ones that genuinely
+       span six still get six. */
+    const span = lead + new Date(y, mo + 1, 0).getDate();
+    const n = span > 35 ? 42 : 35;
+    for (let i = 0; i < n; i++) {
       const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
       cells.push({ iso: isoDay(dt), day: dt.getDate(), out: dt.getMonth() !== mo,
         end: dt.getDay() === 0 || dt.getDay() === 6 });
     }
-    const all = meetings(cells[0].iso, cells[41].iso);
+    const all = meetings(cells[0].iso, cells[cells.length - 1].iso);
     const byDay = Object.create(null);
     all.forEach((m) => (byDay[m.iso] || (byDay[m.iso] = [])).push(m));
     const inMonth = all.filter((m) => {
@@ -3627,7 +3636,7 @@
           '</span>' +
         '</button>';
       }).join('')
-      : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
+      : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
 
     return '<div class="b-cal">' +
@@ -3668,9 +3677,14 @@
               '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
                 ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
               '<div class="b-cal-agenda">' + agenda + '</div>' +
-              '<button class="b-cal-add" type="button" data-fill="Meeting with ">' +
+              /* The prompt is the sentence AiMY can act on, not a hint that
+                 something might work. "Meeting with " read as the start of a
+                 note about a meeting and came back as conversation; "Add to
+                 calendar:" is the one opening the reader below is built for,
+                 so whatever follows it lands in the calendar. */
+              '<button class="b-cal-add" type="button" data-fill="Add to calendar: ">' +
                 '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
-                'Put something in the diary</button>' +
+                'Add to calendar</button>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -3719,7 +3733,7 @@
     if (!on.length) {
       const soon = meetings(dayAdd(1), dayAdd(14));
       return '<span class="b-door-fig is-quiet">Clear</span>' +
-        '<span class="b-door-who">Nothing is in the diary</span>' +
+        '<span class="b-door-who">Nothing is in the calendar</span>' +
         '<span class="b-door-say">' + (soon.length
           ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
           : 'and nothing in the fortnight ahead') + '</span>';
@@ -3737,7 +3751,7 @@
       '<span class="b-door-who">' + esc(first.con.name) +
         '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span></span>' +
       '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
-        ' in the diary today</span>';
+        ' in the calendar today</span>';
   }
 
   /* Open, signed and lost as one bar in the proportion they stand at, so the
@@ -3795,9 +3809,9 @@
            instead, which is the more useful half of that sentence anyway:
            one opens the diary, the other opens the report. */
         '<span class="b-door-cap">Today</span>' + dayHead() +
-        doorGo('Open the diary') +
+        doorGo('Open the calendar') +
       '</button>' +
-      '<div class="b-menu b-cal-pop" id="calPop" role="dialog" aria-label="The diary" hidden>' +
+      '<div class="b-menu b-cal-pop" id="calPop" role="dialog" aria-label="The calendar" hidden>' +
         calBody(CALSEL) +
       '</div>' +
     '</span>';
@@ -3988,8 +4002,8 @@
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
           ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
         : 'Nothing has been handed to you yet.';
-      if (!on.length) return 'Nothing is in the diary today. ' + book;
-      return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
+      if (!on.length) return 'Nothing is in the calendar today. ' + book;
+      return '<b>' + plural(on.length, 'thing') + '</b> in the calendar today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
           esc(first.con.name) + '</b>' : '') + '. ' + book;
     }
@@ -10129,6 +10143,61 @@
   /* ══ THE READ-BACK, AND ONE PRESS ══════════════════════════════════════
      The same shape a logged call ends on: what I heard, what I am about to
      write, and a correction is another sentence rather than a form. */
+  /* ══ PUTTING SOMETHING IN IS NOT REPORTING SOMETHING BACK ══════════════
+     `readMeet` reads a meeting that HAPPENED — it wants a stage in the past
+     tense or a next step — so "Add to calendar: Leo Smith Thursday 3pm"
+     matched nothing, fell past every reader, and came back as canvas chat.
+     The button that filled the bar promised the calendar and the bar
+     answered with conversation.
+
+     A booking is the other direction: nobody is reporting a stage, they are
+     naming a person, a day and an hour. It writes the next step and the time
+     and moves no deal, because nothing has happened yet. */
+  const BOOK_RE = /\b(?:add to calendar|put in the calendar|book|schedule)\b/i;
+  const BOOK_KIND = [
+    [/\bdinner\b/i, 'dinner', 'Dinner with them'],
+    [/\bdemo\b/i, 'demo', 'Demo for them'],
+    [/\blunch\b/i, 'dinner', 'Lunch with them'],
+    [/\b(meeting|meet|call|coffee|catch up)\b/i, 'meeting', 'Meeting with them'],
+  ];
+  function readBook(text) {
+    if (!BOOK_RE.test(text)) return null;
+    /* Past tense means it is a report, whatever words it opens with. */
+    if (/\b(had|held|went|was|were|did|met)\b/i.test(text)) return null;
+    const lower = ' ' + text.toLowerCase() + ' ';
+    let con = null;
+    queue(null, 'all').forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(n) >= 0 && (!con || n.length > con.name.length)) con = c;
+    });
+    if (!con) return null;
+    let what = 'Meeting with them';
+    for (let i = 0; i < BOOK_KIND.length; i++) {
+      if (BOOK_KIND[i][0].test(text)) { what = BOOK_KIND[i][2]; break; }
+    }
+    return { con: con, what: what, when: readWhen(text.toLowerCase()), clock: readClock(text) };
+  }
+
+  function bookPropose(text, f) {
+    const due = dayAdd(f.when);
+    PENDING = { kind: 'meet', con: f.con.id, to: null, next: f.what,
+      when: f.when, clock: f.clock, note: text };
+    openCanvas();
+    say('you', esc(text));
+    TURNS.push({
+      who: 'aimy',
+      html: 'Putting <b>' + esc(f.what.toLowerCase()) + '</b> in the calendar for <b>' +
+        esc(f.con.name) + '</b> on <b>' + esc(sayWhen(due)) + '</b>' +
+        (f.clock ? ' at <b>' + f.clock.h + ':' + String(f.clock.m).padStart(2, '0') + '</b>'
+          : ', and I will place the hour until you name one') + '.',
+      hint: 'Or say what I got wrong — "make it Thursday", "it is a dinner", "at 4pm".',
+      step: 'meetlog',
+      opts: [{ k: 'go', label: 'Put it in' }, { k: 'drop', label: 'Leave it', quiet: true }],
+    });
+    paintThread();
+    return true;
+  }
+
   function meetPropose(text, f) {
     const c = f.con;
     const at = stageRank(stageOf(c));
@@ -10172,7 +10241,8 @@
     const c = DB.byCon[p.con];
     PENDING = null;
     if (!c) { paintThread(); return; }
-    setStage(c.id, p.to, p.note);
+    /* A booking moves no deal: nothing has happened, something is going to. */
+    if (p.to) setStage(c.id, p.to, p.note);
     if (p.next) {
       const due = dayAdd(p.when);
       patchCon(c, { next: { what: p.next, due: due } });
@@ -10421,6 +10491,10 @@
          meeting, and reading it as a call would write a touchpoint that
          says a phone rang. */
       if (isMgr()) {
+        /* Booking first: "add to calendar" is unambiguous and `readMeet`
+           would otherwise take the same sentence and guess a stage from it. */
+        const bk = readBook(t);
+        if (bk) { if (bookPropose(t, bk)) return; }
         const mt = readMeet(t);
         if (mt && (mt.stage || mt.next)) { if (meetPropose(t, mt)) return; }
       }
@@ -11962,24 +12036,42 @@
              stylesheet — there is no room to hang off anything and nothing to
              hang it from. Measuring here would only fight that. */
           if (window.innerWidth <= 720) return;
+          /* ══ THE EDGE THAT CLIPS IS NOT THE WINDOW'S ═══════════════════
+             This panel is `position: absolute` inside `.page-scroll`, which
+             carries `overflow: auto` — so it is cut at that box's edge and
+             cannot reach past it however much window there is. Clamping
+             against `innerHeight` measured room the panel was never allowed
+             to use: the arithmetic said it fit, and it came off flush under
+             the top nav.
+
+             So the ceiling is the scrolling ancestor's box where there is
+             one, and the window where there is not. */
+          const clipOf = (el) => {
+            let e = el.parentElement;
+            while (e && e !== document.body) {
+              const o = getComputedStyle(e).overflowY;
+              if (o === 'auto' || o === 'scroll' || o === 'hidden') return e.getBoundingClientRect();
+              e = e.parentElement;
+            }
+            return { top: 0, bottom: window.innerHeight };
+          };
+          const clip = clipOf(panel);
           const anchor = po.getBoundingClientRect();
           const need = panel.getBoundingClientRect().height;
-          const below = window.innerHeight - anchor.bottom - 16;
-          const above = anchor.top - 16;
+          const below = clip.bottom - anchor.bottom - 16;
+          const above = anchor.top - clip.top - 16;
           if (need > below && above > below) panel.classList.add('is-up');
           /* ALWAYS THE CLAMP, NOT ONLY WHEN IT LOOKS NEEDED. Capping only if
              `need > room` left every case the measurement got wrong with no
-             floor under it — and hanging upward it is the TOP that goes, off
-             the screen, where there is nothing to scroll back to. Setting the
-             room as a ceiling costs nothing when the panel is shorter than it
-             and is the whole difference when it is not. */
+             floor under it — and hanging upward it is the TOP that goes, out
+             of a box there is nothing to scroll back through. */
           panel.style.maxHeight = Math.max(240, Math.max(below, above)) + 'px';
           /* And the answer checked against the result, because the room was
              measured from the door and the panel is placed against the
              wrapper: eight pixels of gap, a border, a scrollbar appearing.
              Whatever is left over comes off the ceiling. */
           const box = panel.getBoundingClientRect();
-          const over = Math.max(8 - box.top, box.bottom - (window.innerHeight - 8));
+          const over = Math.max(clip.top + 8 - box.top, box.bottom - (clip.bottom - 8));
           if (over > 0) {
             panel.style.maxHeight = Math.max(240, box.height - over) + 'px';
           }
