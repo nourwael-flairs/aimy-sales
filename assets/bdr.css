@@ -2355,6 +2355,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    build that spends five hues. They are the tones the product already owns —
    the same five that tag anything else — rather than a new palette. */
 .b-cal { margin-top: 16px; max-width: 720px; }
+/* Everything from here to the end of this block belongs to the diary page.
+   The stacked month at 720 sat in a 1000px column with 280 of it empty, and
+   filling that by stretching the same seven cells only made a date and three
+   dots adrift in a wider box: 140 by 54 is not a day, it is a row. The width
+   goes to a SECOND COLUMN instead — the day beside the month rather than
+   under it — which is the shape the pop-out had and the reason it read well.
+   Capped, because at 1440 uncapped the cells stretch again. */
 .b-cal-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 0 2px 14px;
@@ -2891,8 +2898,45 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    off a door: no card of its own, because `.b-cal-panel` already is one, and
    the loop under it is the block it has always been. */
 .b-diary { margin-bottom: 4px; }
-.b-diary .b-cal { margin-top: 4px; }
-/* Room to read a month at page size. In the pop-out the cells are 296px of
-   width shared seven ways and the height is what is left; here the grid has
-   the width, so the cells grow into it rather than sitting in a stripe. */
-.b-diary .b-cal-day { min-height: 52px; }
+.b-diary .b-cal { margin-top: 4px; max-width: 1080px; }
+.b-diary .b-cal-panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start;
+  padding: 12px;
+}
+.b-diary .b-cal-side {
+  padding-left: 18px; margin-left: 18px; padding-top: 0; margin-top: 0;
+  border-left: 1px solid var(--card-border); border-top: 0;
+}
+/* ══ AND SIZED FOR THE ROOM IT IS IN ═══════════════════════════════════
+   The month's type was set for a 296px column inside a panel that was
+   fighting for height: 54px cells, a 13px date, five-pixel dots. In seven
+   hundred it reads as a wireframe of a calendar — the marks are correct and
+   they are all too small for the box around them, which is the same fault
+   as a photograph printed at four times its resolution.
+
+   So the cell grows to 72 and everything in it grows with it. The weekday
+   row comes off the eleven-pixel floor while it is here, which it had no
+   business sitting on: "Mon" is not capitals. */
+.b-diary .b-cal-day { height: 72px; gap: 7px; }
+.b-diary .b-cal-num { font-size: var(--t-deck); }
+.b-diary .b-cal-dots { gap: 4px; height: 7px; }
+.b-diary .b-cal-dot { width: 7px; height: 7px; }
+.b-diary .b-cal-week { padding: 4px 0 8px; }
+.b-diary .b-cal-wd { font-size: var(--t-ui); }
+.b-diary .b-cal-day.is-today .b-cal-num::after {
+  bottom: -9px; width: 4px; height: 4px; margin-left: -2px;
+}
+/* The day beside it is a column of its own now rather than a strip under a
+   month, so its rows read at the size the rest of the product reads at. */
+.b-diary .b-cal-cap { padding-top: 6px; }
+.b-diary .b-cal-etime, .b-diary .b-cal-ewhat { font-size: var(--t-ui); }
+/* Under the fold for a second column: the month goes back over the day and
+   the rule between them turns with them, which is the stacked default. */
+@media (max-width: 1023.98px) {
+  .b-diary .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
+  .b-diary .b-cal-side {
+    padding-left: 0; margin-left: 0; padding-top: 12px; margin-top: 12px;
+    border-left: 0; border-top: 1px solid var(--card-border);
+  }
+  .b-diary .b-cal-day { height: 60px; }
+}
