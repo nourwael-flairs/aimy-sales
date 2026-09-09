@@ -1777,9 +1777,12 @@
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
     /* The campaign remembers which lists are on it; the list is told again
-       here, so every other room reads the same answer after a reload. */
+       here, so every other room reads the same answer after a reload. It
+       overrules what the seed says — the seed is where a list starts and this
+       is somebody having moved it — and delta campaigns are concatenated
+       after the seeded ones, so the later claim is the newer one. */
     DB.camp.forEach((c) => (c.lists || []).forEach((id) => {
-      if (DB.byList[id] && !DB.byList[id].for) DB.byList[id].for = c.id;
+      if (DB.byList[id]) DB.byList[id].for = c.id;
     }));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
@@ -3082,7 +3085,15 @@
       touched.push({ id: c.id, add: add });
     });
     const dl = l ? DELTA.list.filter((x) => x.id === id)[0] : null;
-    if (l && !l.for) { l.for = ks[0].id; if (dl) dl.for = ks[0].id; }
+    /* And the campaign is told, because `l.for` alone does not survive the
+       night: a seeded list is rebuilt from the seed on every load, and only
+       the campaign is in `DELTA.camp`. Without this the people stayed on the
+       campaign and the list said it was still on the one the seed named. */
+    if (l && !l.for) {
+      l.for = ks[0].id;
+      if (dl) dl.for = ks[0].id;
+      campSet(ks[0], { lists: (ks[0].lists || []).concat([id]) });
+    }
     if (!touched.length) {
       toast('They are all on ' + listSay(ks.map((k) => k.name)) + ' already.');
       return;
@@ -3095,7 +3106,11 @@
         const c = DB.byCon[x.id];
         patchCon(c, { camps: c.camps.filter((y) => x.add.indexOf(y) < 0) });
       });
-      if (l) { l.for = before; if (dl) dl.for = before; }
+      if (l) {
+        l.for = before;
+        if (dl) dl.for = before;
+        campSet(ks[0], { lists: (ks[0].lists || []).filter((x) => x !== id) });
+      }
       reindex(); save(); paint();
     });
   }
@@ -12438,6 +12453,20 @@
     const cdrop = t.closest('[data-cdrop]');
     if (cdrop) {
       const id = cdrop.getAttribute('data-cdrop');
+      /* Its lists go back to being nobody's. A list left pointing at a
+         campaign that no longer exists is a list the product will never
+         offer again and never explain why, and a list this browser built is
+         in `DELTA.list`, so nothing would put it right in the morning. */
+      const k = DB.byCamp[id];
+      (k ? (k.lists || []) : []).forEach((lid) => {
+        const l = DB.byList[lid];
+        const dl = DELTA.list.filter((x) => x.id === lid)[0];
+        if (l && l.for === id) l.for = null;
+        if (dl && dl.for === id) dl.for = null;
+      });
+      DB.con.forEach((c) => {
+        if (c.camps.indexOf(id) >= 0) patchCon(c, { camps: c.camps.filter((y) => y !== id) });
+      });
       DB.camp = DB.camp.filter((c) => c.id !== id);
       DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
       reindex();
