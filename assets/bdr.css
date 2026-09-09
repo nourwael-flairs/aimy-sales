@@ -2542,7 +2542,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 /* Today's three sit in a block rather than in the diary's panel, so they
    carry the panel's padding themselves. */
-.b-day { margin-top: 10px; }
 @media (prefers-reduced-motion: reduce) { .b-loop-row { animation: none; } }
 
 /* ══ 72. THE BAR TAKES DICTATION ═══════════════════════════════════════════

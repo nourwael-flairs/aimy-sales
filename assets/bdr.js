@@ -3318,68 +3318,6 @@
      that do, and the board one tab along holds the rest. */
   /* Today's diary, at the top of today. Three at most and a door — a month
      grid inside a briefing is the block that ate two thirds of the page. */
-  function dayBlock() {
-    const on = meetingsOn(TODAY_ISO);
-    const un = unrecorded().length;
-    if (!on.length) {
-      return '<section class="s-block s-block-wide" aria-label="Your day">' +
-        '<h2 class="s-block-h">Your day</h2>' +
-        '<p class="s-block-sub">Nothing in the calendar today.' +
-          (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
-            ' still unrecorded.' : '') + ' ' +
-          '<button class="s-inline-btn" type="button" data-pickopen="calPop" ' +
-            'aria-haspopup="dialog">Open the calendar</button>' +
-        '</p>' +
-      '</section>';
-    }
-    return '<section class="s-block s-block-wide" aria-label="Your day">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">Your day</h2>' +
-        '<span class="s-block-say">' + esc(plural(on.length, 'thing')) + ' in the calendar</span>' +
-      '</div>' +
-      '<div class="b-cal-agenda b-day">' +
-        on.slice(0, 3).map((m, i) => {
-          const k = MEET_KIND[m.kind];
-          /* ══ A DOOR ONLY WHERE THERE IS SOMETHING BEHIND IT ══════════
-             The calendar now holds entries with no record — a dinner with
-             somebody who is not in the book. Drawn as a button carrying an
-             empty `data-con`, pressing one would go to a record that does
-             not exist. A button where there is a record, a plain row where
-             there is not, and the row says which by not lighting under the
-             pointer. */
-          return (m.con.id
-            ? '<button class="b-cal-ev" type="button" data-con="' + esc(m.con.id) + '" '
-            : '<div class="b-cal-ev is-plain" ') +
-            'style="--i:' + Math.min(i, 8) + '">' +
-            /* ══ WHEN AND WHAT KIND, THEN WHO AND WHAT ═══════════════════════
-               One line held a dot, a time, a two-line name block and a tag, which
-               works at the width of a page and not at the width of a column beside a
-               month: the name took 143px, wrapped, and the row ran to four lines of
-               ragged text. Stacked, the hour and the kind of thing it is sit together
-               as one mark — they answer the same question and pushed to opposite ends
-               they read as two facts sharing a row — and the sentence runs under them
-               with the whole column to itself. */
-            '<span class="b-cal-evtop">' +
-              '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
-              '<span class="b-cal-etime">' + (m.h == null ? 'all day' : esc(clockOf(m))) + '</span>' +
-              '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
-            '</span>' +
-            '<span class="b-cal-ename">' + esc(m.con.name) +
-              '<span class="b-cal-ewhat">' + esc(m.title) +
-                (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
-              '</span>' +
-            '</span>' +
-          (m.con.id ? '</button>' : '</div>');
-        }).join('') +
-      '</div>' +
-      (on.length > 3
-        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" ' +
-          'data-pickopen="calPop" aria-haspopup="dialog">The other ' +
-          commas(on.length - 3) + ' in the calendar</button></div>'
-        : '') +
-    '</section>';
-  }
-
   /* ══ WHAT YOU SAID, BY THE DAY YOU SAID IT ═════════════════════════════
      The notebook these managers still carry is not a filing system — it is
      a running page of what happened, and its whole advantage is that you
@@ -3468,8 +3406,6 @@
           doorGo('Open the report') +
         '</button>' +
       '</div>' +
-      dayBlock() +
-      openLoop() +
       '<section class="s-block s-block-wide" aria-label="What wants you today">' +
         '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
         (rows.length
@@ -3764,7 +3700,16 @@
                 esc(MONTH_FULL[mo] + ' ' + y) + '">' + grid + '</div>' +
             '</div>' +
             '<div class="b-cal-side">' +
-              '<h4 class="b-cal-cap">' + esc(DAY_FULL[d.getDay()] + ', ' + sayDay(sel)) +
+              /* ══ YOUR DAY IS THE DAY YOU ARE LOOKING AT ═══════════════
+                 "Your day" was a section of its own on Today, listing the
+                 same meetings this column lists, because on a page with no
+                 month to step through the two could not disagree. On the
+                 diary they can — and the one you are looking at is the one
+                 you picked — so there is one list and its heading says which
+                 day it is. The weekday gives way to the more useful word on
+                 the one day the reader already knows the weekday for. */
+              '<h4 class="b-cal-cap">' +
+                esc((sel === TODAY_ISO ? 'Today' : DAY_FULL[d.getDay()]) + ', ' + sayDay(sel)) +
                 ' · ' + esc(plural(today.length, 'thing')) + '</h4>' +
               '<div class="b-cal-agenda">' + agenda + '</div>' +
               /* The prompt is the sentence AiMY can act on, not a hint that
@@ -4120,14 +4065,25 @@
          still be there at six. */
       const on = meetingsOn(TODAY_ISO);
       const first = on.filter((m) => m.h != null)[0];
+      /* Never written down moved to the diary with the day it belongs to,
+         and it is the only p1 this desk has — so the paragraph names it and
+         the phrase is the way there. Silence about it on the surface a
+         manager opens first is how it goes on being unwritten. */
+      const un = unrecorded().length;
+      const owed = un
+        ? ' <button class="slv-n" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
+          esc(plural(un, 'meeting')) + '</button> ' + (un === 1 ? 'has' : 'have') +
+          ' been and gone with nothing said about ' + (un === 1 ? 'it' : 'them') + '.'
+        : '';
       const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
           ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
         : 'Nothing has been handed to you yet.';
-      if (!on.length) return 'Nothing is in the calendar today. ' + book;
+      if (!on.length) return 'Nothing is in the calendar today.' + owed + ' ' + book;
       return '<b>' + plural(on.length, 'thing') + '</b> in the calendar today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
-          esc(first.con.name) + '</b>' : '') + '. ' + book;
+          esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book;
     }
     return openerText(counts, all, camps);
   }
