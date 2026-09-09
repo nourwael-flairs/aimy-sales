@@ -2362,9 +2362,14 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    goes to a SECOND COLUMN instead — the day beside the month rather than
    under it — which is the shape the pop-out had and the reason it read well.
    Capped, because at 1440 uncapped the cells stretch again. */
+/* Inside the card now, so it is separated from the month the way the month
+   is separated from the day beside it: an inset rule, not an edge-to-edge
+   one — this build draws the dividers between the parts of a panel inside
+   the panel's own padding. */
 .b-cal-head {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; padding: 0 2px 14px;
+  gap: 10px; padding: 2px 2px 12px; margin-bottom: 10px;
+  border-bottom: 1px solid var(--card-border);
 }
 .b-cal-month {
   display: flex; align-items: center; gap: 10px; margin: 0;
@@ -2901,8 +2906,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-diary .b-cal { margin-top: 4px; max-width: 1080px; }
 .b-diary .b-cal-panel {
   display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start;
-  padding: 12px;
+  padding: 12px 14px 14px;
 }
+/* Across both columns: the month it names is one of them and the day it
+   steps is the other. */
+.b-diary .b-cal-head { grid-column: 1 / -1; }
 .b-diary .b-cal-side {
   padding-left: 18px; margin-left: 18px; padding-top: 0; margin-top: 0;
   border-left: 1px solid var(--card-border); border-top: 0;
@@ -2928,7 +2936,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 /* The day beside it is a column of its own now rather than a strip under a
    month, so its rows read at the size the rest of the product reads at. */
-.b-diary .b-cal-cap { padding-top: 6px; }
+.b-diary .b-cal-cap { padding-top: 0; }
 .b-diary .b-cal-etime, .b-diary .b-cal-ewhat { font-size: var(--t-ui); }
 /* Under the fold for a second column: the month goes back over the day and
    the rule between them turns with them, which is the stacked default. */

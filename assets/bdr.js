@@ -3672,7 +3672,25 @@
       : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
 
+    /* ══ THE MONTH BESIDE THE DAY, NOT ABOVE IT ══════════════════════════
+       Stacked, this ran 644px: 336 of month over 163 of agenda, and it hung
+       off a card 582px down a 698px window — so there were 116px below it
+       and it opened as a letterbox you had to scroll twice to read. Neither
+       half can shrink; the type is already at the floor where a date is
+       legible. Side by side they stop competing for height and share width
+       instead, which is the axis a page has spare, and the taller half sets
+       the height rather than the sum of both. The rule that separates them
+       turns with them — a divider between two columns is vertical.
+
+       ══ AND THE HEAD IS PART OF THE MONTH, NOT A LABEL ABOVE IT ══════════
+       The name and the two steppers stood on the page's own ground with the
+       card starting underneath them, so the card read as something the
+       heading pointed at rather than as the thing the heading belongs to —
+       and the controls that change what is inside the card sat outside it.
+       They are in it now, across the top of both columns, separated by the
+       same inset rule that already stands between the month and the day. */
     return '<div class="b-cal">' +
+        '<div class="b-cal-panel">' +
           '<div class="b-cal-head">' +
             '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
               '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
@@ -3685,19 +3703,6 @@
                 '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
             '</div>' +
           '</div>' +
-          /* ══ THE MONTH BESIDE THE DAY, NOT ABOVE IT ══════════════════
-             Stacked, this ran 644px: 336 of month over 163 of agenda, and it
-             hangs off a card 582px down a 698px window — so there were 116px
-             below it and it opened as a letterbox you had to scroll twice to
-             read. Neither half can shrink; the type is already at the floor
-             where a date is legible.
-
-             Side by side they stop competing for height and share width
-             instead, which is the axis a panel under a full-width card has
-             spare: about 360 tall and 620 wide, and the tallest half sets the
-             height rather than the sum of both. The rule that separated them
-             turns with them — a divider between two columns is vertical. */
-          '<div class="b-cal-panel">' +
             '<div class="b-cal-mo">' +
               '<div class="b-cal-week">' +
                 WD_SHORT.map((w, i) => '<span class="' +
