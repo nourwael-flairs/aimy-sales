@@ -285,7 +285,10 @@
    `text-wrap: pretty` because these run two and three lines in a 340px card
    and the last line is where a lone word lands. */
 .b-qcard-what { text-wrap: pretty; }
-.b-qcard-what b { color: var(--d300); font-weight: var(--fw-bold); margin-right: 4px; }
+.b-qcard-what b { color: var(--d300); font-weight: var(--fw-bold); }
+/* The gap belongs to the label, not to every bold thing in the line: the
+   goal's standing is a <b> too, and on nine cards it read "9  so far". */
+.b-qcard-what > b:first-child { margin-right: 4px; }
 
 /* The keyboard cursor on a card. A call rather than a tint: a card already
    has a ground of its own, and tinting it would fight the status tag on it. */

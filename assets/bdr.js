@@ -1070,15 +1070,20 @@
          index here put half of mine in the finished pile. */
       const crew = [];
 
-      /* ══ THE GOAL IS THE ASK; THE NUMBER IS THE MEASURE ═══════════════
+      /* ══ THE ASK AND THE GOAL ARE TWO FACTS ═══════════════════════════
          "Book 19 first meetings with logistics operations leads" was doing
          both jobs and neither well. It read as a quota in a run of unlabelled
          facts, and the page had to find the 19 by running a regular
          expression over its own prose to know what to measure against — so
          renaming an industry could silently change the target.
 
-         The ask is the goal. The number is `target`, and where it stands
-         against that number is the insight sixty pixels below. */
+         Splitting them was right; calling the surviving sentence the goal
+         was not. `target` is the goal — the state this campaign is trying
+         to reach by the day it closes, countable so `campStand` can measure
+         it. The field below is the ask: what one call should come away with.
+         The field keeps its name because a built campaign in somebody's
+         browser was stored under it, and every surface that draws it says
+         "the ask" instead. */
       const askFor = ASK_OF[sells[0].k];
       const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
       camp.push({
@@ -2466,23 +2471,48 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
-      /* ══ THE LINE UNDER THE NAME IS A FACT WITH A NAME ═════════════════
+      /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
          `.tc-summary` is the shell's description slot — 11.5px at --d400,
-         the quietest thing on the card — and this is not a description of
-         the campaign. It is the campaign's ask: the one sentence saying what
-         a call on it is trying to come away with. The record captions it
-         `The goal` and the prep sheet says `Asking for`; the card was the
-         only place it ran bare, and a substantive sentence with no name on
-         it in the description slot reads as a description. Worse, it left
-         two prose blocks on one card — this and what AiMY makes of the calls
-         — looking like the same kind of thing, which they are not: one is
-         authored and fixed, the other is read off 226 calls.
+         the quietest thing on the card — and what sat in it was `k.goal`,
+         which is not a description and not a goal either. It is the ask:
+         one sentence on what a single call should come away with. Under the
+         word "goal" it answered the wrong question. A campaign's goal is the
+         state it is trying to reach by the day it closes, and the seed has
+         held that all along in `target` — a number and a noun — because
+         `campStand` needs something countable to measure against.
 
-         The ink stays where it is. Picking a campaign to work is decided by
-         the days left, the numbers and the insight; the ask is the same
-         every morning, so it is reference and reads like reference. What it
-         was missing was not weight, it was its name. */
-      '<p class="tc-summary b-qcard-what"><b>The goal</b> ' + esc(k.goal) + '.</p>' +
+         So the line says the end state, built from the target, the persona
+         the campaign is for and the day it closes, with where it stands
+         behind it. The ask keeps its own name on the record.
+
+         The ink stays where it is. Choosing which campaign to work is
+         decided by the days left, the numbers and the insight; the goal is
+         the frame those are read inside, not a fourth figure competing with
+         them. What the line was missing was not weight, it was the right
+         fact under the right word. */
+      (function () {
+        const st = campStand(k);
+        /* No target is possible on paper and impossible in this book; if one
+           ever arrives, the ask is still true and still worth its slot. */
+        if (!st.target) {
+          return '<p class="tc-summary b-qcard-what"><b>The ask</b> ' + esc(k.goal) + '.</p>';
+        }
+        /* No date in it. A goal states its deadline, and this card's states
+           it twice as loudly six pixels up: the tag IS the deadline, in
+           "14 days left" while it runs and "closed 6 Sep" once it has. The
+           line carries the two facts the tag cannot — what it is for, and
+           how much of that it has. */
+        return '<p class="tc-summary b-qcard-what"><b>The goal</b> ' +
+          esc(plural(st.target, st.noun)) + ' with ' +
+          esc(k.persona ? k.persona.who : 'them') +
+          /* Hard spaces after the figure: it wrapped as "…pipeline, 9" then
+             "so far." on its own line, which parts the number from the words
+             that say what it counts. */
+          (campOpen(k)
+            ? (st.done ? ', <b>' + st.done + '</b> so far.' : ', none yet.')
+            : ' — <b>' + st.done + '</b> in the end.') +
+          '</p>';
+      })() +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
@@ -5680,7 +5710,11 @@
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
     return '<div class="b-cmeta">' +
-      cmPart('The goal', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
+      /* Not "The goal": this sentence is what one call asks for, and the
+         goal — the target it is measured against — is the figure in the
+         lead block sixty pixels above. Two different facts cannot share the
+         one word, and the prep sheet has always called this one the ask. */
+      cmPart('The ask', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
       /* The name and which kind it is. The blurb underneath was the line a
          caller says out loud, and it is said out loud in What to say — here
          it was a second copy of it in the smallest type on the page. */
@@ -5824,11 +5858,11 @@
      finishes, and the fourth-best thing AiMY noticed is not worth the
      reader deciding which three of five to trust.
 
-     AGAINST THE GOAL, FIRST. Every campaign goal in this book opens with a
-     number — "Open 20 conversations in Central Europe" — so the goal is
-     countable, and where it stands is the question the campaign exists to
-     answer. Read out of the sentence rather than stored beside it, so a
-     goal that is edited cannot leave a target behind that disagrees. */
+     AGAINST THE GOAL, FIRST. The goal is countable — `target`, a number and
+     a noun — and where it stands is the question the campaign exists to
+     answer. It is stored, not read out of prose: this paragraph used to say
+     the opposite, and `campStand` records why the regular expression over
+     the goal sentence had to go. */
   function campReadings(k) {
     const here = DB.touch.filter((t) => t.camp === k.id);
     const members = membersOf(k.id);
