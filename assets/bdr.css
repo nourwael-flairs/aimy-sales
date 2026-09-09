@@ -1487,6 +1487,42 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
     border-color var(--t-fast), transform 160ms var(--ease-out);
 }
 .b-ghost:hover { color: var(--d50); border-color: var(--card-border-hover); }
+
+/* ── AND EVERY QUIET ACTION IS ONE ────────────────────────────────────────
+   The actions row renders its first verb as the filled primary and the rest
+   as `.s-inline-btn`, which is the link treatment: accent-coloured text, no
+   ground, no edge. On a record that put "Call Henry" in the same clothes as
+   "fenborgsoftware.nl" four lines above it, and on the branches where there
+   is no primary at all — a handed-over lead seen by the BDR who handed it —
+   the entire row was coloured text.
+
+   A verb in the actions row is a control, so it takes the control's edge.
+   The primary keeps the fill and stays the one thing that leads.
+
+   NOT scoped away from `.s-rec-facts`: that row is facts that happen to be
+   doors, and a phone number is a value you read rather than a button you
+   press. It keeps the link. */
+.s-rec-actions .s-inline-btn {
+  display: inline-flex; align-items: center; gap: 7px; line-height: 1;
+  min-height: 32px; padding: 0 16px;
+  border-radius: var(--r-pill);
+  color: var(--ink-muted); background: none;
+  border: 1px solid var(--card-border);
+  transition: color var(--t-fast), background-color var(--t-fast),
+    border-color var(--t-fast), transform 160ms var(--ease-out);
+}
+.s-rec-actions .s-inline-btn:hover {
+  color: var(--ink-primary); border-color: var(--card-border-hover);
+  text-decoration: none;
+}
+.s-rec-actions .s-inline-btn:active { transform: scale(0.97); }
+/* The underline this class carries on hover is a link's affordance and the
+   box has replaced it. */
+.s-rec-actions .s-inline-btn::after { content: none; }
+@media (prefers-reduced-motion: reduce) {
+  .s-rec-actions .s-inline-btn { transition: none; }
+  .s-rec-actions .s-inline-btn:active { transform: none; }
+}
 .b-ghost:active { transform: scale(0.97); }
 .b-ghost:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 /* Ending a lead is the one that gets the tone, and it gets it on the cursor
@@ -2372,17 +2408,32 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-dealcard:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
 .b-dealcard:active { transform: scale(0.99); }
 .b-dealcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-dc-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50); }
-.b-dc-co { font-size: var(--t-small); color: var(--d200); }
+/* ── THE SAME FOUR RANKS THE QUEUE CARD HAS, IN A NARROWER COLUMN ─────────
+   Every run on this card was 14px — the name at 600, the company at 400, the
+   basis at 400 and the amount at 700 — so a board of thirty deals had thirty
+   names that did not lead their own cards. It is the queue card's problem in
+   a column six across instead of three, and it takes the queue card's answer
+   one step smaller: 16 rather than 18 for the name, because the column is
+   half the width and an 18px name wraps.
+
+     16 / 800 / primary     the name
+     16 / 700 / secondary   the amount
+     14 / 500 / muted       the company
+     14 / 400 / muted       the basis */
+.b-dc-name {
+  font-size: var(--t-body); font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight); color: var(--ink-primary);
+}
+.b-dc-co { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--ink-muted); }
 /* The one line of basis under a deal. It is the sentence the card is for,
    and it was the smallest thing on it. */
 .b-dc-why {
-  font-size: var(--t-ui); color: var(--d200); line-height: 1.45;
+  font-size: var(--t-small); color: var(--ink-muted); line-height: 1.45;
   margin-top: 3px; text-wrap: pretty;
 }
 .b-dc-amt {
-  margin-top: 6px; font-size: var(--t-ui); font-weight: var(--fw-bold);
-  color: var(--d100); font-variant-numeric: tabular-nums;
+  margin-top: 6px; font-size: var(--t-body); font-weight: var(--fw-bold);
+  color: var(--ink-secondary); font-variant-numeric: tabular-nums;
 }
 @media (prefers-reduced-motion: reduce) {
   .b-dealcard { animation: none; transition: none; }
@@ -2784,8 +2835,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-feed-out.tone-warn { color: var(--warn-text); }
 .b-feed-out.tone-err { color: var(--err-text); }
 /* And the bookkeeping behind it. Who logged it and at what minute is true and
-   worth keeping, and nobody has ever scanned a feed looking for it. */
-.b-feed-meta { color: var(--ink-muted); }
+   worth keeping, and nobody has ever scanned a feed looking for it.
+
+   THIS RULE STOPPED DOING ANYTHING. It demotes to --ink-muted, and --ink-muted
+   is --d200, which is what `.s-qrow-sub` already sets on the line this sits
+   in: written to push the attribution down a step, and after the ink band
+   narrowed, pushing it to exactly where it already was. Seventeen of the
+   forty-two runs on an account page came out identical because of it — the
+   note, the outcome and the bookkeeping in one grey.
+
+   An attribution and a timestamp beside something else is the textbook case
+   for the minimal-component size, so it takes that instead of a shade of
+   grey that no longer exists. */
+.b-feed-meta {
+  font-size: var(--fs-2xs); font-weight: var(--fw-medium); color: var(--ink-muted);
+}
+/* What happened leads its own line; the note under it is the sentence you
+   read, and it is not the same rank as who typed it. */
+.b-feed-out { font-weight: var(--fw-semibold); }
+.s-qrow-because { color: var(--ink-secondary); }
 
 /* ══ 81. TWO DOORS THAT ARE SPECIMENS OF WHAT IS BEHIND THEM ═══════════════
    Argued at `dayRail`. Two cards, apart, each one a card in its own right:

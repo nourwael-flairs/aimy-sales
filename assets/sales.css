@@ -3297,6 +3297,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
   text-decoration: none;
   transition: color var(--t-fast);
 }
+/* ── EXCEPT WHERE IT IS SITTING IN A ROW OF FACTS ─────────────────────────
+   A declared size is right for an action standing on its own. In the
+   masthead's facts row it made the row alternate: "VP Engineering" 16,
+   "Fenborg Software" 14, "Software" 16, "Brussels, BE" 16 — the size
+   changing on whether the fact happened to be a door rather than on what
+   kind of fact it was. The row is one rank and reads as one line, so the
+   items in it take the line's size and the colour goes on carrying which of
+   them you can press. */
+.s-rec-facts .s-inline-btn, .b-qcard-where .s-inline-btn { font-size: inherit; }
+
 .s-inline-btn:hover, .s-straight-act:hover, .s-hist-sum:hover {
   color: var(--accent); text-decoration: underline;
   text-decoration-color: rgba(var(--accent-rgb), 0.4);
