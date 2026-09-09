@@ -198,7 +198,22 @@
    company above them were indented — a ragged margin down the middle of every
    card. The 14px is the library's number, not a new one. */
 .b-qcard-why { padding: 8px 14px 0; }
-.b-qcard .b-qcard-note { padding: 6px 14px 0 23px; }
+
+/* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
+   The fix above moved the note's TEXT off the edge and left its rule behind.
+   `.tc-quote` is `padding-left: 9px; border-left: 2px solid var(--card-border)`
+   — a rule at the block's left edge with the words nine px clear of it — and
+   it is written for a card that carries its own padding, where that edge IS
+   the text column. Here the block spans the whole card, so the rule landed at
+   x=28 against the card's own border at 27.2: two hairlines touching, which
+   reads as a thick left edge on one card in the row and nothing else.
+
+   The rule goes rather than moving to the column. Against the card it sits on
+   it measures 1.23:1 in both themes — visible only as the reason for an
+   indent, and an indent is what it was costing. Nothing else on this card is
+   ruled; the italic and the drop to --d300 already say the words are somebody
+   else's. So the note joins the one column every other line here keeps. */
+.b-qcard .b-qcard-note { padding: 6px 14px 0; border-left: 0; }
 
 /* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
    The first cut ranked by ink alone and everything was a different grey, with

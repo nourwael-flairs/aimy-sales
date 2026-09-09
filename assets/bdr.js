@@ -2154,10 +2154,27 @@
       /* THE IDENTITY BLOCK KEEPS NO MARKS. The name and the job above this
          are who they are, and a mark beside either competes with the name
          for the loudest thing on the card. This line is the facts, and the
-         facts are four different kinds of thing. */
+         facts are four different kinds of thing.
+
+         ══ TWO LINES OF TWO, BECAUSE THE FOURTH NEVER FIT ═══════════════
+         All four went in one wrapping row, and there is no width at which
+         four facts and four marks fit a card three to a row: measured on
+         the queue, twelve of fifteen cards at 1400 and nine of fifteen at
+         800 broke after the city and left the headcount alone on a line of
+         its own. A line holding "260 staff" and nothing else reads as
+         something left over rather than something said.
+
+         So the break is ours instead of the browser's, and it falls where
+         the meaning already divides: the organisation on one line, then
+         where it is and how big. Every card now has the same shape, which
+         is the whole point of putting them in a grid. Two paragraphs and
+         not one wrapping row — `.b-qcard-where` is `margin: 0` over
+         `padding-top: 2px`, so stacking them gives back exactly the 2px
+         the wrap's row-gap was giving, and no rule changes. */
       (a ? '<p class="b-qcard-where">' +
         fact('company', esc(a.name)) +
-        fact('industry', esc(indLabel(a))) +
+        fact('industry', esc(indLabel(a))) + '</p>' +
+        '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
       /* An empty why is an empty row of padding, not an empty string. */
@@ -3793,7 +3810,7 @@
       (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
       ((call && call.length)
         ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
-          esc(call.map((c) => c.id).join(',')) + '">Call these ' + call.length + '</button>'
+          esc(call.map((c) => c.id).join(',')) + '">Call them</button>'
         : '') + '</div>';
   }
 
@@ -4112,8 +4129,7 @@
               '">Call the next one on this list</button>' +
             (call.length > 1
               ? '<button class="s-inline-btn" type="button" data-callall="' +
-                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call these ' +
-                Math.min(PAGE, call.length) + '</button>'
+                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call them</button>'
               : '')
           : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
         '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
@@ -5542,7 +5558,7 @@
         '<div class="s-rec-actions">' +
           (all.length ? '<button class="s-insight-lnk primary" type="button" data-callnextin="' +
             esc(k.id) + '">Call the next one</button>' : '') +
-          /* "Call these 15" is about the fifteen on the page of the queue, so
+          /* "Call them" is about the people on the page of the queue, so
              it sits with the queue and nowhere else — it was here too, and a
              control repeated is a decision repeated. */
           /* THE OTHER HALF OF THE JOB. A campaign runs out of people, and
