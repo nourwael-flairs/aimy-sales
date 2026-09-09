@@ -1313,12 +1313,18 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    turns a quarter instead of being swapped for a different glyph, which is
    the one place a glyph swap read as a flicker. transitions.dev's accordion,
    on the platform's own element. */
-.s-call, .s-trace { interpolate-size: allow-keywords; }
-.s-call::details-content, .s-trace::details-content {
+/* `.s-crew` JOINS THEM. The financial report's campaign panels fold their
+   crew behind the same native <details> the trace uses, and it was the one
+   disclosure in the build that still snapped — the rule listed the two that
+   existed when it was written. A component's behaviour belongs to the
+   component, not to the surfaces that happened to use it first. */
+.s-call, .s-trace, .s-crew { interpolate-size: allow-keywords; }
+.s-call::details-content, .s-trace::details-content, .s-crew::details-content {
   height: 0; overflow: clip;
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
-.s-call[open]::details-content, .s-trace[open]::details-content { height: auto; }
+.s-call[open]::details-content, .s-trace[open]::details-content,
+.s-crew[open]::details-content { height: auto; }
 /* ── AND THE MARK IS DRAWN, NOT TYPED ─────────────────────────────────────
    Every other mark in this product is a Lucide path at 2px in a 24 viewBox,
    set by `chIcon`. This one was U+25B8, a solid triangle out of whatever
@@ -2910,16 +2916,31 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* "Clear" is a good day, not a big number: it takes the size so the two cards
    still line up, and the ink of something that is not a figure. */
 .b-door-fig.is-quiet { color: var(--ink-muted); }
+/* ── The book against its target, in six pixels ──
+   `overflow: hidden` clipped the target mark whenever the book had passed
+   it, so the one frame this bar exists to draw — the moment the quarter is
+   made — was the one it could not show. `position: relative` because the
+   mark is placed along the track rather than laid in the flex row. */
 .b-door-bar {
-  display: flex; height: 6px; border-radius: var(--r-pill); overflow: hidden;
+  display: flex; position: relative; height: 6px; border-radius: var(--r-pill);
   background: var(--card-border); margin-top: -2px;
 }
-.b-door-seg { display: block; height: 100%; }
-/* Open is not a verdict — it is the money that has not been decided yet,
-   which is most of the bar. The two ends carry the colour. */
+.b-door-seg { display: block; height: 100%; border-radius: var(--r-pill); }
+/* Signed is the one thing on this bar that has been decided, so it is the
+   one thing with a colour. */
 .b-door-seg.is-open { background: var(--d500); }
 .b-door-seg.is-won { background: var(--ok-text); }
-.b-door-seg.is-lost { background: var(--d500); }
+/* WHERE THE QUARTER IS MEANT TO REACH. The same object the report's own
+   track carries, at the width a rail card can spare — a rule across the
+   bar, not a segment of it, because a target is a line rather than an
+   amount of anything. */
+.b-door-mark {
+  position: absolute; top: -2px; bottom: -2px; width: 2px;
+  background: var(--d50); border-radius: var(--r-pill);
+  /* Centred on the position rather than starting at it, or a target the book
+     has exactly reached draws two pixels past the end of its own track. */
+  transform: translateX(-1px);
+}
 
 /* A grid inside a grid track needs telling that it may be narrower than its
    content, or the seven columns push the track wider than it was given. */

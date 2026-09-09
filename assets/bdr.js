@@ -2137,6 +2137,11 @@
   }
   function paint() {
     if (VOICE) micStop();
+    /* The money derivations index the whole book — which list somebody came
+       in on, what a won deal in each cell signed for, how often each stage
+       closes. All three are true until a write changes the book, and a write
+       is always followed by a repaint. */
+    clearMoney();
     const pre = prePaint();
     SAID_SIGNAL = null;
     dropLists();
@@ -3243,7 +3248,7 @@
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
-    if (S.on === 'money') return backBtn('data-back', 'Back to today');
+    if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
     if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
   }
@@ -3888,21 +3893,36 @@
         ' in the calendar today</span>';
   }
 
-  /* Open, signed and lost as one bar in the proportion they stand at, so the
-     figure above it is not the only thing said about the book. */
+  /* ══ A DOOR IS A SPECIMEN OF WHAT IS BEHIND IT ═════════════════════════
+     This card led with the whole open book at its full value and split it
+     open · signed · lost — a fair picture of the BOARD, which is a tab away
+     and has its own door. What it opens is the report, and the report opens
+     on one thing: what has been signed against what was promised. So the
+     door said €1.4m and the page it opened said €139k of €300k, and the two
+     numbers have nothing to do with each other.
+
+     Same three facts as the page's own headline, in the space a card has:
+     the figure, the bar, the pace. `bookAttain` is the cheap half of
+     `attainment` — the whole derivation runs a pass over every person on
+     every campaign and this runs on every paint of every surface. */
+  function bookAttain() {
+    const p = periodOf(S.period);
+    const booked = dealBook()
+      .filter((c) => { const w = wonAt(c); return w && inPeriod(w, p); })
+      .reduce((n, c) => n + acvOf(c).value, 0);
+    const target = targetFor(p);
+    return { booked: booked, target: target, elapsed: p.elapsed,
+      pc: target ? booked / target : null,
+      pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null };
+  }
   function bookBar() {
-    const all = queue(null, 'all');
-    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
-    const open = sum(all.filter(dealLive));
-    const won = sum(all.filter((c) => stageOf(c) === 'won'));
-    const lost = sum(all.filter((c) => stageOf(c) === 'lost'));
-    const tot = open + won + lost || 1;
-    const seg = (cls, v) => (v ? '<span class="' + cls + '" style="width:' +
-      ((v / tot) * 100).toFixed(1) + '%"></span>' : '');
+    const a = bookAttain();
+    const scale = Math.max(a.target, a.booked) || 1;
+    const pc = Math.max(0, Math.min(100, (a.booked / scale) * 100));
+    const at = Math.max(0, Math.min(100, (a.target / scale) * 100));
     return '<span class="b-door-bar">' +
-      seg('b-door-seg is-open', open) +
-      seg('b-door-seg is-won', won) +
-      seg('b-door-seg is-lost', lost) +
+      (a.booked ? '<span class="b-door-seg is-won" style="width:' + pc.toFixed(1) + '%"></span>' : '') +
+      '<span class="b-door-mark" style="left:' + at.toFixed(1) + '%"></span>' +
     '</span>';
   }
 
@@ -3914,15 +3934,11 @@
      is standing: commercial is the last stage before somebody signs, so it
      is the half of the bar worth naming. */
   function bookSay() {
-    const all = queue(null, 'all');
-    const live = all.filter(dealLive);
-    const won = all.filter((c) => stageOf(c) === 'won').length;
-    const com = live.filter((c) => stageOf(c) === 'commercial');
-    const sum = com.reduce((n, c) => n + amountOf(c), 0);
-    return (sum
-      ? euro(sum) + ' in ' + DEAL_STAGE.commercial.label.toLowerCase()
-      : commas(live.length) + ' open') +
-      (won ? ' · ' + commas(won) + ' signed' : '');
+    const a = bookAttain();
+    const of = 'of ' + euro(a.target);
+    if (a.pace == null) return of + ' · ' + Math.round((a.pc || 0) * 100) + '% of target';
+    return of + ' · ' + plural(Math.abs(Math.round(a.pace * 100)), 'point') + ' ' +
+      (a.pace >= 0 ? 'ahead' : 'behind');
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -3945,7 +3961,7 @@
      overlay with another name and the one thing this build refuses. The
      diary is a page now, so the gate is a gate. */
   function railDoors() {
-    const worth = queue(null, 'all').filter(dealLive).reduce((n, c) => n + amountOf(c), 0);
+    const worth = bookAttain().booked;
     return '<div class="rail-doors">' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
@@ -3954,7 +3970,7 @@
       '</button>' +
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
-        '<span class="b-door-cap">The numbers</span>' +
+        '<span class="b-door-cap">Financials</span>' +
         '<span class="b-door-fig">' + esc(euro(worth)) + '</span>' +
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
@@ -4275,6 +4291,51 @@
     const ph = phasesOf(c);
     return ph.length ? ph[ph.length - 1].at.slice(0, 10) : null;
   }
+  /* ══ HOW LONG A DEAL HAS BEEN A DEAL ═══════════════════════════════════
+     Counted from the hand-over, which is the day it became this desk's — a
+     lead's months on a caller's ladder are not this book's age, and the
+     board's own "handed to you" date is the same field. In months, because
+     that is the unit a deal's life is measured in everywhere this reader has
+     worked, and because a mean in days invites a precision the number does
+     not have. Nothing to average is not nought months. */
+  const MONTH_DAYS = 30.44;
+  /* ══ MEASURED OVER THE WHOLE BOOK, NOT OVER WHAT IS STILL OPEN ═════════
+     Over open deals alone the mean is a survivorship figure dressed as a
+     duration: a deal leaves the open set the day it resolves, so the longer
+     one runs the likelier it is to have already gone, and what is left to
+     average is the young ones. The two measures happen to agree on this
+     corpus — its hand-overs cluster recent, so almost nothing has resolved —
+     which is exactly why the definition has to be right before it matters
+     rather than after.
+
+     Every deal, then, each over the life it actually had: hand-over to the
+     day it was decided, or to today for one still running. It is the same
+     count the CRM this desk came from puts on its masthead. */
+  /* How long a deal may go untouched before it is worth naming. NOT
+     `QUIET_DAYS`, which is seven and belongs to the caller's four-touch rule
+     — a cold lead nobody has rung in a week is behind, and a deal between
+     two meetings booked a fortnight apart is not. Same word, two desks, two
+     rhythms, so two numbers with the desk in the name of each. */
+  const DEAL_QUIET_DAYS = 30;
+  /* The last thing anybody did to this record, of any kind. `DB.touchesOf`
+     is sorted newest first at load, so this is the head of the list. */
+  function lastActivity(c) {
+    const ids = DB.touchesOf[c.id] || [];
+    for (let i = 0; i < ids.length; i++) { if (TOUCH[ids[i]]) return TOUCH[ids[i]].at.slice(0, 10); }
+    return c.checkpointAt ? c.checkpointAt.slice(0, 10) : null;
+  }
+  function dealAge(deals) {
+    const ages = deals.map((c) => {
+      if (!c.checkpointAt) return null;
+      const from = c.checkpointAt.slice(0, 10);
+      const ph = phasesOf(c);
+      const to = dealLive(c) || !ph.length ? TODAY_ISO : ph[ph.length - 1].at.slice(0, 10);
+      return Math.max(0, daysBetween(from, to));
+    }).filter((n) => n != null);
+    if (!ages.length) return null;
+    return ages.reduce((n, v) => n + v, 0) / ages.length / MONTH_DAYS;
+  }
+
   /* A meeting in the window, from either half of the process: one of the
      director's four, or the moment a caller got one into a diary. */
   function metIn(c, p) {
@@ -4531,12 +4592,24 @@
      lucky deal read as a 50% close rate, and pulls an empty rung to the
      prior exactly rather than to zero. The page says the sample is thin
      rather than hiding it. */
+  /* ══ NAMED THE WAY THE BOARD NAMES THEM ═══════════════════════════
+     These read "Price on the table", "Seen the solution" — true, checkable,
+     and not what the reader calls them. He works a board with six columns
+     on it and those columns have names; a second vocabulary for the same
+     four stages is a second thing to learn for one job, and it stops him
+     reading a rate here and going to that column.
+
+     So the stage's own label leads, off `DEAL_STAGE` rather than off a
+     literal, and the phrase that says what the stage MEANS follows it — the
+     rate needs both: the name to find the column, the fact to trust the
+     number. Rename a stage and this renames with it. */
   const ODDS_RUNGS = [
-    { k: 'commercial', say: 'Price on the table' },
-    { k: 'proof',      say: 'Seen the solution' },
-    { k: 'discovery',  say: 'Been through discovery' },
-    { k: 'qual',       say: 'Handed over, not yet met' },
+    { k: 'commercial', was: 'the price is on the table' },
+    { k: 'proof',      was: 'they have seen it working' },
+    { k: 'discovery',  was: 'we know what they need' },
+    { k: 'qual',       was: 'handed over, nobody has met them' },
   ];
+  ODDS_RUNGS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
   const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
   const SMOOTH = 2;
   let ODDS_CACHE = null;
@@ -4728,10 +4801,16 @@
      whose cost and return are furthest apart, the one that has taken hours
      and closed nothing, the share of payroll that lands on a campaign at
      all. Ranked, and the loudest three are said. */
-  function execBrief(now, a, camps, un) {
+  function execBrief(now, a, camps, un, deals) {
     const bits = [];
-    const money = 'You spent <b>' + esc(fmtMoney(now.spend.total)) + '</b> and signed <b>' +
-      esc(fmtMoney(now.arr)) + '</b>';
+    /* ══ THE FIRST CLAUSE IS THE ONE HE OPENED THIS FOR ═════════════════
+       It led "You spent €56k and signed €139k", which is a CEO's ordering:
+       cost first, because the question is whether the company is buying its
+       revenue at a sensible price. A sales manager is not asked that. He is
+       asked whether he is going to make the number, so the number leads and
+       the spend becomes a clause about it. */
+    const money = 'You signed <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
+      esc(fmtMoney(a.target)) + '</b>';
     const pace = a.pc == null ? '.' : a.pace == null
       ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target.'
       : ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target with ' +
@@ -4739,6 +4818,36 @@
         esc(plural(Math.abs(Math.round(a.pace * 100)), 'point')) + ' ' +
         (a.pace >= 0 ? 'ahead' : 'behind') + '</b>.';
     bits.push(money + pace);
+
+    /* ══ THE ONE CLAUSE HERE WITH A VERB IN IT FOR THE READER ═══════════
+       Everything else on this page is a reading of a quarter that has
+       already happened. Two things are not: a deal past the day it was meant
+       to close, and a deal nobody has touched in a month. Both are a phone
+       call, and the second is what the CRM this desk came from puts on the
+       board as Last activity date.
+
+       Late first, because a missed close date is a promise broken and a
+       quiet deal is only a promise fading. One clause, never both — a
+       paragraph that lists every way a deal can be in trouble is a paragraph
+       nobody finishes. `closeBy` is the board's own derivation, so the
+       column and this sentence cannot disagree. */
+    const live = deals.filter(dealLive);
+    const worth = (xs) => fmtMoney(xs.reduce((n, c) => n + acvOf(c).value, 0));
+    const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
+    const quiet = live.filter((c) => {
+      const at = lastActivity(c);
+      return !at || daysBetween(at, TODAY_ISO) > DEAL_QUIET_DAYS;
+    });
+    if (late.length) {
+      bits.push('<b>' + esc(plural(late.length, 'deal')) + '</b> ' +
+        (late.length === 1 ? 'is' : 'are') + ' past the day ' +
+        (late.length === 1 ? 'it' : 'they') + ' should have closed, worth <b>' +
+        esc(worth(late)) + '</b>.');
+    } else if (quiet.length) {
+      bits.push('<b>' + esc(worth(quiet)) + '</b> is sitting in ' +
+        esc(plural(quiet.length, 'deal')) + ' nobody has touched in ' +
+        esc(plural(DEAL_QUIET_DAYS, 'day')) + '.');
+    }
 
     /* The campaign that returned most per euro, and the one that returned
        nothing for the most. Both are only visible once cost sits beside
@@ -4769,6 +4878,30 @@
   }
 
   function moneyPage() {
+    /* ══ A SURFACE WITH NO DOOR ON THIS DESK STILL HAS A URL ═══════════════
+       Financials is reached from the rail, and the rail draws its doors only
+       for a manager — so nothing on a caller's screen leads here and the
+       address bar does. Rendered anyway it did not come up empty, which
+       would have been survivable; it came up WRONG. A caller is on the same
+       campaigns, so the members of those campaigns are in scope, and the
+       deals handed over off them belong to the manager: the page told Engy
+       she had signed €139k against a €300k target, neither of which is hers.
+
+       A book and a target are things a desk is given. This one has neither,
+       and the honest page says so and points at the work she does have —
+       the same shape a campaign uses for somebody who is not on it. */
+    if (!isMgr()) {
+      return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
+        '<h2 class="s-rec-cap">Financials</h2>' +
+        '<div class="s-rec-body">' +
+          '<p class="s-block-sub">This is the book a sales manager carries — what has been ' +
+          'signed against the quarter’s target, and what the campaigns behind it cost. Your ' +
+          'desk has neither, so every figure on it would be somebody else’s. What you have ' +
+          'done is on your campaigns and in your calls.</p>' +
+          backBtn('data-home', 'Back to the briefing') +
+        '</div>' +
+      '</section></div>';
+    }
     const p = periodOf(S.period);
     const scope = bookScope();
     const deals = dealBook();
@@ -4781,6 +4914,7 @@
     const camps = campaignCosts(p);
     const un = unlogged(p, heads);
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
+    const age = dealAge(deals);
 
     const scale = Math.max(a.target, a.forecast, a.booked) || 1;
     const pcOf = (v) => Math.max(0, Math.min(100, (v / scale) * 100));
@@ -4808,12 +4942,27 @@
     const roles = Object.keys(byRole).map((k) => byRole[k]).sort((x, y) => y.cost - x.cost);
     const aimyCost = camps.reduce((n, c) => n + c.aimy, 0);
     const cost = [
-      { k: 'people', say: 'People', v: un.payroll,
+      /* ══ A ROLE ROW IS A PERSON WHEN THE DESK IS TWO PEOPLE ═════════
+         The rule above is right — break by taxonomy, never by population —
+         and on this desk the taxonomy has two rows and each of them holds
+         one person. "BDR · 1 at €55/h · €21k" is Engy's salary with her name
+         taken off it, and it was on the page because the reader used to be a
+         CEO. A sales manager does not set pay and cannot act on it; what he
+         owns is where the hours went, and that is the same figure asked a
+         question he can answer.
+
+         So the rate card leaves the row and the attribution takes its place.
+         The money stays, because the total is what everything else on the
+         page is read against — cost per deal, what came back for every euro,
+         how long a customer takes to pay for itself — and a section that
+         shows two of the three costs cannot carry any of them. */
+      { k: 'people', say: 'The desk', v: un.payroll,
         sub: plural(un.people.length, 'person') + ' · ' +
           Math.round(roles.reduce((n, r) => n + r.on, 0)) + ' of ' +
-          Math.round(roles.reduce((n, r) => n + r.hours, 0)) + ' hours logged against a campaign',
+          Math.round(roles.reduce((n, r) => n + r.hours, 0)) + ' hours went on a campaign',
         rows: roles.map((r) => ({ say: JOB[r.fn] + (r.n > 1 ? 's' : ''),
-          note: r.n + ' at ' + fmtMoney(r.rate) + '/h', v: r.cost })) },
+          note: Math.round(r.on) + ' of ' + Math.round(r.hours) + ' hours on a campaign',
+          v: r.cost })) },
       { k: 'supp', say: 'Suppliers', v: now.spend.src + now.spend.enrich,
         sub: 'every attempt, not only the ones that answered',
         rows: [{ say: 'Finding people', note: 'LinkedIn, the brokers and the crawl', v: now.spend.src },
@@ -4824,11 +4973,33 @@
 
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backBtn('data-back', 'Back to the briefing') + '</div>' +
-      '<section class="s-block s-block-wide s-exec" aria-label="The book">' +
+      '<section class="s-block s-block-wide s-exec" aria-label="Financials">' +
       '<header class="s-exec-top">' +
         '<div>' +
-          '<div class="s-exec-eyebrow">FlairsTech &middot; every campaign</div>' +
-          '<h2 class="s-exec-h">' + esc(when.charAt(0).toUpperCase() + when.slice(1)) + '</h2>' +
+          /* ══ THE HEADING NAMES WHAT DOES NOT CHANGE ═══════════════════
+             The `<h2>` was the period and the lit chip beside it was the same
+             two words, six pixels apart — a heading and a control saying one
+             thing, which leaves the heading doing nothing and the control
+             looking like a label. The window is what the chips are FOR; the
+             page is about the book, and the book is what the heading says.
+
+             It is also the door's own words. The rail's card is captioned
+             Financials, and a door that opens on a different name is a door
+             you have to check you pressed correctly. One name for one
+             surface, on the door, on the heading and in the accessible name
+             — "The numbers" was the working title and it named a page of
+             figures rather than the thing the figures are about.
+
+             And the scope narrowed with the reader. "FlairsTech · every
+             campaign" was true of the CEO and is not true of anybody who
+             opens this build: what is counted here is the campaigns this
+             desk runs and the deals on its book, and a page that overstates
+             its own scope is a page whose every figure is wrong by an
+             unknown amount. */
+          '<div class="s-exec-eyebrow">Your book &middot; ' +
+            esc(plural(myCamps().length, 'campaign')) + ' &middot; ' +
+            esc(plural(deals.length, 'deal')) + '</div>' +
+          '<h2 class="s-exec-h">Financials</h2>' +
         '</div>' +
         periodChips() +
       '</header>' +
@@ -4840,7 +5011,7 @@
           '<span class="slv-time">' + esc(when) + '</span>' +
         '</div>' +
         '<div class="slv-body">' +
-          '<p class="slv-line">' + execBrief(now, a, camps, un) + '</p>' +
+          '<p class="slv-line">' + execBrief(now, a, camps, un, deals) + '</p>' +
         '</div>' +
       '</section>' +
 
@@ -4892,12 +5063,30 @@
            "3.5× what is left", and a ratio is a derived thing: three of the
            four tiles show an amount, so the eye arrives expecting one and
            has to translate. */
+        /* ══ A PIPELINE HAS NO WINDOW, AND THE PERIOD CHIPS EXPOSED IT ═══
+           Everything else on this page is bounded by the period; this is
+           not, and cannot be — what is open is open today, whichever window
+           the figures beside it describe. Under "This quarter" the two agree
+           closely enough that nobody noticed. Under "Last quarter" the tile
+           read "1.6× the €300k needed" over a quarter that finished in June,
+           which is today's pipeline offering to close a window it cannot
+           reach.
+
+           Coverage is a claim about a gap somebody can still close, so on a
+           finished window it is not stated, and the line says which clock
+           the figure is on instead. */
         attFig('Expected from open deals', fmtMoney(pipe.weighted),
-          a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-            : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed')
-            : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
-          a.coverage == null ? null : a.coverage >= 3 ? 'ok' : 'warn') +
-        attFig('Selling faster than the clock', a.pace == null ? '—'
+          done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
+            : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
+              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed')
+              : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
+          done || a.coverage == null ? null : a.coverage >= 3 ? 'ok' : 'warn') +
+        /* ══ A CAPTION THAT ARGUES WITH ITS OWN FIGURE ══════════════════
+           "Selling faster than the clock" over "31 points behind" is a claim
+           and its own refutation stacked two lines apart, and the reader has
+           to work out which of them the tile means. A caption names the
+           question; the value answers it. */
+        attFig('Against the clock', a.pace == null ? '—'
             : plural(Math.abs(Math.round(a.pace * 100)), 'point') + ' ' + (ahead ? 'ahead' : 'behind'),
           done ? 'the window has closed'
             : Math.round(a.pc * 100) + '% of the target sold, ' +
@@ -5075,8 +5264,17 @@
               esc(fmtMoney(r.value)) + ' open</span>' +
           '</div>').join('') +
         '</div>' +
-        '<p class="s-odds-note">From deals this desk has actually closed, not an industry ' +
-          'average. ' + (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
+        /* ══ AND HOW LONG THEY HAVE BEEN THERE ══════════════════════════
+           Every CRM this desk has worked in puts average deal age on the
+           board's masthead, and it is the one headline figure of theirs this
+           page dropped. It belongs here rather than in a tile: a rate is
+           how many close, an age is how long that takes, and the two are
+           halves of the same reading. */
+        '<p class="s-odds-note">Each rate is what this desk has actually closed from that ' +
+          'stage, not an industry average' +
+          (age == null ? '' : ', and a deal on this book runs ' +
+            '<b>' + esc(age.toFixed(1)) + ' months</b> on average') + '. ' +
+          (now.wins.length ? 'Only ' + esc(plural(now.wins.length, 'deal')) +
             ' closed in this window' : 'Nothing closed in this window') + ', so each rate is ' +
           'smoothed &mdash; one deal cannot swing it.</p>' +
       '</div>' +
