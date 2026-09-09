@@ -10160,17 +10160,42 @@
     [/\blunch\b/i, 'dinner', 'Lunch with them'],
     [/\b(meeting|meet|call|coffee|catch up)\b/i, 'meeting', 'Meeting with them'],
   ];
+  /* ══ A FIRST NAME IS A NAME ════════════════════════════════════════════
+     Matching whole names only, "meeting with jeff at 8pm" found nobody and
+     fell past every reader to the caller's "who was that with?" — which asks
+     for the thing the sentence already had. Nobody types the surname of the
+     person they are having dinner with tonight.
+
+     So a first name counts when exactly one person in the book answers to
+     it. Two Jeffs is a question worth asking and it gets asked by name; no
+     Jeff at all is worth saying outright, because "put the name in the
+     sentence" to somebody who did is the reply that makes a product feel
+     deaf. Whole names still win over first names, and the longest whole name
+     wins over a shorter one inside it. */
+  function whoIn(text) {
+    const lower = ' ' + text.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ') + ' ';
+    const book = queue(null, 'all');
+    let full = null;
+    book.forEach((c) => {
+      const n = c.name.toLowerCase();
+      if (lower.indexOf(' ' + n + ' ') >= 0 && (!full || n.length > full.name.length)) full = c;
+    });
+    if (full) return { con: full };
+    const hits = book.filter((c) =>
+      lower.indexOf(' ' + String(c.name).split(' ')[0].toLowerCase() + ' ') >= 0);
+    if (hits.length === 1) return { con: hits[0] };
+    if (hits.length > 1) return { many: hits.slice(0, 4) };
+    return null;
+  }
+
   function readBook(text) {
     if (!BOOK_RE.test(text)) return null;
     /* Past tense means it is a report, whatever words it opens with. */
     if (/\b(had|held|went|was|were|did|met)\b/i.test(text)) return null;
-    const lower = ' ' + text.toLowerCase() + ' ';
-    let con = null;
-    queue(null, 'all').forEach((c) => {
-      const n = c.name.toLowerCase();
-      if (lower.indexOf(n) >= 0 && (!con || n.length > con.name.length)) con = c;
-    });
-    if (!con) return null;
+    const who = whoIn(text);
+    if (!who) return { miss: true };
+    if (who.many) return { many: who.many };
+    const con = who.con;
     let what = 'Meeting with them';
     for (let i = 0; i < BOOK_KIND.length; i++) {
       if (BOOK_KIND[i][0].test(text)) { what = BOOK_KIND[i][2]; break; }
@@ -10179,6 +10204,20 @@
   }
 
   function bookPropose(text, f) {
+    /* Both of these are the sentence answering back rather than a form
+       refusing it: one names the people it could have meant, the other says
+       plainly that nobody in the book answers to that. */
+    if (f.many || f.miss) {
+      openCanvas();
+      say('you', esc(text));
+      say('aimy', f.many
+        ? 'More than one of yours answers to that — ' +
+          f.many.map((c) => '<b>' + esc(c.name) + '</b>').join(', ').replace(/, ([^,]*)$/, ' or $1') +
+          '. Say which and I will put it in.'
+        : 'Nobody on your book answers to that name. Say it as it is on the ' +
+          'record and I will put it in the calendar.');
+      return true;
+    }
     const due = dayAdd(f.when);
     PENDING = { kind: 'meet', con: f.con.id, to: null, next: f.what,
       when: f.when, clock: f.clock, note: text };
