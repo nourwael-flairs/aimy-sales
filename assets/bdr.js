@@ -1776,6 +1776,11 @@
     DB.camp.forEach((c) => { DB.byCamp[c.id] = c; DB.membersOf[c.id] = []; });
     DB.acc.forEach((a) => (DB.byAcc[a.id] = a));
     DB.list.forEach((l) => (DB.byList[l.id] = l));
+    /* The campaign remembers which lists are on it; the list is told again
+       here, so every other room reads the same answer after a reload. */
+    DB.camp.forEach((c) => (c.lists || []).forEach((id) => {
+      if (DB.byList[id] && !DB.byList[id].for) DB.byList[id].for = c.id;
+    }));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
@@ -3093,6 +3098,32 @@
       if (l) { l.for = before; if (dl) dl.for = before; }
       reindex(); save(); paint();
     });
+  }
+
+  /* ══ A LIST GOES ON, AND COMES BACK OFF ════════════════════════════════
+     `putOn` only ever attaches, because everywhere else in the product the
+     act is "put these people on that campaign" and there is nothing to take
+     back. A multiselect has to be able to un-tick, so this is the pair: the
+     same two writes, run in both directions.
+
+     Which lists are on a campaign is kept ON THE CAMPAIGN. `l.for` alone
+     would not survive the night — only lists this browser built are in
+     `DELTA.list`, so a seeded list would be back to the seed's answer every
+     morning while its people still carried the campaign in `camps`. The
+     campaign is in `DELTA.camp` from the moment it exists, so it is the half
+     that remembers, and `reindex` tells the list again. */
+  function listOnCamp(id, k) {
+    const l = DB.byList[id];
+    if (!l || (l.for && l.for !== k.id)) return;
+    const dl = DELTA.list.filter((x) => x.id === id)[0];
+    const off = l.for === k.id;
+    l.has.map((x) => DB.byCon[x]).filter(Boolean).forEach((c) => {
+      if (off) patchCon(c, { camps: c.camps.filter((y) => y !== k.id) });
+      else if (c.camps.indexOf(k.id) < 0) patchCon(c, { camps: c.camps.concat([k.id]) });
+    });
+    l.for = off ? null : k.id;
+    if (dl) dl.for = l.for;
+    campSet(k, { lists: (k.lists || []).filter((x) => x !== id).concat(off ? [] : [id]) });
   }
 
   /* ══ THE HAND-OVER NAMES ITS MANAGER ═══════════════════════════════════
@@ -6070,30 +6101,30 @@
           /* ══ THE LISTS YOU ALREADY HAVE ═══════════════════════════════
              A campaign with nobody on it is a campaign nobody can work, and
              the people are already in the book — found, run and saved as
-             lists. `data-puton` is the verb the rest of the product uses to
-             put a list on a campaign, so this is the same act from a
-             different room rather than a second way to do it. */
-          draftField('Its people', (function () {
+             lists. "Its people" named the roster and then offered the lists,
+             which is one thing described as another; the caption is the act.
+
+             It ticks like the sells and the crew do, because a list you can
+             put on and cannot take off is a decision you make once by
+             accident. Lists already on another campaign are not offered —
+             taking one would empty a campaign somebody else is working. */
+          draftField('Add a list', (function () {
+            const free = DB.list.filter((l) => !l.for || l.for === k.id);
             const on = DB.list.filter((l) => l.for === k.id);
-            const off = DB.list.filter((l) => !l.for);
             return draftMenu('dList',
               on.length ? esc(on.map((l) => l.name).join(', ')) : '',
-              off.length ? 'Put a list on it' : 'Every list is on a campaign already',
-              off.map((l) => '<button class="b-menu-item" type="button" role="menuitem" ' +
-                'data-puton="list:' + esc(l.id) + '|' + esc(k.id) + '">' +
-                '<span class="b-menu-line"><span class="b-menu-name">' + esc(l.name) + '</span>' +
-                '<span class="b-menu-sub">' + esc(plural(l.has.length, 'person')) +
-                ' on it</span></span></button>').join('') ||
+              free.length ? 'The lists you have' : 'Every list is on another campaign',
+              free.map((l) => draftItem('list', l.id, l.name, l.for === k.id,
+                plural(l.has.length, 'person') + ' on it')).join('') ||
                 '<span class="b-menu-sub b-draft-empty">Nothing is waiting to be put on ' +
                 'a campaign. Find leads and what comes back is a list.</span>');
           })()) +
-          draftField('The window', draftText('weeks', String(weeks), '6') +
+          /* How long it runs, which is the only thing "the window" was ever
+             saying. A number to pace against is what a campaign learns from
+             running; guessing at it before the first call is made was asking
+             for a fact nobody in the room has. */
+          draftField('Timeframe', draftText('weeks', String(weeks), '6') +
             '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
-          draftField('Pacing for', draftText('target', String(k.target.n || ''), '19') +
-            draftMenu('dNoun', esc(k.target.noun === 'conversation' ? 'conversations' : 'meetings'),
-              'Counted in',
-              draftItem('noun', 'meeting', 'Meetings', k.target.noun === 'meeting') +
-              draftItem('noun', 'conversation', 'Conversations', k.target.noun === 'conversation'))) +
         '</div>' +
         /* What is still missing stays down here with the fields it is about.
            Run it is greyed from the first moment and this is the sentence
@@ -11774,7 +11805,7 @@
       sells: [], objections: [], resources: [],
       from: TODAY_ISO, to: dayAdd(42),
       owner: me().id, crew: [], state: 'draft',
-      industry: '', region: '',
+      industry: '', region: '', lists: [],
     };
     DB.camp.push(k);
     DELTA.camp.push(k);
@@ -12378,7 +12409,7 @@
       } else if (f === 'client') campSet(k, { client: v || null });
       else if (f === 'ind') campSet(k, { industry: v });
       else if (f === 'reg') campSet(k, { region: v });
-      else if (f === 'noun') campSet(k, { target: { n: k.target.n, noun: v } });
+      else if (f === 'list') { listOnCamp(v, k); stay = 'dList'; }
       paint();
       if (stay) {
         const again = document.querySelector('[data-pickopen="' + stay + '"]');
@@ -12767,8 +12798,6 @@
         if (f === 'weeks') {
           const w = Math.max(1, Math.min(52, parseInt(v, 10) || 1));
           campSet(k, { to: dayAdd(w * 7) });
-        } else if (f === 'target') {
-          campSet(k, { target: { n: Math.max(0, parseInt(v, 10) || 0), noun: k.target.noun } });
         } else {
           const p = {};
           p[f] = v;
