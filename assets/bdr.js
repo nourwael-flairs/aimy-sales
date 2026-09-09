@@ -1927,7 +1927,7 @@
      door at all.
 
      Under those sit the three records: one campaign, one person, one list. */
-  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as', 'cal'];
+  const SCALAR = ['on', 'con', 'acc', 'camp', 'list', 'build', 'bk', 'bt', 'q', 'p', 'find', 'chat', 'as'];
   const DEFAULTS = { q: 'all', on: 'calls' };
   const S = Object.create(null);
 
@@ -2103,7 +2103,7 @@
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'notes' ? notesPage()
-      : S.on === 'cal' ? calPage()
+      : S.on === 'money' ? moneyPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
       : homePage();
@@ -3130,7 +3130,7 @@
     /* A deal opened from the board goes back to the board: `on` rides
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
-    if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
+    if (S.on === 'money') return backBtn('data-back', 'Back to today');
     if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
   }
@@ -3153,10 +3153,11 @@
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
       (isMgr()
+        /* No Diary tab. It sat here as a fifth surface and a diary is not a
+           surface — it is a thing you open where you are, which is what the
+           gate under Today now does. */
         ? one('today', 'Today', null, cleared()) +
-          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
-          one('cal', 'Diary', meetings(TODAY_ISO, dayAdd(30)).length,
-            Object.assign(cleared(), { on: 'cal' }))
+          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' }))
         : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
@@ -3249,8 +3250,8 @@
         '<p class="s-block-sub">Nothing in the diary today.' +
           (un ? ' ' + plural(un, 'meeting') + ' before today ' + (un === 1 ? 'is' : 'are') +
             ' still unrecorded.' : '') + ' ' +
-          '<button class="s-inline-btn" type="button" data-go="' +
-            esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">Open the diary</button>' +
+          '<button class="s-inline-btn" type="button" data-pickopen="calPop" ' +
+            'aria-haspopup="dialog">Open the diary</button>' +
         '</p>' +
       '</section>';
     }
@@ -3275,8 +3276,8 @@
         }).join('') +
       '</div>' +
       (on.length > 3
-        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">The other ' +
+        ? '<div class="b-acts b-acts-end"><button class="s-inline-btn" type="button" ' +
+          'data-pickopen="calPop" aria-haspopup="dialog">The other ' +
           commas(on.length - 3) + ' in the diary</button></div>'
         : '') +
     '</section>';
@@ -3342,7 +3343,31 @@
     const more = now.length - rows.length;
     return '<div class="s-home">' +
       topBrief('today') +
+      /* ══ TWO THINGS THAT ARE NOT PLACES ═══════════════════════════════
+         The diary and the numbers are both things this desk looks AT rather
+         than works IN, so neither belongs in the switcher beside Today and
+         Deals — a tab says "this is one of the rooms you live in", and these
+         are two you glance into. They sit under the briefing as a pair of
+         gates, each carrying the one fact that says whether it is worth
+         opening: how much is in the diary today, and what the book is worth.
+         One opens where it stands; the other is a page, because a report is
+         something you read down. */
+      '<div class="b-doors">' +
+        calGate() +
+        /* Both cards are the same container now that they are apart, so
+           neither carries a modifier and the stylesheet keeps no hook it
+           does not use. */
+        '<button class="b-door" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
+          '<span class="b-door-cap">The numbers</span>' +
+          '<span class="b-door-fig">' + esc(euro(queue(null, 'all').filter(dealLive)
+            .reduce((n, c) => n + amountOf(c), 0))) + '</span>' +
+          bookBar() +
+          '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
+        '</button>' +
+      '</div>' +
       dayBlock() +
+      openLoop() +
       '<section class="s-block s-block-wide" aria-label="What wants you today">' +
         '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
         (rows.length
@@ -3506,7 +3531,6 @@
      these to the rule that colours it. */
   const DOT_CLASS = { meeting: 'b-cal-dot k-meeting', demo: 'b-cal-dot k-demo',
     dinner: 'b-cal-dot k-dinner', held: 'b-cal-dot k-held', owed: 'b-cal-dot k-owed' };
-  const calDay = () => (S.cal && /^\d{4}-\d{2}-\d{2}$/.test(S.cal) ? S.cal : TODAY_ISO);
   /* The same day next month, or the last of it — 31 January plus a month is
      not 3 March. */
   function monthStep(iso, step) {
@@ -3517,8 +3541,25 @@
     return isoDay(new Date(t.getFullYear(), t.getMonth(), Math.min(want, last)));
   }
 
-  function calPage() {
-    const sel = calDay();
+  /* ══ THE DIARY IS A PANEL, NOT A PLACE ═════════════════════════════════
+     A month grid was a tab of its own beside Today, Deals, Campaigns and
+     Lists — which put "what am I doing on the 14th" on the same footing as
+     the four surfaces this desk actually works in, and made a glance at next
+     Tuesday a navigation with a way back. A diary is not somewhere you go.
+     It is something you open, look at, and shut.
+
+     So it is a `.b-menu` panel: the build's one popover idiom, which brings
+     one-open-at-a-time, Escape and an outside click with it, and closes when
+     you press a meeting because opening a record IS somewhere you go.
+
+     THE MONTH TURNS IN THE DOM, NOT THROUGH THE URL. `go()` repaints, and a
+     repaint under an open panel is the panel closing in the hand using it —
+     the same reason the pickers do their choosing in the DOM. `CALSEL` holds
+     the day the panel is showing for exactly as long as it is open. */
+  let CALSEL = null;
+
+  function calBody(selIn) {
+    const sel = selIn || TODAY_ISO;
     const d = new Date(sel + 'T00:00:00');
     const y = d.getFullYear(), mo = d.getMonth();
     /* Monday first: the book is EMEA and so is everybody reading this. */
@@ -3544,7 +3585,7 @@
       return '<button class="' +
         ('b-cal-day' + (c.out ? ' is-out' : '') + (c.iso === sel ? ' is-sel' : '') +
           (c.iso === TODAY_ISO ? ' is-today' : '') + (c.end ? ' is-end' : '')) +
-        '" type="button" data-cal="' + esc(c.iso) + '" ' +
+        '" type="button" data-calpick="' + esc(c.iso) + '" ' +
         'aria-label="' + esc(sayDay(c.iso) + ', ' + plural(on.length, 'thing')) + '"' +
         (c.iso === sel ? ' aria-current="date"' : '') + ' style="--i:' + (i % 7) + '">' +
         '<span class="b-cal-bg"></span>' +
@@ -3572,19 +3613,16 @@
       : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
 
-    return '<div class="s-home">' +
-      '<section class="s-block s-block-wide" aria-label="The diary">' +
-        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
-        '<div class="b-cal">' +
+    return '<div class="b-cal">' +
           '<div class="b-cal-head">' +
             '<h3 class="b-cal-month">' + esc(MONTH_FULL[mo]) + ' ' + y +
               '<span class="b-cal-count">' + commas(inMonth) + '</span></h3>' +
             '<div class="b-cal-nav">' +
-              '<button class="b-cal-btn is-word" type="button" data-cal="' + esc(TODAY_ISO) +
+              '<button class="b-cal-btn is-word" type="button" data-calstep="' + esc(TODAY_ISO) +
                 '">Today</button>' +
-              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, -1)) +
+              '<button class="b-cal-btn" type="button" data-calstep="' + esc(monthStep(sel, -1)) +
                 '" aria-label="The month before">' + chIcon('back') + '</button>' +
-              '<button class="b-cal-btn" type="button" data-cal="' + esc(monthStep(sel, 1)) +
+              '<button class="b-cal-btn" type="button" data-calstep="' + esc(monthStep(sel, 1)) +
                 '" aria-label="The month after">' + chIcon('fwd') + '</button>' +
             '</div>' +
           '</div>' +
@@ -3603,10 +3641,109 @@
               '<span class="b-cal-plus">' + chIcon('plus') + '</span>' +
               'Put something in the diary</button>' +
           '</div>' +
-        '</div>' +
-        openLoop() +
-      '</section>' +
-    '</div>';
+        '</div>';
+  }
+
+  /* ══ A GATE CARRIES THE REASON TO OPEN IT ═══════════════════════════════
+     A door labelled "The diary" is a menu item. A door that says three
+     things are in it and the first is at ten is a fact you can act on
+     without opening anything — which is what stops these two reading as
+     navigation. Neither says "open" or "view": the label is the thing, the
+     line under it is where that thing stands. */
+  /* ══ A DOOR IS A SPECIMEN OF WHAT IS BEHIND IT ═════════════════════════
+     The first cut of these two was an icon in a circle, a heading and a line
+     of grey underneath — twice, side by side, at identical size. That is the
+     shape every dashboard in the world puts its navigation in, and it was
+     navigation: nothing on either one told you anything you did not already
+     know from its label, so the only reason to press was to find out.
+
+     They are drawn as small readings instead. The diary door IS the day: a
+     rail from eight to nine at night with today's meetings sitting on it at
+     the hour they happen, in the same colours the calendar uses, so the
+     shape of the day is legible before anything opens — three in the morning
+     and nothing after reads differently from one dinner at eight. The
+     numbers door IS the figure, at the size a figure that size deserves,
+     over a bar in the proportion the board actually stands at.
+
+     No icons on either. An icon beside a word is what you reach for when the
+     word is all you have; both of these have the thing itself. And the pair
+     is asymmetric — the rail needs the room, the figure does not — because
+     two equal halves is the other tell of a control tray. */
+  /* A RAIL WITH ONE DOT ON IT IS A LINE. The day was drawn as an eight-to-
+     nine scale with the meetings standing where they happen, which is a good
+     drawing of a full day and an empty one of a real one: most days on this
+     desk hold one or two things, so what the card actually showed was a
+     hundred and forty pixels of hairline with a dot near the end.
+
+     It leads with the time instead, at the size the other card leads with its
+     figure — the two are the same shape now, a caption over the one number
+     that matters over the thing it belongs to over the count. A time and an
+     amount are both figures, both tabular, and both the first thing anybody
+     wants off these two surfaces. */
+  function dayHead() {
+    const on = meetingsOn(TODAY_ISO);
+    const timed = on.filter((m) => m.h != null);
+    const first = timed[0] || on[0];
+    if (!on.length) {
+      const soon = meetings(dayAdd(1), dayAdd(14));
+      return '<span class="b-door-fig is-quiet">Clear</span>' +
+        '<span class="b-door-who">Nothing is in the diary</span>' +
+        '<span class="b-door-say">' + (soon.length
+          ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
+          : 'and nothing in the fortnight ahead') + '</span>';
+    }
+    const k = MEET_KIND[first.kind];
+    return '<span class="b-door-fig">' +
+        esc(first.h == null ? 'All day' : clockOf(first)) + '</span>' +
+      '<span class="b-door-who">' + esc(first.con.name) +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span></span>' +
+      '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
+        ' in the diary today</span>';
+  }
+
+  /* Open, signed and lost as one bar in the proportion they stand at, so the
+     figure above it is not the only thing said about the book. */
+  function bookBar() {
+    const all = queue(null, 'all');
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const open = sum(all.filter(dealLive));
+    const won = sum(all.filter((c) => stageOf(c) === 'won'));
+    const lost = sum(all.filter((c) => stageOf(c) === 'lost'));
+    const tot = open + won + lost || 1;
+    const seg = (cls, v) => (v ? '<span class="' + cls + '" style="width:' +
+      ((v / tot) * 100).toFixed(1) + '%"></span>' : '');
+    return '<span class="b-door-bar">' +
+      seg('b-door-seg is-open', open) +
+      seg('b-door-seg is-won', won) +
+      seg('b-door-seg is-lost', lost) +
+    '</span>';
+  }
+
+  function bookSay() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive).length;
+    const won = all.filter((c) => stageOf(c) === 'won').length;
+    return commas(live) + ' open' + (won ? ' · ' + commas(won) + ' signed' : '');
+  }
+
+  /* The gate and the panel it opens, as one thing: `.b-menu-wrap` is the
+     positioned ancestor every other popover in the build hangs from. The
+     panel is rendered with the page rather than on demand, because the
+     machinery only toggles `hidden` — and a month of cells costs less than
+     the branch that would build it twice. */
+  function calGate() {
+    return '<span class="b-menu-wrap">' +
+      /* No modifier class: the book door needs one for its hairline, this
+         one needs nothing, and a hook with no rule behind it is a promise
+         the stylesheet never keeps. */
+      '<button class="b-door" type="button" data-pickopen="calPop" ' +
+        'aria-haspopup="dialog">' +
+        '<span class="b-door-cap">Today</span>' + dayHead() +
+      '</button>' +
+      '<div class="b-menu b-cal-pop" id="calPop" role="dialog" aria-label="The diary" hidden>' +
+        calBody(CALSEL) +
+      '</div>' +
+    '</span>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
@@ -3632,6 +3769,45 @@
         '</span>' +
         '<span class="b-loop-go">Say how it went</span>' +
       '</button>').join('') +
+    '</div>';
+  }
+
+  /* ══ THE NUMBERS — A ROOM WITH ITS SHAPE DRAWN AND NOTHING IN IT ═══════
+     A financial report is a real surface with real questions behind it —
+     what closed, at what margin, against what target, by whom — and none of
+     them are answered by this build yet. What is here is the frame: the
+     figures the corpus can honestly carry today, and a plain statement of
+     what is missing. A placeholder that pretends to be finished is worse
+     than an empty room, because somebody demos it and finds out live. */
+  function moneyPage() {
+    const all = queue(null, 'all');
+    const live = all.filter(dealLive);
+    const won = all.filter((c) => stageOf(c) === 'won');
+    const lost = all.filter((c) => stageOf(c) === 'lost');
+    const sum = (xs) => xs.reduce((n, c) => n + amountOf(c), 0);
+    const fig = (cap, val, sub) => '<div class="s-af">' +
+      '<span class="s-af-cap">' + esc(cap) + '</span>' +
+      '<span class="s-af-val">' + esc(val) + '</span>' +
+      '<span class="s-af-sub">' + esc(sub) + '</span>' +
+    '</div>';
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The numbers">' +
+        '<div class="s-camp-list-head">' +
+          '<h2 class="s-block-h">The numbers</h2>' +
+          '<span class="s-block-say">' + esc(plural(all.length, 'deal')) +
+            ' on your board</span>' +
+        '</div>' +
+        '<div class="s-afs">' +
+          fig('Open', euro(sum(live)), plural(live.length, 'deal') + ' still running') +
+          fig('Signed', euro(sum(won)), plural(won.length, 'deal') + ' closed won') +
+          fig('Lost', euro(sum(lost)), plural(lost.length, 'deal') + ' closed lost') +
+          fig('Average', live.length ? euro(Math.round(sum(live) / live.length)) : '—',
+            'across what is open') +
+        '</div>' +
+        '<p class="b-vfoot">Every figure here is modelled from what we sell and how ' +
+          'big the account is. The report itself — what closed against target, by ' +
+          'month, by campaign and by whoever closed it — is not built yet.</p>' +
+      '</section>' +
     '</div>';
   }
 
@@ -3743,10 +3919,22 @@
             : '<b>' + commas(off.n) + '</b> of their people are not in your queue') : ', all of them on a campaign') + '.';
     }
     if (isMgr()) {
-      return all.length
+      /* ══ A DESK THAT IS IN MEETINGS ALL DAY IS TOLD ABOUT THE MEETINGS ══
+         The sentence counted leads and campaigns and said nothing at all
+         about the day, on the one desk that spends most of it in rooms with
+         other people. What is in the diary goes first, because it is the
+         only part of this paragraph with a clock on it — the leads will
+         still be there at six. */
+      const on = meetingsOn(TODAY_ISO);
+      const first = on.filter((m) => m.h != null)[0];
+      const book = all.length
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
           ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
         : 'Nothing has been handed to you yet.';
+      if (!on.length) return 'Nothing is in the diary today. ' + book;
+      return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
+        (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
+          esc(first.con.name) + '</b>' : '') + '. ' + book;
     }
     return openerText(counts, all, camps);
   }
@@ -8689,6 +8877,7 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    money: '<rect width="20" height="12" x="2" y="6" rx="2"/> <circle cx="12" cy="12" r="2"/> <path d="M6 12h.01M18 12h.01"/>',
     linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/> <rect width="4" height="12" x="2" y="9"/> <circle cx="4" cy="4" r="2"/>',
   };
   /* A fact with its mark. The span wrapper is what lets the two sit on one
@@ -11697,6 +11886,16 @@
       if (!panel.hidden && panel.classList.contains('b-menu')) {
         panel.classList.remove('is-right');
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
+        /* A MONTH IS TALLER THAN A MENU. `max-height` in the sheet can only
+           be measured against the window, and this panel hangs off a door
+           part-way down the page — so 620px of calendar started 311px down
+           and finished 87px past the bottom, with no way to reach the last
+           week. The room BELOW the panel is only knowable once it is shown,
+           which is where this already stands. */
+        if (panel.classList.contains('b-cal-pop')) {
+          const room = window.innerHeight - panel.getBoundingClientRect().top - 16;
+          panel.style.maxHeight = Math.max(260, room) + 'px';
+        }
       }
       return;
     }
@@ -11733,8 +11932,18 @@
       return;
     }
 
-    const cal = t.closest('[data-cal]');
-    if (cal) { go({ on: 'cal', cal: cal.getAttribute('data-cal') }); return; }
+    /* THE PANEL REDRAWS ITSELF. Two verbs rather than one because the audit
+       pairs every rendered `data-x` with a handler that closes on it, and a
+       month step and a day pick are two different presses to a reader even
+       though they land in the same place. */
+    const step = t.closest('[data-calstep]');
+    const pick = step ? null : t.closest('[data-calpick]');
+    if (step || pick) {
+      CALSEL = (step || pick).getAttribute(step ? 'data-calstep' : 'data-calpick');
+      const pop = byId('calPop');
+      if (pop) pop.innerHTML = calBody(CALSEL);
+      return;
+    }
 
     const dl = t.closest('[data-deal]');
     if (dl) {

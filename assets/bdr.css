@@ -2662,3 +2662,75 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* And the bookkeeping behind it. Who logged it and at what minute is true and
    worth keeping, and nobody has ever scanned a feed looking for it. */
 .b-feed-meta { color: var(--d400); }
+
+/* ══ 81. TWO DOORS THAT ARE SPECIMENS OF WHAT IS BEHIND THEM ═══════════════
+   Argued at `dayRail`. Two cards, apart, each one a card in its own right:
+   joined into one split surface they read as a control tray with a divider
+   down it, which is the thing they were drawn not to be.
+
+   The material is the system's own `.bcard`, which is where this product
+   keeps the idea of a surface worth pressing: the larger radius, a shadow
+   with a real offset and a soft blur rather than a halo, and the lift on
+   hover. The inset hairline along the top edge is the one thing added — a
+   single pixel of light where a raised surface would catch it, which is what
+   separates a card from a rectangle with a border. */
+.b-doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
+@media (max-width: 719.98px) { .b-doors { grid-template-columns: minmax(0, 1fr); } }
+.b-doors > .b-menu-wrap { display: block; min-width: 0; }
+.b-door {
+  display: flex; flex-direction: column; gap: 12px; width: 100%; height: 100%;
+  text-align: left; padding: 18px 20px 20px;
+  border: 1px solid var(--card-border); border-radius: var(--r-2xl);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  cursor: pointer;
+  transition: border-color var(--t-base), transform var(--t-base), box-shadow var(--t-base);
+}
+.b-door:hover {
+  border-color: var(--card-border-hover); transform: translateY(-1px);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.b-door:active { transform: translateY(0); }
+.b-door:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .b-door:hover, .b-door:active { transform: none; }
+}
+.b-door-cap {
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d400);
+}
+.b-door-say { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200); }
+
+/* ── who the time belongs to ────────────────────────────────────────────
+   The name sits under the clock with the kind of thing it is beside it, so
+   the card answers when, who and what in three lines and stops. */
+.b-door-who {
+  display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: -4px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100);
+}
+
+/* ── the book, as a figure ─────────────────────────────────────────────── */
+.b-door-fig {
+  font-size: var(--fs-3xl); font-weight: var(--fw-extrabold); color: var(--d50);
+  line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+}
+/* "Clear" is a good day, not a big number: it takes the size so the two cards
+   still line up, and the ink of something that is not a figure. */
+.b-door-fig.is-quiet { color: var(--d300); }
+.b-door-bar {
+  display: flex; height: 6px; border-radius: var(--r-pill); overflow: hidden;
+  background: var(--card-border); margin-top: -2px;
+}
+.b-door-seg { display: block; height: 100%; }
+.b-door-seg.is-open { background: var(--accent); }
+.b-door-seg.is-won { background: var(--ok-text); }
+.b-door-seg.is-lost { background: var(--d500); }
+
+/* The panel. `.b-menu`'s machinery, a month's width, and its own scroll so a
+   long agenda cannot push it past the bottom of the window. */
+.b-cal-pop {
+  width: min(420px, calc(100vw - 32px)); padding: 12px;
+  max-height: min(620px, calc(100vh - 140px)); overflow: auto;
+}
+.b-cal-pop .b-cal { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .b-gate:active { transform: none; } }
