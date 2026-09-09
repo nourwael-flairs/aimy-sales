@@ -2318,8 +2318,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Include widens, exclude narrows, and the colour says which way a term
    cuts before you have read it — as V1's chips do. */
 .s-kw { cursor: pointer; }
-.s-kw-inc { background: var(--ok-bg); border-color: rgba(23,178,106,0.3); color: var(--ok); }
-.s-kw-exc { background: var(--err-bg); border-color: rgba(240,68,56,0.3); color: var(--err); }
+.s-kw-inc { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); color: var(--ok); }
+.s-kw-exc { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 30%, transparent); color: var(--err); }
 
 /* The derived axis, on the control's face. A derived value is fine; one
    that will not say what it derived is not. */
@@ -2561,9 +2561,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-card:hover { background: rgba(255,255,255,0.03); }
 :root[data-theme="light"] .s-card:hover { background: rgba(16,24,40,0.03); }
 .s-card:hover .s-card-title { color: var(--accent); }
-.s-card.st-err  { border-color: rgba(240,68,56,0.2); }
-.s-card.st-warn { border-color: rgba(247,144,9,0.2); }
-.s-card.st-ok   { border-color: rgba(23,178,106,0.16); }
+.s-card.st-err  { border-color: color-mix(in srgb, var(--err) 20%, transparent); }
+.s-card.st-warn { border-color: color-mix(in srgb, var(--warn) 20%, transparent); }
+.s-card.st-ok   { border-color: color-mix(in srgb, var(--ok) 16%, transparent); }
 /* st-neutral takes the default border: "no issues" is the absence of a
    signal, not a signal of its own. */
 
@@ -2687,10 +2687,19 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The accessibility half of the old argument survives untouched — "colour
    alone never distinguishes them, the word is always there" is still true,
    because the word was never the dot. */
-.s-meta-st.tone-err   { color: var(--err-text);  background: var(--err-bg);  border-color: rgba(240,68,56,0.28); }
-.s-meta-st.tone-warn  { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.28); }
-.s-meta-st.tone-ok    { color: var(--ok-text);   background: var(--ok-bg);   border-color: rgba(23,178,106,0.26); }
-.s-meta-st.tone-neutral { color: var(--d300); background: var(--card-bg-raised); border-color: var(--card-border); }
+/* ══ AND THE SAME RULE HERE ═══════════════════════════════════════════════
+   The status beside a record's name is a label, and it was wearing the
+   ghost button's border — `--card-border` on a raised ground, which is what
+   Handover wears two lines below it. It reads as a control you cannot
+   press. The border goes; the ground stays and does the work.
+
+   These three also still carried the saturated borders the tokens above
+   left behind — 28% of #f04438 around text that is now #d2827b, which is
+   the migration finishing here. */
+.s-meta-st.tone-err   { color: var(--err-text);  background: var(--err-bg); }
+.s-meta-st.tone-warn  { color: var(--warn-text); background: var(--warn-bg); }
+.s-meta-st.tone-ok    { color: var(--ok-text);   background: var(--ok-bg); }
+.s-meta-st.tone-neutral { color: var(--d300); background: var(--card-bg-raised); }
 
 /* ══ SKIPPED IS NOT A STATUS, AND MUST NOT LOOK LIKE ONE ══════════════════
 
@@ -3220,7 +3229,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: var(--card-bg-raised);
   border: 1px solid var(--card-border); border-radius: var(--r-lg);
 }
-.s-next.is-over { border-color: rgba(240,68,56,0.3); background: var(--err-bg); }
+.s-next.is-over { border-color: color-mix(in srgb, var(--err) 30%, transparent); background: var(--err-bg); }
 /* ── THE ONE FIGURE THIS RECORD IS ABOUT ──
 
    `30 days overdue` is the most consequential fact on the page and it was
@@ -4358,9 +4367,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-metric-sub { font-size: var(--fs-xs); color: var(--d500); }
 /* Tone tints the ground, not the figure: a red number reads as an error in
    the number rather than as a fact about the thing it counts. */
-.s-metric.tone-ok { background: var(--ok-bg); border-color: rgba(23,178,106,0.24); }
-.s-metric.tone-warn { background: var(--warn-bg); border-color: rgba(247,144,9,0.24); }
-.s-metric.tone-err { background: var(--err-bg); border-color: rgba(240,68,56,0.24); }
+.s-metric.tone-ok { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
+.s-metric.tone-warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 24%, transparent); }
+.s-metric.tone-err { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 24%, transparent); }
 
 /* Replies, one row per category. */
 .s-replies { display: flex; flex-direction: column; gap: 2px; }
@@ -5377,7 +5386,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    doing something to somebody else, so it takes the same red as the timer's
    live dot and the End button rather than the surface's own accent. */
 .call-tool.is-rec {
-  color: var(--err); border-color: rgba(240, 68, 56, 0.4); background: var(--err-bg);
+  color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); background: var(--err-bg);
 }
 .call-tool.is-rec:hover { background: var(--err-bg); color: var(--err); }
 .call-tool.is-rec svg { fill: currentColor; }
@@ -5793,7 +5802,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-camp-row-n {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; border-radius: 50%;
-  background: var(--warn-bg); border: 1px solid rgba(247,144,9,0.35);
+  background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
   font-variant-numeric: tabular-nums; letter-spacing: 0;
 }
 /* ── HOW BIG, AND HOW FAR ──
@@ -7182,7 +7191,7 @@ div.s-pipe-cell { cursor: default; }
    What survives is `is-at`: which stage the campaign has actually reached is
    the one thing the figures do not say, since a stage can be clear because
    it is done or clear because nothing has got there yet. */
-.s-pipe-cell.is-at .s-pipe-n { color: var(--warn); border-color: rgba(247,144,9,0.4); background: var(--warn-bg); }
+.s-pipe-cell.is-at .s-pipe-n { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: var(--warn-bg); }
 .s-pipe-name {
   font-size: var(--ty-meta); font-weight: var(--fw-extrabold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
@@ -7465,7 +7474,7 @@ div.s-pipe-cell { cursor: default; }
 .s-commit .modal-footer.is-blocked ~ * .s-why,
 .s-commit .modal-body .s-why:placeholder-shown,
 .s-commit .modal-body .s-kb-why:placeholder-shown,
-.s-commit .modal-body .s-note:placeholder-shown { border-color: rgba(247,144,9,0.4); }
+.s-commit .modal-body .s-note:placeholder-shown { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 
 /* The AiMY mark and the words beside it sit on one optical centre. The mark
    is 13×14 against a 12px uppercase label and a 20px title, so leaving them

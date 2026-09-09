@@ -1090,7 +1090,7 @@
 .pipe-status { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--accent-text); }
 .pipe-status.done { color: var(--ok-text); }
 .pipe-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
-.pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px rgba(23,178,106,0.18); }
+.pipe-live-dot.done { background: var(--ok-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
 .pipe-track { position: relative; height: 6px; margin-top: 13px; border-radius: 99px; overflow: hidden; background: var(--card-bg-raised); border: 1px solid var(--card-border); }
 .pipe-fill { width: 100%; height: 100%; border-radius: 99px; background: var(--accent); transition: background-color 400ms var(--ease-out); }
 .pipe-fill.done { background: var(--ok-text); }
@@ -1106,7 +1106,7 @@
   transition: background-color 400ms var(--ease-out), color 400ms var(--ease-out), transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
 }
 .pipe-tile.live { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.10); }
-.pipe-tile.done { color: var(--ok-text); background: var(--ok-bg); border-color: rgba(23,178,106,0.3); }
+.pipe-tile.done { color: var(--ok-text); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
 .pipe-check {
   position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; color: #fff;
@@ -1202,7 +1202,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    decision, not a finding — with a note under the deck that says what each
    way out does. Inline at the top of the result, never a modal. */
 .s-insight.is-lead.b-gate {
-  background: rgba(247,144,9,0.06); border-color: rgba(247,144,9,0.22);
+  background: color-mix(in srgb, var(--warn) 6%, transparent); border-color: color-mix(in srgb, var(--warn) 22%, transparent);
 }
 .b-gate-note { margin: -6px 0 14px; font-size: var(--t-ui); color: var(--d200); max-width: 62ch; text-wrap: pretty; }
 .b-gate .s-lead-acts { align-items: center; gap: 8px 10px; }
@@ -1449,7 +1449,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    word sitting in the masthead all day is an alarm nobody hears by the
    afternoon. */
 .b-end-open:hover {
-  color: var(--err-text); background: var(--err-bg); border-color: rgba(240, 68, 56, 0.45);
+  color: var(--err-text); background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 45%, transparent);
 }
 .b-end-mark { flex: none; opacity: 0.7; }
 .b-end-open:hover .b-end-mark { opacity: 1; }
@@ -1464,9 +1464,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* The confirm wears the tone at rest; the way back stays a quiet word,
    because the quiet one should be the easy one. */
 .b-end-go {
-  color: var(--err-text); background: var(--err-bg); border-color: rgba(240, 68, 56, 0.45);
+  color: var(--err-text); background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 45%, transparent);
 }
-.b-end-go:hover { color: var(--err-text); border-color: var(--err-text); background: rgba(240, 68, 56, 0.18); }
+.b-end-go:hover { color: var(--err-text); border-color: var(--err-text); background: color-mix(in srgb, var(--err) 18%, transparent); }
 @media (prefers-reduced-motion: reduce) {
   .b-ghost { transition: none; }
   .b-ghost:active { transform: none; }
@@ -1526,9 +1526,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   width: 10px; height: 10px; border-radius: 50%; background: var(--d200);
   border: 2px solid var(--card-bg); box-shadow: 0 0 0 1px var(--card-border);
 }
-.b-story-dot.tone-ok { background: var(--ok-text); box-shadow: 0 0 0 1px rgba(23,178,106,0.4); }
-.b-story-dot.tone-warn { background: var(--warn-text); box-shadow: 0 0 0 1px rgba(247,144,9,0.4); }
-.b-story-dot.tone-err { background: var(--err-text); box-shadow: 0 0 0 1px rgba(240,68,56,0.4); }
+.b-story-dot.tone-ok { background: var(--ok-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 40%, transparent); }
+.b-story-dot.tone-warn { background: var(--warn-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 40%, transparent); }
+.b-story-dot.tone-err { background: var(--err-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--err) 40%, transparent); }
 .b-story-k {
   margin-top: 6px; font-size: var(--t-small); font-weight: var(--fw-bold);
   color: var(--d100); white-space: nowrap;
@@ -1544,15 +1544,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-story-step.is-now .b-story-dot.tone-ok {
   background: var(--card-bg);
-  box-shadow: 0 0 0 2px var(--ok-text), 0 0 0 6px rgba(23, 178, 106, 0.18);
+  box-shadow: 0 0 0 2px var(--ok-text), 0 0 0 6px color-mix(in srgb, var(--ok) 18%, transparent);
 }
 .b-story-step.is-now .b-story-dot.tone-warn {
   background: var(--card-bg);
-  box-shadow: 0 0 0 2px var(--warn-text), 0 0 0 6px rgba(247, 144, 9, 0.18);
+  box-shadow: 0 0 0 2px var(--warn-text), 0 0 0 6px color-mix(in srgb, var(--warn) 18%, transparent);
 }
 .b-story-step.is-now .b-story-dot.tone-err {
   background: var(--card-bg);
-  box-shadow: 0 0 0 2px var(--err-text), 0 0 0 6px rgba(240, 68, 56, 0.18);
+  box-shadow: 0 0 0 2px var(--err-text), 0 0 0 6px color-mix(in srgb, var(--err) 18%, transparent);
 }
 
 .b-story-step.is-gap .b-story-dot { background: transparent; box-shadow: none; border-color: transparent; }
@@ -1673,13 +1673,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   padding: 14px 16px; border-radius: 14px;
 }
 .b-nm-do { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
-.b-nm-do.is-done { background: var(--ok-bg); border-color: rgba(23,178,106,0.28); }
+.b-nm-do.is-done { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 28%, transparent); }
 .b-nm-note { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
 .b-nm-mark {
   display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; margin-top: 1px;
   color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18);
 }
-.b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: rgba(23,178,106,0.18); }
+.b-nm-do.is-done .b-nm-mark { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
 .b-nm-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .b-nm-say {
   font-size: var(--t-lead); font-weight: var(--fw-semibold); line-height: var(--lh-base);
@@ -1691,7 +1691,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--t-small); font-weight: var(--fw-bold); letter-spacing: 0.01em;
   color: var(--d100); background: var(--card-bg); border: 1px solid var(--card-border);
 }
-.b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+.b-nm-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
 .b-nm-then { font-size: var(--t-ui); color: var(--d200); max-width: 66ch; text-wrap: pretty; }
 .b-nm-then b { color: var(--d50); font-weight: var(--fw-bold); }
 .b-nm-said {
@@ -1963,7 +1963,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--t-small); font-weight: var(--fw-bold);
   color: var(--d100); background: var(--wash-3); border: 1px solid var(--card-border);
 }
-.b-prep-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: rgba(247,144,9,0.32); }
+.b-prep-due.is-late { color: var(--warn-text); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
 
 /* 2. The one line here anybody says out loud, so it is set as speech. */
 .b-open {

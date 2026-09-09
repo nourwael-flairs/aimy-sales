@@ -321,7 +321,7 @@
     :root[data-theme="light"] .tag-err, :root[data-theme="light"] .tag-ai,
     :root[data-theme="light"] .tag-accent, :root[data-theme="light"] .tag-neutral,
     :root[data-theme="light"] .tag-info, :root[data-theme="light"] .tag-teal {
-      background: rgba(16,24,40,0.05); border-color: rgba(16,24,40,0.12); color: var(--d200);
+      background: rgba(16,24,40,0.06); border-color: transparent; color: var(--d200);
     }
     /* Chips & filters */
     :root[data-theme="light"] .chip.default { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.12); color: var(--d500); }
@@ -349,14 +349,8 @@
     /* On white a tint of the same fraction reads louder than it does on the
        card, because it is lifting off a ground with nowhere to go. Down a
        third, and the border does more of the work. */
-    :root[data-theme="light"] .tag-ok {
-      background: color-mix(in srgb, #3f6b52 7%, transparent);
-      border-color: color-mix(in srgb, #3f6b52 22%, transparent);
-    }
-    :root[data-theme="light"] .tag-err {
-      background: color-mix(in srgb, #903b37 7%, transparent);
-      border-color: color-mix(in srgb, #903b37 22%, transparent);
-    }
+    :root[data-theme="light"] .tag-ok  { background: color-mix(in srgb, #3f6b52 11%, transparent); }
+    :root[data-theme="light"] .tag-err { background: color-mix(in srgb, #903b37 11%, transparent); }
     :root[data-theme="light"] .chip.warn  { color: var(--d300); }
     :root[data-theme="light"] .tag-accent,
     :root[data-theme="light"] .chip.active { color: #6a30cf; }
@@ -478,10 +472,21 @@
        none of them could recede. One ground now, one border, for all of
        them — the pill is furniture. What changes between tones is the ink
        on the word, and only the two poles change it at all. */
+    /* ══ A LABEL HAS A FILL. A CONTROL HAS AN EDGE. ═══════════════════
+       Once every tone shared one pill, a tag and a ghost button became the
+       same object: both a hairline-bordered capsule on the same ground,
+       one of them pressable and one of them not, and nothing on either
+       saying which. The tag was the thing in the wrong, because a hairline
+       border is this build's signature for something you can hit — the
+       ghost, the chip, the menu item, the search box all wear it.
+
+       So the border comes off the tag and the ground gets a little
+       stronger to carry the shape on its own. Filled and edgeless is a
+       word about a thing; edged and unfilled is a thing you press. */
     .tag-ok, .tag-warn, .tag-err, .tag-ai, .tag-accent,
     .tag-neutral, .tag-info, .tag-teal {
-      background: rgba(255,255,255,0.05); color: var(--d300);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.07); color: var(--d300);
+      border: 1px solid transparent;
     }
     /* ══ AND THE TWO POLES GET A GROUND BACK — BARELY ═════════════════
        Colour on the word alone is ten pixels of ink on a pill that looks
@@ -496,16 +501,11 @@
        Nothing else on the screen has a tint of any kind now, so a ninth is
        enough to find. That is the whole argument for spending the licence
        on two things instead of eight. */
-    .tag-ok {
-      color: var(--ok);
-      background: color-mix(in srgb, var(--ok) 11%, transparent);
-      border-color: color-mix(in srgb, var(--ok) 20%, transparent);
-    }
-    .tag-err {
-      color: var(--err);
-      background: color-mix(in srgb, var(--err) 11%, transparent);
-      border-color: color-mix(in srgb, var(--err) 20%, transparent);
-    }
+    /* The poles were findable on a tint AND a border; with the border gone
+       the tint takes the whole job, so it comes up from a ninth to a
+       seventh. Still the only tinted thing on the screen. */
+    .tag-ok  { color: var(--ok);  background: color-mix(in srgb, var(--ok) 15%, transparent); }
+    .tag-err { color: var(--err); background: color-mix(in srgb, var(--err) 15%, transparent); }
 
     /* ── Signal / Live Badge ── */
     .signal-badge {
