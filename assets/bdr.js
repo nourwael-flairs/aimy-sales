@@ -1077,13 +1077,16 @@
          expression over its own prose to know what to measure against — so
          renaming an industry could silently change the target.
 
-         Splitting them was right; calling the surviving sentence the goal
-         was not. `target` is the goal — the state this campaign is trying
-         to reach by the day it closes, countable so `campStand` can measure
-         it. The field below is the ask: what one call should come away with.
-         The field keeps its name because a built campaign in somebody's
-         browser was stored under it, and every surface that draws it says
-         "the ask" instead. */
+         Splitting them was right; the naming was wrong twice over. `target`
+         is the QUOTA — the meetings or conversations the desk paces against,
+         countable so `campStand` can say what a week has to land. The field
+         below is the ASK: what one call should come away with. Neither is
+         the goal. The goal is what the campaign is worth having worked, and
+         `campGoal` derives it: new clients for what this campaign sells.
+
+         The field keeps the name `goal` because a campaign somebody built is
+         stored under it in their browser and a rename would strand it; every
+         surface that draws it says "the ask". */
       const askFor = ASK_OF[sells[0].k];
       const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
       camp.push({
@@ -2490,29 +2493,12 @@
          the frame those are read inside, not a fourth figure competing with
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
-      (function () {
-        const st = campStand(k);
-        /* No target is possible on paper and impossible in this book; if one
-           ever arrives, the ask is still true and still worth its slot. */
-        if (!st.target) {
-          return '<p class="tc-summary b-qcard-what"><b>The ask</b> ' + esc(k.goal) + '.</p>';
-        }
-        /* No date in it. A goal states its deadline, and this card's states
-           it twice as loudly six pixels up: the tag IS the deadline, in
-           "14 days left" while it runs and "closed 6 Sep" once it has. The
-           line carries the two facts the tag cannot — what it is for, and
-           how much of that it has. */
-        return '<p class="tc-summary b-qcard-what"><b>The goal</b> ' +
-          esc(plural(st.target, st.noun)) + ' with ' +
-          esc(k.persona ? k.persona.who : 'them') +
-          /* Hard spaces after the figure: it wrapped as "…pipeline, 9" then
-             "so far." on its own line, which parts the number from the words
-             that say what it counts. */
-          (campOpen(k)
-            ? (st.done ? ', <b>' + st.done + '</b> so far.' : ', none yet.')
-            : ' — <b>' + st.done + '</b> in the end.') +
-          '</p>';
-      })() +
+      /* What this campaign is for, in the words the person who signed it off
+         would use. No date in it: a goal has one, and this card's is six
+         pixels up and louder — "14 days left" while it runs, "closed 6 Sep"
+         once it has. No standing in it either; the three lines under it are
+         the standing. */
+      '<p class="tc-summary b-qcard-what"><b>The goal</b> ' + campGoalSay(k) + '</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
@@ -2541,9 +2527,17 @@
     /* closed: the one fact is how it closed */
     if (left <= 0) {
       const st = campStand(k);
+      /* Short of the QUOTA, which is what this figure measures. The goal is
+         clients, and a campaign that booked every meeting it paced for can
+         still have signed nobody — "past its goal" of a meeting count
+         claimed the second thing while counting the first. */
       return { text: 'It closed ' + esc(sayWhen(k.to)) +
-        (st.target ? (st.need ? ', <b>' + commas(st.need) + '</b> short of its goal.' : ', past its goal.') : '.'),
-        from: 'the window and the goal' };
+        (st.target
+          ? (st.need
+            ? ', <b>' + commas(st.need) + '</b> ' + esc(verbFor(st.need, st.noun)) + ' short.'
+            : ', past the ' + esc(plural(st.target, st.noun)) + ' it paced for.')
+          : '.'),
+        from: 'the window and the target' };
     }
     /* ══ IT MUST NOT REPEAT THE LINE ABOVE IT ═══════════════════════════
        This led with the callback count, and the callback count is already
@@ -5710,10 +5704,11 @@
     const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
     const cl = k.client ? CLIENT[k.client] : null;
     return '<div class="b-cmeta">' +
-      /* Not "The goal": this sentence is what one call asks for, and the
-         goal — the target it is measured against — is the figure in the
-         lead block sixty pixels above. Two different facts cannot share the
-         one word, and the prep sheet has always called this one the ask. */
+      cmPart('The goal', '<p class="b-cmeta-p">' + campGoalSay(k) + '</p>') +
+      /* Not "The goal": this sentence is what ONE CALL asks for, which is a
+         different fact from what the campaign is trying to win. Two facts
+         cannot share the one word, and the prep sheet has always called this
+         one the ask. */
       cmPart('The ask', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
       /* The name and which kind it is. The blurb underneath was the line a
          caller says out loud, and it is said out loud in What to say — here
@@ -5737,6 +5732,87 @@
      measured at `meeting-set`, one to open conversations at `answered`.
      Counting everyone ever reached against a meetings goal is how this
      page once reported 35 of 22 with 111 people still unrung. */
+  /* ══ WHAT THE CAMPAIGN IS TRYING TO WIN ════════════════════════════════
+     A campaign's goal is not a number of meetings. Meetings are how it is
+     worked; the goal is what it is worth having worked — two more clients
+     for AiMY QA, three for a partner's offer — and that is the sentence the
+     person who signed the campaign off would use.
+
+     `target` stays what it always was: the meetings or conversations the
+     desk paces against, which is why `campStand` can say what a week has to
+     land. It is the quota, not the goal, and every surface now says so.
+
+     The number is derived, not seeded. `hash` on the campaign's own id keeps
+     it identical on every load without a new value in the generator, and
+     keeps it off the member count — a goal that moved when somebody added
+     forty leads to the list would not be a goal.
+
+     THE GOAL IS THE GOAL AND NOTHING ELSE. A first cut hung the standing off
+     the end of it — "2 new clients for AiMY QA, 3 in play" — which turns the
+     one line on this card that says where the campaign is TRYING to get into
+     another line about where it is. Progress has three homes already: the
+     numbers directly under this, what AiMY reads off the calls, and the
+     figure in the record's lead block. The goal does not move, and that is
+     the point of it — it is what those three are measured against. */
+  /* ══ FOUR WAYS TO END UP SOMEWHERE ═════════════════════════════════════
+     A book where every campaign wants "two new clients" is a template with a
+     number in it. Real campaigns are signed off against different kinds of
+     end: some are counted in logos, some in money, some in getting a foot
+     into a market at all, and some in taking an account off whoever has it.
+     All four are outcomes — none of them is a count of calls — so the word
+     over them stays true whichever one a campaign drew.
+
+     Everything is derived and nothing is stored: `hash` on the campaign's id
+     picks the kind and the size, so a goal is the same on every load without
+     a value in the generator, and it does not move when somebody adds forty
+     leads to the list. The money one is priced off `PRICE` at the mid band
+     so the figure is the size of the deals this campaign would actually
+     write, rounded to the ten thousand nobody would quote more precisely
+     than. */
+  function campGoal(k) {
+    const name = k.client && CLIENT[k.client]
+      ? CLIENT[k.client].name
+      : (SELL[k.sells[0]] ? SELL[k.sells[0]].name : 'us');
+    /* `Math.abs`, as every other caller of `hash` here does: it returns a
+       signed 32-bit int, and c8 hashed negative and printed "0 new clients". */
+    const n = 2 + (Math.abs(hash(k.id + ':goal')) % 3);
+    const band = PRICE[k.sells[0]] ? PRICE[k.sells[0]][1] : 40000;
+    /* THE KIND IS DEALT, NOT ROLLED. Hashing it gave four competitor goals,
+       three logo goals, two footholds and — across the whole book — not one
+       priced in money, which is a fair coin landing badly and a demo showing
+       three quarters of what it can say. The id's own number deals them
+       round, so every kind is on the shelf; the cards are ordered by days
+       left rather than by id, so nothing reads as a cycle. A campaign built
+       in the browser has no number in its id and falls back to the hash. */
+    const dealt = String(k.id).match(/\d+/);
+    return {
+      n: n,
+      forWhom: name,
+      kind: dealt ? (+dealt[0] % 4) : (Math.abs(hash(k.id + ':goalkind')) % 4),
+      money: Math.round((band * n) / 10000) * 10000,
+      ind: INDUSTRY[k.industry] ? INDUSTRY[k.industry].label.toLowerCase() : null,
+      reg: REGION[k.region] ? REGION[k.region].label : null,
+    };
+  }
+  /* The sentence, once, so the card and the record cannot drift apart. */
+  function campGoalSay(k) {
+    const g = campGoal(k);
+    const who = esc(g.forWhom);
+    /* The foothold reads as a goal only where the book knows the market it
+       is trying to get into; without both halves it falls back to logos. */
+    if (g.kind === 2 && g.ind && g.reg) {
+      /* Two of these regions are plural or a group and take the article:
+         "in the Netherlands", "in the Nordics", against "in DACH". */
+      const where = (g.reg === 'Netherlands' || g.reg === 'Nordics' ? 'the ' : '') + g.reg;
+      return 'Our first ' + esc(g.ind) + ' client in ' + esc(where) + ' for ' + who + '.';
+    }
+    if (g.kind === 1) return esc(euro(g.money)) + ' of new business for ' + who + '.';
+    if (g.kind === 3) {
+      return esc(plural(g.n, 'account')) + ' won off a competitor for ' + who + '.';
+    }
+    return esc(plural(g.n, 'new client')) + ' for ' + who + '.';
+  }
+
   function campStand(k) {
     const members = membersOf(k.id);
     const n = rungCounts(members);
@@ -5858,11 +5934,12 @@
      finishes, and the fourth-best thing AiMY noticed is not worth the
      reader deciding which three of five to trust.
 
-     AGAINST THE GOAL, FIRST. The goal is countable — `target`, a number and
-     a noun — and where it stands is the question the campaign exists to
-     answer. It is stored, not read out of prose: this paragraph used to say
-     the opposite, and `campStand` records why the regular expression over
-     the goal sentence had to go. */
+     AGAINST THE QUOTA, FIRST. `target` is countable — a number and a noun —
+     and where the desk stands against it is the question this block answers.
+     It is stored, not read out of prose: this paragraph used to say the
+     opposite, and `campStand` records why the regular expression over the
+     goal sentence had to go. What the campaign is trying to WIN, as opposed
+     to what it is pacing against, is `campGoal`. */
   function campReadings(k) {
     const here = DB.touch.filter((t) => t.camp === k.id);
     const members = membersOf(k.id);
