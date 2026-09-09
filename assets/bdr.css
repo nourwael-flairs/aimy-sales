@@ -146,7 +146,7 @@
   appearance: none; border: 0; background: transparent; padding: 0;
   cursor: pointer; font-family: var(--font-display);
   font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
-  letter-spacing: var(--ls-tight); color: var(--d500);
+  letter-spacing: var(--ls-tight); color: var(--d300);
   transition: color var(--t-fast);
 }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
@@ -235,7 +235,7 @@
 
    Scoped to `.b-qcard`, so no other card in the product moves. */
 .b-qcard .tc-type {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d400);
+  font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--d300);
 }
 .b-qcard .tc-title {
   font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
@@ -299,13 +299,15 @@
    together, and a caption is the bottom rung of the ramp rather than a
    competitor on it.
 
-     11 / 700 / d400   the word            `.tc-type`'s recipe exactly, so the
+     12 / 600 / d400   the word            `.tc-type`'s recipe exactly, so the
                                            two captions on this card match
      13 / 500 / d200   the goal            a step under the AiMY sentence,
                                            two under the numbers that lead
 
-   Bold at eleven px and --d400 is a label, not emphasis — the ramp already
-   says so of the campaign chip, and this is the same species of thing.
+   Semibold at twelve px and --d400 is a label, not emphasis — the ramp
+   already says so of the campaign chip, and this is the same species of
+   thing. It was eleven, which is the floor and reserved for capitals; the
+   detail stays above it on size and on ink both.
 
    The gap stays on the label alone rather than on every bold thing in the
    line, so a figure set in bold inside the sentence keeps its own spacing
@@ -315,7 +317,7 @@
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
 }
 .b-qcard-what > b:first-child {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d400); margin-right: 5px;
 }
 
@@ -425,18 +427,18 @@
   transition: border-color var(--t-fast);
 }
 .b-find:focus-within { border-color: var(--accent); }
-.b-find svg { color: var(--d500); flex-shrink: 0; }
+.b-find svg { color: var(--d400); flex-shrink: 0; }
 .b-find input {
   flex: 1; min-width: 0;
   background: none; border: 0; outline: none;
   font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
 }
-.b-find input::placeholder { color: var(--d600); }
+.b-find input::placeholder { color: var(--d400); }
 /* A way out that does not need the keyboard. Only drawn when there is
    something to clear, so it is never a control that does nothing. */
 .b-find-x {
   border: 0; background: none; cursor: pointer; padding: 0 2px;
-  font-size: var(--fs-sm); line-height: 1; color: var(--d500);
+  font-size: var(--fs-sm); line-height: 1; color: var(--d400);
   transition: color var(--t-fast);
 }
 .b-find-x:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
@@ -629,7 +631,7 @@
 .s-callsum-cap { font-size: var(--fs-xs); }
 .s-callp b { font-size: var(--fs-xs); color: var(--d300); }
 .b-aimy-from { font-size: var(--fs-2xs); }
-.tc-type { font-size: var(--fs-2xs); color: var(--d300); }
+.tc-type { font-size: var(--t-small); color: var(--d300); }
 
 /* [5] COUNTS DO NOT JITTER. Proportional digits change width as the value
    changes, so the switcher shifted sideways every time a search narrowed it.
@@ -819,8 +821,28 @@
   --t-body: 14px;    /* readings, brief lines, feed notes */
   --t-ui: 13px;      /* buttons, chips, facts rows, row text */
   --t-small: 12px;   /* section sub-lines, foot lines */
-  --t-micro: 11px;   /* kind lines, section captions, tags — the one uppercase role */
+  --t-micro: 11px;   /* THE FLOOR. Capitals and tracked, or not at all. */
 }
+
+/* ══ 26b. THE FLOOR, AND THE BOTTOM OF THE INK RAMP ════════════════════════
+   Two laws this build already wrote down and then broke in eleven places.
+
+   `sales.css:207` says of the smallest step: "FLOOR. Caps and tracked, or
+   not at all." Eleven px of untracked sentence case is not a caption, it is
+   body copy set too small to read — "weeks · closes 21 Oct" under a field,
+   the kind line on a card, a whole notification panel at ten and a half.
+   Sentence case starts at twelve; eleven is for capitals, which have no
+   descenders to lose and get the tracking that makes them legible.
+
+   `sales.css:231-237` names five ink roles and stops at `--ink-faint`
+   (`--d400`) — "ambient: labels, captions, counts". `--d500` is not a role
+   and `--d600` is labelled NON-TEXT, HAIRLINES AND DOTS, NEVER TYPE. Both
+   were carrying type: the resting switcher tab, the search placeholder and
+   its icon, every second line of the bell.
+
+   Nothing below moves position or changes what anything says. Sizes come up
+   to the nearest legal step and inks come up to the bottom of the ramp
+   rather than below it. */
 
 /* [1] THE STEPS. `.s-home .x` outranks the shell's single-class media rules
    that were setting the masthead to 20 and the figure to 24 at this width. */
@@ -971,16 +993,16 @@
 .ntf-panel::-webkit-scrollbar-thumb:hover { background: var(--card-border); }
 
 .ntf-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 10px; }
-.ntf-head b { font-size: 12px; font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
+.ntf-head b { font-size: var(--t-ui); font-weight: 800; color: var(--d50); letter-spacing: 0.01em; }
 .ntf-count {
-  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 9999px;
+  font-size: var(--t-micro); font-weight: 700; padding: 1px 7px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.16); color: var(--qa-accent);
   font-variant-numeric: tabular-nums;
 }
 .ntf-count[hidden] { display: none; }
 .ntf-clear {
   margin-left: auto; background: none; border: 0; cursor: pointer;
-  font-family: inherit; font-size: 10.5px; font-weight: 600; color: var(--d500);
+  font-family: inherit; font-size: var(--t-small); font-weight: 600; color: var(--d400);
   padding: 2px 4px; border-radius: 6px;
   transition: color var(--transition-fast);
 }
@@ -1000,11 +1022,13 @@
 .ntf-sev.p3 { background: var(--qa-accent); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.ntf-row-type { font-size: 11px; font-weight: 800; color: var(--d50); }
-.ntf-row-when { margin-left: auto; font-size: 10px; color: var(--d500); flex-shrink: 0; }
-.ntf-row-body { margin: 0 0 7px; font-size: 11.5px; line-height: 1.5; color: var(--d400); }
+.ntf-row-type { font-size: var(--t-ui); font-weight: 800; color: var(--d50); }
+.ntf-row-when { margin-left: auto; font-size: var(--t-small); color: var(--d400); flex-shrink: 0; }
+/* The sentence the row is for. It was the smallest and faintest thing in the
+   panel, under a label that was neither. */
+.ntf-row-body { margin: 0 0 7px; font-size: var(--t-ui); line-height: 1.5; color: var(--d200); }
 .ntf-row-cta {
-  font-family: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer;
+  font-family: inherit; font-size: var(--t-small); font-weight: 700; cursor: pointer;
   padding: 4px 10px; border-radius: 9999px;
   background: rgba(var(--qa-accent-rgb), 0.12); color: var(--qa-accent);
   border: 1px solid rgba(var(--qa-accent-rgb), 0.26);
@@ -1015,14 +1039,14 @@
 
 .ntf-foot { padding: 8px 4px 4px; border-top: 1px solid var(--wash-6); margin-top: 6px; }
 .ntf-foot-btn {
-  width: 100%; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  width: 100%; font-family: inherit; font-size: var(--t-ui); font-weight: 700; cursor: pointer;
   padding: 8px; border-radius: 9px; background: var(--wash-3);
   border: 1px solid var(--wash-6); color: var(--d300);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 .ntf-foot-btn:hover { background: var(--wash-6); color: var(--d50); }
 .ntf-foot-btn:focus-visible { outline: 2px solid var(--qa-accent); outline-offset: 2px; }
-.ntf-empty { padding: 22px 12px; text-align: center; font-size: 11.5px; color: var(--d500); }
+.ntf-empty { padding: 22px 12px; text-align: center; font-size: var(--t-ui); color: var(--d400); }
 
 @media (prefers-reduced-motion: reduce) {
   .ntf-row, .ntf-row-cta, .ntf-foot-btn, .ntf-clear { transition: none; }
@@ -1056,7 +1080,7 @@
 .pipe-title { margin: 0; font-size: var(--t-deck); font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--d50); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pipe-badge {
   display: inline-flex; align-items: center; gap: 5px; flex: none;
-  padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-micro); line-height: 1;
+  padding: 5px 8px; border-radius: var(--r-md); font-size: var(--t-ui); line-height: 1;
   color: var(--d200); background: var(--card-bg-raised); border: 1px solid var(--card-border);
 }
 .pipe-badge-dot { color: var(--d500); }
@@ -1684,8 +1708,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    the open mark and a hover that says it is a door. */
 .b-doc {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-  font-family: inherit; font-size: 10px; font-weight: var(--fw-bold);
-  letter-spacing: 0.04em; text-transform: uppercase; text-align: left;
+  font-family: inherit; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; text-align: left;
   padding: 3px 9px; border-radius: var(--r-pill);
   color: var(--d200); background: var(--wash-3); border: 1px solid var(--card-border);
   transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast), transform 160ms var(--ease-out);
@@ -2699,7 +2723,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-door:hover, .b-door:active { transform: none; }
 }
 .b-door-cap {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d400);
+  font-size: var(--t-small); font-weight: var(--fw-bold); color: var(--d300);
 }
 .b-door-say { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200); }
 
@@ -2871,7 +2895,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
   transition: border-color var(--t-base);
 }
-.b-draft-name::placeholder { color: var(--d500); }
+.b-draft-name::placeholder { color: var(--d400); }
 .b-draft-name:hover { border-bottom-color: var(--card-border); }
 .b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-in {
@@ -2880,7 +2904,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   min-width: 0; width: 100%; max-width: 34ch;
   transition: border-color var(--t-base);
 }
-.b-draft-in::placeholder { color: var(--d500); }
+.b-draft-in::placeholder { color: var(--d400); }
 .b-draft-in:hover { border-bottom-color: var(--card-border-hover); }
 .b-draft-in:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-pick {
@@ -2890,12 +2914,17 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-draft-pick:hover { color: var(--accent-text); border-bottom-color: var(--accent); }
 .b-draft-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-draft-none { color: var(--d500); }
-.b-draft-unit { margin-left: 8px; font-size: var(--fs-2xs); color: var(--d400); }
+.b-draft-none { color: var(--d400); }
+/* When it closes is a fact on the record, not a footnote about one. And a
+   field that holds one or two digits is sized for one or two digits: at the
+   full 34ch it took the whole cell and pushed its own unit onto a second
+   line, so "6" and "weeks" read as two unrelated things. */
+.b-draft-unit { margin-left: 8px; font-size: var(--t-ui); color: var(--d300); }
+.b-draft-in[data-cfield="weeks"] { width: 3ch; text-align: right; }
 /* What is still missing, in the words of the thing missing — never a greyed
    button that will not say why it is grey. */
 .b-draft-miss { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--warn-text); }
-.b-draft-saved { font-size: var(--fs-2xs); color: var(--d500); margin-left: auto; }
+.b-draft-saved { font-size: var(--t-ui); color: var(--d400); margin-left: auto; }
 
 /* The record's metadata grid is `auto-fit` over `minmax(232px, 1fr)`, which is
    right for the four facts a campaign has and wrong for the eight a draft
