@@ -2473,10 +2473,15 @@
     ═══════════════════════════════════════════════ */
 
     /* ── Work state (§2.3) — six values, required on every surfaced item ── */
+    /* Nine px was below the smallest step in the scale, and the tracking was
+       a literal of the value the token now carries. Same footing as the tag:
+       the two small tracked-capital badges in this system were at nine and
+       ten by accident rather than by decision. */
     .work-state {
       display: inline-flex; align-items: center; gap: 6px;
-      font-size: 9px; font-weight: 700; padding: 3px 9px 3px 7px;
-      border-radius: var(--r-pill); letter-spacing: 0.06em;
+      font-size: var(--fs-2xs); font-weight: 700; padding: 3px 9px 3px 7px;
+      border-radius: var(--r-pill); letter-spacing: var(--ls-wide);
+      line-height: 16px;
       text-transform: uppercase; white-space: nowrap; vertical-align: middle;
       border: 1px solid transparent;
     }
@@ -2484,26 +2489,36 @@
       width: 6px; height: 6px; border-radius: 50%;
       background: currentColor; flex-shrink: 0;
     }
+    /* ══ FOUR OF THE SIX ARE POSITIONS ON A TRACK ═════════════════════
+       detected → recommended → drafted → staged → completed / failed is a
+       sequence, and it wore six hues: cyan, purple, AI-blue, amber, green,
+       red. Five of those named where a thing had got to, which is what the
+       track and the word already say — and a purple "recommended" beside an
+       amber "staged" reads as two warnings rather than as two steps.
+
+       So the first four are the plain pill and only the two ENDS carry a
+       hue, because only an end is a verdict. What separates the four is the
+       dot, and it always did: hollow while AiMY is still working on it,
+       filled once the thing is real. That is form doing the work colour was
+       doing badly. */
     /* detected — AiMY noticed it, nothing proposed yet */
-    .ws-detected    { background: var(--info-bg); color: var(--info); border-color: color-mix(in srgb, var(--info) 22%, transparent); }
     .ws-detected .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
-    /* recommended — AiMY has an opinion */
-    .ws-recommended { background: var(--accent-dim); color: var(--accent); border-color: rgba(var(--accent-rgb),0.24); }
     /* drafted — AiMY produced content, not yet queued */
-    .ws-drafted     { background: rgba(0,102,255,0.1); color: var(--ai-text); border-color: rgba(0,102,255,0.24); }
     .ws-drafted .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
-    /* staged — waiting on a human decision */
-    .ws-staged      { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 24%, transparent); }
-    /* completed (display label may be "handled") */
-    .ws-completed   { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
-    /* failed (display label may be "blocked") */
-    .ws-failed      { background: var(--err-bg); color: var(--err); border-color: color-mix(in srgb, var(--err) 24%, transparent); }
+    /* detected · recommended · drafted · staged — where it has got to */
+    .ws-detected, .ws-recommended, .ws-drafted, .ws-staged {
+      background: rgba(255,255,255,0.07); color: var(--d300);
+    }
+    /* completed (display label may be "handled") — an end, and a good one */
+    .ws-completed   { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+    /* failed (display label may be "blocked") — the other end */
+    .ws-failed      { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
 
     /* Work-state pipeline — shows position in detected → … → completed */
     .ws-track { display: inline-flex; align-items: center; gap: 0; flex-wrap: wrap; }
     .ws-track .ws-step {
       display: inline-flex; align-items: center; gap: 5px;
-      font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+      font-size: var(--fs-2xs); font-weight: 700; letter-spacing: var(--ls-wide);
       text-transform: uppercase; color: var(--d600); padding: 4px 8px;
     }
     .ws-track .ws-step .ws-dot {
@@ -2511,8 +2526,11 @@
     }
     .ws-track .ws-step.is-past { color: var(--d400); }
     .ws-track .ws-step.is-past .ws-dot { background: var(--d500); }
-    .ws-track .ws-step.is-current { color: var(--warn); }
-    .ws-track .ws-step.is-current .ws-dot { background: var(--warn); }
+    /* Where you are on the track is carried by ink and weight, not by a
+       hue — the step behind it is already a step down in ink, so a third
+       value at the top of the ramp separates them without spending one. */
+    .ws-track .ws-step.is-current { color: var(--d50); }
+    .ws-track .ws-step.is-current .ws-dot { background: var(--d100); }
     .ws-track .ws-sep { width: 14px; height: 1px; background: var(--hairline); flex-shrink: 0; }
 
     /* ── Confidence badge (§5.7, §6.2, Level 5) ── */
@@ -2750,16 +2768,21 @@
 
     /* Light-mode: semantic hues darken one step on pale tints (matches .tag rules) */
     :root[data-theme="light"] .ws-completed,
-    :root[data-theme="light"] .conf-high    { color: #0a7a45; }
-    :root[data-theme="light"] .ws-staged,
+    :root[data-theme="light"] .conf-high    { color: #3f6b52; }
+    :root[data-theme="light"] .ws-completed { background: color-mix(in srgb, #3f6b52 11%, transparent); }
     :root[data-theme="light"] .conf-medium,
     :root[data-theme="light"] .em-review,
     :root[data-theme="light"] .gov-cr-head  { color: #8a5200; }
     :root[data-theme="light"] .ws-failed,
-    :root[data-theme="light"] .conf-low     { color: #bf2f26; }
-    :root[data-theme="light"] .ws-detected  { color: #036aa3; }
-    :root[data-theme="light"] .ws-recommended { color: #6a30cf; }
-    :root[data-theme="light"] .ws-drafted,
+    :root[data-theme="light"] .conf-low     { color: #8a473f; }
+    :root[data-theme="light"] .ws-failed { background: color-mix(in srgb, #903b37 11%, transparent); }
+    /* The four positions take the neutral pill on white too; only the two
+       ends have an entry here, because only the two ends have a hue. */
+    :root[data-theme="light"] .ws-detected, :root[data-theme="light"] .ws-recommended,
+    :root[data-theme="light"] .ws-drafted, :root[data-theme="light"] .ws-staged {
+      background: rgba(16,24,40,0.06); color: var(--d200);
+    }
+    :root[data-theme="light"] .em-investigate,
     :root[data-theme="light"] .em-investigate,
     :root[data-theme="light"] .mem-head,
     :root[data-theme="light"] .audit-entry.is-ai .audit-ico,
