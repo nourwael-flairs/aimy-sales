@@ -2454,13 +2454,16 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-dots { position: relative; display: flex; gap: 3px; height: 5px; align-items: center; }
 .b-cal-dot { width: 5px; height: 5px; border-radius: var(--r-pill); flex: none; }
 .b-cal-day.is-out .b-cal-dot { opacity: 0.4; }
-/* Five dots, one ink, and one exception. The month said which KIND of thing
-   was on a day in five hues — a purple meeting, a blue demo, an amber dinner
-   — which is a legend nobody was given and a palette spent on a distinction
-   the row underneath already makes in words. What the dots are for is how
-   many, and whether any of them has been dealt with. */
-.k-meeting, .k-demo, .k-dinner, .k-owed { background: var(--d400); }
+/* The kinds come back to the month, at the label family's chroma. Five hues
+   on five dots was a legend nobody was given while they were a purple, a
+   cyan and an amber at full strength; at a quarter of that they are what a
+   dot is for — which of the five, without reading. Owed keeps the neutral
+   because it is the absence of a kind. */
+.k-meeting { background: var(--accent-label); }
+.k-demo { background: var(--info); }
+.k-dinner { background: var(--warn); }
 .k-held { background: var(--ok); }
+.k-owed { background: var(--d400); }
 
 .b-cal-cap {
   margin: 0; padding: 16px 8px 8px;

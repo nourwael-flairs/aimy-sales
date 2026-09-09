@@ -87,8 +87,12 @@
       --ok:      #7fae94;
       --ok-bg:   rgba(127,174,148,0.10);
       --ok-glow: rgba(127,174,148,0.18);
-      --warn:    #98a5b3;
-      --warn-bg: rgba(152,165,179,0.10);
+      /* Amber was the traffic light because it was #f79009 sitting between
+         a green and a red at full strength. At a quarter of that chroma it
+         is not a warning any more, it is a flavour — which is what "needs
+         attention" always was. */
+      --warn:    #c0a47c;
+      --warn-bg: rgba(192,164,124,0.10);
       /* ══ THE NEGATIVE POLE IS RED, NOT CLAY ═══════════════════════
          #c98b84 was already at 6° — the hue was red all along. What made
          it read as terracotta was the chroma: 39% is a colour that has
@@ -118,6 +122,19 @@
          dot — which is identity, and identity was never in question. */
       --info:    #8aa6bd;
       --info-bg: rgba(138,166,189,0.10);
+      /* ══ THE LABEL FAMILY ═══════════════════════════════════════════
+         Six hues that share one chroma and one lightness, so a screen of
+         labels reads as one voice rather than as six signals. --ok, --err,
+         --info and --warn above are four of them; the accent and the teal
+         are identity tokens a product re-themes, so their label renderings
+         live here rather than overwriting the identity. A product that
+         re-themes --accent should revisit --accent-label with it.
+
+         Measured on the card: 5.96 to 7.47:1, and 5.59 to 7.22 on white.
+         The red carries about twenty points more chroma than the rest,
+         deliberately — a verdict should still reach you first. */
+      --accent-label: #a892bf;
+      --teal-label:   #84b3b0;
 
       /* ── Surface Tokens ── */
       --body-bg:          #0f1215;
@@ -266,11 +283,13 @@
       /* Semantic hues darkened one step — the dark-mode mid-tones fail
          contrast when used as text/icons on white. Tint backgrounds stay pale. */
       --ok:   #4a7a5e;
-      --warn: #5a6672;
+      --warn: #7a613c;
       --err:  #903b37;
       --info: #4d6b85;
+      --accent-label: #5f5079;
+      --teal-label:   #3f6b68;
       --ok-bg:   rgba(74,122,94,0.12);
-      --warn-bg: rgba(90,102,114,0.10);
+      --warn-bg: rgba(122,97,60,0.12);
       --err-bg:  rgba(144,59,55,0.12);
       --info-bg: rgba(77,107,133,0.12);
 
@@ -362,6 +381,9 @@
        third, and the border does more of the work. */
     :root[data-theme="light"] .tag-ok  { background: color-mix(in srgb, #3f6b52 11%, transparent); }
     :root[data-theme="light"] .tag-err { background: color-mix(in srgb, #903b37 11%, transparent); }
+    /* The other four resolve through tokens that already darken on white,
+       so they need no entry — these two are the light-mode inks the poles
+       use, which are literals for the same reason. */
     :root[data-theme="light"] .chip.warn  { color: var(--d300); }
     /* .tag-accent came off this: a tag is a label and the accent is not a
        verdict. The chip is a control holding a state, and keeps it. */
@@ -534,8 +556,21 @@
     /* The poles were findable on a tint AND a border; with the border gone
        the tint takes the whole job, so it comes up from a ninth to a
        seventh. Still the only tinted thing on the screen. */
-    .tag-ok  { color: var(--ok);  background: color-mix(in srgb, var(--ok) 15%, transparent); }
-    .tag-err { color: var(--err); background: color-mix(in srgb, var(--err) 15%, transparent); }
+    /* ══ AND THE TAG WEARS ALL SIX ════════════════════════════════════
+       A wall of grey pills is not calm, it is undifferentiated — the first
+       cut of this licence took every hue off every label and the screen
+       lost its bearings along with its noise. The fix was never fewer
+       colours, it was quieter ones: at this chroma a tone is a flavour, so
+       a tag can say what KIND of thing it is without any of them shouting.
+
+       What the licence still forbids is a hue on a SEQUENCE. A rung on a
+       ladder and a stage in a pipeline are positions, and positions are
+       read by order — colouring them is how five steps ended up green. */
+    .tag-ok     { color: var(--ok);     background: color-mix(in srgb, var(--ok) 15%, transparent); }
+    .tag-err    { color: var(--err);    background: color-mix(in srgb, var(--err) 15%, transparent); }
+    .tag-warn   { color: var(--warn);   background: color-mix(in srgb, var(--warn) 15%, transparent); }
+    .tag-accent { color: var(--accent-label); background: color-mix(in srgb, var(--accent-label) 15%, transparent); }
+    .tag-teal   { color: var(--teal-label);   background: color-mix(in srgb, var(--teal-label) 15%, transparent); }
     /* Provenance: this came from AiMY. */
     .tag-ai, .tag-info { color: var(--info); background: color-mix(in srgb, var(--info) 15%, transparent); }
 

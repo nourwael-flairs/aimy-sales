@@ -182,7 +182,10 @@
        on this list that has actually been decided. */
     { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
     { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
-    { k: 'callback',    label: 'Callback',     tone: 'neutral', say: 'they asked to be called back' },
+    /* The one rung that is not only a position: somebody named a time and
+       is expecting the phone to ring. It is also the cut this desk works
+       first, so it earns the one hue on the ladder. */
+    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
     { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
     { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', say: 'time in a diary' },
     { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', say: 'they came to the meeting' },
@@ -210,12 +213,14 @@
      answerphone and rang-out into no-answer, so writing "left a voicemail"
      ticks Not connected without anybody choosing an eighth button. */
   const OUTCOMES = [
-    /* Seven ways a call can end, and six of them are just what happened.
-       Only the one that shuts the door on a person for good is a verdict. */
-    { k: 'reached',        label: 'Connected',      key: '1', tone: 'neutral', writes: true },
-    { k: 'callback',       label: 'Callback',       key: '2', tone: 'neutral', writes: true },
+    /* Seven ways a call can end, and they are kinds rather than rungs —
+       you press one of these, you do not climb them. The three where
+       somebody actually spoke get a hue; the three where nobody did stay
+       out of the way; the one that shuts the door for good is the verdict. */
+    { k: 'reached',        label: 'Connected',      key: '1', tone: 'teal',    writes: true },
+    { k: 'callback',       label: 'Callback',       key: '2', tone: 'warn',    writes: true },
     { k: 'no-answer',      label: 'No answer',      key: '3', tone: 'neutral', writes: false },
-    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'neutral', writes: true },
+    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'accent',  writes: true },
     { k: 'not-interested', label: 'Not interested', key: '5', tone: 'neutral', writes: true },
     { k: 'wrong-number',   label: 'Wrong number',   key: '6', tone: 'neutral', writes: true },
     { k: 'do-not-call',    label: 'Do not call',    key: '7', tone: 'err',     writes: true },
@@ -8189,15 +8194,20 @@
      never go into it. The hour is derived from the id — the same every time
      it is asked, on every machine — until somebody sets one, and a derived
      hour is drawn as a guess rather than as a booking. */
-  /* A dinner is not more urgent than a demo and a demo is not more
-     informative than a meeting. Three of these were purple, blue and amber
-     for no reason anybody could defend — they are kinds of appointment and
-     the word on the row says which. `held` keeps the positive pole because
-     it is the one entry here that is an outcome: it happened. */
+  /* ══ A KIND IS EXACTLY WHAT COLOUR IS FOR ═════════════════════════════
+     These five are not a sequence — a dinner does not come after a demo —
+     they are different kinds of thing, and telling them apart at a glance
+     is the one job a hue does better than a word. The reason they were
+     wrong before was chroma, not licence: a #f79009 dinner beside a
+     #17b26a held read as a warning beside a success. At the label family's
+     quarter of that, they read as a dinner beside a meeting.
+
+     `owed` stays neutral because it is the absence of a kind — a next step
+     that is not an appointment at all. */
   const MEET_KINDS = [
-    { k: 'meeting', label: 'Meeting', tone: 'neutral' },
-    { k: 'demo',    label: 'Demo',    tone: 'neutral' },
-    { k: 'dinner',  label: 'Dinner',  tone: 'neutral' },
+    { k: 'meeting', label: 'Meeting', tone: 'accent' },
+    { k: 'demo',    label: 'Demo',    tone: 'info' },
+    { k: 'dinner',  label: 'Dinner',  tone: 'warn' },
     { k: 'held',    label: 'Held',    tone: 'ok' },
     { k: 'owed',    label: 'Owed',    tone: 'neutral' },
   ];
