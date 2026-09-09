@@ -109,6 +109,16 @@
       --err:     #d2827b;   /* H5 S49 L65 — 5.96:1 on card, 6.01 on the rail */
       --err-bg:  rgba(210,130,123,0.10);
       --err-glow:rgba(210,130,123,0.18);
+      /* ══ AND ONE THAT IS NOT IN THE FAMILY ═══════════════════════════
+         The family is for LABELS — words that describe something. A filled
+         control that stops something already in flight is not describing
+         anything, it is an alarm, and an alarm is the one place a full
+         chroma is correct. Hanging up on a person mid-call is the case
+         this exists for; a mispress costs you the call.
+
+         It is never a background for a badge, never a border, never text.
+         If a red is being used to say what something IS, it is --err. */
+      --err-strong: #f04438;
       /* ══ AND A THIRD, FOR PROVENANCE ═════════════════════════════════
          The two poles say how something ended. This one says who it came
          from: AiMY noticed it, AiMY has an opinion about it, AiMY wrote it.
@@ -195,17 +205,30 @@
       --fst-normal: normal;
       --fst-italic: italic;
 
+
       /* Font sizes — 12-step scale */
-      --fs-2xs:  10px;
-      --fs-xs:   11px;
-      --fs-sm:   12px;
-      --fs-base: 13px;
-      --fs-md:   14px;
-      --fs-lg:   16px;
-      --fs-xl:   18px;
-      --fs-2xl:  22px;
-      --fs-3xl:  28px;
-      --fs-4xl:  34px;
+      /* ══ THREE SIZES, AND EACH ONE NAMES WHAT IT IS FOR ═══════════════
+         12 — MINIMAL COMPONENTS. Tags, status labels, work states, and the
+              metadata that sits beside something else: a timestamp, a
+              count, a unit, an attribution. Things you recognise rather
+              than read. At 14 a tag stops behaving like a mark and starts
+              competing with the name next to it.
+         14 — THE SMALLEST SENTENCE. A supporting line, help text, a dense
+              cell. Anything with a verb in it starts here.
+         16 — THE WORKING MINIMUM. Body, row text, card text, anything
+              primary. Most of the product lives here.
+
+         Nothing is smaller than 12, and 12 is never a paragraph. */
+      --fs-2xs:  12px;   /* minimal components — a mark, not a sentence */
+      --fs-xs:   14px;   /* the smallest sentence */
+      --fs-sm:   16px;
+      --fs-base: 16px;   /* body */
+      --fs-md:   16px;
+      --fs-lg:   18px;
+      --fs-xl:   20px;
+      --fs-2xl:  24px;
+      --fs-3xl:  30px;
+      --fs-4xl:  38px;
       --fs-5xl:  46px;
 
       /* Font weights */
@@ -285,6 +308,7 @@
       --ok:   #4a7a5e;
       --warn: #7a613c;
       --err:  #903b37;
+      --err-strong: #d92d20;
       --info: #4d6b85;
       --accent-label: #5f5079;
       --teal-label:   #3f6b68;
@@ -2549,22 +2573,31 @@
        dot, and it always did: hollow while AiMY is still working on it,
        filled once the thing is real. That is form doing the work colour was
        doing badly. */
+    /* ══ SIX STATES, SIX HUES, ONE EACH ═══════════════════════════════
+       These read as a sequence and they are not one: an item can be
+       detected and never move, and `failed` can end it from anywhere. They
+       are six different CLAIMS — AiMY noticed this · AiMY has an opinion
+       about it · AiMY wrote it · it is your turn · it ran · it did not —
+       and a claim is exactly what the family is for. This is the most
+       important label in the system, on every surfaced item, so it gets the
+       whole family rather than a share of it.
+
+       The dot keeps its own job on top: hollow while AiMY is still working
+       on the thing, filled once the thing is real. */
     /* detected — AiMY noticed it, nothing proposed yet */
     .ws-detected .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
     /* drafted — AiMY produced content, not yet queued */
     .ws-drafted .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
-    /* detected · recommended · drafted — all three are AiMY's, and one
-       claim gets one colour; the dot says which of the three. */
-    .ws-detected, .ws-recommended, .ws-drafted {
-      background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info);
-    }
-    /* staged — the ball is in the human's court, which is neither a verdict
-       nor a provenance. */
-    .ws-staged { background: rgba(255,255,255,0.07); color: var(--d300); }
-    /* completed (display label may be "handled") — an end, and a good one */
-    .ws-completed   { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-    /* failed (display label may be "blocked") — the other end */
-    .ws-failed      { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
+    .ws-detected    { color: var(--info);         background: color-mix(in srgb, var(--info) 15%, transparent); }
+    .ws-recommended { color: var(--accent-label); background: color-mix(in srgb, var(--accent-label) 15%, transparent); }
+    .ws-drafted     { color: var(--teal-label);   background: color-mix(in srgb, var(--teal-label) 15%, transparent); }
+    /* staged — the ball is in the human's court, and that is the one that
+       wants attention rather than the one that is finished */
+    .ws-staged      { color: var(--warn);         background: color-mix(in srgb, var(--warn) 15%, transparent); }
+    /* completed (display label may be "handled") */
+    .ws-completed   { color: var(--ok);           background: color-mix(in srgb, var(--ok) 15%, transparent); }
+    /* failed (display label may be "blocked") */
+    .ws-failed      { color: var(--err);          background: color-mix(in srgb, var(--err) 15%, transparent); }
 
     /* Work-state pipeline — shows position in detected → … → completed */
     .ws-track { display: inline-flex; align-items: center; gap: 0; flex-wrap: wrap; }
@@ -2830,13 +2863,12 @@
     :root[data-theme="light"] .ws-failed { background: color-mix(in srgb, #903b37 11%, transparent); }
     /* The four positions take the neutral pill on white too; only the two
        ends have an entry here, because only the two ends have a hue. */
-    :root[data-theme="light"] .ws-detected, :root[data-theme="light"] .ws-recommended,
-    :root[data-theme="light"] .ws-drafted {
-      background: color-mix(in srgb, #4d6b85 11%, transparent); color: #4d6b85;
-    }
-    :root[data-theme="light"] .ws-staged {
-      background: rgba(16,24,40,0.06); color: var(--d200);
-    }
+    /* Every one of the six resolves through a token that already darkens on
+       white, so the tint is the only thing this block still has to say. */
+    :root[data-theme="light"] .ws-detected    { background: color-mix(in srgb, var(--info) 11%, transparent); }
+    :root[data-theme="light"] .ws-recommended { background: color-mix(in srgb, var(--accent-label) 11%, transparent); }
+    :root[data-theme="light"] .ws-drafted     { background: color-mix(in srgb, var(--teal-label) 11%, transparent); }
+    :root[data-theme="light"] .ws-staged      { background: color-mix(in srgb, var(--warn) 11%, transparent); }
     :root[data-theme="light"] .em-investigate,
     :root[data-theme="light"] .em-investigate,
     :root[data-theme="light"] .mem-head,

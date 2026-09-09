@@ -131,7 +131,7 @@ html {
 }
 
 :root {
-  --fs-2xs:  11px;   /* caption — ALL CAPS AND TRACKED, never lowercase */
+  --fs-2xs:  12px;   /* minimal components — caps and tracked, never a sentence */
   --fs-xs:   13px;   /* meta, and card body at weight 600 */
   --fs-sm:   13px;   /* → meta */
   --fs-base: 14px;   /* BODY */
@@ -210,7 +210,7 @@ html {
   --ty-heading:  16px;  /* = --fs-lg  — a block heading inside a surface    */
   --ty-body:     14px;  /* = --fs-base — prose, anything you read           */
   --ty-meta:     13px;  /* = --fs-xs  — a label, the line under a name      */
-  --ty-micro:    11px;  /* = --fs-2xs — FLOOR. Caps and tracked, or not at all */
+  --ty-micro:    12px;  /* = --fs-2xs — minimal components. Caps and tracked, never a sentence */
 }
 
 /* ══ INK ═══════════════════════════════════════════════════════════════════
@@ -652,15 +652,21 @@ button {
    and keeps its hue so the signal still reads as the same signal.
 ═══════════════════════════════════════════════ */
 :root {
-  /* Two poles and a neutral. `--warn-text` keeps its name because eighty
-     call sites use it and every one of them still means "this one is not
-     finished" — it just stops saying so in amber. `--accent-text` is not a
-     status: it is the ink every text action in this product wears, and an
-     affordance is not a verdict. It stays. */
-  --ok-text:     #7fae94;   /* 7.4:1 on card, 8.1 on the rail */
-  --warn-text:   #98a5b3;   /* 8.0:1 — the neutral, not a hue */
-  --err-text:    #d2827b;   /* 5.96:1 on card, 6.01 on the rail */
-  --accent-text: #a06ff7;   /* 5.04:1 */
+  /* ══ THE SAME FAMILY, FOR A WORD INSIDE A SENTENCE ══════════════════
+     A hue is not only for a pill. "Callback — they asked to be called
+     back, 29 Aug." wants its first word coloured, because the word IS the
+     status and the rest of the line is the explanation; the same goes for
+     the ringed dot on the rung a lead is standing on. That is colour doing
+     the one thing a pill cannot — living inside running text.
+
+     These are the family's values, so a coloured word and a coloured tag
+     are the same colour. `--accent-text` is not a status: it is the ink
+     every text action in this product wears, and an affordance is not a
+     verdict, so it keeps its own brighter value. */
+  --ok-text:     #7fae94;   /* 6.92:1 on card */
+  --warn-text:   #c0a47c;   /* 7.30:1 */
+  --err-text:    #d2827b;   /* 5.96:1 */
+  --accent-text: #a06ff7;   /* 5.04:1 — an action, not a status */
 }
 :root[data-theme="light"] {
   /* Darkened a step from the first solve. Those values cleared 4.5 on the
@@ -669,8 +675,8 @@ button {
      by four hundredths is not passing, it is the next small change away
      from failing silently. These clear on both grounds with room. */
   --ok-text:     #3f6b52;
-  --warn-text:   #5a6672;
-  --err-text:    #903b37;   /* 7.33:1 on white */
+  --warn-text:   #7a613c;
+  --err-text:    #8a473f;
   --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
 }
 
@@ -5450,13 +5456,18 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 /* The one control that ends a conversation with a person on the other end
    is the only filled thing in the panel — and the only one that keeps its
-   word, because it is irreversible and a mispress costs you the call. */
+   word, because it is irreversible and a mispress costs you the call.
+
+   It keeps FULL STRENGTH when the label family does not. The family is for
+   words that describe something, and it is quiet on purpose; this is not
+   describing anything, it is an alarm, and hanging up on somebody mid-call
+   is the case an alarm exists for. Muted, it read as a suggestion. */
 .call-end {
   flex: 1 1 100%; order: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 8px 12px;
-  border-radius: var(--r-md); border: 1px solid var(--err);
-  background: var(--err); color: #fff;
+  border-radius: var(--r-md); border: 1px solid var(--err-strong);
+  background: var(--err-strong); color: #fff;
   font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast);
 }
@@ -5466,8 +5477,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the hover and the resting state were the same colour and the one control
    that hangs up on a person had no feedback at all. */
 .call-end:hover {
-  background: color-mix(in srgb, var(--err) 88%, #000);
-  border-color: color-mix(in srgb, var(--err) 88%, #000);
+  background: color-mix(in srgb, var(--err-strong) 88%, #000);
+  border-color: color-mix(in srgb, var(--err-strong) 88%, #000);
 }
 .call-end:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
