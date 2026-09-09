@@ -2116,6 +2116,7 @@
          queue with the new list nowhere in sight. */
       : (S.on === 'lists' || S.list || S.build) ? listsPage()
       : S.on === 'notes' ? notesPage()
+      : S.on === 'cal' ? diaryPage()
       : S.on === 'money' ? moneyPage()
       : S.on === 'deals' ? dealsPage()
       : S.on === 'camps' ? campsPage()
@@ -3197,6 +3198,7 @@
     /* A deal opened from the board goes back to the board: `on` rides
        through the navigation, so the only thing missing was the word. */
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
+    if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     if (S.on === 'money') return backBtn('data-back', 'Back to today');
     if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
     return backBtn('data-back', 'Back to the briefing');
@@ -3220,11 +3222,19 @@
         '<span class="b-switch-n" data-fig="sw:' + k + '">' + commas(n) + '</span>') + '</button>';
     return '<h2 class="b-switch">' +
       (isMgr()
-        /* No Diary tab. It sat here as a fifth surface and a diary is not a
-           surface — it is a thing you open where you are, which is what the
-           gate under Today now does. */
+        /* ══ BOTH, BECAUSE THEY ARE TWO DIFFERENT QUESTIONS ═════════════
+           The gate under Today answers "what is on today" without leaving
+           the page, which is the right shape for a glance and the reason it
+           was built. It is the wrong shape for the other half of the job:
+           reading a month, stepping through it, and working the meetings
+           that have been and gone with nothing written down. That is a list
+           you sit with, and a list you sit with is a page.
+
+           They are the same component either way — `calBody` draws the
+           month and the day, and the only difference is what it stands in. */
         ? one('today', 'Today', null, cleared()) +
-          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' }))
+          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
         : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
@@ -3920,6 +3930,31 @@
         '</span>' +
         '<span class="b-loop-go">Say how it went</span>' +
       '</button>').join('') +
+    '</div>';
+  }
+
+  /* What is left in it this month. The tab counts what is still ahead of
+     you, which is the question a diary is open for; the month's own badge
+     counts the whole month, which is the question the page is answering once
+     you are on it. Two numbers because they are two facts, and the one on
+     the tab is the one you can act on. */
+  function diaryLeft() {
+    const d = new Date(TODAY_ISO + 'T00:00:00');
+    return meetings(TODAY_ISO, isoDay(new Date(d.getFullYear(), d.getMonth() + 1, 0))).length;
+  }
+
+  /* ══ THE DIARY, AS A SURFACE ═══════════════════════════════════════════
+     The month, the day under it, and the meetings nobody wrote down. Stacked
+     rather than side by side: the panel goes landscape only inside the
+     pop-out, where width is the axis with room to spare and height is the
+     axis that clips. A page has the height. */
+  function diaryPage() {
+    return '<div class="s-home">' +
+      '<section class="s-block s-block-wide" aria-label="The diary">' +
+        '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
+        '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
+        openLoop() +
+      '</section>' +
     '</div>';
   }
 
@@ -12806,8 +12841,11 @@
     const pick = step ? null : t.closest('[data-calpick]');
     if (step || pick) {
       CALSEL = (step || pick).getAttribute(step ? 'data-calstep' : 'data-calpick');
-      const pop = byId('calPop');
-      if (pop) pop.innerHTML = calBody(CALSEL);
+      /* Whichever one is on screen. The pop-out and the page never coexist —
+         the gate is drawn on Today and the page is a tab along — so this is
+         one of the two, never both. */
+      const box = byId('calPop') || byId('calPage');
+      if (box) box.innerHTML = calBody(CALSEL);
       return;
     }
 

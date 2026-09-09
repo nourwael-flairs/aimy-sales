@@ -2354,7 +2354,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    is the only place they are told apart, so this is the one surface in the
    build that spends five hues. They are the tones the product already owns —
    the same five that tag anything else — rather than a new palette. */
-.b-cal { margin-top: 16px; max-width: 560px; }
+.b-cal { margin-top: 16px; max-width: 720px; }
 .b-cal-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 0 2px 14px;
@@ -2786,14 +2786,24 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* A grid inside a grid track needs telling that it may be narrower than its
    content, or the seven columns push the track wider than it was given. */
 .b-cal-mo { min-width: 0; }
+/* ── the day under the month, which is the default ──────────────────────
+   The side column had the pop-out's treatment unscoped — a left rule and a
+   left indent — so on the diary page it drew a vertical hairline down the
+   left of a block with nothing beside it. Stacked is what a page does and
+   what a phone does; beside is what the pop-out does, and the rule between
+   two things turns with them. */
 .b-cal-side {
-  padding-left: 14px; margin-left: 14px; min-width: 0;
-  border-left: 1px solid var(--card-border);
+  min-width: 0; padding-top: 12px; margin-top: 12px;
+  border-top: 1px solid var(--card-border);
 }
 .b-cal-side .b-cal-cap { margin-top: 0; }
+.b-cal-pop .b-cal-side {
+  padding-left: 14px; margin-left: 14px; padding-top: 0; margin-top: 0;
+  border-left: 1px solid var(--card-border); border-top: 0;
+}
 @media (max-width: 719.98px) {
   .b-cal-pop .b-cal-panel { grid-template-columns: minmax(0, 1fr); }
-  .b-cal-side {
+  .b-cal-pop .b-cal-side {
     padding-left: 0; margin-left: 0; padding-top: 10px; margin-top: 10px;
     border-left: 0; border-top: 1px solid var(--card-border);
   }
@@ -2962,3 +2972,14 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin-top: 12px; max-width: 100%;
 }
 @media (max-width: 719.98px) { .b-cb-card { grid-template-columns: minmax(0, 1fr); } }
+
+/* ══ 84. THE DIARY, AS A PAGE ══════════════════════════════════════════════
+   The same month the pop-out draws, standing on a surface instead of hanging
+   off a door: no card of its own, because `.b-cal-panel` already is one, and
+   the loop under it is the block it has always been. */
+.b-diary { margin-bottom: 4px; }
+.b-diary .b-cal { margin-top: 4px; }
+/* Room to read a month at page size. In the pop-out the cells are 296px of
+   width shared seven ways and the height is what is left; here the grid has
+   the width, so the cells grow into it rather than sitting in a stripe. */
+.b-diary .b-cal-day { min-height: 52px; }
