@@ -2853,3 +2853,65 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* An entry the calendar holds for its own sake: the same row, no door. */
 .b-cal-ev.is-plain { cursor: default; }
 .b-cal-ev.is-plain:hover { background: none; }
+
+/* ══ 83. A DRAFT CAMPAIGN'S OWN PAGE ═══════════════════════════════════════
+   The fields are the record's own type, not a form's. A name that becomes an
+   input should still look like the name: same size, same weight, no box
+   around it until you are in it — a page of grey rectangles announces that
+   somebody is being made to fill in a form, and this is somebody writing
+   down a campaign they have already decided on. */
+.b-draft-name {
+  display: block; width: 100%; margin: 0 0 4px;
+  font-family: var(--font-display); font-size: var(--fs-3xl); font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-tight); line-height: var(--lh-tight); color: var(--d50);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
+  transition: border-color var(--t-base);
+}
+.b-draft-name::placeholder { color: var(--d500); }
+.b-draft-name:hover { border-bottom-color: var(--card-border); }
+.b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
+.b-draft-in {
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d100);
+  background: none; border: 0; border-bottom: 1px solid var(--card-border); padding: 3px 0;
+  min-width: 0; width: 100%; max-width: 34ch;
+  transition: border-color var(--t-base);
+}
+.b-draft-in::placeholder { color: var(--d500); }
+.b-draft-in:hover { border-bottom-color: var(--card-border-hover); }
+.b-draft-in:focus { outline: none; border-bottom-color: var(--accent); }
+.b-draft-pick {
+  font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  color: var(--d100); background: none; border: 0; cursor: pointer;
+  border-bottom: 1px dashed var(--card-border-hover); padding: 3px 0; text-align: left;
+}
+.b-draft-pick:hover { color: var(--accent-text); border-bottom-color: var(--accent); }
+.b-draft-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.b-draft-none { color: var(--d500); }
+.b-draft-unit { margin-left: 8px; font-size: var(--fs-2xs); color: var(--d400); }
+/* What is still missing, in the words of the thing missing — never a greyed
+   button that will not say why it is grey. */
+.b-draft-miss { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--warn-text); }
+.b-draft-saved { font-size: var(--fs-2xs); color: var(--d500); margin-left: auto; }
+
+/* The record's metadata grid is `auto-fit` over `minmax(232px, 1fr)`, which is
+   right for the four facts a campaign has and wrong for the eight a draft
+   asks: eight resolved to four 232px tracks, the track they sit in is sized by
+   its content, and the whole page grew to 1072px and scrolled sideways.
+   Counted columns and `minmax(0, 1fr)` so the fields fit the page rather than
+   the page fitting the fields. */
+.b-draft-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
+@media (max-width: 1087.98px) { .b-draft-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 719.98px) { .b-draft-meta { grid-template-columns: minmax(0, 1fr); } }
+
+/* Greyed, and the reason is the sentence beside it rather than a tooltip
+   nobody hovers. */
+.s-rec-actions .s-insight-lnk[disabled] { opacity: 0.45; cursor: not-allowed; }
+.b-draft-empty { display: block; padding: 4px 10px 6px; max-width: 30ch; }
+/* Throwing it away is not a peer of running it: last, and out of the way of
+   the two things you actually came to press. */
+.b-draft-bin { margin-left: auto; color: var(--d400); }
+.b-draft-bin:hover { color: var(--err-text); }
+
+/* The kind line on the left, the two decisions on the right, on one line. */
+.b-draft-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.b-draft-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }

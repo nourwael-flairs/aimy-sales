@@ -1888,7 +1888,12 @@
      closed campaign stays yours to read, and stops feeding your queue: the
      surface said "past its end date" over a card that said "Work it" and
      84 people to call. */
-  const campOpen = (k) => k.state !== 'done' && k.to >= TODAY_ISO;
+  /* A draft is a campaign nobody has started: it is not closed, it is not
+     running, and nothing on it should be dialled — so every surface that
+     asks "is this live" gets no for a draft, and the one surface that lists
+     what you own says so on the card. */
+  const isDraft = (k) => !!k && k.state === 'draft';
+  const campOpen = (k) => k.state !== 'done' && !isDraft(k) && k.to >= TODAY_ISO;
   const membersOf = (campId) => (DB.membersOf[campId] || []).map((id) => DB.byCon[id]);
 
   /* A follow-up that has come due. `overdue` and `dueToday` were separate and
@@ -2469,13 +2474,21 @@
     return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '" ' +
       'style="--i:' + Math.min(i || 0, 8) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + (left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
-          (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+        '<span class="tag tag-' + (isDraft(k) ? 'neutral' : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
+          (isDraft(k) ? 'Draft'
+            : left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+        /* ══ A CARD FOR ONE THAT IS NOT FINISHED BEING WRITTEN ═══════════
+           Every lookup here assumed a complete campaign — `SELL[k.sells[0]]`
+           on a draft with nothing chosen threw, and the whole campaigns page
+           came back empty because one card in it could not be drawn. A draft
+           is a campaign with holes in it by definition, so the card says what
+           is there and stays quiet about what is not. */
         '<span class="tc-type b-fact">' + chIcon('industry') +
-          '<span>' + esc(SELL[k.sells[0]].name) + '</span></span>' +
+          '<span>' + esc(SELL[k.sells[0]] ? SELL[k.sells[0]].name : 'Nothing chosen yet') +
+          '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
-        esc(k.name) + '</button>' +
+        esc(k.name || 'Unnamed campaign') + '</button>' +
       /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
          `.tc-summary` is the shell's description slot — 11.5px at --d400,
          the quietest thing on the card — and what sat in it was `k.goal`,
@@ -2496,19 +2509,27 @@
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
       '<p class="tc-summary b-qcard-what"><b>Goal</b> ' + campGoalSay(k) + '</p>' +
-      (campOpen(k)
+      (isDraft(k)
+        ? '<div class="b-qcard-why">' + (members.length
+          ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
+          : 'Nobody on it yet') + '</div>'
+        : campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
           (back ? ', <b>' + back + '</b> ' + verbFor(back, 'callback') : '') +
           (fresh ? ', <b>' + commas(fresh) + '</b> never called' : '') + '</div>'
         : '<div class="b-qcard-why"><b>' + commas(members.filter((c) => c.checkpoint === 'not-called').length) +
           '</b> of its ' + plural(members.length, 'person') + ' never called when it closed</div>') +
-      aimyBlock(campSays(k, q, back, fresh, left)) +
+      /* Nothing has happened on a draft, so there is nothing to read off it
+         and a reading invented from an empty campaign is the one thing this
+         block must never do. */
+      (isDraft(k) ? '' : aimyBlock(campSays(k, q, back, fresh, left))) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num b-fact">' + chIcon('user') +
           '<span>' + esc(actor(k.owner).name) + '</span></span>' +
         '<button class="s-insight-lnk' + (i === 0 && campOpen(k) ? ' primary' : '') +
-          '" type="button" data-camp="' + esc(k.id) + '">' + (campOpen(k) ? 'Work it' : 'Open') + '</button>' +
+          '" type="button" data-camp="' + esc(k.id) + '">' +
+          (isDraft(k) ? 'Finish it' : campOpen(k) ? 'Work it' : 'Open') + '</button>' +
       '</div>' +
     '</article>';
   }
@@ -3910,7 +3931,11 @@
         '<div class="s-camp-list-head">' + switcher('camps') +
           (isMgr()
             ? '<button class="s-insight-lnk primary" type="button" data-start="newcamp">' +
-              'New campaign</button>'
+              'New campaign</button>' +
+              /* Two ways in, because they are two different mornings: answer
+                 five questions and have one running, or open an empty one
+                 because you already know what it is. */
+              '<button class="b-ghost" type="button" data-cnew>Fill one in myself</button>'
             : '') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
         /* The count is on the switcher, the order is visible in the order,
@@ -5950,6 +5975,142 @@
 
      ONLY CAMPAIGNS YOU ARE ON. A URL to any other one says so and stops,
      rather than rendering somebody else's work as though it were yours. */
+  /* ══ A DRAFT IS THE SAME PAGE, ANSWERABLE ══════════════════════════════
+     Not a form on a surface of its own. The campaign page already says what
+     a campaign is — its market, its window, what we sell them, whose it is —
+     and a draft is that page with the answers missing, so it is that page
+     with the answers as fields. Learn it once.
+
+     Nothing derived is drawn here. No lead reading, no funnel, no blockers,
+     no queue: every one of them is a sentence about calls that have not
+     happened, and a campaign with nothing on it reading "0% got through" is
+     the product inventing a fact about an empty room. */
+  function draftMenu(id, label, cap, items) {
+    return '<span class="b-menu-wrap">' +
+      '<button class="b-draft-pick b-menu-open" type="button" data-pickopen="' + esc(id) + '" ' +
+        'aria-haspopup="menu">' + (label || '<span class="b-draft-none">Choose</span>') + '</button>' +
+      '<div class="b-menu" id="' + esc(id) + '" role="menu" hidden>' +
+        '<span class="b-menu-cap">' + esc(cap) + '</span>' + items +
+      '</div>' +
+    '</span>';
+  }
+  function draftItem(field, val, name, on, sub2) {
+    return '<button class="b-menu-item' + (on ? ' is-on' : '') + '" type="button" role="menuitem" ' +
+      'data-cset="' + esc(field + '|' + val) + '">' +
+      '<span class="b-menu-line"><span class="b-menu-name">' + esc(name) + '</span>' +
+      (sub2 ? '<span class="b-menu-sub">' + esc(sub2) + '</span>' : '') + '</span></button>';
+  }
+  function draftField(cap, html) {
+    return '<div class="b-cmeta-part"><span class="b-cmeta-cap">' + esc(cap) + '</span>' +
+      '<div class="b-cmeta-say">' + html + '</div></div>';
+  }
+  function draftText(field, val, ph) {
+    return '<input class="b-draft-in" type="text" data-cfield="' + esc(field) + '" ' +
+      'value="' + esc(val || '') + '" placeholder="' + esc(ph) + '" spellcheck="false" />';
+  }
+
+  function campDraftPage(k) {
+    const sells = k.sells.map((x) => SELL[x]).filter(Boolean);
+    const cl = k.client ? CLIENT[k.client] : null;
+    const weeks = Math.max(1, Math.round(daysBetween(k.from, k.to) / 7));
+    const crew = k.crew.map((id) => actor(id)).filter(Boolean);
+    /* What is still missing, named. A disabled button that will not say why
+       is the worst control in software. */
+    const miss = [];
+    if (!k.name) miss.push('a name');
+    if (!k.aim) miss.push('a goal');
+    if (!k.sells.length) miss.push('something to sell');
+    if (!k.industry || !k.region) miss.push('a market');
+    if (!k.crew.length) miss.push('somebody to work it');
+    return '<div class="s-home">' +
+      backBtn('data-home', 'Back to the briefing') +
+      '<section class="s-rec-head s-block-wide">' +
+        /* ══ THE TWO DECISIONS SIT WHERE DECISIONS SIT ═══════════════════
+           They were under the fields, which is where a form puts its Submit
+           — and a form's Submit is at the bottom because you are meant to
+           have finished. This is not a form you finish; it is a page you keep
+           coming back to, and on every other record in this build the thing
+           you can do with it is at the top beside what it is. */
+        '<div class="b-draft-top">' +
+          '<span class="s-rec-kind b-kinds">' + fact('campaign', 'Campaign') +
+            '<span class="tag tag-neutral">Draft</span></span>' +
+          '<span class="b-draft-acts">' +
+            '<button class="s-insight-lnk primary" type="button" data-crun="' + esc(k.id) + '"' +
+              (miss.length ? ' disabled aria-disabled="true"' : '') + '>Run it</button>' +
+            '<button class="b-ghost" type="button" data-ckeep>Save as draft</button>' +
+          '</span>' +
+        '</div>' +
+        '<input class="b-draft-name" type="text" data-cfield="name" value="' + esc(k.name) + '" ' +
+          'placeholder="Name this campaign" spellcheck="false" aria-label="The name" />' +
+        '<div class="b-cmeta b-draft-meta">' +
+          draftField('The goal', draftText('aim', k.aim,
+            'What it is worth having worked — 2 new clients for AiMY QA')) +
+          draftField('What we sell them', draftMenu('dSell',
+            sells.length ? sells.map((x) => esc(x.name)).join(', ') : '',
+            'What is on this one', SELLS.map((x) =>
+              draftItem('sell', x.k, x.name, k.sells.indexOf(x.k) >= 0, x.kind)).join(''))) +
+          draftField('Client', draftMenu('dClient', esc(cl ? cl.name : 'FlairsTech'),
+            'Whose offer this is',
+            draftItem('client', '', 'FlairsTech', !k.client, 'our own book') +
+            CLIENTS.map((c) => draftItem('client', c.k, c.name, k.client === c.k, c.sells
+              .map((x) => SELL[x] && SELL[x].name).filter(Boolean).join(', '))).join(''))) +
+          /* Sector and region are two decisions, not one field with two
+             menus in it: you can know the market and not the country, and a
+             caption that covers both leaves neither named. */
+          draftField('Industry', draftMenu('dInd',
+            k.industry ? esc(INDUSTRY[k.industry].label) : '', 'Which sector',
+            INDUSTRIES.map((x) => draftItem('ind', x.k, x.label, k.industry === x.k)).join(''))) +
+          draftField('Region', draftMenu('dReg',
+            k.region ? esc(REGION[k.region].label) : '', 'Where it is aimed',
+            REGIONS.map((x) => draftItem('reg', x.k, x.label, k.region === x.k)).join(''))) +
+          draftField('The team', draftMenu('dCrew',
+            crew.length ? crew.map((r) => esc(r.name)).join(', ') : '', 'Who works it',
+            BDRS.map((r) => draftItem('crew', r.id, r.name,
+              k.crew.indexOf(r.id) >= 0, JOB[r.fn])).join(''))) +
+          /* ══ THE LISTS YOU ALREADY HAVE ═══════════════════════════════
+             A campaign with nobody on it is a campaign nobody can work, and
+             the people are already in the book — found, run and saved as
+             lists. `data-puton` is the verb the rest of the product uses to
+             put a list on a campaign, so this is the same act from a
+             different room rather than a second way to do it. */
+          draftField('Its people', (function () {
+            const on = DB.list.filter((l) => l.for === k.id);
+            const off = DB.list.filter((l) => !l.for);
+            return draftMenu('dList',
+              on.length ? esc(on.map((l) => l.name).join(', ')) : '',
+              off.length ? 'Put a list on it' : 'Every list is on a campaign already',
+              off.map((l) => '<button class="b-menu-item" type="button" role="menuitem" ' +
+                'data-puton="list:' + esc(l.id) + '|' + esc(k.id) + '">' +
+                '<span class="b-menu-line"><span class="b-menu-name">' + esc(l.name) + '</span>' +
+                '<span class="b-menu-sub">' + esc(plural(l.has.length, 'person')) +
+                ' on it</span></span></button>').join('') ||
+                '<span class="b-menu-sub b-draft-empty">Nothing is waiting to be put on ' +
+                'a campaign. Find leads and what comes back is a list.</span>');
+          })()) +
+          draftField('The window', draftText('weeks', String(weeks), '6') +
+            '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
+          draftField('Pacing for', draftText('target', String(k.target.n || ''), '19') +
+            draftMenu('dNoun', esc(k.target.noun === 'conversation' ? 'conversations' : 'meetings'),
+              'Counted in',
+              draftItem('noun', 'meeting', 'Meetings', k.target.noun === 'meeting') +
+              draftItem('noun', 'conversation', 'Conversations', k.target.noun === 'conversation'))) +
+        '</div>' +
+        /* What is still missing stays down here with the fields it is about.
+           Run it is greyed from the first moment and this is the sentence
+           saying why — a control that appears only once you are allowed to
+           press it never teaches you what it wanted. */
+        '<div class="s-rec-actions">' +
+          (miss.length
+            ? '<span class="b-draft-miss">It still wants ' +
+              esc(miss.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.</span>'
+            : '<span class="b-draft-saved">Everything it needs is in it. Saved as you type.</span>') +
+          '<button class="b-ghost b-draft-bin" type="button" data-cdrop="' + esc(k.id) +
+            '">Discard</button>' +
+        '</div>' +
+      '</section>' +
+    '</div>';
+  }
+
   function campPage() {
     const k = DB.byCamp[S.camp];
     if (!k) {
@@ -5959,6 +6120,7 @@
         backBtn('data-home', 'Back to the briefing') + '</div>' +
       '</section></div>';
     }
+    if (isDraft(k) && mine(k)) return campDraftPage(k);
     if (!mine(k)) {
       return '<div class="s-home"><section class="s-rec-block s-block-wide">' +
         '<h2 class="s-rec-cap">' + esc(k.name) + '</h2>' +
@@ -6209,6 +6371,11 @@
   }
   /* The sentence, once, so the card and the record cannot drift apart. */
   function campGoalSay(k) {
+    /* Written wins. `campGoal` derives one for every campaign in the book
+       because none of them was ever asked; a campaign somebody filled in by
+       hand has an answer, and a derivation that overrode it would be the
+       product telling the manager what his own campaign is for. */
+    if (k.aim) return esc(k.aim);
     const g = campGoal(k);
     const who = esc(g.forWhom);
     /* The foothold reads as a goal only where the book knows the market it
@@ -11587,6 +11754,100 @@
      back. What it does not make is members — a campaign with nobody on it
      is exactly what the finder on its own page is for, and inventing an
      audience here would be a second list builder in a worse place. */
+  /* ══ ONE YOU FILL IN YOURSELF ══════════════════════════════════════════
+     The conversational builder asks five questions and writes the other
+     eleven fields itself, which is the right trade when you want a campaign
+     running in a minute and the wrong one when you already know exactly what
+     this campaign is. So there is a blank one: every field empty, nothing
+     asserted, and the page it lands on is the campaign's own page with its
+     facts turned into things you can type in.
+
+     It is a draft from the moment it exists, because a campaign that is half
+     filled in is not a campaign anybody should be dialling. */
+  function emptyCamp() {
+    const id = 'k' + Date.now().toString(36);
+    const k = {
+      id: id, name: '', client: null, aim: '',
+      target: { n: 0, noun: 'meeting' },
+      persona: { who: '', at: '', why: '' },
+      goal: '', pitch: '',
+      sells: [], objections: [], resources: [],
+      from: TODAY_ISO, to: dayAdd(42),
+      owner: me().id, crew: [], state: 'draft',
+      industry: '', region: '',
+    };
+    DB.camp.push(k);
+    DELTA.camp.push(k);
+    reindex();
+    saveNow();
+    go(Object.assign(cleared(), { camp: id }));
+  }
+
+  /* Every write goes through here so the delta and the book cannot disagree:
+     `DB.camp` holds the object the page reads and `DELTA.camp` holds the copy
+     that survives a reload, and they are the same object. */
+  function campSet(k, patch) {
+    Object.assign(k, patch);
+    if (!DELTA.camp.some((c) => c.id === k.id)) DELTA.camp.push(k);
+    reindex();
+    saveNow();
+  }
+
+  /* ══ RUNNING IT FILLS THE HALF NOBODY SHOULD HAVE TO TYPE ══════════════
+     What a manager knows is what it is for, who it is aimed at and who works
+     it. What the objections usually are, which one-pager goes with the
+     product, and the sentence to open on are the book's, not his — the
+     conversational builder writes exactly those and there is no reason a
+     hand-filled campaign should go without them. Anything he DID write is
+     left alone; this only fills what is still empty. */
+  function campRun(k) {
+    if (!k) return;
+    const sell = k.sells[0];
+    const x = SELL[sell];
+    const ind = INDUSTRY[k.industry];
+    const regL = k.region ? REGION[k.region].label : 'the region';
+    const askFor = ASK_OF[sell] || 'whoever owns it';
+    const patch = { state: 'running', from: TODAY_ISO };
+    if (!k.persona || !k.persona.who) {
+      patch.persona = { who: askFor,
+        at: (ind ? ind.label.toLowerCase() + ' companies' : 'companies') + ' in ' + regL,
+        why: WHY_NOW[sell] || '' };
+    }
+    if (!k.goal) {
+      patch.goal = k.target.noun === 'meeting'
+        ? 'A first meeting with ' + askFor + ' \u2014 in the diary, not a promise to send something'
+        : 'A real conversation with ' + askFor + ' about what this is costing them today';
+    }
+    if (!k.pitch && x) {
+      patch.pitch = 'They are in ' + regL + ', and they are running this with people rather ' +
+        'than with a system. ' + x.name + ' is ' + x.blurb + '. Open on what it costs them ' +
+        'today, not on what we do.';
+    }
+    if (!k.objections || !k.objections.length) {
+      const h = Math.abs(hash(k.id + ':camp'));
+      const pool = OBJECTIONS.slice();
+      const objs = [];
+      for (let i = 0; i < 3 && pool.length; i++) {
+        const o = pool.splice((h >> (i * 3)) % pool.length, 1)[0];
+        objs.push({ k: o.k, say: ANSWERS[o.k] });
+      }
+      patch.objections = objs;
+    }
+    if ((!k.resources || !k.resources.length) && x) {
+      patch.resources = [
+        { name: x.name + ' \u2014 one pager', kind: 'deck' },
+        { name: 'What it costs, and against what', kind: 'pricing' },
+      ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []);
+    }
+    if (!k.target.n) patch.target = { n: 12, noun: k.target.noun };
+    campSet(k, patch);
+    go(Object.assign(cleared(), { camp: k.id }));
+    toast(k.name + ' is running \u2014 nobody is on it yet', () => {
+      campSet(k, { state: 'draft' });
+      go(Object.assign(cleared(), { camp: k.id }));
+    });
+  }
+
   function cbuildMake() {
     const b = CBUILD;
     if (!b || !b.sell) return;
@@ -12090,6 +12351,70 @@
       return;
     }
 
+    /* ══ A DRAFT IS EDITED IN THE DOM, WRITTEN AS YOU GO ═══════════════
+       Choosing repaints, because what you chose changes what the page says
+       about itself — what is still missing, when it closes. A menu you are
+       ticking several things in reopens itself afterwards, since closing it
+       between two sells would make picking two a chore. */
+    const cnew = t.closest('[data-cnew]');
+    if (cnew) { emptyCamp(); return; }
+
+    const cset = t.closest('[data-cset]');
+    if (cset) {
+      const k = DB.byCamp[S.camp];
+      if (!k) return;
+      const bits = String(cset.getAttribute('data-cset')).split('|');
+      const f = bits[0];
+      const v = bits.slice(1).join('|');
+      let stay = null;
+      if (f === 'sell') {
+        const at = k.sells.indexOf(v);
+        campSet(k, { sells: at >= 0 ? k.sells.filter((x) => x !== v) : k.sells.concat([v]) });
+        stay = 'dSell';
+      } else if (f === 'crew') {
+        const at = k.crew.indexOf(v);
+        campSet(k, { crew: at >= 0 ? k.crew.filter((x) => x !== v) : k.crew.concat([v]) });
+        stay = 'dCrew';
+      } else if (f === 'client') campSet(k, { client: v || null });
+      else if (f === 'ind') campSet(k, { industry: v });
+      else if (f === 'reg') campSet(k, { region: v });
+      else if (f === 'noun') campSet(k, { target: { n: k.target.n, noun: v } });
+      paint();
+      if (stay) {
+        const again = document.querySelector('[data-pickopen="' + stay + '"]');
+        if (again) again.click();
+      }
+      return;
+    }
+
+    const crun = t.closest('[data-crun]');
+    if (crun) {
+      if (crun.disabled) return;
+      campRun(DB.byCamp[crun.getAttribute('data-crun')]);
+      return;
+    }
+
+    /* It has been saved on every keystroke; this is the door out, and saying
+       so is the whole job — a Save that saves nothing new still has to exist,
+       because leaving without pressing anything feels like losing it. */
+    const ckeep = t.closest('[data-ckeep]');
+    if (ckeep) {
+      toast('Kept as a draft.');
+      go(Object.assign(cleared(), { on: 'camps' }));
+      return;
+    }
+
+    const cdrop = t.closest('[data-cdrop]');
+    if (cdrop) {
+      const id = cdrop.getAttribute('data-cdrop');
+      DB.camp = DB.camp.filter((c) => c.id !== id);
+      DELTA.camp = DELTA.camp.filter((c) => c.id !== id);
+      reindex();
+      saveNow();
+      go(Object.assign(cleared(), { on: 'camps' }));
+      return;
+    }
+
     const callone = t.closest('[data-call]');
     if (callone) { startCall(callone.getAttribute('data-call')); return; }
 
@@ -12430,6 +12755,28 @@
        take the focus out of the box being typed in. */
     const ps = e.target.closest && e.target.closest('[data-picksearch]');
     if (ps) { pickFilter(ps); return; }
+    /* A field writes on every keystroke and redraws on none of them: a
+       repaint mid-word takes the caret with it. The page catches up when you
+       leave the field, which is also when what is still missing changes. */
+    const cf = e.target.closest && e.target.closest('[data-cfield]');
+    if (cf) {
+      const k = DB.byCamp[S.camp];
+      if (k) {
+        const f = cf.getAttribute('data-cfield');
+        const v = cf.value;
+        if (f === 'weeks') {
+          const w = Math.max(1, Math.min(52, parseInt(v, 10) || 1));
+          campSet(k, { to: dayAdd(w * 7) });
+        } else if (f === 'target') {
+          campSet(k, { target: { n: Math.max(0, parseInt(v, 10) || 0), noun: k.target.noun } });
+        } else {
+          const p = {};
+          p[f] = v;
+          campSet(k, p);
+        }
+      }
+      return;
+    }
     const box = e.target.closest && e.target.closest('[data-find]');
     if (!box) return;
     const at = box.selectionStart;
