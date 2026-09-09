@@ -3717,19 +3717,31 @@
     return openerText(counts, all, camps);
   }
 
+  /* ══ THE BOLD MARKS THE FIGURE, AND ONLY THE FIGURE ════════════════════
+     Five counts in one paragraph, marked five different ways. `plural`
+     returns "3 people" as one string and `commas` returns "64" on its own,
+     so whichever helper a clause reached for decided how much of it went
+     inside the `<b>`: "<b>3 people</b> asked" beside "<b>64</b> have never
+     been called". And the first figure of all — the campaign count — was not
+     marked at all, sitting plain next to a bolded 110 in the same breath.
+
+     A reader cannot learn a rule from that, so the emphasis stops meaning
+     anything and becomes texture. One rule now: the number is bold, the word
+     for what it counts is not, everywhere. `verbFor` is `plural` without the
+     number, which is exactly the half that belongs outside the mark. */
   function openerText(counts, all, camps) {
     const bits = [];
-    if (counts.callback) bits.push('<b>' + plural(counts.callback, 'person') +
-      '</b> asked to be called back');
+    const fig = (n, one) => '<b>' + commas(n) + '</b> ' + esc(verbFor(n, one));
+    if (counts.callback) bits.push(fig(counts.callback, 'person') + ' asked to be called back');
     if (counts['not-called']) bits.push('<b>' + commas(counts['not-called']) +
       '</b> have never been called');
     if (counts['no-answer']) bits.push('<b>' + commas(counts['no-answer']) +
       '</b> did not pick up last time');
-    if (counts.after) bits.push('<b>' + plural(counts.after, 'meeting') + '</b> ' +
+    if (counts.after) bits.push(fig(counts.after, 'meeting') + ' ' +
       (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
     if (!bits.length) bits.push('there is nobody left to call');
     const decided = decidedLately();
-    return 'You are on ' + plural(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
+    return 'You are on ' + fig(camps.length, 'campaign') + ' and <b>' + commas(all.length) +
       '</b> people on them can be called. ' +
       bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
       (decided ? ' ' + decided : '');
@@ -3820,15 +3832,53 @@
       opens = [
         { k: 'callnext', label: 'Call the next one',
           why: all.length ? esc(all[0].name) + ' is top of the queue' : 'nobody is callable right now' },
+        /* ══ THE DOOR SAYS WHAT IS OWED, THE PARAGRAPH SAYS HOW MANY ══════
+           Two of these four read back a clause the paragraph six pixels above
+           had just finished saying — "3 people asked to be called back" under
+           a sentence containing "3 people asked to be called back", and the
+           same again for the meetings. The block said everything twice and
+           the second time in smaller type.
+
+           Naming the lead you land on was the first attempt, following the
+           door above, and it collided: the top of the queue is very often the
+           top of the callbacks too, so two doors named the same person and
+           read as one job listed twice. `qRank` puts what is owed first, so
+           that collision is the common case rather than the unlucky one.
+
+           What cannot collide is the fact each cut is about. A callback is
+           about a day somebody named, so the door says how many of those days
+           have gone; a meeting nobody has reported is about how long the
+           silence has run. Both are computed here rather than read off an
+           order — `queue` ranks by what is owed, not by date, so the oldest
+           is found by looking at all of them. */
         { k: 'callback', label: 'Work the callbacks',
-          why: counts.callback ? plural(counts.callback, 'person') + ' asked to be called back'
-            : 'nobody asked for one' },
+          why: (function () {
+            if (!counts.callback) return 'nobody asked for one';
+            const cb = queue(null, 'callback');
+            const late = cb.filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
+            /* When every one of them is late the count is the paragraph's
+               count again — three callbacks, three of them late — and the
+               door would read as an echo of a sentence it is meant to add
+               to. The stronger sentence is also the shorter one. */
+            if (late.length === cb.length) return 'every one of them is past the day they asked for';
+            if (late.length) {
+              return commas(late.length) + (late.length === 1 ? ' is' : ' are') +
+                ' past the day they asked for';
+            }
+            return cb[0] && cb[0].next ? 'the first is due ' + esc(sayWhen(cb[0].next.due))
+              : 'none of them is late yet';
+          })() },
         /* A meeting that passed outranks a stranger: the door to say what
            happened takes the third slot while there is anything to say. */
         counts.after
           ? { k: 'after', label: 'Say what happened',
-              why: plural(counts.after, 'meeting') + ' passed without a word' }
-          : { k: 'not-called', label: 'call somebody new',
+              why: (function () {
+                const aft = queue(null, 'after').filter((c) => c.next && c.next.due);
+                if (!aft.length) return 'nothing to report yet';
+                const oldest = aft.reduce((m, c) => (c.next.due < m ? c.next.due : m), aft[0].next.due);
+                return 'the oldest passed ' + esc(sayWhen(oldest));
+              })() }
+          : { k: 'not-called', label: 'Call somebody new',
               why: counts['not-called'] ? commas(counts['not-called']) + ' have never been called'
                 : 'everyone has been tried' },
         findLeads,
