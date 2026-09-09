@@ -105,8 +105,19 @@
       --err:     #d2827b;   /* H5 S49 L65 — 5.96:1 on card, 6.01 on the rail */
       --err-bg:  rgba(210,130,123,0.10);
       --err-glow:rgba(210,130,123,0.18);
-      --info:    #98a5b3;
-      --info-bg: rgba(152,165,179,0.10);
+      /* ══ AND A THIRD, FOR PROVENANCE ═════════════════════════════════
+         The two poles say how something ended. This one says who it came
+         from: AiMY noticed it, AiMY has an opinion about it, AiMY wrote it.
+         That is a claim worth a colour of its own — it is the thing a
+         reader most needs to know before trusting a line — and it never
+         sits on the same object as a verdict, so the three cannot collide.
+
+         Pulled to the poles' chroma so it joins the family rather than
+         starting a second one. `--ai` and `--ai-text` are untouched above:
+         the gradient is the AI SURFACE — the canvas, the cursor, the model
+         dot — which is identity, and identity was never in question. */
+      --info:    #8aa6bd;
+      --info-bg: rgba(138,166,189,0.10);
 
       /* ── Surface Tokens ── */
       --body-bg:          #0f1215;
@@ -257,11 +268,11 @@
       --ok:   #4a7a5e;
       --warn: #5a6672;
       --err:  #903b37;
-      --info: #5a6672;
+      --info: #4d6b85;
       --ok-bg:   rgba(74,122,94,0.12);
       --warn-bg: rgba(90,102,114,0.10);
       --err-bg:  rgba(144,59,55,0.12);
-      --info-bg: rgba(90,102,114,0.10);
+      --info-bg: rgba(77,107,133,0.12);
 
       /* Surfaces */
       --body-bg:          #f4f6f9;
@@ -525,6 +536,8 @@
        seventh. Still the only tinted thing on the screen. */
     .tag-ok  { color: var(--ok);  background: color-mix(in srgb, var(--ok) 15%, transparent); }
     .tag-err { color: var(--err); background: color-mix(in srgb, var(--err) 15%, transparent); }
+    /* Provenance: this came from AiMY. */
+    .tag-ai, .tag-info { color: var(--info); background: color-mix(in srgb, var(--info) 15%, transparent); }
 
     /* ── Signal / Live Badge ── */
     .signal-badge {
@@ -2505,10 +2518,14 @@
     .ws-detected .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
     /* drafted — AiMY produced content, not yet queued */
     .ws-drafted .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
-    /* detected · recommended · drafted · staged — where it has got to */
-    .ws-detected, .ws-recommended, .ws-drafted, .ws-staged {
-      background: rgba(255,255,255,0.07); color: var(--d300);
+    /* detected · recommended · drafted — all three are AiMY's, and one
+       claim gets one colour; the dot says which of the three. */
+    .ws-detected, .ws-recommended, .ws-drafted {
+      background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info);
     }
+    /* staged — the ball is in the human's court, which is neither a verdict
+       nor a provenance. */
+    .ws-staged { background: rgba(255,255,255,0.07); color: var(--d300); }
     /* completed (display label may be "handled") — an end, and a good one */
     .ws-completed   { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
     /* failed (display label may be "blocked") — the other end */
@@ -2779,7 +2796,10 @@
     /* The four positions take the neutral pill on white too; only the two
        ends have an entry here, because only the two ends have a hue. */
     :root[data-theme="light"] .ws-detected, :root[data-theme="light"] .ws-recommended,
-    :root[data-theme="light"] .ws-drafted, :root[data-theme="light"] .ws-staged {
+    :root[data-theme="light"] .ws-drafted {
+      background: color-mix(in srgb, #4d6b85 11%, transparent); color: #4d6b85;
+    }
+    :root[data-theme="light"] .ws-staged {
       background: rgba(16,24,40,0.06); color: var(--d200);
     }
     :root[data-theme="light"] .em-investigate,
