@@ -3974,15 +3974,18 @@
     return '<div class="s-home">' +
       topBrief('camps') +
       '<section class="s-block s-block-wide" aria-label="Campaigns">' +
+        /* ══ THE WAY IN IS WHERE EVERY OTHER WAY IN IS ═══════════════════
+           Two buttons stood here — one for each way of making a campaign —
+           beside the switcher and the search, which is the row for finding
+           the campaigns that already exist rather than the row for making
+           one. And a choice between two ways of doing a thing is not two
+           doors: it is one door and a question, which is exactly how
+           finding leads already works.
+
+           So the door is Build a campaign, in the brief above with the
+           other three ways to start the day, and the question is the first
+           thing the canvas asks. */
         '<div class="s-camp-list-head">' + switcher('camps') +
-          (isMgr()
-            ? '<button class="s-insight-lnk primary" type="button" data-start="newcamp">' +
-              'New campaign</button>' +
-              /* Two ways in, because they are two different mornings: answer
-                 five questions and have one running, or open an empty one
-                 because you already know what it is. */
-              '<button class="b-ghost" type="button" data-cnew>Fill one in myself</button>'
-            : '') +
           findBox('Find a campaign, a goal, a product') + '</div>' +
         /* The count is on the switcher, the order is visible in the order,
            and what each card says is said by the card. */
@@ -11717,11 +11720,26 @@
     if (!isMgr()) { toast('Campaigns are the sales manager\u2019s to run.'); return; }
     LBUILD = null;
     DRAFT = null;
-    CBUILD = { step: 'sell', sell: null, industry: null, region: null,
+    CBUILD = { step: 'way', sell: null, industry: null, region: null,
       who: null, noun: null, n: null, weeks: null, name: null };
     TURNS.length = 0;
     openCanvas();
-    cbuildPush('A new campaign. What are we selling on this one?',
+    /* ══ WHICH WAY, BEFORE WHAT ARE WE SELLING ════════════════════════
+       Two different mornings: you know roughly what you want and would
+       rather be asked, or you already know exactly what this campaign is
+       and want the fields. Asking which is one turn and it is the same
+       turn the lead builder opens with. */
+    cbuildPush('A new campaign. Shall I ask you through it, or would you rather ' +
+      'fill it in yourself?',
+      [{ k: 'way-ask', label: 'Ask me through it' },
+        { k: 'way-hand', label: 'I will fill it in' }],
+      'Five questions and it is running \u2014 or an empty page with every field on it, ' +
+      'saved as you type.');
+  }
+
+  function cbuildAsk() {
+    CBUILD.step = 'sell';
+    cbuildPush('What are we selling on this one?',
       SELLS.map((x) => ({ k: 'sell-' + x.k, label: x.name })),
       'Everything else follows from this — what we say, what they push back on, and who to ask for.');
   }
@@ -11954,6 +11972,10 @@
 
   function cbuildOpt(key) {
     if (!CBUILD) return;
+    if (key === 'way-ask') { cbuildAsk(); return; }
+    /* The empty page is a page, not a conversation, so the canvas closes
+       behind it rather than sitting over the fields it just handed you. */
+    if (key === 'way-hand') { CBUILD = null; lbuildSpend(); closeCanvas(); emptyCamp(); return; }
     if (key.indexOf('sell-') === 0) { cbuildSell(key.slice(5)); return; }
     if (key === 'win-meeting') { cbuildWin('meeting'); return; }
     if (key === 'win-conversation') { cbuildWin('conversation'); return; }
@@ -12402,9 +12424,6 @@
        about itself — what is still missing, when it closes. A menu you are
        ticking several things in reopens itself afterwards, since closing it
        between two sells would make picking two a chore. */
-    const cnew = t.closest('[data-cnew]');
-    if (cnew) { emptyCamp(); return; }
-
     const cset = t.closest('[data-cset]');
     if (cset) {
       const k = DB.byCamp[S.camp];
