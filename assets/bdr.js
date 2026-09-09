@@ -173,19 +173,26 @@
      and every stored checkpoint below it keeps its NAME and changes its
      POSITION — so add at the end, or renumber deliberately. */
   const LADDER = [
+    /* ══ A RUNG IS NOT A VERDICT ══════════════════════════════════════
+       Five of these eight were green and one was amber, so green meant
+       five different things and the ladder read as a scoreboard. They are
+       positions on a track: the track says which is further along, and the
+       word says which one it is. The only one that keeps a colour is the
+       last, because reaching the end of the caller's job is the one thing
+       on this list that has actually been decided. */
     { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
     { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
-    { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
-    { k: 'answered',    label: 'Answered',     tone: 'ok',      say: 'you got them on the phone' },
-    { k: 'meeting-set', label: 'Meeting set',  tone: 'ok',      say: 'time in a diary' },
-    { k: 'showed-up',   label: 'Showed up',    tone: 'ok',      say: 'they came to the meeting' },
-    { k: 'interested',  label: 'Interested',   tone: 'ok',      say: 'they want to go further' },
+    { k: 'callback',    label: 'Callback',     tone: 'neutral', say: 'they asked to be called back' },
+    { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
+    { k: 'meeting-set', label: 'Meeting set',  tone: 'neutral', say: 'time in a diary' },
+    { k: 'showed-up',   label: 'Showed up',    tone: 'neutral', say: 'they came to the meeting' },
+    { k: 'interested',  label: 'Interested',   tone: 'neutral', say: 'they want to go further' },
     { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
   /* The ways out. Not rungs: a lead does not climb to "declined", it leaves. */
   const EXITS = [
     { k: 'declined',     label: 'Declined',      tone: 'neutral', say: 'they said no' },
-    { k: 'wrong-number', label: 'Wrong number',  tone: 'warn',    say: 'the number is not theirs' },
+    { k: 'wrong-number', label: 'Wrong number',  tone: 'neutral', say: 'the number is not theirs' },
     { k: 'do-not-call',  label: 'Do not call',   tone: 'err',     say: 'they opted out' },
   ];
   const called = Object.create(null);
@@ -203,12 +210,14 @@
      answerphone and rang-out into no-answer, so writing "left a voicemail"
      ticks Not connected without anybody choosing an eighth button. */
   const OUTCOMES = [
-    { k: 'reached',        label: 'Connected',      key: '1', tone: 'ok',      writes: true },
-    { k: 'callback',       label: 'Callback',       key: '2', tone: 'ok',      writes: true },
+    /* Seven ways a call can end, and six of them are just what happened.
+       Only the one that shuts the door on a person for good is a verdict. */
+    { k: 'reached',        label: 'Connected',      key: '1', tone: 'neutral', writes: true },
+    { k: 'callback',       label: 'Callback',       key: '2', tone: 'neutral', writes: true },
     { k: 'no-answer',      label: 'No answer',      key: '3', tone: 'neutral', writes: false },
-    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'warn',    writes: true },
+    { k: 'gatekeeper',     label: 'Gatekeeper',     key: '4', tone: 'neutral', writes: true },
     { k: 'not-interested', label: 'Not interested', key: '5', tone: 'neutral', writes: true },
-    { k: 'wrong-number',   label: 'Wrong number',   key: '6', tone: 'warn',    writes: true },
+    { k: 'wrong-number',   label: 'Wrong number',   key: '6', tone: 'neutral', writes: true },
     { k: 'do-not-call',    label: 'Do not call',    key: '7', tone: 'err',     writes: true },
   ];
   const OUTCOME = Object.create(null);
@@ -8180,10 +8189,15 @@
      never go into it. The hour is derived from the id — the same every time
      it is asked, on every machine — until somebody sets one, and a derived
      hour is drawn as a guess rather than as a booking. */
+  /* A dinner is not more urgent than a demo and a demo is not more
+     informative than a meeting. Three of these were purple, blue and amber
+     for no reason anybody could defend — they are kinds of appointment and
+     the word on the row says which. `held` keeps the positive pole because
+     it is the one entry here that is an outcome: it happened. */
   const MEET_KINDS = [
-    { k: 'meeting', label: 'Meeting', tone: 'accent' },
-    { k: 'demo',    label: 'Demo',    tone: 'info' },
-    { k: 'dinner',  label: 'Dinner',  tone: 'warn' },
+    { k: 'meeting', label: 'Meeting', tone: 'neutral' },
+    { k: 'demo',    label: 'Demo',    tone: 'neutral' },
+    { k: 'dinner',  label: 'Dinner',  tone: 'neutral' },
     { k: 'held',    label: 'Held',    tone: 'ok' },
     { k: 'owed',    label: 'Owed',    tone: 'neutral' },
   ];

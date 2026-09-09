@@ -1017,9 +1017,11 @@
 .ntf-row:hover { background: var(--wash-3); }
 .ntf-row.is-read { opacity: 0.45; }
 .ntf-sev { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: var(--d500); }
+/* One row in this panel is about something that went wrong; the other two
+   are about things that have not happened yet, which is not the same claim.
+   The order already carries the priority. */
 .ntf-sev.p1 { background: var(--err); }
-.ntf-sev.p2 { background: var(--warn); }
-.ntf-sev.p3 { background: var(--qa-accent); }
+.ntf-sev.p2, .ntf-sev.p3 { background: var(--d500); }
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
 .ntf-row-type { font-size: var(--t-ui); font-weight: 800; color: var(--d50); }
@@ -2452,11 +2454,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-dots { position: relative; display: flex; gap: 3px; height: 5px; align-items: center; }
 .b-cal-dot { width: 5px; height: 5px; border-radius: var(--r-pill); flex: none; }
 .b-cal-day.is-out .b-cal-dot { opacity: 0.4; }
-.k-meeting { background: var(--accent); }
-.k-demo { background: var(--info); }
-.k-dinner { background: var(--warn); }
+/* Five dots, one ink, and one exception. The month said which KIND of thing
+   was on a day in five hues — a purple meeting, a blue demo, an amber dinner
+   — which is a legend nobody was given and a palette spent on a distinction
+   the row underneath already makes in words. What the dots are for is how
+   many, and whether any of them has been dealt with. */
+.k-meeting, .k-demo, .k-dinner, .k-owed { background: var(--d400); }
 .k-held { background: var(--ok); }
-.k-owed { background: var(--d300); }
 
 .b-cal-cap {
   margin: 0; padding: 16px 8px 8px;
@@ -2795,7 +2799,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   background: var(--card-border); margin-top: -2px;
 }
 .b-door-seg { display: block; height: 100%; }
-.b-door-seg.is-open { background: var(--accent); }
+/* Open is not a verdict — it is the money that has not been decided yet,
+   which is most of the bar. The two ends carry the colour. */
+.b-door-seg.is-open { background: var(--d500); }
 .b-door-seg.is-won { background: var(--ok-text); }
 .b-door-seg.is-lost { background: var(--d500); }
 
