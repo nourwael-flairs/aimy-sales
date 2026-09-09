@@ -225,17 +225,37 @@
    second overcorrected: nearly everything at full white, so the name at 16/800
    and the reason at 14/600 were both shouting and neither led.
 
-   Size, weight and ink now descend together, which is what makes a hierarchy
-   read at a glance rather than on inspection. Nothing drops below `--d400`,
-   so nothing is dim — the lower steps are barely muted, not faded out.
+   Size, weight and ink descend together, which is what makes a hierarchy read
+   at a glance rather than on inspection.
 
-     16 / 800 / d50    the name          what you are choosing between
-     13 / 700 / d50    why they are here smaller than the name, so it reads second
-     13 / 600 / d100   the role          identity
-     12 / 500 / d300   the company       context you read once
-     12 / 400 / d300   what was said     somebody else's sentence, italic
-     12 / 600 / d200   the number        the thing you are about to dial
-     10 / 700 / d400   the campaign      a label, not a sentence
+   THE THIRD CUT: THE FLOOR TOOK THE SIZE AXIS AWAY. The ranks above spent
+   their differences on five steps inside six pixels — 16 · 13 · 13 · 12 · 12
+   · 12 · 10 — and a 12px floor on even steps leaves 12 · 14 · 16 · 18. Four
+   of those five collapsed onto 16, the ink band folded d300 and d400 into
+   --ink-muted, and eleven of the seventeen runs on this card came out at
+   16/500-800 in three greys a hair apart. The reasoning survived; the numbers
+   stopped obeying it.
+
+   So the differences move onto the axis that did not change. Weight was
+   carrying almost nothing: three ranks shared d50 and four shared one size.
+   EVERY RANK NOW DIFFERS FROM ITS NEIGHBOUR IN AT LEAST TWO OF {size, weight,
+   ink} — which is what the paragraph above always claimed and the table never
+   did.
+
+     18 / 800 / primary     the name       what you are choosing between
+     16 / 700 / primary     why it is here two steps under the name, so it reads second
+     16 / 700 / secondary   the figure     the amount, or the number you are about to dial
+     14 / 600 / secondary   the role       identity
+     14 / 500 / muted       the company    context you read once
+     14 / 400 / muted       what was said  somebody else's sentence, italic
+     14 / 700 / muted       the campaign   a label, not a sentence
+
+   The name is the only 18 on the card, so L1 is unambiguous without being
+   loud. The figure shares the why-line's size and weight and steps down one
+   in ink: it sits in the foot beside a button, so nothing is competing for
+   the same place in the reading order. Everything below is 14, separated by
+   weight and ink alone, because that is what "context" means — a band you
+   scan rather than a ladder you climb.
 
    Scoped to `.b-qcard`, so no other card in the product moves. */
 .b-qcard .tc-type {
@@ -246,20 +266,30 @@
   line-height: var(--lh-tight); color: var(--d50);
 }
 .b-qcard .b-qcard-role {
-  padding: 6px 14px 0; font-size: var(--fs-base); font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug); color: var(--d100);
+  padding: 6px 14px 0; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--ink-secondary);
 }
 .b-qcard-where {
   margin: 0; padding: 2px 14px 0;
-  font-size: var(--fs-sm); font-weight: var(--fw-medium);
+  font-size: var(--fs-xs); font-weight: var(--fw-medium);
   line-height: var(--lh-snug); color: var(--ink-muted);
 }
+/* EMPHASIS INSIDE A LINE NEEDS THE LINE NOT TO BE BOLD ALREADY. This ran at
+   700 with its <b> runs inheriting `bolder` on top, so the date and the
+   overdue clause were 800 inside a line that was already 700 white — two
+   weights doing the work of none, on the longest run on the card. Two lines
+   of that out-massed an 18px name by area alone, which put the card’s L1 and
+   L2 in the wrong order however the sizes read.
+
+   600 for the sentence, 800 for the two things in it that are the reason the
+   card is here. */
 .b-qcard-why {
-  font-size: var(--fs-base); font-weight: var(--fw-bold);
-  line-height: var(--lh-snug); color: var(--d50);
+  font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--ink-primary);
 }
+.b-qcard-why b { font-weight: var(--fw-extrabold); }
 .b-qcard .b-qcard-note {
-  margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-regular);
+  margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-regular);
   line-height: var(--lh-snug); color: var(--ink-muted);
 }
 
@@ -276,8 +306,8 @@
   justify-content: space-between; gap: 8px; flex-wrap: wrap;
 }
 .b-qcard-num {
-  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums; color: var(--d200);
+  font-size: var(--fs-base); font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; color: var(--ink-secondary);
 }
 
 /* ── A NAMED FACT, AT THE PREP SHEET'S RELATIONSHIP ───────────────────────
@@ -356,10 +386,17 @@
   background: var(--accent-dim);
   border-radius: var(--r-md);
 }
+/* On a card, the note is EVIDENCE and evidence is read last. Everything else
+   on the card is type on the card’s own ground; this was the one filled
+   rectangle, which made it a figure rather than a passage no matter what its
+   type did. Half the ground, and the mark keeps saying whose sentence it is —
+   which is the job the fill was doubling. Scoped, so the note keeps its full
+   ground everywhere it is the point of the block rather than the footnote. */
+.b-qcard .b-aimy { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .b-aimy-mark { width: 13px; height: 15px; flex-shrink: 0; margin-top: 1px; }
 .b-aimy-say {
-  min-width: 0; font-size: var(--fs-sm); font-weight: var(--fw-medium);
-  line-height: var(--lh-snug); color: var(--d100);
+  min-width: 0; font-size: var(--fs-xs); font-weight: var(--fw-medium);
+  line-height: var(--lh-snug); color: var(--ink-secondary);
 }
 .b-aimy-say b { font-weight: var(--fw-bold); }
 .b-aimy-from {
@@ -859,7 +896,11 @@
 }
 .s-home .s-lead-say { font-size: var(--t-lead); }
 .s-home .s-rec-kind { font-size: var(--t-micro); }
-.b-qcard .s-card-title { font-size: var(--t-lead); }
+/* `.b-qcard .s-card-title` was here at --t-lead, setting the same element the
+   card's own `.b-qcard .tc-title` sets at --fs-lg — same specificity, later in
+   the file, so it won. The name rendered 16 while the block that documents it
+   said 18, and the doctrine comment above that block was describing a card
+   that had not existed for some time. One element, one rule. */
 .b-reading { font-size: var(--t-body); }
 .s-block-say { font-size: var(--t-small); font-weight: var(--fw-medium); }
 .b-vfoot { font-size: var(--t-small); }
