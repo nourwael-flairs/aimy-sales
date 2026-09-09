@@ -352,7 +352,8 @@
     :root[data-theme="light"] .tag-ok  { background: color-mix(in srgb, #3f6b52 11%, transparent); }
     :root[data-theme="light"] .tag-err { background: color-mix(in srgb, #903b37 11%, transparent); }
     :root[data-theme="light"] .chip.warn  { color: var(--d300); }
-    :root[data-theme="light"] .tag-accent,
+    /* .tag-accent came off this: a tag is a label and the accent is not a
+       verdict. The chip is a control holding a state, and keeps it. */
     :root[data-theme="light"] .chip.active { color: #6a30cf; }
     /* Faint labels & stat deltas */
     :root[data-theme="light"] .stat-delta.up   { color: #0a7a45; }
