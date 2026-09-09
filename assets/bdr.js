@@ -1082,11 +1082,13 @@
          countable so `campStand` can say what a week has to land. The field
          below is the ASK: what one call should come away with. Neither is
          the goal. The goal is what the campaign is worth having worked, and
-         `campGoal` derives it: new clients for what this campaign sells.
+         `campGoal` derives it in four kinds — logos, money, a first client
+         in a market, an account taken off somebody else.
 
          The field keeps the name `goal` because a campaign somebody built is
-         stored under it in their browser and a rename would strand it; every
-         surface that draws it says "the ask". */
+         stored under it in their browser and a rename would strand it. It is
+         drawn in exactly one place now, the prep sheet, under "Asking for" —
+         which is the only moment anybody needs it. */
       const askFor = ASK_OF[sells[0].k];
       const target = { n: between(r, 8, 30), noun: chance(r, 0.72) ? 'meeting' : 'conversation' };
       camp.push({
@@ -2477,27 +2479,22 @@
       /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
          `.tc-summary` is the shell's description slot — 11.5px at --d400,
          the quietest thing on the card — and what sat in it was `k.goal`,
-         which is not a description and not a goal either. It is the ask:
-         one sentence on what a single call should come away with. Under the
-         word "goal" it answered the wrong question. A campaign's goal is the
-         state it is trying to reach by the day it closes, and the seed has
-         held that all along in `target` — a number and a noun — because
-         `campStand` needs something countable to measure against.
+         which is neither a description nor a goal. It is the ask: one
+         sentence on what a single call should come away with, and under the
+         word "goal" it answered a question nobody had.
 
-         So the line says the end state, built from the target, the persona
-         the campaign is for and the day it closes, with where it stands
-         behind it. The ask keeps its own name on the record.
+         `campGoalSay` writes the end state instead, in whichever of its four
+         kinds this campaign was signed off against. No date in it: a goal
+         has one, and this card's is six pixels up and louder — "14 days
+         left" while it runs, "closed 6 Sep" once it has. No standing in it
+         either; the three lines under it are the standing, and a goal that
+         moved with them would not be one.
 
          The ink stays where it is. Choosing which campaign to work is
          decided by the days left, the numbers and the insight; the goal is
          the frame those are read inside, not a fourth figure competing with
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
-      /* What this campaign is for, in the words the person who signed it off
-         would use. No date in it: a goal has one, and this card's is six
-         pixels up and louder — "14 days left" while it runs, "closed 6 Sep"
-         once it has. No standing in it either; the three lines under it are
-         the standing. */
       '<p class="tc-summary b-qcard-what"><b>The goal</b> ' + campGoalSay(k) + '</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
@@ -5705,11 +5702,13 @@
     const cl = k.client ? CLIENT[k.client] : null;
     return '<div class="b-cmeta">' +
       cmPart('The goal', '<p class="b-cmeta-p">' + campGoalSay(k) + '</p>') +
-      /* Not "The goal": this sentence is what ONE CALL asks for, which is a
-         different fact from what the campaign is trying to win. Two facts
-         cannot share the one word, and the prep sheet has always called this
-         one the ask. */
-      cmPart('The ask', '<p class="b-cmeta-p">' + esc(k.goal) + '.</p>') +
+      /* THE ASK IS NOT A PROPERTY OF THE CAMPAIGN, IT IS A LINE FOR A CALL.
+         It had a cell here — "thirty minutes with whoever owns the model
+         pipeline, booked while you are still on the call" — and a record is
+         read to decide whether to work a campaign, not while working one.
+         The one moment that sentence is worth anything is the moment before
+         somebody dials, and the prep sheet already puts it there under
+         "Asking for". It is drawn once now, where it is used. */
       /* The name and which kind it is. The blurb underneath was the line a
          caller says out loud, and it is said out loud in What to say — here
          it was a second copy of it in the smallest type on the page. */
