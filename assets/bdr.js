@@ -2011,6 +2011,10 @@
     const url = qs(over);
     if (replace) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
+    /* Every control in the drawer is a way out of it, and a drawer still
+       standing over the page it just sent you to is one you have to dismiss
+       to see what you asked for. */
+    railOpen(false);
     parse();
     paint();
     /* ══ A NEW SURFACE ARRIVES; A REPAINT DOES NOT ═════════════════════════
@@ -2870,7 +2874,11 @@
     if (isMgr()) {
       const live = q.filter(dealLive);
       const now = live.filter((c) => dealRank(c) <= 2);
-      const worth = live.reduce((n, c) => n + amountOf(c), 0);
+      /* What is in the diary between now and this day next week. The pill
+         here used to be the open figure, which the door under this card now
+         carries at four times the size — so the slot goes to the one fact
+         the rail holds and nothing else on any surface does. */
+      const week = meetings(TODAY_ISO, dayAdd(7)).length;
       return {
         eyebrow: 'Your book', subject: null,
         card: {
@@ -2879,7 +2887,8 @@
             ? '<b>' + plural(now.length, 'deal') + '</b> ' + (now.length === 1 ? 'wants' : 'want') +
               ' something today, out of the <b>' + commas(live.length) + '</b> you are running.'
             : '<b>' + commas(live.length) + '</b> deals are running and none of them is late.',
-          evidence: [{ val: euro(worth), cap: 'open' }, { val: camps.length, cap: 'campaigns' }],
+          evidence: [{ val: commas(week), cap: 'in the diary this week' },
+            { val: camps.length, cap: 'campaigns' }],
           act: null, q: null,
         },
       };
@@ -3242,6 +3251,21 @@
     '</h2>';
   }
 
+  /* The rail, the scrim over the page behind it and the button that says
+     which way it is, in one place. Above 918px the drawer rules do not
+     apply and the class does nothing, which is why there is no breakpoint
+     in here. */
+  function railOpen(on) {
+    byId('appRail').classList.toggle('is-open', on);
+    byId('railScrim').classList.toggle('is-open', on);
+    const b = byId('railToggle');
+    if (b) {
+      b.setAttribute('aria-expanded', String(on));
+      b.setAttribute('aria-label', on ? 'Close what is here' : 'Open what is here');
+    }
+    if (on) { try { byId('appRail').focus({ preventScroll: true }); } catch (e) {} }
+  }
+
   function paintRail() {
     const r = railReading();
     const c = r.card;
@@ -3265,7 +3289,9 @@
               (c.q ? ' data-q="' + esc(c.q) + '"' : ' data-home') + '>' + esc(c.act) + '</button>'
             : '') +
         '</div>' +
-      '</div>';
+      '</div>' +
+      /* Only this desk has a day and a book to stand here. */
+      (isMgr() ? railDoors() : '');
   }
 
   /* ══ THE PILL IS THE DOOR TO THE OTHER DESK ════════════════════════════
@@ -3387,25 +3413,6 @@
          opening: how much is in the diary today, and what the book is worth.
          One opens where it stands; the other is a page, because a report is
          something you read down. */
-      /* `s-block-wide` like every other block on this page. Without it the
-         pair sat in one column of the home grid and stopped at 45% of the
-         width on a wide window, with nothing to its right to align to — which
-         reads as a layout that broke rather than one that decided. */
-      '<div class="b-doors s-block-wide">' +
-        calGate() +
-        /* Both cards are the same container now that they are apart, so
-           neither carries a modifier and the stylesheet keeps no hook it
-           does not use. */
-        '<button class="b-door" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
-          '<span class="b-door-cap">The numbers</span>' +
-          '<span class="b-door-fig">' + esc(euro(queue(null, 'all').filter(dealLive)
-            .reduce((n, c) => n + amountOf(c), 0))) + '</span>' +
-          bookBar() +
-          '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
-          doorGo('Open the report') +
-        '</button>' +
-      '</div>' +
       '<section class="s-block s-block-wide" aria-label="What wants you today">' +
         '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
         (rows.length
@@ -3807,11 +3814,23 @@
     '</span>';
   }
 
+  /* ══ NOT THE NUMBER THE CARD ABOVE IT ALREADY SAID ═════════════════════
+     "27 open" sat under this figure while the reading card two inches above
+     said "out of the 27 you are running" — the same fact twice in one
+     column, and the count belongs to the card whose sentence is about what
+     wants you. What this door has and nothing else does is where the money
+     is standing: commercial is the last stage before somebody signs, so it
+     is the half of the bar worth naming. */
   function bookSay() {
     const all = queue(null, 'all');
-    const live = all.filter(dealLive).length;
+    const live = all.filter(dealLive);
     const won = all.filter((c) => stageOf(c) === 'won').length;
-    return commas(live) + ' open' + (won ? ' · ' + commas(won) + ' signed' : '');
+    const com = live.filter((c) => stageOf(c) === 'commercial');
+    const sum = com.reduce((n, c) => n + amountOf(c), 0);
+    return (sum
+      ? euro(sum) + ' in ' + DEAL_STAGE.commercial.label.toLowerCase()
+      : commas(live.length) + ' open') +
+      (won ? ' · ' + commas(won) + ' signed' : '');
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -3820,36 +3839,36 @@
     return '<span class="b-door-go">' + esc(label) + chIcon('fwd') + '</span>';
   }
 
-  /* The gate and the panel it opens, as one thing: `.b-menu-wrap` is the
-     positioned ancestor every other popover in the build hangs from. The
-     panel is rendered with the page rather than on demand, because the
-     machinery only toggles `hidden` — and a month of cells costs less than
-     the branch that would build it twice. */
-  function calGate() {
-    return '<span class="b-menu-wrap">' +
-      /* No modifier class: the book door needs one for its hairline, this
-         one needs nothing, and a hook with no rule behind it is a promise
-         the stylesheet never keeps. */
-      '<button class="b-door" type="button" data-pickopen="calPop" ' +
-        'aria-haspopup="dialog">' +
-        /* ══ A CARD THAT OPENS SOMETHING SAYS SO ═══════════════════════
-           Drawn as a reading, these two told you where the day and the book
-           stood and nothing at all about being pressable: the hover and the
-           pointer are the only signals, and both of them arrive after you
-           have already guessed. So each one ends on the promise it keeps.
+  /* ══ THE TWO STANDING FACTS STAND IN THE RAIL ══════════════════════════
+     Neither of these is a thing to do. They are what the day and the book
+     look like right now, which is exactly what the rail is for and what
+     every other block on Today is not — and the rail comes with you. The
+     clock and the money were on one page; they are beside you on all of
+     them now, which on a desk that spends the day in other people's rooms
+     is the whole point of having them at all.
 
-           Not "click for details" — nothing else in this product names the
-           input, and half the people reading it will be on a laptop with a
-           trackpad and half on a screen they tap. It names the thing you get
-           instead, which is the more useful half of that sentence anyway:
-           one opens the diary, the other opens the report. */
+     The calendar's card opened a panel where it stood, which was the right
+     answer for as long as the diary had nowhere else to be. Hanging off a
+     rail card it would open from the far left across the page, which is an
+     overlay with another name and the one thing this build refuses. The
+     diary is a page now, so the gate is a gate. */
+  function railDoors() {
+    const worth = queue(null, 'all').filter(dealLive).reduce((n, c) => n + amountOf(c), 0);
+    return '<div class="rail-doors">' +
+      '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '">' +
         '<span class="b-door-cap">Today</span>' + dayHead() +
-        doorGo('Open the calendar') +
+        doorGo('Open the diary') +
       '</button>' +
-      '<div class="b-menu b-cal-pop" id="calPop" role="dialog" aria-label="The calendar" hidden>' +
-        calBody(CALSEL) +
-      '</div>' +
-    '</span>';
+      '<button class="b-door" type="button" data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
+        '<span class="b-door-cap">The numbers</span>' +
+        '<span class="b-door-fig">' + esc(euro(worth)) + '</span>' +
+        bookBar() +
+        '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
+        doorGo('Open the report') +
+      '</button>' +
+    '</div>';
   }
 
   /* ══ THE LOOP THE NOTEBOOK EXISTS TO CLOSE ═════════════════════════════
@@ -10611,19 +10630,15 @@
 
   /* ══ WHERE IT WENT, NOT WHERE YOU SAID IT ══════════════════════════════
      Confirming an entry left you looking at the conversation that made it,
-     with the thing itself somewhere behind. The canvas shuts, the page comes
-     back, and the calendar opens on the day it landed on — which is both the
-     receipt and the place to change it. The paint has to happen first: the
-     panel is drawn with the page, so there is nothing to open until it is. */
+     with the thing itself somewhere behind. The canvas shuts and the diary
+     opens on the day it landed on, which is both the receipt and the place
+     to change it. It used to open a panel over whatever page you happened to
+     be on; now there is a page for this and `CALSEL` is the day it lands
+     showing. */
   function showCalOn(iso) {
     CALSEL = iso;
     closeCanvas();
-    paint();
-    const pop = byId('calPop');
-    const door = document.querySelector('[data-pickopen="calPop"]');
-    if (!pop || !door) return;
-    pop.innerHTML = calBody(CALSEL);
-    door.click();
+    go(Object.assign(cleared(), { on: 'cal' }));
   }
 
   const CALL_RE = /^(call|call|dial)\b/i;
@@ -12695,64 +12710,6 @@
       if (!panel.hidden && panel.classList.contains('b-menu')) {
         panel.classList.remove('is-right');
         if (panel.getBoundingClientRect().right > window.innerWidth - 16) panel.classList.add('is-right');
-        /* A MONTH IS TALLER THAN A MENU, AND THE ROOM IS WHERE IT IS. The
-           door these hang off sits low on the page — 582px down a 698px
-           window on a laptop — so there is a third of the room below it that
-           there is above. A menu that only ever drops is a menu that only
-           works at the top of a page.
-
-           So it hangs the way the room is, the same edge-flip `is-right`
-           already does on the other axis, and only clamps if neither side can
-           hold it. Measured after it is shown and with the previous answer
-           cleared first, because a panel still carrying last time's cap
-           reports last time's height. */
-        if (panel.classList.contains('b-cal-pop')) {
-          panel.classList.remove('is-up');
-          panel.style.maxHeight = '';
-          /* On a phone it is a sheet in the middle of the screen, sized by the
-             stylesheet — there is no room to hang off anything and nothing to
-             hang it from. Measuring here would only fight that. */
-          if (window.innerWidth <= 720) return;
-          /* ══ THE EDGE THAT CLIPS IS NOT THE WINDOW'S ═══════════════════
-             This panel is `position: absolute` inside `.page-scroll`, which
-             carries `overflow: auto` — so it is cut at that box's edge and
-             cannot reach past it however much window there is. Clamping
-             against `innerHeight` measured room the panel was never allowed
-             to use: the arithmetic said it fit, and it came off flush under
-             the top nav.
-
-             So the ceiling is the scrolling ancestor's box where there is
-             one, and the window where there is not. */
-          const clipOf = (el) => {
-            let e = el.parentElement;
-            while (e && e !== document.body) {
-              const o = getComputedStyle(e).overflowY;
-              if (o === 'auto' || o === 'scroll' || o === 'hidden') return e.getBoundingClientRect();
-              e = e.parentElement;
-            }
-            return { top: 0, bottom: window.innerHeight };
-          };
-          const clip = clipOf(panel);
-          const anchor = po.getBoundingClientRect();
-          const need = panel.getBoundingClientRect().height;
-          const below = clip.bottom - anchor.bottom - 16;
-          const above = anchor.top - clip.top - 16;
-          if (need > below && above > below) panel.classList.add('is-up');
-          /* ALWAYS THE CLAMP, NOT ONLY WHEN IT LOOKS NEEDED. Capping only if
-             `need > room` left every case the measurement got wrong with no
-             floor under it — and hanging upward it is the TOP that goes, out
-             of a box there is nothing to scroll back through. */
-          panel.style.maxHeight = Math.max(240, Math.max(below, above)) + 'px';
-          /* And the answer checked against the result, because the room was
-             measured from the door and the panel is placed against the
-             wrapper: eight pixels of gap, a border, a scrollbar appearing.
-             Whatever is left over comes off the ceiling. */
-          const box = panel.getBoundingClientRect();
-          const over = Math.max(clip.top + 8 - box.top, box.bottom - (clip.bottom - 8));
-          if (over > 0) {
-            panel.style.maxHeight = Math.max(240, box.height - over) + 'px';
-          }
-        }
       }
       return;
     }
@@ -12800,7 +12757,7 @@
       /* Whichever one is on screen. The pop-out and the page never coexist —
          the gate is drawn on Today and the page is a tab along — so this is
          one of the two, never both. */
-      const box = byId('calPop') || byId('calPage');
+      const box = byId('calPage');
       if (box) box.innerHTML = calBody(CALSEL);
       return;
     }
@@ -12854,13 +12811,16 @@
     const fill = t.closest('[data-fill]');
     if (fill) { fillBar(fill.getAttribute('data-fill')); return; }
 
+    /* ══ THE CLASS THE STYLESHEET WAS WAITING FOR ══════════════════════
+       The button toggled `rail-open` on the body; the shell opens the drawer
+       on `.is-open`, on the rail and on the scrim behind it. Two names for
+       one state, and nothing anywhere reads the body's — so under 918px this
+       control has never opened anything. It cost little while the rail held
+       one reading you could live without on a phone. It holds the day and
+       the book now, and the report has no other door. */
     const railToggle = t.closest('#railToggle');
-    if (railToggle) {
-      document.body.classList.toggle('rail-open');
-      railToggle.setAttribute('aria-expanded', String(document.body.classList.contains('rail-open')));
-      return;
-    }
-    if (t.closest('#railScrim')) { document.body.classList.remove('rail-open'); return; }
+    if (railToggle) { railOpen(!byId('appRail').classList.contains('is-open')); return; }
+    if (t.closest('#railScrim')) { railOpen(false); return; }
 
     const closeC = t.closest('[data-overlay-close]');
     /* Through `closeCanvas`, not straight at the class. This branch removed
@@ -13141,6 +13101,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (byId('appRail').classList.contains('is-open')) { railOpen(false); return; }
     if (byId('aimyOverlay').classList.contains('open')) { closeCanvas(); return; }
     /* The notifications panel closes itself on Escape — that is QA's code. */
     if (DB.call) { skipCall(); }
