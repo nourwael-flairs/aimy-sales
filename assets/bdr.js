@@ -3913,7 +3913,8 @@
     const target = targetFor(p);
     return { booked: booked, target: target, elapsed: p.elapsed,
       pc: target ? booked / target : null,
-      pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null };
+      pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null,
+      paceMoney: p.elapsed != null && target ? booked - target * p.elapsed : null };
   }
   function bookBar() {
     const a = bookAttain();
@@ -3933,12 +3934,35 @@
      wants you. What this door has and nothing else does is where the money
      is standing: commercial is the last stage before somebody signs, so it
      is the half of the bar worth naming. */
+  /* ══ THREE NUMBERS, NONE OF THEM LABELLED ══════════════════════════════
+     The card read "€139k / of €300k · 31 points behind" and did not say what
+     any of the three was. €139k of what — the book, the quarter, the open
+     deals? €300k of what — a target, a ceiling, a forecast? And points of
+     what, on a card where every other figure is money.
+
+     A rail card is glanced at, which is the case for naming things rather
+     than against it: the page has room to explain a derived unit and this
+     has room for one sentence. So the figure says what it is, the line says
+     what it is measured against, and the distance is money — the same words
+     the report's own legend uses for the mark on its bar. */
   function bookSay() {
     const a = bookAttain();
-    const of = 'of ' + euro(a.target);
-    if (a.pace == null) return of + ' · ' + Math.round((a.pc || 0) * 100) + '% of target';
-    return of + ' · ' + plural(Math.abs(Math.round(a.pace * 100)), 'point') + ' ' +
-      (a.pace >= 0 ? 'ahead' : 'behind');
+    const of = 'of a ' + euro(a.target) + ' target';
+    /* ══ A FINISHED WINDOW HAS NO PACE TO BE BEHIND ═════════════════════
+       "€300k behind where you should be today" about a quarter that ended
+       in June is a sentence with the wrong tense and the wrong clock in it.
+       Where you should be today only means something while there is still a
+       today inside the window; past that the fact is the distance from the
+       target, and nothing about the calendar. */
+    if (a.paceMoney == null) return of + ' — ' + Math.round((a.pc || 0) * 100) + '% reached';
+    const gap = a.target - a.booked;
+    if (a.elapsed >= 1) {
+      return of + ' — ' + (gap > 0 ? euro(Math.round(gap)) + ' short'
+        : gap < 0 ? euro(Math.round(-gap)) + ' over' : 'met exactly');
+    }
+    if (gap <= 0) return of + ' — the target is met';
+    return of + ' — ' + euro(Math.abs(Math.round(a.paceMoney))) + ' ' +
+      (a.paceMoney >= 0 ? 'ahead of' : 'behind') + ' where you should be today';
   }
 
   /* The promise, at the foot of both cards so the two line up whatever
@@ -3971,7 +3995,8 @@
       '<button class="b-door" type="button" data-go="' +
         esc(JSON.stringify(Object.assign(cleared(), { on: 'money' }))) + '">' +
         '<span class="b-door-cap">Financials</span>' +
-        '<span class="b-door-fig">' + esc(euro(worth)) + '</span>' +
+        '<span class="b-door-fig">' + esc(euro(worth)) +
+          '<span class="b-door-of">signed</span></span>' +
         bookBar() +
         '<span class="b-door-say">' + esc(bookSay()) + '</span>' +
         doorGo('Open the report') +
@@ -4057,7 +4082,13 @@
   function fmtMoney(n) {
     if (n == null || !isFinite(n)) return '—';
     const a = Math.abs(n);
-    if (a >= 1e6) return '€' + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.0', '') + 'M';
+    /* LOWERCASE, BECAUSE `euro` IS LOWERCASE. Two formatters live here for a
+       good reason — `euro` rounds to the thousand and would print a €0.38
+       lead as €0, which is the comparison this surface exists to draw — but
+       they were spelling the same magnitude two ways, and the rail card and
+       the page it opens sit on one screen: "€1.2m" beside "€1.2M". One
+       product, one way to write a million. */
+    if (a >= 1e6) return '€' + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.0', '') + 'm';
     if (a >= 1e4) return '€' + Math.round(n / 1e3) + 'k';
     if (a >= 100) return '€' + Math.round(n).toLocaleString('en-GB');
     return '€' + n.toFixed(2).replace(/\.00$/, '');
@@ -4697,6 +4728,19 @@
       elapsed: p.elapsed,
       /* Positive is ahead of pace. */
       pace: p.elapsed != null && target ? (booked / target) - p.elapsed : null,
+      /* ══ THE SAME FACT IN THE UNIT EVERYTHING ELSE HERE IS IN ═══════════
+         `pace` is a difference between two percentages, and a difference
+         between two percentages is measured in percentage points — so the
+         surface said "31 points behind" and introduced a second unit for
+         one derived figure on a page otherwise entirely in euros. Points of
+         what was the reader's question, and it is a fair one: the two
+         percentages it comes from are elsewhere on the page and nobody
+         should have to find them and subtract.
+
+         Where you should be by now is `target × elapsed`, and the distance
+         to it is money. Same derivation, no arithmetic asked of anybody,
+         and it is directly what has to be closed before the window ends. */
+      paceMoney: p.elapsed != null && target ? booked - target * p.elapsed : null,
     };
   }
 
@@ -4811,12 +4855,22 @@
        the spend becomes a clause about it. */
     const money = 'You signed <b>' + esc(fmtMoney(now.arr)) + '</b> of <b>' +
       esc(fmtMoney(a.target)) + '</b>';
-    const pace = a.pc == null ? '.' : a.pace == null
+    /* Three tenses, and the paragraph has to be in the right one. A window
+       still running is judged on pace; a finished one is judged on what it
+       came to, because there is no longer a today inside it to be behind. */
+    const shut = a.elapsed != null && a.elapsed >= 1;
+    const short = a.target - a.booked;
+    const pace = a.pc == null ? '.'
+      : a.paceMoney == null
       ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target.'
+      : shut
+      ? ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target, ' +
+        (short > 0 ? '<b>' + esc(fmtMoney(short)) + '</b> short.'
+          : short < 0 ? '<b>' + esc(fmtMoney(-short)) + '</b> over.' : 'met exactly.')
       : ' — <b>' + esc(Math.round(a.pc * 100)) + '%</b> of target with ' +
         esc(Math.round(a.elapsed * 100)) + '% of the time gone, so you are <b>' +
-        esc(plural(Math.abs(Math.round(a.pace * 100)), 'point')) + ' ' +
-        (a.pace >= 0 ? 'ahead' : 'behind') + '</b>.';
+        esc(fmtMoney(Math.abs(a.paceMoney))) + ' ' +
+        (a.paceMoney >= 0 ? 'ahead of' : 'behind') + '</b> where you should be today.';
     bits.push(money + pace);
 
     /* ══ THE ONE CLAUSE HERE WITH A VERB IN IT FOR THE READER ═══════════
@@ -5086,8 +5140,15 @@
            and its own refutation stacked two lines apart, and the reader has
            to work out which of them the tile means. A caption names the
            question; the value answers it. */
-        attFig('Against the clock', a.pace == null ? '—'
-            : plural(Math.abs(Math.round(a.pace * 100)), 'point') + ' ' + (ahead ? 'ahead' : 'behind'),
+        /* The tile can be terse where the door cannot: its own sub-line
+           carries the two percentages the figure is the distance between, so
+           "behind" has its referent directly underneath it. A closed window
+           has no pace left to be behind, and its shortfall is the tile at
+           the front of this row, so it reports where it finished instead. */
+        attFig('Against the clock',
+          done ? Math.round(a.pc * 100) + '% of target'
+            : a.paceMoney == null ? '—'
+            : fmtMoney(Math.abs(a.paceMoney)) + ' ' + (ahead ? 'ahead' : 'behind'),
           done ? 'the window has closed'
             : Math.round(a.pc * 100) + '% of the target sold, ' +
               Math.round(a.elapsed * 100) + '% of the time used',

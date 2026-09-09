@@ -2916,6 +2916,16 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* "Clear" is a good day, not a big number: it takes the size so the two cards
    still line up, and the ink of something that is not a figure. */
 .b-door-fig.is-quiet { color: var(--ink-muted); }
+/* ── WHAT THE FIGURE IS ──
+   A number this size with no noun on it is a card asking a question. The
+   report's own headline solves it the same way — `.s-att-of` after
+   `.s-att-lead` — and this is that pair at the size a rail card can spare:
+   the word drops three steps and loses the weight, so it reads as the
+   figure's unit rather than as a second figure beside it. */
+.b-door-of {
+  font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--ink-quiet);
+  letter-spacing: 0; margin-left: 6px;
+}
 /* ── The book against its target, in six pixels ──
    `overflow: hidden` clipped the target mark whenever the book had passed
    it, so the one frame this bar exists to draw — the moment the quarter is
