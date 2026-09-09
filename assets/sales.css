@@ -208,8 +208,8 @@ html {
   --ty-title:    20px;  /* = --fs-2xl — a figure inside a row, a thing named */
   --ty-deck:     18px;  /* NEW — the sentence under a kicker. The headline. */
   --ty-heading:  16px;  /* = --fs-lg  — a block heading inside a surface    */
-  --ty-body:     14px;  /* = --fs-base — prose, anything you read           */
-  --ty-meta:     13px;  /* = --fs-xs  — a label, the line under a name      */
+  --ty-body:     16px;  /* = --fs-base — prose, anything you read           */
+  --ty-meta:     14px;  /* = --fs-xs  — a label, the line under a name      */
   --ty-micro:    12px;  /* = --fs-2xs — minimal components. Caps and tracked, never a sentence */
 }
 
@@ -280,17 +280,6 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
    file was already propping it to 24; with the type corrected it clears the
    floor on its own ink rather than on an invisible box. */
 .btn-sm { font-size: var(--fs-xs); line-height: 16px; }
-/* ══ THE ONE SIZE THIS FILE DECLINED TO REMAP ═════════════════════
-
-   `.work-state` ships at 9px and the note above says the library’s version
-   is used unchanged. That was right when this file had no opinion about
-   scale; it is wrong now. Nine pixels is three steps below the floor this
-   file sets, it renders directly beside 13px text inside every insight
-   block, and it is the chip carrying the one word that says whether AiMY
-   has DONE something or merely noticed it — the most load-bearing four
-   characters on a card, set smaller than anything around them.
-
-   Eleven, which is the caption step, with the tracking a caps run needs. */
 /* ══ THE WORD SITS IN THE MIDDLE OF ITS OWN PILL ══════════════════════════
    The library ships `padding: 3px 9px 3px 7px` — 2px less on the left,
    which was the room the dot needed. The dot is gone and the asymmetry
@@ -298,17 +287,16 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
    left against 10px to its right. Symmetric padding, and both pills now
    measure exactly 9px either side.
 
-   No indent correction for the `letter-spacing`. Tracking does add its
-   space after the last letter, and a `text-indent` to give it back is the
-   usual remedy — but measured here it made things worse, 9.66 against 9,
-   because the text box this browser reports already excludes the trailing
-   advance. The padding alone is what centres it.
+   The tracking goes with the capitals that asked for it. It was a
+   correction FOR a caps run — the letters of a word set in capitals sit
+   too close because the shapes are all the same height — and on sentence
+   case it is not a correction, it is gaps.
 
-   An integer `line-height` for the same reason vertically: 1.45 × 11px is
-   15.95, and half of an odd remainder cannot be split evenly above and
-   below the glyphs. */
+   An integer `line-height` for the same reason the padding is symmetric:
+   1.45 × 12px is 17.4, and half of an odd remainder cannot be split
+   evenly above and below the glyphs. */
 .work-state {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
+  font-size: var(--fs-2xs);
   padding: 4px 8px; line-height: 16px;
 }
 /* ══ THE EIGHTH STATE ══════════════════════════════════════════════════════
@@ -406,7 +394,7 @@ h1, h2, h3, .s-rec-name, .s-sheet-name, .s-block-h {
 
 /* ── Tier 2 · secondary ── */
 .entry-action.em-review, .s-insight-lnk {
-  background: rgba(255, 255, 255, 0.05); color: var(--d300);
+  background: rgba(255, 255, 255, 0.05); color: var(--ink-muted);
   border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--r-md);
   font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-bold);
   min-height: 28px; padding: 0 12px;
@@ -1055,7 +1043,7 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); line-height: var(--lh-snug);
-  color: var(--d500); text-decoration: none;
+  color: var(--ink-muted); text-decoration: none;
   border: 1px solid var(--glass-border);
   transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
 }
@@ -1111,7 +1099,7 @@ body {
 .ntf-clear {
   margin-left: auto; background: none; border: 0; padding: 2px 4px; cursor: pointer;
   font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--d500); border-radius: var(--r-xs);
+  color: var(--ink-muted); border-radius: var(--r-xs);
   transition: color var(--t-fast);
 }
 .ntf-clear:hover { color: var(--d100); }
@@ -1139,8 +1127,8 @@ body {
 .ntf-row-main { flex: 1; min-width: 0; }
 .ntf-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
 .ntf-row-type { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
-.ntf-row-when { margin-left: auto; font-size: var(--fs-xs); color: var(--d500); flex-shrink: 0; }
-.ntf-row-body { margin: 0 0 8px; font-size: var(--fs-base); line-height: var(--lh-base); color: var(--d300); }
+.ntf-row-when { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-muted); flex-shrink: 0; }
+.ntf-row-body { margin: 0 0 8px; font-size: var(--fs-base); line-height: var(--lh-base); color: var(--ink-muted); }
 .ntf-row-cta {
   font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-bold); cursor: pointer;
   padding: 4px 12px; border-radius: var(--r-pill);
@@ -1155,7 +1143,7 @@ body {
 .ntf-foot-btn {
   width: 100%; padding: 8px; cursor: pointer; font-family: inherit;
   font-size: var(--fs-xs); font-weight: var(--fw-bold);
-  border-radius: var(--r-md); color: var(--d300);
+  border-radius: var(--r-md); color: var(--ink-muted);
   background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
   transition: background-color var(--t-fast), color var(--t-fast);
 }
@@ -1164,7 +1152,7 @@ body {
 :root[data-theme="light"] .ntf-foot-btn { background: rgba(16,24,40,0.04); }
 :root[data-theme="light"] .ntf-foot-btn:hover { background: rgba(16,24,40,0.07); }
 /* Nothing waiting is a real state and the best one this panel can report. */
-.ntf-empty { padding: 24px 12px; text-align: center; font-size: var(--fs-xs); color: var(--d500); }
+.ntf-empty { padding: 24px 12px; text-align: center; font-size: var(--fs-xs); color: var(--ink-muted); }
 
 /* The bell sits ~90px in from the window edge, so a 360px card anchored to
    it runs off the LEFT of the screen before the viewport is narrow enough
@@ -1191,7 +1179,7 @@ body {
   width: 34px; height: 34px; border-radius: var(--r-md);
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
-  color: var(--d400); cursor: pointer;
+  color: var(--ink-muted); cursor: pointer;
   transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
 .ds-theme-toggle:hover { border-color: var(--card-border-hover); color: var(--d50); }
@@ -1360,7 +1348,7 @@ body {
      the turn count against the middle of a wrapped question. */
   display: flex; align-items: flex-start; gap: 8px;
   min-height: 24px; padding: 8px; border-radius: var(--r-sm);
-  font-size: var(--fs-xs); color: var(--d300);
+  font-size: var(--fs-xs); color: var(--ink-muted);
   cursor: pointer; text-align: left; width: 100%;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
@@ -1525,7 +1513,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   color: var(--accent);
 }
 .drop-title { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); }
-.drop-sub { font-size: var(--fs-base); color: var(--d400); max-width: 40ch; line-height: var(--lh-base); }
+.drop-sub { font-size: var(--fs-base); color: var(--ink-muted); max-width: 40ch; line-height: var(--lh-base); }
 
 /* ═══════════════════════════════════════════════
    PROTOTYPE CONTROLS — not product UI.
@@ -1577,10 +1565,10 @@ body.is-calling { --fb-reserve: var(--call-width); }
   border-radius: var(--r-md);
   border: 1px dashed var(--d500);
   background: var(--panel-bg);
-  color: var(--d400); cursor: pointer;
+  color: var(--ink-muted); cursor: pointer;
   transition: color var(--t-fast), border-color var(--t-fast);
 }
-.proto-toggle:hover { color: var(--d100); border-color: var(--d400); }
+.proto-toggle:hover { color: var(--d100); border-color: var(--ink-muted); }
 .proto-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .proto-toggle svg { width: 16px; height: 16px; }
 .proto-panel {
@@ -1645,7 +1633,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   border-color: var(--accent); background: var(--accent-dim); color: var(--d50);
 }
 .s-view-n {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d500);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 .s-view.is-on .s-view-n { color: var(--accent-text); }
@@ -1665,20 +1653,20 @@ body.is-calling { --fb-reserve: var(--call-width); }
   position: sticky; top: -2px; z-index: 1;
   background: var(--panel-bg, var(--card-bg));
 }
-.dd-search svg { color: var(--d500); flex-shrink: 0; }
+.dd-search svg { color: var(--ink-muted); flex-shrink: 0; }
 .dd-search input {
   flex: 1; min-width: 0;
   background: none; border: 0; outline: none;
   font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
 }
-.dd-search input::placeholder { color: var(--d600); }
+.dd-search input::placeholder { color: var(--ink-muted); }
 /* DETACHED, not hidden: `display:none` would still leave it in the
    library's `.v2-dropdown-option` query, and arrow keys would walk through
    rows nobody can see. */
 .v2-dropdown-option.dd-off { display: none; }
 .dd-none {
   padding: 12px;
-  font-size: var(--fs-xs); color: var(--d500); font-style: italic;
+  font-size: var(--fs-xs); color: var(--ink-muted); font-style: italic;
 }
 .dd-none[hidden] { display: none; }
 
@@ -1686,7 +1674,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    open panel lines up and can be compared at a glance. */
 .s-dd-n {
   margin-left: auto; padding-left: 12px;
-  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d500);
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 .v2-dropdown-option.selected .s-dd-n { color: inherit; opacity: 0.7; }
@@ -1701,7 +1689,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: inline-flex; align-items: center; gap: 4px; height: 32px;
   padding: 0 12px; border-radius: var(--r-md); cursor: pointer;
   font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
-  color: var(--d400); background: none; border: 1px solid var(--card-border);
+  color: var(--ink-muted); background: none; border: 1px solid var(--card-border);
   white-space: nowrap;
   transition: color var(--t-fast), border-color var(--t-fast);
 }
@@ -1719,7 +1707,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-cal-field { display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--hairline); }
 .s-cal-field-label {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d500);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 .s-cal-field .seg { width: 100%; }
 .s-cal-field .seg-btn { flex: 1; }
@@ -1731,7 +1719,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .cal-day.in-range { background: rgba(var(--accent-rgb), 0.12); border-radius: 0; }
 .cal-day.range-start { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .cal-day.range-end { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.s-cal-hint { font-size: var(--fs-xs); color: var(--d500); margin-top: 8px; line-height: var(--lh-base); }
+.s-cal-hint { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 8px; line-height: var(--lh-base); }
 .s-cal-clear {
   margin-top: 8px; padding: 4px 8px; cursor: pointer;
   font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
@@ -1756,7 +1744,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .s-chip-clear {
   font-family: inherit; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--d400); cursor: pointer; padding: 4px 8px; border-radius: var(--r-xs);
+  color: var(--ink-muted); cursor: pointer; padding: 4px 8px; border-radius: var(--r-xs);
   transition: color var(--t-fast);
 }
 .s-chip-clear:hover { color: var(--d100); }
@@ -1793,7 +1781,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
      nudge for the 2px live border, and they put three values off the scale
      in one declaration. The border is compensated where it is drawn — by
      the -1px margin below — not by shaving a pixel off the padding. */
-  color: var(--d400); padding: 8px 16px; white-space: nowrap;
+  color: var(--ink-muted); padding: 8px 16px; white-space: nowrap;
   /* The rule is on the button, not on a pseudo-element of the strip, so the
      live tab keeps it while the strip's own hairline runs behind the rest —
      two borders on the same line, and the darker one wins where they meet. */
@@ -1805,8 +1793,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: var(--r-sm); }
 /* HOW MANY ARE BEHIND EACH TAB, BEFORE YOU PRESS IT. A tab that will not say
    its size is a door you have to open to find out whether it was worth it. */
-.s-tab-n { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--d500); font-variant-numeric: tabular-nums; }
-.s-tab.is-on .s-tab-n { color: var(--d300); }
+.s-tab-n { font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.s-tab.is-on .s-tab-n { color: var(--ink-muted); }
 /* THE VERB IS NOT IN THE STRIP. `.s-build` sat at the end of this row with
    `margin-left: auto`, and its rules outlived the control they styled —
    `css-audit` reads `.s-build-page` as covering `.s-build`, so a dead rule
@@ -1839,7 +1827,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 ═══════════════════════════════════════════════ */
 .s-result { margin-bottom: 20px; }
 /* The scope, when it is not a place you can press back into. */
-.s-scope-static { color: var(--d300); font-weight: var(--fw-semibold); }
+.s-scope-static { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 /* The way out of a narrowed list sits above its count, where a page's Back
    sits above its name — same position, same gesture, so it reads as the
    same thing on a surface that is not a page. */
@@ -1901,7 +1889,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-listhead-facts {
   width: 100%;
   display: flex; flex-wrap: wrap; gap: 4px 20px;
-  font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-relaxed);
+  font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-relaxed);
 }
 .s-lf { white-space: nowrap; }
 .s-listhead-facts b { color: var(--d100); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
@@ -1968,15 +1956,15 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-3xl); font-weight: var(--fw-extrabold); color: var(--d50);
   letter-spacing: var(--ls-tighter); line-height: var(--lh-tight);
 }
-.s-result-scope { font-size: var(--fs-sm); color: var(--d400); }
+.s-result-scope { font-size: var(--fs-sm); color: var(--ink-muted); }
 /* The separator is not a bullet and not a pipe: it joins two halves of one
    sentence rather than splitting a list. */
-.s-result-dot { color: var(--d600); font-size: var(--fs-sm); }
+.s-result-dot { color: var(--ink-muted); font-size: var(--fs-sm); }
 /* A pointer, not an alarm. The card borders already carry the alarm, and a
    red pill beside the count competes with the number it is qualifying. */
 .s-result-need {
   font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
-  color: var(--d400); cursor: pointer; padding: 2px 0;
+  color: var(--ink-muted); cursor: pointer; padding: 2px 0;
   border-bottom: 1px solid var(--d700);
   transition: color var(--t-fast), border-color var(--t-fast);
 }
@@ -1991,9 +1979,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; align-items: baseline; gap: 4px;
   margin-top: 12px; padding: 8px 12px;
   border: 1px solid var(--d700); border-radius: var(--r-md);
-  font-size: var(--fs-base); color: var(--d400); line-height: var(--lh-base);
+  font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base);
 }
-.s-disc-ico { flex: none; transform: translateY(2px); color: var(--d500); }
+.s-disc-ico { flex: none; transform: translateY(2px); color: var(--ink-muted); }
 .s-disc-text strong { color: var(--d200); font-weight: var(--fw-bold); }
 /* A client is not in a degraded state, they are in a bounded one — so the
    engagement is named in the accent rather than warned about in amber. */
@@ -2063,7 +2051,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   margin-left: 4px;
   font-size: var(--fs-sm); font-weight: var(--fw-regular); white-space: nowrap;
 }
-.s-prov.tone-muted  { color: var(--d400); }
+.s-prov.tone-muted  { color: var(--ink-muted); }
 .s-prov.tone-ok     { color: var(--ok-text); }
 .s-prov.tone-warn   { color: var(--warn-text); }
 /* `--accent-text`, not `--accent`: measured 3.77 dark / 4.29 light at this
@@ -2085,12 +2073,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px;
   padding: 12px 16px; margin-bottom: 12px;
   border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: var(--r-md);
-  font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
+  font-size: var(--fs-sm); color: var(--ink-muted); line-height: var(--lh-base);
 }
 .s-run-st { font-weight: var(--fw-semibold); }
 
 .s-task-nums { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px; }
-.s-task-num { font-size: var(--fs-xs); color: var(--d400); }
+.s-task-num { font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-task-num b {
   display: block; font-family: var(--font-display);
   font-size: var(--fs-lg); font-weight: var(--fw-extrabold); color: var(--d100);
@@ -2100,7 +2088,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Skipped is neither done nor left. Folding it into either would make the
    figures stop adding up to the run they describe. */
 .s-task-num.is-skip b { color: var(--warn); }
-.s-task-num.is-left b { color: var(--d400); }
+.s-task-num.is-left b { color: var(--ink-muted); }
 
 /* ══ WHAT A SESSION CAME TO ═══════════════════════════════════════════════
 
@@ -2114,7 +2102,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    last turn of the session's own thread. One gap rather than a margin-top
    per child, so it does not need a different first-child rule in each. */
 .s-sess { display: flex; flex-direction: column; gap: 12px; }
-.s-sess-head { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
+.s-sess-head { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 .s-sess-head b {
   font-family: var(--font-display); font-weight: var(--fw-extrabold);
   color: var(--d100); font-variant-numeric: tabular-nums;
@@ -2152,9 +2140,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-sess-cap {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
-.s-sess-say { font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base); }
+.s-sess-say { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 
 /* One call and its log. The name and the disposition read as a heading over
    the card rather than as a row of the card, which is what keeps a run of
@@ -2162,11 +2150,11 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-sess-call { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .s-sess-call + .s-sess-call { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
 .s-sess-call-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-.s-sess-skip-say { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
-.s-task-next { margin-top: 8px; font-size: var(--fs-xs); color: var(--d400); }
+.s-sess-skip-say { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
+.s-task-next { margin-top: 8px; font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-task-block { margin-bottom: 16px; }
 .s-task-choice { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.s-work-p { font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base); }
+.s-work-p { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 .s-work-note { margin-bottom: 12px; }
 
 /* The count on the Running tab. Work that has stopped and is waiting on
@@ -2184,7 +2172,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: var(--d900);
 }
 .s-basis-title {
-  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d500);
+  font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: var(--ls-wide); margin-bottom: 8px;
 }
 .s-basis-row {
@@ -2192,8 +2180,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
   font-size: var(--fs-xs); line-height: var(--lh-base);
 }
 .s-basis-row + .s-basis-row { margin-top: 8px; }
-.s-basis-what { flex: none; width: 160px; color: var(--d500); }
-.s-basis-val { color: var(--d300); }
+.s-basis-what { flex: none; width: 160px; color: var(--ink-muted); }
+.s-basis-val { color: var(--ink-muted); }
 
 .s-draft {
   width: 100%; resize: vertical; margin-top: 8px;
@@ -2214,7 +2202,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-enrich-what { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200); }
 .s-enrich-val { grid-area: val; width: 100%; }
 .s-enrich-take { grid-area: take; align-self: center; }
-.s-enrich-src { grid-area: src; font-size: var(--fs-xs); color: var(--d500); }
+.s-enrich-src { grid-area: src; font-size: var(--fs-xs); color: var(--ink-muted); }
 
 .s-slots { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 
@@ -2228,7 +2216,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   margin-top: 12px; padding: 8px 12px;
   border-radius: var(--r-md); background: var(--d800); border: 1px solid var(--d700);
-  font-size: var(--fs-sm); color: var(--d300);
+  font-size: var(--fs-sm); color: var(--ink-muted);
 }
 .s-arch-st {
   font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
@@ -2241,14 +2229,14 @@ body.is-calling { --fb-reserve: var(--call-width); }
 
 .s-readonly {
   display: flex; align-items: baseline; gap: 4px; margin-top: 16px;
-  font-size: var(--fs-xs); color: var(--d500);
+  font-size: var(--fs-xs); color: var(--ink-muted);
 }
 .s-readonly .s-disc-ico { transform: translateY(2px); }
 
 /* A record that would not open. It is not an error — nothing went wrong —
    so it takes the empty state's shape rather than the error screen's, with
    the lock as the one signal that this is a boundary and not an absence. */
-.s-denied .s-disc-ico { width: 20px; height: 20px; color: var(--d500); margin-bottom: 12px; }
+.s-denied .s-disc-ico { width: 20px; height: 20px; color: var(--ink-muted); margin-bottom: 12px; }
 .s-denied .btn { margin-top: 16px; }
 
 /* ── Looking as ──
@@ -2269,17 +2257,17 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .as-name { font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--d100); }
 /* The rule, not the label. Which tier somebody is in tells you nothing;
    what that tier can see is the whole content of the choice. */
-.as-rule { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-base); }
+.as-rule { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 .as-you {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--accent);
   text-transform: uppercase; letter-spacing: var(--ls-wide);
 }
 .as-tier {
-  flex: none; font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--d500);
+  flex: none; font-size: var(--fs-2xs); font-weight: var(--fw-bold); color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: var(--ls-wide);
   padding: 2px 8px; border-radius: var(--r-sm); border: 1px solid var(--d700);
 }
-.as-note { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-base); }
+.as-note { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 /* The scope switch is a filter wearing a segmented control, so it sits at the
    weight of the chips beside it rather than the weight of the view switcher. */
 
@@ -2292,7 +2280,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: inline-flex; align-items: center; gap: 4px; height: 32px;
   padding: 0 12px; border-radius: var(--r-md); cursor: pointer;
   font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
-  color: var(--d400); background: none; border: 1px solid var(--card-border);
+  color: var(--ink-muted); background: none; border: 1px solid var(--card-border);
   transition: color var(--t-fast), border-color var(--t-fast);
 }
 .s-more-btn:hover { color: var(--d50); border-color: var(--card-border-hover); }
@@ -2335,7 +2323,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 .s-cal-dates { font-variant-numeric: tabular-nums; }
 .s-cal-axis-said { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--d50); }
-.s-cal-why { font-size: var(--fs-base); color: var(--d500); margin-top: 2px; line-height: var(--lh-base); }
+.s-cal-why { font-size: var(--fs-base); color: var(--ink-muted); margin-top: 2px; line-height: var(--lh-base); }
 /* The campaign's name in the sentence IS the way into its brief. */
 .s-scope-link {
   font-family: inherit; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
@@ -2616,7 +2604,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   /* Was a bare `13px`. The value is right and the literal was not: a size
      written outside the scale is a size the scale cannot move. */
   flex: 1 1 auto; min-width: 0;
-  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base);
 }
 /* The status is the card's one computed claim, so it never shrinks and never
    wraps — it is the thing the eye is looking for. */
@@ -2643,7 +2631,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; align-items: flex-start; gap: 8px; flex-wrap: nowrap;
   padding: 8px 16px;
   border-top: 1px solid var(--hairline);
-  font-size: var(--fs-xs); font-weight: 500; color: var(--d400);
+  font-size: var(--fs-xs); font-weight: 500; color: var(--ink-muted);
   line-height: var(--lh-relaxed);
 }
 /* THE RUN IS THE THING THAT GIVES WAY. Three facts and two separators used
@@ -2690,7 +2678,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
   border-radius: var(--r-pill);
   border: 1px solid transparent;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
   white-space: nowrap; vertical-align: middle;
 }
 /* ══ THE DOT IS GONE ══════════════════════════════════════════════════════
@@ -2715,7 +2702,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-meta-st.tone-err   { color: var(--err-text);  background: var(--err-bg); }
 .s-meta-st.tone-warn  { color: var(--warn-text); background: var(--warn-bg); }
 .s-meta-st.tone-ok    { color: var(--ok-text);   background: var(--ok-bg); }
-.s-meta-st.tone-neutral { color: var(--d300); background: var(--card-bg-raised); }
+.s-meta-st.tone-neutral { color: var(--ink-muted); background: var(--card-bg-raised); }
 
 /* ══ SKIPPED IS NOT A STATUS, AND MUST NOT LOOK LIKE ONE ══════════════════
 
@@ -2746,7 +2733,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    leaving it. Quiet: it is provenance, not a status. */
 .s-icp {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: var(--ls-wide);
-  color: var(--d500); cursor: pointer;
+  color: var(--ink-muted); cursor: pointer;
   border: 1px solid var(--card-border); border-radius: var(--r-xs);
   padding: 2px 4px;
   transition: color var(--t-fast), border-color var(--t-fast);
@@ -2790,7 +2777,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-back {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--fs-sm); font-weight: var(--fw-semibold);
-  color: var(--d400); cursor: pointer; padding: 4px 0; margin-bottom: 12px;
+  color: var(--ink-muted); cursor: pointer; padding: 4px 0; margin-bottom: 12px;
   transition: color var(--t-fast);
 }
 .s-back:hover { color: var(--d50); }
@@ -2801,7 +2788,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-rec-kind {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-rec-kind svg { width: 12px; height: 12px; }
 /* ══ THE MASTHEAD ══════════════════════════════════════════════════════════
@@ -2881,7 +2868,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* History states its size and stays shut. Open, it is the longest thing on
    the page; closed, it is one line that says whether opening is worth it. */
 .s-rec-hist-sum {
-  font-size: var(--fs-sm); color: var(--d400); cursor: pointer;
+  font-size: var(--fs-sm); color: var(--ink-muted); cursor: pointer;
   list-style: none; display: inline-flex; align-items: center; gap: 4px;
   min-height: 24px;
 }
@@ -2896,7 +2883,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-rec-hist-sum:hover { color: var(--d200); }
 .s-rec-hist-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
 .s-rec-hist[open] .s-timeline { margin-top: 12px; }
-.s-rec-because { font-size: var(--fs-sm); color: var(--d400); }
+.s-rec-because { font-size: var(--fs-sm); color: var(--ink-muted); }
 
 /* Under 900px the caption goes above its content. A 112px column against a
    200px content column is not a two-column layout, it is a squeeze. */
@@ -3174,13 +3161,13 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-flag.is-obstacle { border-left-color: var(--warn); }
 .s-flag.is-opportunity { border-left-color: var(--ok); }
 .s-flag-name { font-size: var(--fs-xs); font-weight: var(--fw-bold); flex-shrink: 0; }
-.s-flag-why { font-size: var(--fs-xs); color: var(--d400); min-width: 0; }
+.s-flag-why { font-size: var(--fs-xs); color: var(--ink-muted); min-width: 0; }
 /* Last, quiet, and only ink — the line is about the fact, not about the
    control for putting it away. */
 .s-flag-x {
   margin-left: auto; flex-shrink: 0;
   font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--d500); cursor: pointer; padding: 2px 4px;
+  color: var(--ink-muted); cursor: pointer; padding: 2px 4px;
   border-radius: var(--r-xs);
   transition: color var(--t-fast), background-color var(--t-fast);
 }
@@ -3200,7 +3187,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the 8px between facts inside one, so a rank reads as a group. */
 .s-rec-facts { display: flex; flex-direction: column; gap: 4px; line-height: var(--lh-base); }
 .s-rec-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
-.s-rec-facts span + span::before { content: '·'; color: var(--d600); margin-right: 8px; }
+.s-rec-facts span + span::before { content: '·'; color: var(--ink-muted); margin-right: 8px; }
 /* The two figures every ICP is written against. The only thing in the block
    that is bigger, heavier and brighter than the rest — which is also what
    lets a qualifier sit beside one without needing a box to be seen.
@@ -3273,8 +3260,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-block { padding-top: 24px; margin-bottom: 0; border-top: 1px solid var(--hairline); }
 .s-block:first-of-type { border-top: 0; padding-top: 0; }
 .s-block + .s-block { margin-top: 24px; }
-.s-block-sub { font-size: var(--fs-xs); color: var(--d500); line-height: var(--lh-base); }
-.s-none { font-size: var(--fs-base); color: var(--d500); }
+.s-block-sub { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
+.s-none { font-size: var(--fs-base); color: var(--ink-muted); }
 /* ══ THE TEXT ACTION ═══════════════════════════════════════════════════════
 
    THE "BLUE UNDERLINED LINK" COMPLAINT, AND IT WAS THREE FAULTS AT ONCE.
@@ -3328,9 +3315,9 @@ body.is-calling { --fb-reserve: var(--call-width); }
    The underline goes with the hover, because an underline that appears
    under a control which does nothing is the affordance lying twice. */
 .s-inline-btn[disabled] {
-  color: var(--d500); cursor: not-allowed; text-decoration: none;
+  color: var(--ink-muted); cursor: not-allowed; text-decoration: none;
 }
-.s-inline-btn[disabled]:hover { color: var(--d500); text-decoration: none; }
+.s-inline-btn[disabled]:hover { color: var(--ink-muted); text-decoration: none; }
 
 .s-people { display: flex; flex-direction: column; gap: 2px; }
 .s-person {
@@ -3343,12 +3330,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-person:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .s-person-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-person-name { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--d50); }
-.s-person-role { font-size: var(--fs-xs); color: var(--d500); }
+.s-person-role { font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-person-st { margin-left: auto; font-size: var(--fs-xs); flex-shrink: 0; }
 
 .s-reach { display: flex; flex-direction: column; gap: 4px; }
 .s-reach-row { display: flex; align-items: center; gap: 12px; }
-.s-reach-what { font-size: var(--fs-xs); color: var(--d500); width: 60px; flex-shrink: 0; }
+.s-reach-what { font-size: var(--fs-xs); color: var(--ink-muted); width: 60px; flex-shrink: 0; }
 /* ── An address is not code ──
    Phone, email and LinkedIn were set in JetBrains Mono, which said "literal
    string, read it character by character" about three values nobody reads
@@ -3360,12 +3347,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-camps { display: flex; flex-wrap: wrap; gap: 4px; }
 .s-camp { cursor: pointer; }
 .s-camp:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-share { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--d400); }
+.s-share { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-muted); }
 .s-share-own { display: inline-flex; align-items: center; gap: 4px; color: var(--d100); }
-.s-share-with { color: var(--d400); }
+.s-share-with { color: var(--ink-muted); }
 /* "Nour Wael owns it" — the name is the fact, the verb qualifies it, so they
    are ranked rather than set as one run at one weight. */
-.s-share-role { color: var(--d400); }
+.s-share-role { color: var(--ink-muted); }
 
 /* What Knowledge holds: four rows at most, each naming one object. It was a
    single wrapped sentence, on the argument that a lead page is not a place to
@@ -3376,7 +3363,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; align-items: flex-start; gap: 8px;
   padding: 12px 16px;
   border: 1px solid var(--d700); border-radius: var(--r-md);
-  font-size: var(--fs-sm); color: var(--d300); line-height: var(--lh-base);
+  font-size: var(--fs-sm); color: var(--ink-muted); line-height: var(--lh-base);
 }
 .s-kbline-mark { flex: none; color: var(--ai-text); transform: translateY(2px); }
 .s-kbline-list { flex: 1 1 auto; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
@@ -3387,16 +3374,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* Borrowed from the Knowledge line when both were one wrapped sentence, and
    named after it long after only the running-work line still ran that way. */
 .s-runline-text { flex: 1 1 auto; min-width: 200px; }
-.s-runline-sep { color: var(--d600); }
+.s-runline-sep { color: var(--ink-muted); }
 /* What kind of thing it is — quieter than the title it qualifies. */
-.s-kbline-kind { color: var(--d400); }
+.s-kbline-kind { color: var(--ink-muted); }
 
 /* A review that has been asked for stops being a control and says who asked
    and when — the same move `.cite-action.is-flagged` makes for a report, and
    for the same reason: a live button on a request already sent invites
    sending it twice. */
 .s-kb-card .is-asked {
-  background: none; border-color: var(--card-border); color: var(--d500);
+  background: none; border-color: var(--card-border); color: var(--ink-muted);
   cursor: default; pointer-events: none;
 }
 /* The two card actions wrap rather than squeeze in a 400px rail. */
@@ -3442,7 +3429,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 /* The skip line is mandatory, not decoration: an operation that silently
    no-ops on part of its scope reports a success nobody has reason to
    distrust. */
-.s-effect.is-skip::before { content: "–"; color: var(--d500); }
+.s-effect.is-skip::before { content: "–"; color: var(--ink-muted); }
 .s-effect.is-skip { color: var(--d200); }
 
 .s-pick { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
@@ -3739,7 +3726,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .rail-scope { display: flex; flex-direction: column; gap: 2px; }
 .rail-scope-cap {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
-  text-transform: uppercase; color: var(--d400);
+  text-transform: uppercase; color: var(--ink-muted);
 }
 .rail-scope-name {
   font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50);
@@ -3782,7 +3769,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .rail-row.tone-err  { border-left-color: var(--err); }
 .rail-row.tone-warn { border-left-color: var(--warn); }
 .rail-row.tone-ok   { border-left-color: var(--ok); }
-.rail-row-say { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); }
+.rail-row-say { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 /* An agenda row carries a work state; a finding does not. The chip sits
    above the sentence rather than beside it because at 320px a chip and a
    sentence on one line leaves the sentence about 190px, which is four words
@@ -3831,7 +3818,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   line-height: var(--lh-tight); letter-spacing: var(--ls-tight);
   color: var(--d50); font-variant-numeric: tabular-nums;
 }
-.rail-fig-cap { font-size: var(--fs-xs); color: var(--d400); flex: 1 1 auto; }
+.rail-fig-cap { font-size: var(--fs-xs); color: var(--ink-muted); flex: 1 1 auto; }
 .rail-fig-trend {
   font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
   color: var(--ok); font-variant-numeric: tabular-nums;
@@ -3856,7 +3843,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    to do — and without a caption each they read as one long run of chips. */
 .s-ans-cap {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
   margin: 16px 0 8px;
 }
 .s-ans-cap:first-of-type { margin-top: 12px; }
@@ -3917,7 +3904,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-sell-kind {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); min-width: 64px; flex-shrink: 0;
+  color: var(--ink-muted); min-width: 64px; flex-shrink: 0;
 }
 .s-sell-name { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d50); }
 
@@ -4380,7 +4367,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   color: var(--d50); font-variant-numeric: tabular-nums;
 }
 .s-metric-cap { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200); }
-.s-metric-sub { font-size: var(--fs-xs); color: var(--d500); }
+.s-metric-sub { font-size: var(--fs-xs); color: var(--ink-muted); }
 /* Tone tints the ground, not the figure: a red number reads as an error in
    the number rather than as a fact about the thing it counts. */
 .s-metric.tone-ok { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
@@ -4472,7 +4459,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .s-water-field { display: flex; flex-direction: column; gap: 8px; }
 .s-water-head { display: flex; align-items: baseline; gap: 8px; }
 .s-water-name { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
-.s-water-n { font-size: var(--fs-2xs); color: var(--d500); }
+.s-water-n { font-size: var(--fs-2xs); color: var(--ink-muted); }
 .s-water-chain { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; }
 .s-water-step {
   display: flex; align-items: baseline; gap: 8px;
@@ -4480,18 +4467,18 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: var(--card-bg);
 }
 .s-water-i {
-  font-size: var(--fs-2xs); font-weight: var(--fw-extrabold); color: var(--d500);
+  font-size: var(--fs-2xs); font-weight: var(--fw-extrabold); color: var(--ink-muted);
   font-variant-numeric: tabular-nums; flex-shrink: 0;
 }
 .s-water-p { font-size: var(--fs-xs); color: var(--d200); min-width: 0; }
-.s-water-hit { margin-left: auto; flex-shrink: 0; font-size: var(--fs-xs); color: var(--d500); }
+.s-water-hit { margin-left: auto; flex-shrink: 0; font-size: var(--fs-xs); color: var(--ink-muted); }
 
 /* ── Organizations and contacts ──
    A count, an insight, and a handful of names. Names as chips rather than
    cards: they are evidence for the sentence above them, not things to be
    read one by one — which is the distinction that keeps this block from
    becoming the inventory it replaced. */
-.s-group-count { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); max-width: 72ch; }
+.s-group-count { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); max-width: 72ch; }
 .s-group-count b { color: var(--d50); font-variant-numeric: tabular-nums; }
 
 /* `.s-camp-count` was the blocked figure, set in the caption step at the far
@@ -4952,7 +4939,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    "AiMY drafted" and "Lina wrote" are different claims. */
 .s-qrow-lead {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-qrow-none { color: var(--warn); }
 /* Two rows, and the Call button stands beside both. */
@@ -5328,8 +5315,8 @@ body.is-calling { --fb-reserve: var(--call-width); }
    thing rather than three lines. */
 .call-who-block { display: flex; flex-direction: column; }
 .call-name { font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50); line-height: var(--lh-tight); }
-.call-sub { font-size: var(--fs-xs); color: var(--d400); margin-top: 4px; }
-.call-num { font-size: var(--fs-xs); color: var(--d500); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.call-sub { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 4px; }
+.call-num { font-size: var(--fs-xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
 
 /* ══ IT RINGS BEFORE IT IS LIVE ═══════════════════════════════════════════
 
@@ -5356,7 +5343,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
 .call-of {
   margin-left: auto; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--d500); font-variant-numeric: tabular-nums; line-height: 16px;
+  color: var(--ink-muted); font-variant-numeric: tabular-nums; line-height: 16px;
 }
 
 /* PP THE BRIEF AND THE RUN CONTROLS LEFT THIS PANEL PPPPPPPPPPPPPPPPPPPPPPP
@@ -5419,12 +5406,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
   display: flex; flex-direction: column; gap: 8px;
 }
 .call-line { font-size: var(--fs-base); color: var(--d200); line-height: var(--lh-relaxed); }
-.call-line.is-them { color: var(--d300); }
+.call-line.is-them { color: var(--ink-muted); }
 .call-who {
-  display: block; font-weight: var(--fw-bold); color: var(--d500);
+  display: block; font-weight: var(--fw-bold); color: var(--ink-muted);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
 }
-.call-none { font-size: var(--fs-base); color: var(--d600); line-height: var(--lh-relaxed); }
+.call-none { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-relaxed); }
 .call-note-field { display: flex; flex-direction: column; gap: 4px; }
 
 /* ── The handlers: round icon targets, centred, in the order every phone
@@ -5509,7 +5496,7 @@ body.is-calling .overlay-chats { display: none; }
 
 /* The brief AiMY writes before the call. */
 .s-brief-call { display: flex; flex-direction: column; gap: 8px; }
-.s-callp { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); }
+.s-callp { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 
 /* ══ THE RUN, ON THE BRIEF THAT BELONGS TO IT ═════════════════════════════
 
@@ -5527,16 +5514,16 @@ body.is-calling .overlay-chats { display: none; }
   margin-top: 16px; padding-left: 12px;
   border-left: 2px solid var(--accent);
 }
-.s-brief-run-say { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); }
+.s-brief-run-say { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); }
 .s-brief-run-say b { color: var(--d100); font-variant-numeric: tabular-nums; }
 .s-brief-run-acts { display: flex; flex-wrap: wrap; gap: 12px; }
 .s-callp b {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 /* Who said to remember it. Quieter than the line, because the judgement is
    the thing you read and the attribution is what you check afterwards. */
-.s-callp-who { color: var(--d500); }
+.s-callp-who { color: var(--ink-muted); }
 /* PP THE FORM THAT USED TO BE HERE PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 
    `.s-obj-pick`, `.s-obj-chip`, `.s-obj-name`, `.s-obj-tick`, `.s-opp-tick`,
@@ -5567,7 +5554,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-callsum-cap {
   flex: 0 0 96px; text-align: right;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-callsum-val { font-size: var(--fs-xs); color: var(--d100); min-width: 0; }
 /* What was said, in the caller's words — the longest thing here and the one
@@ -5600,11 +5587,11 @@ body.is-calling .overlay-chats { display: none; }
   cursor: pointer; list-style: none;
 }
 .s-call-sum::-webkit-details-marker { display: none; }
-.s-call-sum::before { content: "▸ "; color: var(--d500); }
+.s-call-sum::before { content: "▸ "; color: var(--ink-muted); }
 .s-call[open] .s-call-sum::before { content: "▾ "; }
 .s-call-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-md); }
 .s-call-when { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
-.s-call-by { font-size: var(--fs-xs); color: var(--d400); }
+.s-call-by { font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-call-by.is-ai { color: var(--ai-text); font-weight: var(--fw-bold); }
 /* How it went carries the tone, because it is the one fact on the line that
    is good or bad news rather than a label. */
@@ -5614,7 +5601,7 @@ body.is-calling .overlay-chats { display: none; }
 /* Who was called. First in the closed line and the only bold thing in it,
    because on an account it is what tells two calls apart. */
 .s-call-who { font-weight: var(--fw-semibold); color: var(--d100); }
-.s-call-ago { margin-left: auto; font-size: var(--fs-2xs); color: var(--d500); }
+.s-call-ago { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-muted); }
 .s-call-body {
   display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline);
@@ -5771,7 +5758,7 @@ body.is-calling .overlay-chats { display: none; }
    rather than competing with it. Wraps rather than truncating: a name cut in
    half is worse than a second line. */
 .s-door-peek {
-  font-size: var(--fs-xs); color: var(--d400);
+  font-size: var(--fs-xs); color: var(--ink-muted);
   line-height: var(--lh-base);
 }
 .s-door:hover { border-color: var(--card-border-hover); background: var(--accent-dim); }
@@ -5781,7 +5768,7 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-lg); font-weight: var(--fw-extrabold); color: var(--d50);
   font-variant-numeric: tabular-nums; letter-spacing: var(--ls-tight);
 }
-.s-door-label { font-size: var(--fs-xs); color: var(--d300); }
+.s-door-label { font-size: var(--fs-xs); color: var(--ink-muted); }
 /* `Close` is the only thing on the right of the strip now — `Find companies`
    sat beside it and was a write in the navigation. */
 .s-tab-shut { margin-left: auto; }
@@ -5853,7 +5840,7 @@ body.is-calling .overlay-chats { display: none; }
    it is and how long it has been theirs are two facts, and letting the first
    repaint the second would merge them into one. */
 .s-camp-row-when { margin-left: 8px; color: var(--warn); font-weight: var(--fw-semibold); }
-.s-camp-row-go { width: 13px; height: 13px; color: var(--d600); flex: none; }
+.s-camp-row-go { width: 13px; height: 13px; color: var(--ink-muted); flex: none; }
 .s-camp-row:hover .s-camp-row-go { color: var(--accent); }
 /* Under 900 the reason is the first thing to go — the name and the stage are
    what the row is for, and a truncated reason is worse than none. */
@@ -5884,7 +5871,7 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100);
   min-width: 0;
 }
-.s-flight-fact { margin-left: auto; flex-shrink: 0; font-size: var(--fs-xs); color: var(--d500); }
+.s-flight-fact { margin-left: auto; flex-shrink: 0; font-size: var(--fs-xs); color: var(--ink-muted); }
 
 /* ── The chips ──
    A count on the face of every one, so what is worth pressing is legible
@@ -5920,7 +5907,7 @@ body.is-calling .overlay-chats { display: none; }
 }
 /* Last, quiet, and to the right: the gap is what qualifies the paragraph,
    not what introduces it. */
-.slv-time { margin-left: auto; font-size: var(--fs-xs); color: var(--d500); }
+.slv-time { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-muted); }
 /* The score panel that sat to the right of this paragraph is in the rail
    now — it was a STANDING figure inside a block about the last three days,
    and the rail was already carrying an identical copy of it. What is left is
@@ -6005,7 +5992,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-starts-cap {
   display: block; margin-bottom: 12px;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 /* Declared columns, not `auto-fit`. Four openers in a row that reflows to
    two is four; one that reflows to three leaves a widow, and the reason
@@ -6028,7 +6015,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-start-label { font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--d50); }
 /* The reason is what stops this being a menu, so it is not decoration and it
    does not truncate — it wraps. */
-.s-start-why { font-size: var(--fs-base); color: var(--d400); line-height: var(--lh-base); }
+.s-start-why { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 
 .s-brief { display: flex; flex-direction: column; gap: 16px; }
 /* The work-state chip leads, and it leads on ITS OWN LINE. A dot encoded
@@ -6117,7 +6104,7 @@ body.is-calling .overlay-chats { display: none; }
   font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
   letter-spacing: var(--ls-tight);
 }
-.s-work-lede { font-size: var(--fs-base); color: var(--d400); line-height: var(--lh-base); margin-bottom: 12px; max-width: 65ch; }
+.s-work-lede { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); margin-bottom: 12px; max-width: 65ch; }
 .s-work-body {
   margin-bottom: 16px;
   /* `min-height: 0` because a flex item's default `auto` refuses to shrink
@@ -6145,7 +6132,7 @@ body.is-calling .overlay-chats { display: none; }
 .s-work-evidence { margin-bottom: 16px; }
 .s-work-ev-h {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--d500);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
   margin-bottom: 8px;
 }
 .s-seed-list { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
@@ -6155,7 +6142,7 @@ body.is-calling .overlay-chats { display: none; }
    proposal rather than as somebody else's decision. */
 .s-seed-say {
   display: flex; align-items: flex-start; gap: 8px;
-  font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base);
+  font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base);
   margin-bottom: 20px; max-width: 72ch;
 }
 .s-seed-say .s-insight-mark { width: 14px; height: calc(var(--fs-base) * var(--lh-base)); flex: none; }
@@ -6180,7 +6167,7 @@ body.is-calling .overlay-chats { display: none; }
    introduce them. Hidden under 520px, where a two-column row stops being one. */
 .s-seed-con-why {
   margin-left: auto; flex: none; text-align: right;
-  font-size: var(--fs-base); color: var(--d400); max-width: 22ch;
+  font-size: var(--fs-base); color: var(--ink-muted); max-width: 22ch;
 }
 @media (max-width: 441.98px) { /* 520 layout px */ .s-seed-con-why { display: none; } }
 
@@ -6215,8 +6202,8 @@ body.is-calling .overlay-chats { display: none; }
 button.s-ans-name { cursor: pointer; }
 button.s-ans-name:hover { color: var(--accent); }
 button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-ans-sub { color: var(--d500); font-weight: var(--fw-regular); font-size: var(--fs-xs); }
-.s-ans-fact { margin-left: auto; font-size: var(--fs-xs); color: var(--d400); text-align: right; font-variant-numeric: tabular-nums; }
+.s-ans-sub { color: var(--ink-muted); font-weight: var(--fw-regular); font-size: var(--fs-xs); }
+.s-ans-fact { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-muted); text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ── Who is worth ringing, in the canvas ──
    Two lines and a phone. Name and role on the first, the reason on the
@@ -6239,7 +6226,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 /* The reason spans the name column only, under it — a why that sat beside
    the name pushed the phone off the row at the canvas's width. */
 .s-call-why {
-  grid-column: 1; font-size: var(--fs-xs); color: var(--d400);
+  grid-column: 1; font-size: var(--fs-xs); color: var(--ink-muted);
   line-height: var(--lh-base); min-width: 0;
 }
 /* The phone spans both rows, so it is one target beside the person rather
@@ -6290,15 +6277,15 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-when-date { width: 100%; color-scheme: dark light; }
 
 /* A refusal that offers somewhere to go. */
-.s-ans-none, .s-ans-lede { font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base); }
+.s-ans-none, .s-ans-lede { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
 .s-ans-try { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; }
-.s-ans-note { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-base); margin-top: 12px; }
+.s-ans-note { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); margin-top: 12px; }
 /* A number with no way to see behind it is the same unsourced confidence
    this product exists to remove, wearing a more objective face. */
 .s-ans-cite {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline);
-  font-size: var(--fs-xs); color: var(--d500);
+  font-size: var(--fs-xs); color: var(--ink-muted);
 }
 .s-ans-cite .cite-action { margin-left: auto; }
 
@@ -6334,7 +6321,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .tone-err { color: var(--err-text); }
 .tone-warn { color: var(--warn-text); }
 .tone-ok { color: var(--ok-text); }
-.tone-neutral { color: var(--d400); }
+.tone-neutral { color: var(--ink-muted); }
 
 /* 2275 characters of docked-rail CSS removed — .app-talk, its widths and
    breakpoints, body.is-docked, and the rail's own head and close button.
@@ -6371,13 +6358,13 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    else — including the campaign lifecycle in the rail, which is 220px wide
    and genuinely does want the smaller setting. */
 .s-timeline .tl-title { font-size: var(--fs-base); }
-.s-timeline .tl-body  { font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base); }
-.s-timeline .tl-time  { font-size: var(--fs-xs); color: var(--d500); }
-.s-touch-who { color: var(--d500); font-weight: var(--fw-regular); }
+.s-timeline .tl-body  { font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base); }
+.s-timeline .tl-time  { font-size: var(--fs-xs); color: var(--ink-muted); }
+.s-touch-who { color: var(--ink-muted); font-weight: var(--fw-regular); }
 /* AiMY's own work is never disguised as the rep's. The --ai gradient is the
    library's marker for an AI actor and the avatar gradient is its marker for
    a human; they are not interchangeable. */
-.s-touch-by { color: var(--d300); font-weight: var(--fw-semibold); }
+.s-touch-by { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 /* Same correction as the AiMY controls: the AI blue is a TEXT token, and
    the gradient clipped to type starts below the contrast floor. The marker
    still reads as AiMY's — it is the only blue name in a column of grey
@@ -6388,11 +6375,11 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    step up from the rest of the meta line because it is the only part of it
    that is a REASON rather than a label — and it appears on a minority of
    rows, so it has to be findable among them. */
-.s-touch-why { color: var(--d400); font-style: italic; }
+.s-touch-why { color: var(--ink-muted); font-style: italic; }
 
 .s-trace { margin-top: 8px; }
 .s-trace-sum {
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d500);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
   cursor: pointer; list-style: none; padding: 2px 0;
   transition: color var(--t-fast);
 }
@@ -6401,7 +6388,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    into a sentence, so "Transcript" stays the label and the number stays the
    qualifier. Same shape as `.s-tab-n` and `.s-view-n`. */
 .s-trace-n {
-  margin-left: 8px; font-size: var(--fs-2xs); color: var(--d500);
+  margin-left: 8px; font-size: var(--fs-2xs); color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 .s-trace-sum::before { content: "▸ "; }
@@ -6449,7 +6436,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-cb-hint {
   margin-top: 8px; padding-left: 12px;
   border-left: 2px solid var(--accent);
-  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base);
   max-width: 60ch;
 }
 /* ══ A QUESTION THAT SHOWS ITS WORKING ════════════════════════════════════
@@ -6489,7 +6476,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 }
 .s-cb-opt.is-quiet:hover { color: var(--ink-primary); background: none; border-color: var(--card-border); }
 .s-cb-opt.is-spent {
-  cursor: default; color: var(--d600);
+  cursor: default; color: var(--ink-muted);
   border-color: transparent; background: none;
 }
 
@@ -6570,7 +6557,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
   padding: 8px 12px; border-radius: var(--r-md);
   background: var(--card-bg-raised);
   border: 1px solid rgba(var(--accent-rgb), 0.22);
-  font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base);
+  font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base);
 }
 .s-change-mark { color: var(--accent); font-weight: var(--fw-bold); flex-shrink: 0; }
 .s-change-text { min-width: 0; }
@@ -6604,7 +6591,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-work-cancel {
   min-height: 24px; padding: 0 var(--sp-2); margin-right: auto;
   border: 0; background: none; cursor: pointer;
-  font: inherit; font-size: var(--fs-xs); color: var(--d500);
+  font: inherit; font-size: var(--fs-xs); color: var(--ink-muted);
 }
 .s-work-cancel:hover { color: var(--d200); text-decoration: underline; text-underline-offset: 3px; }
 .s-work-actions.has-alt { flex-wrap: wrap; }
@@ -6695,9 +6682,9 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 /* The second line, spanning all three columns under the name. */
 .s-camprow-at {
   grid-column: 1 / -1;
-  font-size: var(--fs-xs); color: var(--d300);
+  font-size: var(--fs-xs); color: var(--ink-muted);
 }
-.s-camprow-sep { color: var(--d600); }
+.s-camprow-sep { color: var(--ink-muted); }
 .s-camprow-add { align-self: flex-start; margin-top: 4px; }
 /* ══ A CONTROL YOU CANNOT SEE IS NOT RESTRAINT ══════════════════════════
    `--d600` measured 2.51:1 — the same near-invisible value the empty states
@@ -6707,7 +6694,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    hover to `--err` is what says it removes. */
 .s-camp-out {
   width: 20px; min-height: 24px; margin-left: -2px;
-  font-family: inherit; font-size: var(--fs-sm); color: var(--d400); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-sm); color: var(--ink-muted); cursor: pointer;
   transition: color var(--t-fast);
 }
 .s-camp-out:hover { color: var(--err); }
@@ -6721,7 +6708,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
    jobs look different for no reason. */
 .s-touch-note {
   margin-top: 8px; padding: 8px;
-  font-size: var(--fs-base); color: var(--d300); line-height: var(--lh-base);
+  font-size: var(--fs-base); color: var(--ink-muted); line-height: var(--lh-base);
   background: var(--card-bg-raised);
   border-radius: var(--r-xs);
 }
@@ -6753,7 +6740,7 @@ button.s-ans-name:focus-visible { outline: 2px solid var(--brand); outline-offse
 .s-edit:hover .s-edit-pen { opacity: 0.9; color: var(--accent); }
 /* An absent value still has to be a target, so it says what is missing
    rather than rendering as nothing you could press. */
-.s-edit-none { color: var(--d600); font-style: italic; }
+.s-edit-none { color: var(--ink-muted); font-style: italic; }
 
 /* The live input takes the SIZE of what it replaced but not its weight — a
    30px extrabold heading typed into is a heading you cannot see the caret
@@ -6778,12 +6765,12 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    broken rather than a history with two problems in it. */
 .s-fx-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
 .s-fx { display: inline-flex; align-items: baseline; gap: 4px; font-size: var(--fs-xs); }
-.s-fx-verb { color: var(--d500); }
+.s-fx-verb { color: var(--ink-muted); }
 .s-fx-name { font-weight: var(--fw-semibold); }
 /* "nothing changed" is a real answer and the commonest one — most calls do
    not move a record — so it is drawn quietly rather than omitted. A row that
    is silent about its effect reads as a row whose effect was not computed. */
-.s-fx-none { font-size: var(--fs-base); color: var(--d600); }
+.s-fx-none { font-size: var(--fs-base); color: var(--ink-muted); }
 
 /* 8 above against the 3 the effect line sits at: the controls belong to the
    whole row, not to the note directly above them. */
@@ -6896,7 +6883,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 .s-field[hidden] { display: none; }
 .s-field-label {
   display: block; margin-bottom: 4px;
-  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d300);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink-muted);
 }
 .s-field .field-input, .s-field .ds-textarea { width: 100%; }
 /* ── The qualifier beside a field label ──
@@ -6905,14 +6892,14 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    run-together word. A margin rather than a space in the markup, because a
    literal space inside a template is invisible to whoever edits it next and
    the first person to reformat the line deletes it. */
-.s-field-note { margin-left: 8px; font-weight: var(--fw-regular); color: var(--d500); }
+.s-field-note { margin-left: 8px; font-weight: var(--fw-regular); color: var(--ink-muted); }
 
 /* ── Owner: one line, and the other five behind a reveal ──
    Six radios for an answer that is "you" nearly every time. `<details>` is
    the native form of a closed control that opens in place, so it is the one
    used rather than a toggle rebuilt out of a button and a class. */
 .s-owner-swap {
-  margin-left: auto; font-size: var(--fs-xs); color: var(--d500);
+  margin-left: auto; font-size: var(--fs-xs); color: var(--ink-muted);
   border-bottom: 1px solid var(--d700);
 }
 .s-owner[open] .s-owner-swap { color: var(--accent); border-color: var(--accent); }
@@ -6929,9 +6916,9 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   list-style: none;
 }
 .s-gov-sum::-webkit-details-marker { display: none; }
-.s-gov-sum:hover { border-color: var(--d600); }
+.s-gov-sum:hover { border-color: var(--ink-muted); }
 .s-gov-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.s-gov-say { font-size: var(--fs-xs); color: var(--d300); min-width: 0; }
+.s-gov-say { font-size: var(--fs-xs); color: var(--ink-muted); min-width: 0; }
 .s-gov[open] .s-gov-sum { margin-bottom: 12px; }
 .s-gov[open] .s-owner-swap { color: var(--accent); border-color: var(--accent); }
 /* The hide has to be declared. A `display` on the direct child of a closed
@@ -6959,7 +6946,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
   display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
   padding: 4px 8px 4px 4px; min-height: 32px;
   border: 1px solid var(--d700); border-radius: var(--r-pill);
-  font-size: var(--fs-xs); color: var(--d300);
+  font-size: var(--fs-xs); color: var(--ink-muted);
   transition: border-color var(--t-fast), background var(--t-fast);
 }
 /* ══ A TWO-LINE CHIP IS NOT A PILL ═══════════════════════════════════════
@@ -6990,7 +6977,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
 .s-assign-chip:has(.s-pick-role:not(:empty)):has(.avatar) {
   padding: 4px 12px 4px 4px;
 }
-.s-assign-chip:hover { border-color: var(--d600); }
+.s-assign-chip:hover { border-color: var(--ink-muted); }
 /* KEYBOARD ONLY. `:focus-within` fires for a mouse click too — the chip's
    hidden checkbox takes focus and the call stays until you click somewhere
    else, so a chip you had just picked showed a `--brand` outline AND the
@@ -7013,7 +7000,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    says what it read and lets you correct it. */
 .s-ch-pick { width: 100%; }
 .s-ch-pick .seg-btn { flex: 1; }
-.s-ch-note { font-size: var(--fs-xs); color: var(--d500); margin-top: 8px; }
+.s-ch-note { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 8px; }
 /* Shown and disabled, never hidden: a contact you cannot FIND is worse than
    one you cannot select, because you go looking for it. */
 .s-pick-row.is-already { opacity: 0.45; cursor: not-allowed; }
@@ -7040,7 +7027,7 @@ textarea.s-edit-in { max-width: 68ch; resize: vertical; }
    identity captions took, on the same token, for the same reason. */
 .s-sheet-kind {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d400);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 /* TITLE, one step up from block heading. It was `--fs-xl` — which resolves
    to 16px, the BLOCK HEADING step — so the name of the run you have open sat
@@ -7448,7 +7435,7 @@ div.s-pipe-cell { cursor: default; }
 
 /* Who gave the reason, quieter than the reason itself. The words are what
    the next person needs; the attribution is what makes them trustable. */
-.s-why-who { color: var(--d500); }
+.s-why-who { color: var(--ink-muted); }
 .s-sheet-head .inline-note { margin-top: 8px; }
 /* Same block-quote treatment as `.s-commit-quote`, for the same reason:
    these are the two places on the surface that quote somebody's own words. */
@@ -7535,11 +7522,11 @@ div.s-pipe-cell { cursor: default; }
 .proto-sec:last-child { margin-bottom: 0; }
 .proto-h {
   font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--d600); margin-bottom: 4px;
+  text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px;
 }
 .proto-link {
   display: block; width: 100%; text-align: left;
-  font-size: var(--fs-2xs); color: var(--d400);
+  font-size: var(--fs-2xs); color: var(--ink-muted);
   text-decoration: none; cursor: pointer;
   padding: 2px 4px; border-radius: var(--r-xs);
   transition: color var(--t-fast), background-color var(--t-fast);
@@ -7697,7 +7684,7 @@ body.is-figures .filter-tray { display: none; }
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--d400);
+  color: var(--ink-muted);
 }
 .s-exec-top .s-tabcuts { margin-bottom: 0; }
 
@@ -7720,7 +7707,7 @@ body.is-figures .filter-tray { display: none; }
    32px at 800 beside 16px at 500 needs more than a word space to read as
    two things. `nowrap` keeps "of €300k" from ever breaking across lines. */
 .s-att-of {
-  font-size: var(--fs-lg); font-weight: var(--fw-medium); color: var(--d400);
+  font-size: var(--fs-lg); font-weight: var(--fw-medium); color: var(--ink-muted);
   letter-spacing: 0; white-space: nowrap; margin-left: 4px;
 }
 .s-att-pc { font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
@@ -7747,7 +7734,7 @@ body.is-figures .filter-tray { display: none; }
 .s-att-target { background: var(--d50); }
 .s-att-pace { background: var(--d300); }
 
-.s-att-keys { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--d400); }
+.s-att-keys { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; font-size: var(--fs-xs); color: var(--ink-muted); }
 .s-att-key { display: inline-flex; align-items: center; gap: 8px; }
 .s-att-key::before { content: ""; width: 10px; height: 10px; border-radius: var(--r-sm); flex-shrink: 0; }
 .s-att-key.is-booked::before { background: var(--accent); }
@@ -7771,7 +7758,7 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-af-val.tone-ok { color: var(--ok-text); }
 .s-af-val.tone-warn { color: var(--warn-text); }
-.s-af-sub { font-size: var(--fs-xs); color: var(--d300); line-height: var(--lh-base); text-wrap: pretty; }
+.s-af-sub { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ── Where the projection comes from ── */
 .s-odds {
@@ -7787,7 +7774,7 @@ body.is-figures .filter-tray { display: none; }
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d300);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
 }
 .s-odds-cap svg { color: var(--ai-text); }
 .s-odds-rows { display: flex; flex-direction: column; margin-top: 12px; }
@@ -7799,10 +7786,10 @@ body.is-figures .filter-tray { display: none; }
   color: var(--d50); min-width: 56px; text-align: right;
 }
 .s-odds-say { font-size: var(--fs-xs); color: var(--d200); flex: 1 1 auto; min-width: 0; }
-.s-odds-n { font-size: var(--fs-xs); color: var(--d400); white-space: nowrap; }
+.s-odds-n { font-size: var(--fs-xs); color: var(--ink-muted); white-space: nowrap; }
 /* `pretty` rather than `balance`: this is a description, and the thing worth
    preventing is one word alone on the last line. */
-.s-odds-note { font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
+.s-odds-note { font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base); margin: 12px 0 0; max-width: 72ch; text-wrap: pretty; }
 
 
 @media (prefers-reduced-motion: no-preference) {
@@ -7826,7 +7813,7 @@ body.is-figures .filter-tray { display: none; }
    and how sure the open half is. Divided by rules and space; no boxes. */
 .s-exec-sec { padding-top: 40px; }
 .s-exec-note {
-  font-size: var(--fs-xs); color: var(--d400); line-height: var(--lh-base);
+  font-size: var(--fs-xs); color: var(--ink-muted); line-height: var(--lh-base);
   max-width: 76ch; margin: 8px 0 20px; text-wrap: pretty;
 }
 .s-exec-note b { color: var(--d200); }
@@ -7883,14 +7870,14 @@ body.is-figures .filter-tray { display: none; }
    `--d400` is for a caption repeating what is already visible. A line that
    says something new belongs a step up, and so do the qualifiers after each
    name: "4 at EUR55/h" is the rate, which is data. */
-.s-cost-sub { display: block; font-size: var(--fs-xs); color: var(--d300); margin-top: 4px; }
+.s-cost-sub { display: block; font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 4px; }
 .s-cost-v {
   font-size: var(--fs-2xl); font-weight: var(--fw-bold); color: var(--d50);
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
   text-align: right; min-width: 96px;
 }
 .s-cost-pc {
-  font-size: var(--fs-sm); color: var(--d300);
+  font-size: var(--fs-sm); color: var(--ink-muted);
   font-variant-numeric: tabular-nums; text-align: right; min-width: 44px;
 }
 /* THE GROUP IS THE ROW; THE CHILDREN ARE THE ANSWER TO "OF WHAT". Indented
@@ -7911,7 +7898,7 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-cost-kid .s-cost-say { font-size: var(--fs-xs); color: var(--d200); }
 .s-cost-kid .s-cost-v { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--d100); min-width: 72px; }
-.s-cost-note { color: var(--d300); }
+.s-cost-note { color: var(--ink-muted); }
 
 /* One question per section, beside the heading it belongs to. A single row
    of three at the foot of the page could only ever be about the page; these
@@ -7919,7 +7906,7 @@ body.is-figures .filter-tray { display: none; }
 .s-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .s-sec-ask {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--fs-xs); color: var(--d300);
+  font-size: var(--fs-xs); color: var(--ink-muted);
   background: rgba(var(--accent-rgb), 0.08);
   border: 1px solid rgba(var(--accent-rgb), 0.16);
   border-radius: var(--r-pill); padding: 4px 12px;
@@ -7977,7 +7964,7 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-name { font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--d50); min-width: 0; }
 .s-pan-state {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--d400); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
+  color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;
 }
 /* A product line's state is a VERDICT, so it carries a tone the campaign's
    never needs — running and finished are facts, "not landing" is a call. */
@@ -8010,13 +7997,13 @@ body.is-figures .filter-tray { display: none; }
    word competing with the figure for the same line. */
 .s-pan-unit {
   display: block; font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
-  color: var(--d300); text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.1em;
   text-align: right; margin-top: 4px;
 }
 
 .s-pan-facts {
   display: flex; flex-wrap: wrap; gap: 4px 20px;
-  font-size: var(--fs-xs); color: var(--d300); margin-top: 16px;
+  font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 16px;
 }
 .s-pan-facts b { color: var(--d100); font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
 .s-pan-facts .is-good b { color: var(--ok-text); }
@@ -8036,7 +8023,7 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-pan-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .s-pan-who b { color: var(--d50); font-weight: var(--fw-semibold); }
-.s-pan-meta { color: var(--d300); }
+.s-pan-meta { color: var(--ink-muted); }
 
 /* ══ THE CREW FOLDS, AND THE MARKER SAYS WHICH WAY ═════════════════════
    Native `<details>`, the same component the design system ships and the
@@ -8092,7 +8079,7 @@ body.is-figures .filter-tray { display: none; }
 .s-pan-p svg { color: var(--ai-text); vertical-align: -1px; margin-right: 4px; }
 .s-pan-cost { color: var(--d100); white-space: nowrap; }
 .s-pan-none {
-  font-size: var(--fs-xs); color: var(--d400);
+  font-size: var(--fs-xs); color: var(--ink-muted);
   margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--card-border);
 }
 
@@ -8131,7 +8118,7 @@ body.is-figures .filter-tray { display: none; }
 .s-asks-cap {
   font-family: var(--font-sans); font-size: var(--fs-2xs);
   font-weight: var(--fw-semibold);
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--d400);
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
   margin-right: 4px;
 }
 .s-ask { display: inline-flex; align-items: center; gap: 8px; }
@@ -8228,7 +8215,7 @@ body.is-figures .filter-tray { display: none; }
    call summary and the find flow both use it as a lead-in label. */
 .s-plan-cap {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 
 /* `.s-camp-spread` and the `.s-ans-hit.is-on` pair went with the status
@@ -8270,7 +8257,7 @@ body.is-figures .filter-tray { display: none; }
   padding: var(--sp-2) 0 var(--sp-3);
   margin-bottom: var(--sp-2);
   border-bottom: 1px solid var(--hairline);
-  font-size: var(--fs-2xs); color: var(--d500);
+  font-size: var(--fs-2xs); color: var(--ink-muted);
 }
 .proto-build strong { color: var(--d200); font-weight: var(--fw-bold); }
 
@@ -8307,7 +8294,7 @@ body.is-figures .filter-tray { display: none; }
 .s-hist[open] .s-hist-sum-top {
   margin-bottom: var(--sp-3); border-bottom: 1px solid var(--hairline); padding-bottom: var(--sp-3);
 }
-.s-hist-count { font-size: var(--fs-2xs); color: var(--d500); font-variant-numeric: tabular-nums; }
+.s-hist-count { font-size: var(--fs-2xs); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
 /* The heading takes the body step and the full text colour — it is the
    dominant thing in its own block, and the count under it is the caption. */
@@ -8333,7 +8320,7 @@ body.is-figures .filter-tray { display: none; }
 .s-hist-h-sub {
   display: block; margin: var(--sp-4) 0 var(--sp-3);
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--d500);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-muted);
 }
 .s-hist-more { margin-top: var(--sp-2); }
 .s-hist-sum {

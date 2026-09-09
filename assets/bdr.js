@@ -160,6 +160,23 @@
   /* The verb alone, for a sentence that already carries its own number. */
   const verbFor = (n, one) => (n === 1 ? one : IRREGULAR[one] || one + 's');
 
+  /* ══ A TAG IS A NAME, SO IT IS CAPITALISED LIKE ONE ═════════════════════
+     Sentence case is right for anything with a verb doing work — a button,
+     a cut, a line of prose. A tag is none of those. "Meeting Set" is the
+     NAME of a state; "meeting set" is a thing that happened to somebody.
+     Both words take the capital, the way a proper noun does.
+
+     Past two words it has stopped being a name and become a phrase, and
+     title-casing a phrase turns it into a headline — so those are left
+     alone. The same string can be a tag here and a button there; this runs
+     where the pill is drawn, never on the table it came from. */
+  const tagCase = (s) => {
+    const w = String(s == null ? '' : s).split(' ');
+    return w.length === 2
+      ? w.map((x) => x.replace(/^./, (c) => c.toUpperCase())).join(' ')
+      : String(s == null ? '' : s);
+  };
+
   /* ══ 2. VOCABULARY ══════════════════════════════════════════════════════ */
 
   /* ══ THE LADDER — where one lead stands with this BDR ══════════════════
@@ -2187,7 +2204,7 @@
       'style="--i:' + Math.min(i || 0, 8) + '" ' +
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
+        '<span class="tag tag-' + esc(r.tone) + '">' + esc(tagCase(r.label)) + '</span>' +
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
@@ -2503,7 +2520,7 @@
       '<div class="tc-head">' +
         '<span class="tag tag-' + (isDraft(k) ? 'neutral' : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (isDraft(k) ? 'Draft'
-            : left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+            : left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
         /* ══ A CARD FOR ONE THAT IS NOT FINISHED BEING WRITTEN ═══════════
            Every lookup here assumed a complete campaign — `SELL[k.sells[0]]`
            on a draft with nothing chosen threw, and the whole campaigns page
@@ -3629,7 +3646,7 @@
         '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
         '<span class="b-cal-etime">' +
           esc(m.h == null ? 'all day' : clockOf(m)) + '</span>' +
-        '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span>' +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span>' +
       '</span>' +
       '<span class="b-cal-ename">' + esc(m.con.name) +
         '<span class="b-cal-ewhat">' + esc(m.title) +
@@ -3862,7 +3879,7 @@
           : '<span class="b-door-clock">' + chIcon('clock') + '</span>' + esc(clockOf(first))) +
       '</span>' +
       '<span class="b-door-who">' + esc(first.con.name) +
-        '<span class="tag tag-' + esc(k.tone) + '">' + esc(k.label) + '</span></span>' +
+        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span></span>' +
       '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
         ' in the calendar today</span>';
   }
@@ -4754,7 +4771,7 @@
           esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div><span>' + esc(l.crit) + '</span></div>' +
@@ -5642,7 +5659,7 @@
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Looking · ' + esc(kind) + ' · via ' + esc(f.name) + '</span>' +
         '<div class="s-rec-title"><h1 class="s-rec-name">' + esc(buildName()) + '</h1>' +
-          '<span class="s-meta-st tone-warn">not saved</span></div>' +
+          '<span class="s-meta-st tone-warn">Not Saved</span></div>' +
         '<div class="s-rec-facts"><div><span>' + esc(describeTerms(terms())) + '</span></div></div>' +
       '</section>' +
       '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
@@ -5784,7 +5801,7 @@
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
-        '<span class="work-state ws-staged" data-work-state="staged">Awaiting you</span>' +
+        '<span class="work-state ws-staged" data-work-state="staged">Awaiting You</span>' +
       '</div>' +
       '<p class="s-lead-deck">This list is not saved. <b>' + esc(plural(n, 'person')) +
         '</b> came back and nothing is working them.</p>' +
@@ -6298,7 +6315,7 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
-            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
+            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
@@ -6416,7 +6433,8 @@
          it was a second copy of it in the smallest type on the page. */
       cmPart('What we sell them', sells.map((x) =>
         '<p class="b-cmeta-p"><b>' + esc(x.name) + '</b> ' +
-          '<span class="tag tag-neutral">' + esc(x.kind || 'offer') + '</span></p>').join('')) +
+          '<span class="tag tag-neutral">' +
+            esc((x.kind || 'offer').replace(/^./, (c) => c.toUpperCase())) + '</span></p>').join('')) +
       /* The name, and nothing after it. What the engagement is does not
          change a single thing a caller does in the next eight minutes. */
       cmPart('Client', '<p class="b-cmeta-p"><b>' +
@@ -7278,7 +7296,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -7634,7 +7652,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(tagCase(rg.label)) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
@@ -11296,7 +11314,7 @@
 
     /* ── 2. where the deal stands ── */
     body += '<div class="b-prep-state">' +
-      '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
+      '<span class="tag tag-' + esc(st.tone) + '">' + esc(tagCase(st.label)) + '</span>' +
       '<span class="b-prep-owed">' + esc(dealLive(c)
         ? 'worth ' + euro(amountOf(c)) + ', expected ' + sayDay(closeBy(c))
         : 'decided') + '</span>' +
@@ -11343,7 +11361,8 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<span class="tag tag-warn b-back-k">' +
+              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -11387,7 +11406,7 @@
     /* ── 1. where they stand, and what is owed ── */
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
-        esc(rg.label) + '</span>' +
+        esc(tagCase(rg.label)) + '</span>' +
       '<span class="b-prep-owed">' + esc(rg.say) +
         (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
       (c.next
@@ -11428,7 +11447,8 @@
         (obj ? '<p class="b-prep-most">' + obj + '</p>' : '') +
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
-            '<span class="tag tag-warn b-back-k">' + esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
+            '<span class="tag tag-warn b-back-k">' +
+              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -11740,7 +11760,7 @@
         '.</p>' +
       '<div class="b-cuts">' + Object.keys(by).map((k) =>
         '<span class="tag tag-' + esc((OUTCOME[k] || { tone: 'neutral' }).tone) + '">' +
-        by[k] + ' ' + esc((OUTCOME[k] || { label: k }).label) + '</span>').join('') + '</div>' +
+        by[k] + ' ' + esc(tagCase((OUTCOME[k] || { label: k }).label)) + '</span>').join('') + '</div>' +
       '<div class="s-callsum-rows">' +
         '<div class="s-callsum-row"><span class="s-callsum-mem">What it was worth</span>' +
           '<span class="s-callsum-val">' + (got
