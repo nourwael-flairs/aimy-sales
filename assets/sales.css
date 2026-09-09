@@ -2668,13 +2668,23 @@ body.is-calling { --fb-reserve: var(--call-width); }
    Knowledge and means something else. Its own thing, in one place, used by
    the card, the table, the record and the task sheet.
 ═══════════════════════════════════════════════ */
+/* ══ AND THE OTHER LABEL FAMILY IS THE SAME LABEL ═════════════════════════
+   This took the caption size and the caption tracking and left the caption
+   CASE behind — 11px of sentence case with 6% of tracking between the
+   letters, which is the one combination the token's own comment forbids:
+   "ALL CAPS AND TRACKED, never lowercase". Tracking is a correction for
+   capitals; on lowercase it is just gaps.
+
+   With the case added, this and the tag are the same object down to the
+   pixel — same size, weight, tracking, case, padding, radius, line box —
+   and differ only in which ground they stand on. Two hosts, one label. */
 .s-meta-st {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px;
   border-radius: var(--r-pill);
   border: 1px solid transparent;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
   white-space: nowrap; vertical-align: middle;
 }
 /* ══ THE DOT IS GONE ══════════════════════════════════════════════════════

@@ -461,10 +461,28 @@
     /* ═══════════════════════════════════════════════
        TAGS / BADGES
     ═══════════════════════════════════════════════ */
+    /* ══ THE TAG READS THE TOKENS IT WAS GIVEN ════════════════════════
+       Two literals, and both of them are the value a product overrides.
+       `--fs-2xs` is 10px here and 11 in Sales, which raised it and wrote
+       down why — eleven is the floor at which a capital is still a shape
+       rather than a texture. `--ls-wide` is 0.04em here and 0.06 there,
+       under a comment that says in as many words that four per cent is
+       "uppercase with the fix left out": capitals need five to twelve.
+
+       This component asked for neither. It hardcoded both, so the one
+       element in the system whose whole job is small tracked capitals was
+       the one element the small-tracked-capitals correction never reached.
+       Sales has been rendering its own captions at 11/0.06 and its tags at
+       10/0.04 side by side ever since.
+
+       The line box is pinned for the same reason `.s-meta-st` pins its
+       own: without it the pill's height is whatever line-height it happens
+       to inherit, so the same tag is 21px in one place and 22 in another. */
     .tag {
       display: inline-flex; align-items: center; gap: 4px;
-      font-size: 10px; font-weight: 700; padding: 2px 8px;
-      border-radius: var(--r-pill); letter-spacing: 0.04em;
+      font-size: var(--fs-2xs); font-weight: 700; padding: 2px 8px;
+      border-radius: var(--r-pill); letter-spacing: var(--ls-wide);
+      line-height: 16px;
       text-transform: uppercase; vertical-align: middle; white-space: nowrap;
     }
     /* ══ ONE PILL, AND THE WORD CARRIES THE VERDICT ═══════════════════
@@ -514,8 +532,8 @@
       font-size: 9px; font-weight: 700; padding: 3px 9px;
       border-radius: var(--r-pill); letter-spacing: 0.06em; text-transform: uppercase;
     }
-    .signal-badge.err { background: var(--err-bg); color: var(--err); border: 1px solid rgba(240,68,56,0.22); }
-    .signal-badge.ok  { background: var(--ok-bg);  color: var(--ok);  border: 1px solid rgba(23,178,106,0.22); }
+    .signal-badge.err { background: var(--err-bg); color: var(--err); border: 1px solid color-mix(in srgb, var(--err) 22%, transparent); }
+    .signal-badge.ok  { background: var(--ok-bg);  color: var(--ok);  border: 1px solid color-mix(in srgb, var(--ok) 22%, transparent); }
     .signal-dot {
       width: 5px; height: 5px; border-radius: 50%; background: currentColor;
       animation: blink 1.2s ease-in-out infinite;
@@ -554,9 +572,9 @@
       border-color: rgba(51,105,255,0.3);
       color: #7badff;
     }
-    .chip.ok    { background: var(--ok-bg);   border-color: rgba(23,178,106,0.25); color: var(--ok); }
-    .chip.warn  { background: var(--warn-bg);  border-color: rgba(247,144,9,0.25);  color: var(--warn); }
-    .chip.err   { background: var(--err-bg);   border-color: rgba(240,68,56,0.25);  color: var(--err); }
+    .chip.ok    { background: var(--ok-bg);   border-color: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
+    .chip.warn  { background: var(--warn-bg);  border-color: color-mix(in srgb, var(--warn) 25%, transparent);  color: var(--warn); }
+    .chip.err   { background: var(--err-bg);   border-color: color-mix(in srgb, var(--err) 25%, transparent);  color: var(--err); }
     .chip-dismiss {
       font-size: 13px; line-height: 1; opacity: 0.5;
       cursor: pointer; margin-left: 2px;
@@ -619,14 +637,14 @@
     .btn-ghost  { background: rgba(255,255,255,0.05); color: var(--d300); border-color: rgba(255,255,255,0.1); }
     .btn-ghost:hover  { background: rgba(255,255,255,0.09); color: var(--d50); border-color: rgba(255,255,255,0.16); }
 
-    .btn-err    { background: var(--err-bg);  color: var(--err);  border-color: rgba(240,68,56,0.25); }
-    .btn-err:hover    { background: rgba(240,68,56,0.2); }
+    .btn-err    { background: var(--err-bg);  color: var(--err);  border-color: color-mix(in srgb, var(--err) 25%, transparent); }
+    .btn-err:hover    { background: color-mix(in srgb, var(--err) 20%, transparent); }
 
-    .btn-warn   { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.25); }
-    .btn-warn:hover   { background: rgba(247,144,9,0.2); }
+    .btn-warn   { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 25%, transparent); }
+    .btn-warn:hover   { background: color-mix(in srgb, var(--warn) 20%, transparent); }
 
-    .btn-ok     { background: var(--ok-bg);   color: var(--ok);   border-color: rgba(23,178,106,0.25); }
-    .btn-ok:hover     { background: rgba(23,178,106,0.22); }
+    .btn-ok     { background: var(--ok-bg);   color: var(--ok);   border-color: color-mix(in srgb, var(--ok) 25%, transparent); }
+    .btn-ok:hover     { background: color-mix(in srgb, var(--ok) 22%, transparent); }
 
     .btn-accent     { background: var(--accent-dim); color: var(--accent); border-color: rgba(var(--accent-rgb),0.28); }
     .btn-accent:hover     { background: rgba(var(--accent-rgb),0.22); }
@@ -679,9 +697,9 @@
       transition: border-color var(--t-base), transform var(--t-base), box-shadow var(--t-base);
     }
     .bcard:hover { border-color: var(--card-border-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .bcard.p1 { border-color: rgba(240,68,56,0.2); }
-    .bcard.p2 { border-color: rgba(247,144,9,0.2); }
-    .bcard.p3 { border-color: rgba(23,178,106,0.16); }
+    .bcard.p1 { border-color: color-mix(in srgb, var(--err) 20%, transparent); }
+    .bcard.p2 { border-color: color-mix(in srgb, var(--warn) 20%, transparent); }
+    .bcard.p3 { border-color: color-mix(in srgb, var(--ok) 16%, transparent); }
     .bcard.tier-primary { box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.3), var(--shadow-md); }
 
     .bcard-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
@@ -719,9 +737,9 @@
       padding: 2px 7px; border-radius: var(--r-pill);
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--d300);
     }
-    .priority-badge.p1 { background: var(--err-bg);  border-color: rgba(240,68,56,0.25); color: var(--err); }
-    .priority-badge.p2 { background: var(--warn-bg); border-color: rgba(247,144,9,0.25); color: var(--warn); }
-    .priority-badge.p3 { background: var(--ok-bg);   border-color: rgba(23,178,106,0.25); color: var(--ok); }
+    .priority-badge.p1 { background: var(--err-bg);  border-color: color-mix(in srgb, var(--err) 25%, transparent); color: var(--err); }
+    .priority-badge.p2 { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 25%, transparent); color: var(--warn); }
+    .priority-badge.p3 { background: var(--ok-bg);   border-color: color-mix(in srgb, var(--ok) 25%, transparent); color: var(--ok); }
     /* Pass-through: .bcard already carries the padding, so a .bcard-body
        wrapper must not add a second inset. Documented as a zone, not a box. */
     .bcard-body   { display: block; }
@@ -1622,11 +1640,11 @@
     .banner-ico { flex-shrink: 0; margin-top: 1px; }
     .banner-body { color: var(--d200); }
     .banner-body strong { color: var(--d50); }
-    .banner.info { background: var(--info-bg); border-color: rgba(14,165,233,0.28); }
+    .banner.info { background: var(--info-bg); border-color: color-mix(in srgb, var(--info) 28%, transparent); }
     .banner.info .banner-ico { color: var(--info); }
     .banner.ok   { background: var(--ok-bg);   border-color: var(--ok-glow); }
     .banner.ok   .banner-ico { color: var(--ok); }
-    .banner.warn { background: var(--warn-bg); border-color: rgba(247,144,9,0.3); }
+    .banner.warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
     .banner.warn .banner-ico { color: var(--warn); }
     .banner.err  { background: var(--err-bg);  border-color: var(--err-glow); }
     .banner.err  .banner-ico { color: var(--err); }
@@ -2234,7 +2252,7 @@
       white-space: nowrap;
     }
     .copy-btn:hover { background: rgba(255,255,255,0.1); color: var(--d100); border-color: rgba(255,255,255,0.18); }
-    .copy-btn.copied { background: var(--ok-bg); border-color: rgba(23,178,106,0.3); color: var(--ok); }
+    .copy-btn.copied { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); color: var(--ok); }
     .copy-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
 
     .copy-field { display: flex; align-items: center; gap: 10px; max-width: 420px;
@@ -2256,7 +2274,7 @@
     .upload-list { max-width: 440px; display: flex; flex-direction: column; gap: 8px; }
     .upload-item { display: flex; align-items: center; gap: 11px; padding: 10px 12px;
       background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); }
-    .upload-item.error { border-color: rgba(240,68,56,0.35); }
+    .upload-item.error { border-color: color-mix(in srgb, var(--err) 35%, transparent); }
     .upload-ico { width: 32px; height: 32px; border-radius: var(--r-md); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       background: var(--brand-dim); color: var(--brand); }
@@ -2283,7 +2301,7 @@
 
     /* Error state panel (failed fetch) */
     .error-state { display: flex; flex-direction: column; align-items: center; text-align: center;
-      padding: 40px 32px; background: var(--card-bg); border: 1px dashed rgba(240,68,56,0.35);
+      padding: 40px 32px; background: var(--card-bg); border: 1px dashed color-mix(in srgb, var(--err) 35%, transparent);
       border-radius: var(--r-2xl); }
     .error-state-icon { width: 44px; height: 44px; border-radius: var(--r-xl);
       background: var(--err-bg); color: var(--err);
@@ -2293,7 +2311,7 @@
 
     /* Offline / degraded bar */
     .offline-bar { display: flex; align-items: center; justify-content: center; gap: 9px;
-      padding: 8px 14px; background: var(--warn-bg); border: 1px solid rgba(247,144,9,0.3);
+      padding: 8px 14px; background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
       border-radius: var(--r-md); font-size: 12px; font-weight: 600; color: var(--warn); }
 
     /* Error page specimen (404 / 500) */
@@ -2306,7 +2324,7 @@
     .error-page-desc { font-size: 12.5px; color: var(--d400); max-width: 340px; line-height: 1.6; margin-bottom: 18px; }
 
     /* Form error summary */
-    .form-summary { border: 1px solid rgba(240,68,56,0.35); border-left: 3px solid var(--err);
+    .form-summary { border: 1px solid color-mix(in srgb, var(--err) 35%, transparent); border-left: 3px solid var(--err);
       background: var(--err-bg); border-radius: var(--r-lg); padding: 13px 16px; max-width: 420px; }
     .form-summary-title { display: flex; align-items: center; gap: 8px;
       font-size: 12.5px; font-weight: 700; color: var(--err); }
@@ -2417,7 +2435,7 @@
       display: inline-flex; align-items: center; justify-content: center;
       transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast); }
     .voice-btn:hover { color: var(--accent); border-color: var(--card-border-hover); }
-    .voice-btn.recording { background: var(--err-bg); border-color: rgba(240,68,56,0.4); color: var(--err); }
+    .voice-btn.recording { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 40%, transparent); color: var(--err); }
     .voice-wave { display: inline-flex; gap: 2.5px; align-items: center; height: 18px; }
     .voice-wave span { width: 2.5px; height: 16px; border-radius: 2px; background: var(--err);
       animation: wave 1s ease-in-out infinite; transform-origin: center; }
@@ -2467,7 +2485,7 @@
       background: currentColor; flex-shrink: 0;
     }
     /* detected — AiMY noticed it, nothing proposed yet */
-    .ws-detected    { background: var(--info-bg); color: var(--info); border-color: rgba(14,165,233,0.22); }
+    .ws-detected    { background: var(--info-bg); color: var(--info); border-color: color-mix(in srgb, var(--info) 22%, transparent); }
     .ws-detected .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
     /* recommended — AiMY has an opinion */
     .ws-recommended { background: var(--accent-dim); color: var(--accent); border-color: rgba(var(--accent-rgb),0.24); }
@@ -2475,11 +2493,11 @@
     .ws-drafted     { background: rgba(0,102,255,0.1); color: var(--ai-text); border-color: rgba(0,102,255,0.24); }
     .ws-drafted .ws-dot { background: none; box-shadow: inset 0 0 0 1.5px currentColor; }
     /* staged — waiting on a human decision */
-    .ws-staged      { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.24); }
+    .ws-staged      { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 24%, transparent); }
     /* completed (display label may be "handled") */
-    .ws-completed   { background: var(--ok-bg); color: var(--ok); border-color: rgba(23,178,106,0.24); }
+    .ws-completed   { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
     /* failed (display label may be "blocked") */
-    .ws-failed      { background: var(--err-bg); color: var(--err); border-color: rgba(240,68,56,0.24); }
+    .ws-failed      { background: var(--err-bg); color: var(--err); border-color: color-mix(in srgb, var(--err) 24%, transparent); }
 
     /* Work-state pipeline — shows position in detected → … → completed */
     .ws-track { display: inline-flex; align-items: center; gap: 0; flex-wrap: wrap; }
@@ -2511,11 +2529,11 @@
     .conf-meter i:nth-child(2) { height: 7px; }
     .conf-meter i:nth-child(3) { height: 10px; }
     .conf-high .conf-meter i { background: var(--ok); }
-    .conf-high   { color: var(--ok);   border-color: rgba(23,178,106,0.24); background: var(--ok-bg); }
+    .conf-high   { color: var(--ok);   border-color: color-mix(in srgb, var(--ok) 24%, transparent); background: var(--ok-bg); }
     .conf-medium .conf-meter i:nth-child(-n+2) { background: var(--warn); }
-    .conf-medium { color: var(--warn); border-color: rgba(247,144,9,0.24); background: var(--warn-bg); }
+    .conf-medium { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 24%, transparent); background: var(--warn-bg); }
     .conf-low .conf-meter i:nth-child(1) { background: var(--err); }
-    .conf-low    { color: var(--err);  border-color: rgba(240,68,56,0.24); background: var(--err-bg); }
+    .conf-low    { color: var(--err);  border-color: color-mix(in srgb, var(--err) 24%, transparent); background: var(--err-bg); }
     .conf-badge .conf-val { font-family: var(--font-mono); font-size: 10px; opacity: 0.75; }
 
     /* ── Entry-mode affordances (§3) — the same click must not always
@@ -2539,8 +2557,8 @@
     .em-prompt    { background: var(--accent-dim); color: var(--accent); border-color: rgba(var(--accent-rgb),0.28); }
     .em-prompt:hover { background: rgba(var(--accent-rgb),0.2); }
     /* reviewed action — proposes a change, never applies it */
-    .em-review    { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.3); }
-    .em-review:hover { background: rgba(247,144,9,0.2); }
+    .em-review    { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+    .em-review:hover { background: color-mix(in srgb, var(--warn) 20%, transparent); }
     /* Design-time classification tag — for specs and review, not production UI */
     .entry-mode-tag {
       display: inline-flex; align-items: center; gap: 4px;
@@ -2564,7 +2582,7 @@
     }
     .bcard-ack-btn:hover { background: rgba(255,255,255,0.05); color: var(--d100); border-color: var(--card-border); }
     .bcard-ack-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-    .bcard-ack-btn.is-acked { color: var(--ok); background: var(--ok-bg); border-color: rgba(23,178,106,0.24); }
+    .bcard-ack-btn.is-acked { color: var(--ok); background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
     .bcard-dismiss-picker {
       display: none; align-items: center; gap: 5px; margin-left: auto;
     }
@@ -2601,12 +2619,12 @@
     /* ── Governance change request card (§3.1 called 3, §6.2) ── */
     .gov-cr-card {
       max-width: 520px; border-radius: var(--r-lg); overflow: hidden;
-      background: var(--card-bg); border: 1px solid rgba(247,144,9,0.3);
+      background: var(--card-bg); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
     }
     .gov-cr-head {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       padding: 10px 14px; background: var(--warn-bg);
-      border-bottom: 1px solid rgba(247,144,9,0.2);
+      border-bottom: 1px solid color-mix(in srgb, var(--warn) 20%, transparent);
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.06em; color: var(--warn);
     }
@@ -2617,8 +2635,8 @@
       flex: 1; min-width: 0; padding: 9px 11px; border-radius: var(--r-md);
       border: 1px solid var(--card-border); background: var(--card-bg-raised);
     }
-    .gov-cr-current  { border-color: rgba(240,68,56,0.24); background: var(--err-bg); }
-    .gov-cr-proposed { border-color: rgba(23,178,106,0.24); background: var(--ok-bg); }
+    .gov-cr-current  { border-color: color-mix(in srgb, var(--err) 24%, transparent); background: var(--err-bg); }
+    .gov-cr-proposed { border-color: color-mix(in srgb, var(--ok) 24%, transparent); background: var(--ok-bg); }
     .gov-cr-label {
       display: block; font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase; margin-bottom: 4px;
@@ -2727,8 +2745,8 @@
       margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline);
       font-size: 10.5px; color: var(--d500);
     }
-    .ai-unavailable.is-degraded { border-style: solid; border-color: rgba(247,144,9,0.3); }
-    .ai-unavailable.is-degraded .aiu-mark { background: var(--warn-bg); border-color: rgba(247,144,9,0.24); color: var(--warn); }
+    .ai-unavailable.is-degraded { border-style: solid; border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+    .ai-unavailable.is-degraded .aiu-mark { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 24%, transparent); color: var(--warn); }
 
     /* Light-mode: semantic hues darken one step on pale tints (matches .tag rules) */
     :root[data-theme="light"] .ws-completed,
@@ -2792,11 +2810,11 @@
       border: 1px solid transparent;
     }
     .trust-state svg { width: 11px; height: 11px; flex-shrink: 0; }
-    .ts-verified    { background: var(--ok-bg);   color: var(--ok);   border-color: rgba(23,178,106,0.24); }
-    .ts-due         { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.24); }
-    .ts-expired     { background: var(--err-bg);  color: var(--err);  border-color: rgba(240,68,56,0.32); }
+    .ts-verified    { background: var(--ok-bg);   color: var(--ok);   border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
+    .ts-due         { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 24%, transparent); }
+    .ts-expired     { background: var(--err-bg);  color: var(--err);  border-color: color-mix(in srgb, var(--err) 32%, transparent); }
     .ts-unverified  { background: rgba(255,255,255,0.05); color: var(--d400); border-color: var(--card-border); }
-    .ts-superseded  { background: var(--info-bg); color: var(--info); border-color: rgba(14,165,233,0.24); }
+    .ts-superseded  { background: var(--info-bg); color: var(--info); border-color: color-mix(in srgb, var(--info) 24%, transparent); }
 
     /* Excluded from retrieval — the consequence must be visible on the badge
        itself, not only in a tooltip. Solid border + inset rule reads as "cut off". */
@@ -2822,7 +2840,7 @@
       background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);
       font-size: 11px; line-height: 1.55; color: var(--d300);
     }
-    .trust-disclosure.has-exclusion { background: var(--warn-bg); border-color: rgba(247,144,9,0.28); }
+    .trust-disclosure.has-exclusion { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 28%, transparent); }
     .td-row { display: flex; align-items: flex-start; gap: 8px; }
     .td-row svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 2px; }
     .td-row.is-ok   { color: var(--ok); }
@@ -2905,11 +2923,11 @@
     .cite-action:hover { background: rgba(255,255,255,0.09); color: var(--d50); }
     .cite-action:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
     /* Flagging one citation is the highest-signal, most-commonly-lost feedback */
-    .cite-action.is-flag:hover { background: var(--err-bg); border-color: rgba(240,68,56,0.3); color: var(--err); }
-    .cite-action.is-flagged { background: var(--err-bg); border-color: rgba(240,68,56,0.3); color: var(--err); }
+    .cite-action.is-flag:hover { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 30%, transparent); color: var(--err); }
+    .cite-action.is-flagged { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 30%, transparent); color: var(--err); }
     /* Citation whose source is excluded / flagged reads differently inline */
-    .cite.is-flagged   { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.35); }
-    .cite.is-excluded  { background: var(--err-bg);  color: var(--err);  border-color: rgba(240,68,56,0.35); }
+    .cite.is-flagged   { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+    .cite.is-excluded  { background: var(--err-bg);  color: var(--err);  border-color: color-mix(in srgb, var(--err) 35%, transparent); }
 
 
     /* ═══════════════════════════════════════════════
@@ -3110,8 +3128,8 @@
       padding: 2px 8px; border-radius: var(--r-xs); border: 1px solid transparent;
     }
     .tc-approval svg { width: 10px; height: 10px; flex-shrink: 0; }
-    .tc-approval.is-approved { background: var(--ok-bg);   color: var(--ok);   border-color: rgba(23,178,106,0.24); }
-    .tc-approval.is-pending  { background: var(--warn-bg); color: var(--warn); border-color: rgba(247,144,9,0.24); }
+    .tc-approval.is-approved { background: var(--ok-bg);   color: var(--ok);   border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
+    .tc-approval.is-pending  { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 24%, transparent); }
     .tc-approval.is-internal { background: rgba(255,255,255,0.05); color: var(--d400); border-color: var(--card-border); }
 
     /* Compact form (§8.1) — what survives when cited inside a host with
@@ -3214,9 +3232,9 @@
     :root[data-theme="light"] .dv-rel-item { background: rgba(16,24,40,0.04); }
     :root[data-theme="light"] .dv-rel-item:hover { background: rgba(16,24,40,0.08); }
     /* Contradiction is a finding, not a neighbour — it reads as a problem */
-    .dv-rel-item.is-contradiction { background: var(--err-bg); border-color: rgba(240,68,56,0.28); color: var(--err); }
-    .dv-rel-item.is-contradiction:hover { background: rgba(240,68,56,0.2); color: var(--err); }
-    .dv-rel-item.is-successor { background: var(--ok-bg); border-color: rgba(23,178,106,0.28); color: var(--ok); }
+    .dv-rel-item.is-contradiction { background: var(--err-bg); border-color: color-mix(in srgb, var(--err) 28%, transparent); color: var(--err); }
+    .dv-rel-item.is-contradiction:hover { background: color-mix(in srgb, var(--err) 20%, transparent); color: var(--err); }
+    .dv-rel-item.is-successor { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 28%, transparent); color: var(--ok); }
 
     .dv-actions {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -3295,7 +3313,7 @@
     /* Restore commit surface — states the effect before it runs */
     .ver-restore {
       max-width: 620px; padding: 14px; border-radius: var(--r-lg);
-      background: var(--card-bg-raised); border: 1px solid rgba(247,144,9,0.3);
+      background: var(--card-bg-raised); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
     }
     .vr-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px;
       font-size: 12.5px; font-weight: 700; color: var(--d50); }
@@ -3332,7 +3350,7 @@
     /* Buttons */
     .btn-brand.is-hover { background: #4d7fff; border-color: #4d7fff; }
     .btn-ghost.is-hover { background: rgba(255,255,255,0.09); color: var(--d50); border-color: rgba(255,255,255,0.16); }
-    .btn-err.is-hover   { background: rgba(240,68,56,0.2); }
+    .btn-err.is-hover   { background: color-mix(in srgb, var(--err) 20%, transparent); }
     .btn.is-active      { transform: translateY(1px); filter: brightness(0.94); }
     .btn.is-focus       { outline: 2px solid var(--brand); outline-offset: 2px; }
     .icon-btn.is-hover  { border-color: var(--card-border-hover); color: var(--accent); }
