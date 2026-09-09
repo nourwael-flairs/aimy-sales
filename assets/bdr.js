@@ -8180,6 +8180,20 @@
      beside it is the share of the row above — the drop, which is the whole
      reason to look. Pipedrive and Zoho both draw it this way. */
   const FUNNEL_STEPS = ['not-called', 'no-answer', 'answered', 'meeting-set', 'showed-up', 'interested', 'handed-over'];
+  /* ══ A CUMULATIVE ROW IS NAMED FOR THE ACHIEVEMENT, NOT THE RUNG ══
+     Every row here counts who got AT LEAST this far — the column head says
+     so — and six of the seven rung names survive that reading unchanged:
+     ten Answered means ten got at least to answered. `no-answer` does not,
+     because it is the only rung named after a failure. "Got this far: No
+     answer 14" reads as fourteen got no answer, and it means fourteen were
+     called, most of whom went further.
+
+     It also collided with the tile eight inches above it, which counts the
+     people STANDING at that rung and says 3. Two figures, one word, and
+     nothing to tell them apart by. The rung keeps its name everywhere it
+     names a rung; this is the render site, and here the step is what was
+     achieved rather than where somebody stopped. */
+  const FUNNEL_SAY = { 'no-answer': 'Called' };
   function everAt(members) {
     const out = Object.create(null);
     FUNNEL_STEPS.forEach((k) => (out[k] = 0));
@@ -8218,7 +8232,8 @@
       const conv = prev == null ? null : (prev ? Math.round((n / prev) * 100) : 0);
       prev = n;
       return '<div class="b-fn-row">' +
-        '<span class="b-fn-name">' + esc(k === 'not-called' ? (topLabel || 'On the campaign') : rg.label) + '</span>' +
+        '<span class="b-fn-name">' + esc(k === 'not-called' ? (topLabel || 'On the campaign')
+          : FUNNEL_SAY[k] || rg.label) + '</span>' +
         '<span class="b-fn-bar"><span class="b-fn-fill ' + (FN_TONE[rg.tone] || 'tone-neutral') + '" ' +
           'style="width:' + pct + '%"></span></span>' +
         '<span class="b-fn-n">' + commas(n) + '</span>' +
@@ -8283,8 +8298,39 @@
         ? '<button class="s-af b-af-door" type="button" data-q="' + esc(q) + '">' + inner + '</button>'
         : '<div class="s-af">' + inner + '</div>';
     };
-    const ringNew = queue(k.id, 'not-called').length;
-    const ringNo = queue(k.id, 'no-answer').length;
+    /* ══ A CALLER'S CUT, ASKED OF A DESK THAT HAS NO QUEUE ═══════════════
+       `queue` answers for whoever is looking, and at the manager's desk it
+       answers with DEALS — so asking it for the leads at a ladder rung asks
+       the deal board for a rung it does not have, and the answer is nought
+       every time. Both tiles therefore read "none of them callable now" on
+       his screen whatever the campaign held, and the rail card six inches to
+       the left said "6 people here are waiting to be called". A figure that
+       cannot come out any other way is not a finding, it is a broken query
+       printed as one.
+
+       The cold queue is the caller's job, so the claim about it is only made
+       on the caller's desk. The manager gets what the other two tiles give
+       him — the count against the roster it came out of. */
+    const ringNew = isMgr() ? 0 : queue(k.id, 'not-called').length;
+    const ringNo = isMgr() ? 0 : queue(k.id, 'no-answer').length;
+    /* ══ TWO OF THESE NEST, AND THE ROW NEVER SAID SO ════════════
+       "29 people on this campaign" sits directly above four figures reading
+       15, 3, 10 and 8, which add to 36. Two of them are exclusive — a
+       person stands on exactly one rung, and those two are doors into that
+       cut of the queue — and two are cumulative: Answered is everybody who
+       ever got that far, and Meetings set is a subset of Answered.
+
+       Nothing on the row said which rule each followed, so the only way to
+       read them together was to add them and get a number bigger than the
+       roster. The obstacles block further down this same page already
+       solved this — "16 · of 83 calls", "8 · of 29 people" — so the two
+       cumulative tiles take the same treatment and the chain becomes
+       readable: 29 to 10 to 8. The two doors keep their sub-line, because
+       what a door owes the reader is what is behind it. */
+    const reachedOf = 'of the ' + commas(st.members.length) + ' on this campaign';
+    const metOf = st.reached
+      ? 'of the ' + commas(st.reached) + ' who answered'
+      : 'nobody has answered yet';
 
 
     return '<section class="s-block s-block-wide" aria-label="Where it stands">' +
@@ -8293,15 +8339,26 @@
         ' on this campaign</span></div>' +
 
       '<div class="s-afs">' +
+        /* The manager gets the rung's own words rather than a denominator:
+           these two are exclusive counts against the roster the heading
+           already states, so repeating "of the 29" under three tiles in a
+           row would say one thing three times. The ladder defines each rung
+           once and every surface reads that definition. */
         fig('Never called', n['not-called'] || 0,
-          ringNew ? commas(ringNew) + ' of them you can call now →' : 'none of them callable now',
+          isMgr() ? called['not-called'].say
+            : ringNew ? commas(ringNew) + ' of them you can call now →' : 'none of them callable now',
           null, ringNew ? 'not-called' : null) +
-        fig('called, no answer', n['no-answer'] || 0,
-          ringNo ? commas(ringNo) + ' of them you can call now →' : 'none of them callable now',
+        fig('Called, no answer', n['no-answer'] || 0,
+          isMgr() ? called['no-answer'].say
+            : ringNo ? commas(ringNo) + ' of them you can call now →' : 'none of them callable now',
           null, ringNo ? 'no-answer' : null) +
-        fig('Reached', st.reached, 'you got them on the phone', 'ok') +
+        /* NAMED THE WAY THE LADDER NAMES IT. This said "Reached" over the
+           same set the funnel two inches below calls Answered and the queue
+           calls Answered — one number, two words, and a reader checking one
+           against the other has to work out they are the same people. */
+        fig('Answered', st.reached, reachedOf, 'ok') +
         fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
-          (n.interested || 0) + (n['handed-over'] || 0), 'got to a meeting, or past it', 'ok') +
+          (n.interested || 0) + (n['handed-over'] || 0), metOf, 'ok') +
       '</div>' +
 
       funnelOf(st.members, null, true) +
