@@ -276,6 +276,17 @@
   font-variant-numeric: tabular-nums; color: var(--d200);
 }
 
+/* ── A NAMED FACT, AT THE PREP SHEET'S RELATIONSHIP ───────────────────────
+   The campaign's goal and the list's search, each led by the word for what
+   it is. One step of ink between the name and the sentence — the same step
+   `.b-prep-refp b` takes over its own body — is enough to read as a label
+   without becoming a second heading on a card that already has one.
+
+   `text-wrap: pretty` because these run two and three lines in a 340px card
+   and the last line is where a lone word lands. */
+.b-qcard-what { text-wrap: pretty; }
+.b-qcard-what b { color: var(--d300); font-weight: var(--fw-bold); margin-right: 4px; }
+
 /* The keyboard cursor on a card. A call rather than a tint: a card already
    has a ground of its own, and tinting it would fight the status tag on it. */
 .b-qcard.is-cursor { border-color: var(--accent); }

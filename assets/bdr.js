@@ -1102,7 +1102,12 @@
           ])
           : pick(r, [
             'A real conversation with ' + askFor + ' about what this is costing them today',
-            'To hear from ' + askFor + ' how they run this now, and what it takes',
+            /* A noun phrase like the other five. As an infinitive it read
+               "Asking for To hear from ops directors how they run this now"
+               on the prep sheet, which has been printing that sentence since
+               the sheet existed. Same length of array, so the seed cursor
+               does not move. */
+            'An account from ' + askFor + ' of how they run this now, and what it takes',
             'A straight answer from ' + askFor + ' on whether this is worth their money',
           ]),
         pitch: 'They are in ' + reg.label + ', and they are running this with people rather than with a system. ' +
@@ -2461,7 +2466,23 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
         esc(k.name) + '</button>' +
-      '<p class="tc-summary">' + esc(k.goal) + '.</p>' +
+      /* ══ THE LINE UNDER THE NAME IS A FACT WITH A NAME ═════════════════
+         `.tc-summary` is the shell's description slot — 11.5px at --d400,
+         the quietest thing on the card — and this is not a description of
+         the campaign. It is the campaign's ask: the one sentence saying what
+         a call on it is trying to come away with. The record captions it
+         `The goal` and the prep sheet says `Asking for`; the card was the
+         only place it ran bare, and a substantive sentence with no name on
+         it in the description slot reads as a description. Worse, it left
+         two prose blocks on one card — this and what AiMY makes of the calls
+         — looking like the same kind of thing, which they are not: one is
+         authored and fixed, the other is read off 226 calls.
+
+         The ink stays where it is. Picking a campaign to work is decided by
+         the days left, the numbers and the insight; the ask is the same
+         every morning, so it is reference and reads like reference. What it
+         was missing was not weight, it was its name. */
+      '<p class="tc-summary b-qcard-what"><b>The goal</b> ' + esc(k.goal) + '.</p>' +
       (campOpen(k)
         ? '<div class="b-qcard-why"><b>' + commas(q.length) + '</b> of its ' +
           plural(members.length, 'person') + ' to call' +
@@ -2546,7 +2567,9 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
-      '<p class="tc-summary">' + esc(l.crit) + '.</p>' +
+      /* Same slot, same silence: this is who the search asked for, and it
+         sat in the description slot unnamed beside a card that names it. */
+      '<p class="tc-summary b-qcard-what"><b>Who</b> ' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
         commas(call) + '</b> of them ringable</div>' +
       aimyBlock(listSays(l, people, call, camp)) +
