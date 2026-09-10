@@ -7059,11 +7059,17 @@
       '<section class="s-block s-block-wide" aria-label="Lists">' +
         '<div class="s-camp-list-head">' + switcher('lists') +
           findBox('Find a list, a criterion, a source') + '</div>' +
-        /* The one action on this surface, at the end of the row the actions
-           are at the end of everywhere else. */
-        '<div class="b-acts b-acts-end">' +
-          '<button class="s-inline-btn" type="button" data-bopen>Find leads</button>' +
-        '</div>' +
+        /* ══ THE ONE ACTION WAS ALREADY ON THE PAGE ════════════════════════
+           A "Find leads" stood here, on the argument that a surface should
+           carry its own verb at the end of its own row. The briefing above it
+           carries four doors and one of them is Find leads — on every surface,
+           deliberately, because a desk with nothing in the queue needs the way
+           to go and get more wherever it is standing. So this was the same
+           control twice on one screen, forty pixels apart.
+
+           The sentence in the empty state keeps its copy: that one is inside
+           an explanation of what a list is FOR, which is prose that happens to
+           be pressable rather than a control put at the end of a row. */
         (found.length
           ? lgrid(paged(found).rows) + pager(paged(found), 'list')
           : '<p class="b-vfoot">' + (S.find

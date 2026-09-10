@@ -2377,7 +2377,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    The boundary between columns is a hairline, not a gap: a gap between
    groups of cards reads as more cards missing. */
 .b-board {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(268px, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(310px, 1fr);
   overflow-x: auto; overscroll-behavior-x: contain;
   margin-top: 16px; padding-bottom: 4px;
 }
@@ -2390,10 +2390,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* Won and Lost are read, not worked, so they take less of the width.
    The floor was 232, which fits a name and a company and then makes the
    basis line under them wrap to three. 268 is a card that holds its own
-   sentence. The board scrolls inside itself either way, so the width it
+   sentence, and 310 is one that holds the reading AiMY put under it. The
+   board scrolls inside itself either way, so the width it
    costs is width the page never had to give. */
 .b-col.is-end { grid-column: span 1; }
-.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(268px, 1fr); }
+.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(310px, 1fr); }
 
 .b-col-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .b-col-cap {
