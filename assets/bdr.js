@@ -2309,8 +2309,19 @@
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
-      '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
-        esc(c.name) + '</button>' +
+      /* ══ THE ACCOUNT IS OFTEN THE PERSON ═══════════════════════════════
+         The mark sat on the company line, on the reading that a tier ranks
+         a company. Half the time the company is the least of it: what is
+         being worked is one person who happens to have an employer, and on
+         a card where the name is the headline and the company is a fact
+         underneath it, a rank pinned to the fact is a rank on the wrong
+         row. It goes with the name — the thing this card IS — and the row
+         it lands on is the row a reader is already looking at. */
+      '<div class="b-qcard-top">' +
+        '<button class="tc-title s-card-title" type="button" data-con="' + esc(c.id) + '">' +
+          esc(c.name) + '</button>' +
+        (isMgr() && a ? tierMark(a) : '') +
+      '</div>' +
       /* Two elements, not one with a break in it. Who they are and where they
          work are different ranks — the role is the thing you open on, the
          company is context you read once — and one paragraph holding both
@@ -2338,14 +2349,7 @@
          the wrap's row-gap was giving, and no rule changes. */
       (a ? '<p class="b-qcard-where">' +
         fact('company', esc(a.name)) +
-        fact('industry', esc(indLabel(a))) +
-        /* At the far end of the row the company is named on, not tucked
-           against the name. It is the one mark on the card that ranks rather
-           than describes, and a mark you scan a column for has to be in the
-           same place on every card — hard against the right edge, where the
-           eye can run down it. `margin-left: auto` takes the slack, so it
-           costs the four facts none of the width they were measured at. */
-        (isMgr() ? tierMark(a) : '') + '</p>' +
+        fact('industry', esc(indLabel(a))) + '</p>' +
         '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
@@ -3694,15 +3698,16 @@
     const a = accOf(c);
     return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i, 8) + '">' +
-      '<span class="b-dc-name">' + esc(c.name) + '</span>' +
-      /* The mark goes beside the COMPANY, here and on the queue card and on
-         the account itself, so the rule is learnable in one place: pips next
-         to a company name say what that account is worth to us. It is not
-         beside the amount — the amount is this deal, and the pips are every
-         deal they could ever give us. */
+      '<div class="b-dc-top">' +
+        '<span class="b-dc-name">' + esc(c.name) + '</span>' +
+        /* Gated like every other site the mark appears on. This board is a
+           manager's surface, but `?on=deals` is a URL a caller can type and
+           `dealsPage` does not turn her away — so an ungated mark here put
+           134 shields on a desk that has no ranking. */
+        (isMgr() && a ? tierMark(a) : '') +
+      '</div>' +
       '<span class="b-dc-co b-fact">' + chIcon('company') +
-        '<span>' + esc(a ? a.name : 'No company named') + '</span>' +
-        (a ? tierMark(a) : '') + '</span>' +
+        '<span>' + esc(a ? a.name : 'No company named') + '</span></span>' +
       '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
       /* No mark. Every card on the board carries an amount, in the same
          place, bold and in tabular figures — a mark on all of them tells
@@ -4627,8 +4632,25 @@
     const say = esc(t.label) + ' account';
     return '<span class="b-tier ' + t.cls + '" title="' + say + '"' +
       (word ? '' : ' role="img" aria-label="' + say + '"') + '>' +
-      '<svg class="b-tier-shield" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path d="M12 2.4 20 5.2v6.1c0 4.7-3.2 8.4-8 10.3-4.8-1.9-8-5.6-8-10.3V5.2Z"/>' +
+      /* Three parts, because one flat path at this size is a sticker. The
+         face carries the metal and a rim a shade under it; the lit half is
+         the same shield cut down its own centre line and washed with white,
+         which is how a struck badge reads with the light on the left; and
+         the whole thing casts a shadow, so it sits ON the row rather than
+         in it.
+
+         The lit half is written out rather than derived from the face,
+         because it has to follow the shield's curve exactly — a highlight
+         that misses the edge by a subpixel is a seam, and a seam at fifteen
+         pixels is the only thing anybody sees. */
+      /* Cropped to the shield rather than the 24-square it was drawn in.
+           At a 24 viewBox the path spans x4 to x20, so a third of the box
+           was empty and the mark hung two pixels shy of the right edge
+           every other row on the card lines up on. */
+      '<svg class="b-tier-shield" viewBox="4 2 16 20" aria-hidden="true">' +
+        '<path class="b-tier-face" ' +
+          'd="M12 2.4 20 5.2v6.1c0 4.7-3.2 8.4-8 10.3-4.8-1.9-8-5.6-8-10.3V5.2Z"/>' +
+        '<path class="b-tier-lit" d="M12 2.4 4 5.2v6.1c0 4.7 3.2 8.4 8 10.3Z"/>' +
       '</svg>' + (word ? esc(t.label) : '') +
     '</span>';
   }
@@ -9649,6 +9671,10 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
+          /* The same rank, on the record the card opens. A mark that is on
+             the card and gone from the page behind it reads as something
+             the list made up. */
+          (isMgr() && accOf(c) ? tierMark(accOf(c), 1) : '') +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +

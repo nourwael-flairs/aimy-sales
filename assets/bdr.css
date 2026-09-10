@@ -2631,41 +2631,65 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   display: inline-flex; align-items: center; gap: 5px;
   font-size: var(--fs-2xs); white-space: nowrap;
 }
-.b-tier-shield { width: 14px; height: 14px; flex: none; }
-
-/* The metals, and the two grounds they have to sit on. A gold that reads on
-   a dark page is a pale one, and that same value on white is a yellow nobody
-   would call gold — so each is chosen against its own ground rather than
-   lightened from a single value. */
-:root { --tier-gold: #e3b341; --tier-silver: #b6c2ce; }
-:root[data-theme="light"] { --tier-gold: #a97a10; --tier-silver: #78848f; }
-
-.b-tier.is-gold .b-tier-shield { fill: var(--tier-gold); stroke: none; }
-.b-tier.is-silver .b-tier-shield { fill: var(--tier-silver); stroke: none; }
-/* Hollow, in the rule ink: an outline is quiet enough to stop a benched
-   account being the brightest thing in a column of fifteen. */
-.b-tier.is-bench .b-tier-shield {
-  fill: none; stroke: var(--ink-rule); stroke-width: 2.2; stroke-linejoin: round;
+.b-tier-shield {
+  width: 12px; height: 15px; flex: none;
+  filter: drop-shadow(0 1px 1.5px var(--tier-cast));
 }
 
-/* The word keeps the ink and weight steps it always had. Only the shield is
-   coloured: gold TEXT at twelve pixels is a contrast problem on both grounds,
-   and the hierarchy on the line it lands in is the page's, not the medal's. */
+/* The metals. Each is three values rather than one — the face, a rim a
+   shade under it, and the cast the badge throws — and each pair is picked
+   against its own ground: a gold that reads on a dark page is a pale one,
+   and that same value on white is a yellow nobody would call gold. */
+:root {
+  --tier-gold: #d9a533;   --tier-gold-rim: #8f6a11;
+  --tier-silver: #aab6c3; --tier-silver-rim: #6b7783;
+  --tier-cast: rgba(0, 0, 0, 0.55);
+  --tier-lit: rgba(255, 255, 255, 0.34);
+}
+:root[data-theme="light"] {
+  --tier-gold: #c08f16;   --tier-gold-rim: #7d5c07;
+  --tier-silver: #939fab; --tier-silver-rim: #5d6873;
+  --tier-cast: rgba(16, 24, 40, 0.3);
+  --tier-lit: rgba(255, 255, 255, 0.42);
+}
+
+/* `paint-order` lays the fill down before the stroke, so the rim straddles
+   the outline and only its inner half survives. That is half a pixel of
+   dark all the way round, which is a bevel; without it the badge is a flat
+   shape with a shadow underneath. */
+.b-tier-face { stroke-width: 1; paint-order: fill stroke; stroke-linejoin: round; }
+.b-tier.is-gold .b-tier-face { fill: var(--tier-gold); stroke: var(--tier-gold-rim); }
+.b-tier.is-silver .b-tier-face { fill: var(--tier-silver); stroke: var(--tier-silver-rim); }
+
+/* One light source, upper left, where every struck thing a person has held
+   has its light. The point is not that anybody notices the highlight — it
+   is that without one the shape has no thickness. */
+.b-tier-lit { fill: var(--tier-lit); stroke: none; }
+
+/* Bench keeps none of it. It is not a third metal but the one that is not
+   on the field, so it takes the outline, no wash and no lift, and stays
+   the quietest thing in a column of fifteen. */
+.b-tier.is-bench .b-tier-shield { filter: none; }
+.b-tier.is-bench .b-tier-face { fill: none; stroke: var(--ink-rule); stroke-width: 2.2; }
+.b-tier.is-bench .b-tier-lit { fill: none; }
+
+/* The word keeps the ink and weight steps it always had. Only the shield
+   is coloured: gold TEXT at twelve pixels is a contrast problem on both
+   grounds, and the hierarchy on the line it lands in is the page's. */
 .b-tier.is-gold { color: var(--ink-primary); font-weight: var(--fw-bold); }
 .b-tier.is-silver { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
 .b-tier.is-bench { color: var(--ink-quiet); font-weight: var(--fw-medium); }
-/* Ordinary ink until the window runs out. A date that has not arrived is a
-   fact like any other on the line, and a page where every account's next
-   check-in wears the warning colour has told a manager nothing about which
-   one to ring. Warn rather than err: a check-in gone by is a nudge, which is
-   what `.b-prep-due.is-late` already says in the same words. */
-.b-due.is-late { color: var(--warn-text); font-weight: var(--fw-semibold); }
 
-/* Hard against the right edge of whichever row names the company, so a
-   column of cards can be scanned straight down the marks. */
-.b-qcard-where > .b-tier,
-.b-dc-co .b-tier,
+/* The name's own row, on a card and on a record, with the mark hard against
+   the right so a column of them can be scanned straight down. The card's
+   padding lives on its children, so the wrapper carries the right inset
+   the title already had on its left. */
+.b-qcard-top { display: flex; align-items: baseline; gap: 8px; padding-right: 14px; }
+.b-dc-top { display: flex; align-items: baseline; gap: 8px; }
+.b-qcard-top .b-tier,
+.b-dc-top .b-tier,
 .s-rec-title .b-tier { margin-left: auto; }
+
 .b-cal-etime {
   flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d200); font-variant-numeric: tabular-nums;
