@@ -4332,7 +4332,7 @@
        news this page has, so it says so rather than saying nothing. */
     return '<div class="b-loop">' +
       '<div class="b-loop-head">' +
-        '<h4 class="b-loop-cap">Never written down</h4>' +
+        '<h4 class="b-loop-cap">Missing details</h4>' +
         '<button class="s-insight-lnk" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
           '">Notes</button>' +
@@ -6169,7 +6169,7 @@
          still be there at six. */
       const on = meetingsOn(TODAY_ISO);
       const first = on.filter((m) => m.h != null)[0];
-      /* Never written down moved to the diary with the day it belongs to,
+      /* Missing details moved to the diary with the day it belongs to,
          and it is the only p1 this desk has — so the paragraph names it and
          the phrase is the way there. Silence about it on the surface a
          manager opens first is how it goes on being unwritten. */
