@@ -1927,6 +1927,27 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-ai > svg { width: 13px; height: 15px; flex: none; }
 
+/* Off-screen but in the tree: read aloud, never drawn, and never a focus
+   stop of its own. `clip-path` rather than the old 1px-clip trick, and a
+   negative margin so it cannot add a stray pixel to a grid row. */
+.b-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; border: 0; overflow: hidden; white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* ══ THE PARTS NOBODY DRAWS ════════════════════════════════════════════════
+   Text selection shipped as the browser's own blue on every surface of this
+   build — the one piece of chrome that is visible on every page and belongs
+   to no design system in it. It is the accent at low alpha now, which is
+   what the rest of the ink is picked against, and the foreground is left
+   alone so contrast cannot be lost behind it.
+
+   Build-wide rather than scoped to one card: a selection colour that changes
+   depending on which box the words are in is worse than the default it
+   replaced. */
+::selection { background: rgba(var(--accent-rgb), 0.28); }
+
 /* ══ 47d. THE ANSWER, BEFORE THE CANVAS ════════════════════════════════════
    Anchored to the bar the way the scope tray is — `bottom: calc(100% + 8px)`
    rather than a fixed offset that assumes a bar height — and the same 760px
@@ -1992,9 +2013,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
     0 2px 6px rgba(16, 24, 40, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
+/* One authored moment, and it reaches past transform and opacity. The card
+   resolves out of the blur the bar behind it is already carrying, which is
+   the same material arriving rather than a box sliding in — 6px is small
+   enough to stay on the compositor and short enough that nothing waits on
+   it. `filter` and not `backdrop-filter`: animating the backdrop re-samples
+   everything under the card every frame. */
 @keyframes b-peek-in {
-  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.985); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.985); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
 }
 /* The whole card is the press, so the text inside it is left-aligned rather
    than centred the way a button's label would be — and there is no label
@@ -2055,11 +2082,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 :root[data-theme="light"] .b-peek.is-clipped .b-peek-body::after {
   background: linear-gradient(to bottom, transparent, var(--card-bg));
 }
+/* 32px of button under a 14px mark, and a thumb wants 44. The target grows
+   and the button does not: an invisible box centred on it takes the press,
+   so the card keeps its proportions and the finger keeps its margin. */
 .b-peek-x {
+  position: relative;
   flex: none; display: grid; place-items: center; width: 32px; height: 32px;
   margin-top: 8px; margin-right: 7px;
   border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
   cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-peek-x::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .b-peek-x:hover { color: var(--ink-primary); background: var(--card-bg); }
 .b-peek-x:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
