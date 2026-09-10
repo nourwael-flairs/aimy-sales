@@ -378,6 +378,31 @@
        the board did not have room for by accident. */
     { k: 'later',      label: 'Follow-up', tone: 'neutral' },
   ];
+  /* ══ A COLUMN OF SEVEN AND NOT ONE WORD ABOUT WHY ══════════════════════
+     Lost held deals and nothing anywhere said what happened to any of them.
+     The stage is a fact the board can count; the reason is the only fact on
+     a lost deal anybody can act on, because it is the one that says whether
+     the next one goes the same way.
+
+     Six, and every one of them is a different thing to do about it. Price
+     and timing come back; in-house and no-decision are the account telling
+     you what it is; a competitor is a fact about the market and the wrong
+     fit is a fact about the list that produced it.
+
+     `back` is whether this is a no or a not-yet — the parked column exists
+     for the ones a manager parks deliberately, and this marks the losses
+     that should have gone there. */
+  const LOST_WHY = [
+    { k: 'price', label: 'Price', say: 'the number was more than they had', back: true },
+    { k: 'timing', label: 'Timing', say: 'the budget moved to next year', back: true },
+    { k: 'rival', label: 'A competitor', say: 'somebody else got it', back: false },
+    { k: 'inhouse', label: 'Kept in-house', say: 'they decided to run it themselves', back: false },
+    { k: 'quiet', label: 'Nobody decided', say: 'it went quiet and never came back', back: true },
+    { k: 'fit', label: 'Not the fit', say: 'it was not the thing they actually needed', back: false },
+  ];
+  const LOST = Object.create(null);
+  LOST_WHY.forEach((x) => (LOST[x.k] = x));
+
   const DEAL_STAGE = Object.create(null);
   DEAL_STAGES.forEach((x, i) => { DEAL_STAGE[x.k] = x; x.n = i; });
   const stageRank = (k) => (DEAL_STAGE[k] ? DEAL_STAGE[k].n : 0);
@@ -1556,6 +1581,13 @@
           touch.push({
             id: 't' + tId++, con: c.id, camp: camps[0], by: dirId, at: when.toISOString(), secs: 0,
             outcome: 'phase', phase: ph.k, decision: decision,
+            /* ══ A SHIFT IS NOT A NEW NUMBER ═══════════════════════════
+               This read the high bits of the hash that already chose the
+               phase walk, and those bits are not independent of it: six
+               losses came back five to one on the same reason. Its own salt,
+               the way every other modelled fact in this file gets one. */
+            why: decision === 'lost'
+              ? LOST_WHY[Math.abs(hash(c.id + ':lostwhy')) % LOST_WHY.length].k : null,
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -1870,7 +1902,11 @@
            everything closes is as useless as one where nothing does. */
         let when = handed, parked = null;
         const roll = (h >> 16) % 10;
-        const ends = roll < 6;
+        /* Seven in ten decide. Six left nine resolutions across forty-eight
+           deals — two of them losses, both lost to the same thing — and a
+           reason table of six with one value on the board says nothing about
+           why this desk loses. A book with a past has a past worth reading. */
+        const ends = roll < 7;
         /* ══ AND A DEAL THAT DOES NOT END STOPS SOMEWHERE ══════════════
            The first cut walked every deal to the last phase and only then
            asked whether it decided, so the four in ten that never decided
@@ -1881,16 +1917,25 @@
            after the number went over. */
         const goes = ends ? PHASES.length : 1 + (roll % 3);
         for (let pi = 0; pi < goes; pi++) {
-          when = new Date(when.getTime() + (14 + ((h >> (2 * pi)) % 22)) * DAY_MS);
+          /* A fortnight to a month between meetings. It was up to five
+             weeks, which is a pace this business does run at and which meant
+             four phases needed as much as five months of clock — so deals
+             that were meant to decide ran out of calendar instead. */
+          when = new Date(when.getTime() + (12 + ((h >> (2 * pi)) % 19)) * DAY_MS);
           if (when.getTime() > TODAY.getTime()) break;
           const ph = PHASES[pi];
           /* Won, lost, or asked to come back — three ways a conversation
              ends and the third is the one the board could not hold. */
+          /* Lost a shade more often than won, which is what a real book
+             does and what the one this is read beside says: five signed
+             against seven turned down. */
           const decision = ph.k !== 'resolution' ? null
-            : ((h >> 24) % 9) < 4 ? 'won' : ((h >> 24) % 9) < 7 ? 'lost' : 'later';
+            : ((h >> 24) % 9) < 3 ? 'won' : ((h >> 24) % 9) < 7 ? 'lost' : 'later';
           touch.push({
             id: 't' + tId++, con: c.id, camp: k.id, by: mgr, at: when.toISOString(), secs: 0,
             outcome: 'phase', phase: ph.k, decision: decision,
+            why: decision === 'lost'
+              ? LOST_WHY[Math.abs(hash(c.id + ':lostwhy')) % LOST_WHY.length].k : null,
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -4039,7 +4084,11 @@
             from: 'what they signed for', act: null };
     }
     if (st === 'lost') {
-      return { text: 'They said no. The account is still yours to work.',
+      const w = lostWhy(c);
+      return { text: w
+          ? 'Lost on <b>' + esc(w.label.toLowerCase()) + '</b> — ' + esc(w.say) +
+            (w.back ? '. Worth another run at it.' : '.')
+          : 'They said no, and nothing here says why.',
         from: 'the resolution on this record',
         act: { label: 'Open the account', attr: 'data-acc="' + esc(c.acc) + '"' } };
     }
@@ -10032,6 +10081,15 @@
             : 'it is already decided.') + '</p>') +
         cmPart('What we sell them', '<p class="b-cmeta-p">' + esc(sells) +
           (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
+        /* Only on the deals it is true of. A "Why we lost it" reading "not
+           applicable" down every live record is the form showing you its
+           own fields. */
+        (stageOf(c) === 'lost'
+          ? cmPart('Why we lost it', '<p class="b-cmeta-p">' + (lostWhy(c)
+            ? '<b>' + esc(lostWhy(c).label) + '</b> — ' + esc(lostWhy(c).say) + '.' +
+              (lostWhy(c).back ? ' That is a no for now rather than a no.' : '')
+            : 'Nothing was written down when it closed.') + '</p>')
+          : '') +
         /* The third branch said "Nobody is named as the caller", which is a
            sentence about the record rather than about the deal — and it now
            covers ten deals on this desk that arrived without one. Nothing is
@@ -10587,6 +10645,13 @@
      counting a deal nobody is working as money in play is the oldest way a
      pipeline lies — and it is not decided either, which is why it keeps a
      date and Lost does not. */
+  /* Off the touchpoint that ended it, so a deal lost and un-lost takes its
+     reason with it rather than leaving one behind on the record. */
+  function lostWhy(c) {
+    const ph = phasesOf(c);
+    const last = ph.length ? ph[ph.length - 1] : null;
+    return last && last.decision === 'lost' && last.why ? LOST[last.why] : null;
+  }
   const dealLive = (c) => {
     const k = stageOf(c);
     return k !== 'won' && k !== 'lost' && k !== 'later';
