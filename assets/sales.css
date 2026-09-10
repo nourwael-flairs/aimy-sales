@@ -3745,10 +3745,6 @@ body.is-calling { --fb-reserve: var(--call-width); }
    one of the four that had it. */
 .rail-read { display: flex; flex-direction: column; gap: 16px; }
 .rail-scope { display: flex; flex-direction: column; gap: 2px; }
-.rail-scope-cap {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
-  text-transform: uppercase; color: var(--ink-muted);
-}
 .rail-scope-name {
   font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50);
 }

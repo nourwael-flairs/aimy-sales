@@ -349,6 +349,12 @@
    So the `> b:first-child` recipe that sat here — twelve semibold in
    --d400, tuned against the sentence over three passes — has nothing left
    to style. It goes with the words it was for. */
+/* The mark belongs to the first line, not to the block. `.b-fact` centres its
+   glyph, which is right for a one-line fact and wrong the moment the sentence
+   wraps: on a two-line goal the target floated into the gap between the lines,
+   pointing at neither. Top-aligned, and nudged onto the cap height of the line
+   it opens. */
+.b-qcard-what.b-fact > svg { align-self: flex-start; margin-top: 6px; }
 .b-qcard-what {
   text-wrap: pretty;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
@@ -926,7 +932,6 @@
 /* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
 .b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 .s-starts-cap { color: var(--ink-muted); }
-.rail-scope-cap { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 
 /* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
    today-line at UI size, and 16 to the actions — measured at 56 before with
@@ -3204,10 +3209,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    a line saying what is behind it. `margin-top: auto` sits it at the bottom
    of a short rail and after the last card on a long one — a gate pinned over
    content that scrolls under it is a second thing to read past. */
-.rail-foot {
-  margin-top: auto; padding-top: 10px; flex-shrink: 0;
-  border-top: 1px solid var(--card-border);
-}
+/* No rule above it. Knowledge's gate sits under a list of chats that runs to
+   the foot of its rail, where a hairline is what stops the last row and the
+   door reading as one thing. This rail ends in a card with its own border and
+   then eighty pixels of ground, so the rule was drawing a line across empty
+   space to separate two things already separated. */
+.rail-foot { margin-top: auto; padding-top: 10px; flex-shrink: 0; }
 .rail-console {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 10px; border: 0; border-radius: var(--r-md);
