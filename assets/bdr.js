@@ -3878,7 +3878,7 @@
           chIcon('grid') +
           '<span class="rail-console-lines">' +
             '<span class="rail-console-name">Console</span>' +
-            '<span class="rail-console-sub">The build, the corpus, who you are</span>' +
+            '<span class="rail-console-sub">Documents &amp; Corpus</span>' +
           '</span>' +
         '</button>' +
       '</div>';
