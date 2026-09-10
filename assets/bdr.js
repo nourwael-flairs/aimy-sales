@@ -8937,6 +8937,21 @@
       '<div class="b-cmeta-say">' + body + '</div>' +
     '</div>';
 
+  /* ══ A FIGURE AND ITS BASIS ARE TWO RANKS ══════════════════════════════
+     Measured on the record: the figure 16px, the sentence saying where the
+     figure came from 16px, four percent of ink between them. Reading across
+     three columns for €47k meant reading four lines to find it — and the
+     honest half, that nothing comparable has closed so this is the price
+     list, was set at exactly the weight of the answer.
+
+     The figure takes the rank it already is. The basis keeps every word it
+     had, at small and quiet, which is where a footnote goes. `basis` is
+     whole paragraphs rather than a string, because two of these carry a
+     second sentence only sometimes. */
+  const cmFig = (cap, fig, basis) =>
+    cmPart(cap, '<p class="b-cmeta-fig">' + fig + '</p>' + (basis || ''));
+  const upper = (s) => s.replace(/^./, (ch) => ch.toUpperCase());
+
   /* ══ THE TEAM, AS PEOPLE ═══════════════════════════════════════════════
      "owned by Karim Fouad · with Sally Tarek and Omar Fathy" was a list of
      names in the kind line, above the campaign's own name, in the slot that
@@ -10209,7 +10224,6 @@
     const a = accOf(c);
     const k = dealCamp(c);
     const sells = (SELL[sellOf(c)] || {}).name || 'nothing named yet';
-    const owner = c.owner ? actor(c.owner) : null;
     const days = daysBetween(TODAY_ISO, closeBy(c));
     return '<section class="s-block s-block-wide" aria-label="The deal">' +
       '<div class="b-cmeta">' +
@@ -10226,44 +10240,52 @@
            A record that explains itself wrongly is worse than one that does
            not explain itself, because the wrong explanation is the thing a
            reader would quote in the room. */
-        cmPart('Worth', '<p class="b-cmeta-p"><b>' + esc(euro(dealWorth(c))) + '</b> — ' +
-          worthSay(c, k, sells, a) + '</p>') +
-        cmPart('Expected close', '<p class="b-cmeta-p"><b>' + esc(sayDay(closeBy(c))) + '</b> — ' +
-          (dealLive(c)
-            ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
-              : 'about ' + plural(days, 'day') + ' out, counted from the last meeting.')
-            : 'it is already decided.') + '</p>') +
+        cmFig('Worth', esc(euro(dealWorth(c))),
+          '<p class="b-cmeta-p">' + upper(worthSay(c, k, sells, a)) + '</p>') +
+        cmFig('Expected close', esc(sayDay(closeBy(c))),
+          '<p class="b-cmeta-p">' + (dealLive(c)
+            ? (days < 0 ? 'That is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
+              : 'About ' + plural(days, 'day') + ' out, counted from the last meeting.')
+            : 'It is already decided.') + '</p>') +
         /* What this deal is for, which kind of sale it is, and — only when
            they differ — what the campaign opened on. A record that shows the
            campaign's product where the deal's should be is the page telling
            you about the plan instead of about the deal. */
-        cmPart('What we sell them', '<p class="b-cmeta-p"><b>' + esc(sells) + '</b> ' +
-          '<span class="b-kind">' + esc(dealType(c)) + '</span></p>' +
+        /* The kind of sale drops to the basis line with the other notes. It
+           was a `b-kind` beside the name — the treatment for a word that has
+           to sit on a line it does not own — and that line is the figure's
+           now, where an eleven-pixel tag against a twenty-pixel name is a
+           mark stranded beside something four times its size. */
+        cmFig('What we sell them', esc(sells),
+          '<p class="b-cmeta-p">' + esc(dealType(c)) + '.' +
           /* Which campaign is a fact in the masthead now, so this says the
              one thing the masthead cannot: that the deal has moved off what
              the campaign opened with. When it has not, there is nothing here
              to say. */
           (k && sellDrifted(c)
-            ? '<p class="b-cmeta-p">The campaign opened on <b>' +
-              esc((SELL[k.sells[0]] || {}).name || 'something else') + '</b>.</p>'
-            : '')) +
+            ? ' The campaign opened on <b>' +
+              esc((SELL[k.sells[0]] || {}).name || 'something else') + '</b>.'
+            : '') + '</p>') +
         /* Only on the deals it is true of. A "Why we lost it" reading "not
            applicable" down every live record is the form showing you its
            own fields. */
         (stageOf(c) === 'lost'
-          ? cmPart('Why we lost it', '<p class="b-cmeta-p">' + (lostWhy(c)
-            ? '<b>' + esc(lostWhy(c).label) + '</b> — ' + esc(lostWhy(c).say) + '.' +
-              (lostWhy(c).back ? ' That is a no for now rather than a no.' : '')
-            : 'Nothing was written down when it closed.') + '</p>')
+          ? cmFig('Why we lost it',
+            lostWhy(c) ? esc(lostWhy(c).label) : 'Not written down',
+            '<p class="b-cmeta-p">' + (lostWhy(c)
+              ? upper(esc(lostWhy(c).say)) + '.' +
+                (lostWhy(c).back ? ' That is a no for now rather than a no.' : '')
+              : 'Nothing was said when it closed.') + '</p>')
           : '') +
-        /* The third branch said "Nobody is named as the caller", which is a
-           sentence about the record rather than about the deal — and it now
-           covers ten deals on this desk that arrived without one. Nothing is
-           missing on them. Nobody called them, because they called us. */
-        cmPart('Found by', '<p class="b-cmeta-p">' +
-          (owner ? '<b>' + esc(owner.name) + '</b> called them cold and got them warm.'
-            : addedByHand(c) ? 'You did — added by hand, so only what you typed is known.'
-            : '<b>They came to us.</b> Nobody here called them first.') + '</p>') +
+        /* ══ WHO FOUND THEM IS ALREADY SAID TWICE BELOW ══════════════════
+           A "Found by" part stood here. It is the one thing in this block
+           that is not about the deal — it is about how the record began —
+           and the two sections directly under it both carry it: the story
+           opens on the first call with its date and the name of whoever
+           made it, and the team lists that same person first, by the rule
+           that whoever found them leads it. Three tellings of one fact, and
+           this was the least specific of the three: no date, no count, and
+           a fourth part that took a second row of the grid to say it. */
       '</div>' +
     '</section>';
   }
