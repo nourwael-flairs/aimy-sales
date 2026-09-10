@@ -3414,7 +3414,12 @@
     if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
-    if (S.on === 'notes') return backBtn('data-back', 'Back to the briefing');
+    /* Named for where it now comes from. `data-back` clears to the briefing,
+       which was true while the notes block lived there and is a lie now. */
+    if (S.on === 'notes') {
+      return backBtn('data-go="' +
+        esc(JSON.stringify(Object.assign(cleared(), { on: 'cal' }))) + '"', 'Back to the diary');
+    }
     return backBtn('data-back', 'Back to the briefing');
   }
 
@@ -3582,20 +3587,39 @@
   }
 
   /* The last three days on Today, and the door. */
-  function notesBlock() {
-    const since = dayAdd(-3);
-    const recent = notesOf().filter((t) => t.at.slice(0, 10) >= since);
-    if (!recent.length) return '';
-    return '<section class="s-block s-block-wide" aria-label="What you said">' +
-      '<div class="s-camp-list-head">' +
-        '<h2 class="s-block-h">What you said</h2>' +
-        '<span class="s-block-say">the last three days</span>' +
-      '</div>' +
-      feedBlock(recent.slice(0, 5), '') +
-      '<div class="b-acts b-acts-end">' +
-        '<button class="s-inline-btn" type="button" data-go="' +
-          esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) + '">All of them</button>' +
-      '</div>' +
+  /* ══ THE DAY GOES FIRST, BECAUSE THE TAB IS NAMED AFTER IT ═════════════
+     What is in the diary today was a clause in the paragraph and one
+     aggregated row further down — "2 things still ahead of you today" — on
+     a desk that spends most of the day in rooms with other people. A page
+     named Today leads with today.
+
+     The rows are the diary's own `calRow`: same dot, same hour, same words
+     about who put the time there, so the two surfaces cannot draw one
+     meeting two ways. What this block adds is the door the diary does not
+     need — the brief for the next one still ahead, named rather than
+     guessed at, which is what "Prepare me" could never be from the start
+     strip.
+
+     Everything in the diary today, not only what is left: a meeting at nine
+     that has already happened is still part of what today was, and the
+     paragraph above counts the same set. Two counts of the same word on one
+     screen is the defect the aggregated row had. */
+  function dayBlock() {
+    const on = meetingsOn(TODAY_ISO);
+    const next = on.filter((m) => !m.held && m.h != null && m.con.id)[0];
+    return '<section class="s-block s-block-wide" aria-label="Your day">' +
+      '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
+      (on.length
+        ? '<p class="b-tocall"><b>' + plural(on.length, 'thing') + '</b> in the diary today</p>' +
+          '<div class="b-cal-agenda">' + on.map((m, i) => calRow(m, i)).join('') + '</div>' +
+          (next
+            ? '<div class="b-acts b-acts-end">' +
+                '<button class="s-inline-btn" type="button" data-prep="' + esc(next.con.id) +
+                  '">Prepare me for ' + esc(clockOf(next)) + '</button>' +
+              '</div>'
+            : '')
+        : '<p class="s-block-sub">Nothing is in the diary today. Tell AiMY when you are ' +
+          'seeing somebody and it lands here.</p>') +
     '</section>';
   }
 
@@ -3622,14 +3646,21 @@
      the way into whichever one owns it. The bell keeps the same list for
      when you are somewhere else. */
   function owedBlock() {
-    const tasks = mgrTasks();
+    /* The day is the block directly above this one, so a row pointing at it
+       is the page saying the same thing twice. The bell keeps that row,
+       because there it is the only place today gets named. */
+    const tasks = mgrTasks().filter((t) => t.id !== 'diary-today');
     const live = queue(null, 'all').filter(dealLive);
     return '<section class="s-block s-block-wide" aria-label="What wants you">' +
-      '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
+      '<div class="s-camp-list-head">' +
+        '<h2 class="s-block-h">What wants you</h2>' +
+        (tasks.length
+          ? '<span class="s-block-say">' + esc(plural(tasks.length, 'thing')) +
+            ' · what was missed first</span>'
+          : '') +
+      '</div>' +
       (tasks.length
-        ? '<p class="b-tocall"><b>' + plural(tasks.length, 'thing') + '</b> ' +
-            (tasks.length === 1 ? 'wants' : 'want') + ' you, most urgent first</p>' +
-          '<div class="b-owed">' + tasks.map((t, i) =>
+        ? '<div class="b-owed">' + tasks.map((t, i) =>
             '<button class="b-owed-row" type="button" data-ask="' + esc(t.ask) + '" ' +
             'style="--i:' + Math.min(i, 8) + '">' +
               /* Two poles, and the order carries the rest — the same call
@@ -3654,8 +3685,8 @@
   function mgrHome() {
     return '<div class="s-home">' +
       topBrief('today') +
+      dayBlock() +
       owedBlock() +
-      notesBlock() +
     '</div>';
   }
 
@@ -3864,7 +3895,12 @@
       '</span>' +
       '<span class="b-cal-ename">' + esc(m.con.name) +
         '<span class="b-cal-ewhat">' + esc(m.title) +
-          (m.free || m.held ? '' : m.set ? ' · you set the time' : ' · AiMY put it here') +
+          /* Only when there IS a time. A dated step with no hour draws as
+             "all day", and telling a reader AiMY put THAT here is a claim
+             about a slot that does not exist — visible the moment these rows
+             went onto Today beside two proposals due and no hour on either. */
+          (m.free || m.held || m.h == null ? ''
+            : m.set ? ' · you set the time' : ' · AiMY put it here') +
         '</span>' +
       '</span>' +
     (m.con.id ? '</button>' : '</div>');
@@ -3941,7 +3977,7 @@
 
     const agenda = today.length
       ? today.map((m, i) => calRow(m, i)).join('')
-      : '<p class="b-cal-none">Nothing in the calendar. Tell AiMY when you are seeing ' +
+      : '<p class="b-cal-none">Nothing in the diary. Tell AiMY when you are seeing ' +
         'somebody and it lands here.</p>';
 
     /* ══ AND WHAT IS AFTER IT ═════════════════════════════════════════════
@@ -4077,7 +4113,7 @@
     if (!on.length) {
       const soon = meetings(dayAdd(1), dayAdd(14));
       return '<span class="b-door-fig is-quiet">Clear</span>' +
-        '<span class="b-door-who">Nothing is in the calendar</span>' +
+        '<span class="b-door-who">Nothing is in the diary</span>' +
         '<span class="b-door-say">' + (soon.length
           ? esc(plural(soon.length, 'thing')) + ' in the fortnight ahead'
           : 'and nothing in the fortnight ahead') + '</span>';
@@ -4095,7 +4131,7 @@
       '<span class="b-door-who">' + esc(first.con.name) +
         '<span class="b-kind">' + esc(k.label) + '</span></span>' +
       '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
-        ' in the calendar today</span>';
+        ' in the diary today</span>';
   }
 
   /* ══ A DOOR IS A SPECIMEN OF WHAT IS BEHIND IT ═════════════════════════
@@ -4258,6 +4294,17 @@
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
         '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
         openLoop() +
+        /* ══ AND WHAT DID GET WRITTEN DOWN ═══════════════════════════════
+           The notes block came off Today, and its "All of them" was the only
+           door onto `notesPage` in the product — take it away and the
+           surface is reachable by typing a URL. It belongs here rather than
+           there anyway: this is the page about meetings, `openLoop` is the
+           ones nobody wrote up, and this is where the rest of them went. */
+        '<div class="b-acts b-acts-end">' +
+          '<button class="s-inline-btn" type="button" data-go="' +
+            esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
+            '">What you said</button>' +
+        '</div>' +
       '</section>' +
     '</div>';
   }
@@ -6066,8 +6113,11 @@
         ? '<b>' + plural(all.length, 'lead') + '</b> ' + (all.length === 1 ? 'has' : 'have') +
           ' been handed to you, across <b>' + plural(camps.length, 'campaign') + '</b> you own.'
         : 'Nothing has been handed to you yet.';
-      if (!on.length) return 'Nothing is in the calendar today.' + owed + ' ' + book;
-      return '<b>' + plural(on.length, 'thing') + '</b> in the calendar today' +
+      /* The surface is called Diary — on the tab, on the rail door and on
+         the block this paragraph now sits above. Two words for one place,
+         eighty pixels apart, is the reader doing translation. */
+      if (!on.length) return 'Nothing is in the diary today.' + owed + ' ' + book;
+      return '<b>' + plural(on.length, 'thing') + '</b> in the diary today' +
         (first ? ', the first at <b>' + esc(clockOf(first)) + '</b> with <b>' +
           esc(first.con.name) + '</b>' : '') + '.' + owed + ' ' + book;
     }
