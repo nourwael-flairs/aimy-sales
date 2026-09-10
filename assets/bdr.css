@@ -945,7 +945,15 @@
    the things you can DO begin. Three sizes of gap, three groups, and a
    reader who counts three rather than eighteen. */
 .s-home .s-rec-actions { margin-top: 28px; }
-.s-home .b-ask { margin-top: 10px; }
+/* Ten held these two rows as one group on the grounds that both are
+   controls. They are not one job. The row above is what to do with this
+   person NEXT -- call them, get ready to; this row is what already happened,
+   and pressing one of these moves the deal rather than starting anything.
+   Twenty, which lands between the 13 that breaks identity from reference
+   and the 28 that breaks reference from doing, so the order still reads
+   downward and the biggest gap in the masthead is still the one that
+   matters most. */
+.s-home .b-ask { margin-top: 20px; }
 /* Four ghosts and a caption wrap on a phone, and a pill row wrapping on its
    baseline leaves the caption stranded on the line above. Centre them. */
 .s-home .b-ask { align-items: center; }
