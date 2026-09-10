@@ -4243,9 +4243,9 @@
     if (st === 'later') {
       const due = c.next ? daysBetween(TODAY_ISO, c.next.due) : null;
       return due != null && due <= 0
-        ? { text: 'Parked, and the day to pick it back up has come.',
+        ? { text: 'Rescheduled, and the day to pick it back up has come.',
             from: 'the date you set when you parked it', act: call }
-        : { text: 'Parked. Back on the desk ' +
+        : { text: 'Rescheduled. Back on the desk ' +
             esc(c.next ? sayWhen(c.next.due) : 'when you say so') + '.',
             from: 'the date you set when you parked it',
             act: { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' } };
@@ -10499,6 +10499,17 @@
     '</span>';
   }
 
+  /* The three ways a deal stops, in the one shape both desks draw it. The
+     verdict is bold and takes its pole; the date is the record and takes
+     neither, because when it happened is not a verdict on anything.
+     Rescheduled has no pole: it is not an outcome, it is a date. */
+  function endedSay(k, iso) {
+    const word = k === 'won' ? 'They signed'
+      : k === 'lost' ? 'They said no' : 'Rescheduled';
+    return { html: '<b>' + esc(word) + '</b> ' + esc(sayWhen(iso)) + '.',
+      tone: k === 'won' ? ' is-won' : k === 'lost' ? ' is-lost' : '' };
+  }
+
   function actionsRow(c) {
     const first = c.name.split(' ')[0];
     /* No call on somebody who opted out: the number is on the page, the
@@ -10541,6 +10552,8 @@
     let list;
     let quiet = [];
     let say = '';
+    let ended = '';
+    let endTone = '';
     if (c.checkpoint === 'handed-over') {
       const ph = phasesOf(c);
       const fin = ph.length ? ph[ph.length - 1] : null;
@@ -10554,16 +10567,32 @@
            before the phone can be — the same door the caller's desk offers. */
         list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
         quiet = dealLive(c) ? [] : call ? [call] : [];
-        say = dealLive(c) ? ''
-          : 'They ' + (stageOf(c) === 'won' ? 'signed' : 'said no') + ' ' +
-            sayWhen(fin.at.slice(0, 10)) + '.';
+        /* ══ A DEAL THAT IS OVER IS NOT A FOOTNOTE TO THE ROW ══════════════
+           This was the quietest treatment in the build -- 12px, muted, wedged
+           between two buttons -- carrying the single most important fact
+           about the record. A settled deal is not an aside to the things you
+           can do with it; it is the reason there is almost nothing left in
+           that row. It takes the lead step and the pole its outcome sits on,
+           above the controls rather than inside them.
+
+           And three endings rather than two. `dealLive` is false for won,
+           lost AND rescheduled, so a two-way test on `won` told every
+           rescheduled deal on this desk that they had said no -- the one
+           sentence in the masthead, stating the opposite of what happened. */
+        const end = !dealLive(c) && fin ? endedSay(stageOf(c), fin.at.slice(0, 10)) : null;
+        ended = end ? end.html : '';
+        endTone = end ? end.tone : '';
       } else {
         list = [];
         quiet = call ? [call] : [];
-        /* the same tense as the ladder line: decided is past */
-        say = fin && fin.decision
-          ? directorOf(c).name + ' had it. They ' + (fin.decision === 'won' ? 'signed' : 'said no') + ' ' + sayWhen(fin.at.slice(0, 10)) + '.'
-          : directorOf(c).name + ' has it now.';
+        /* the same tense as the ladder line: decided is past. Same three
+           endings, and the director's name in front of them, because at this
+           desk the news is that somebody else was running it. */
+        const end = fin && fin.decision
+          ? endedSay(fin.decision, fin.at.slice(0, 10)) : null;
+        ended = end ? esc(directorOf(c).name) + ' had it. ' + end.html : '';
+        endTone = end ? end.tone : '';
+        say = end ? '' : directorOf(c).name + ' has it now.';
       }
     } else if (c.checkpoint === 'wrong-number') {
       /* the ladder says nothing is owed until somebody finds a number that
@@ -10597,7 +10626,8 @@
        was an order he was supposed to be following and named a stranger as
        the next step. */
     const next = isMgr() ? null : queue(null, 'all').filter((x) => x.id !== c.id)[0];
-    return '<div class="s-rec-actions">' +
+    return (ended ? '<p class="b-ended' + endTone + '">' + ended + '</p>' : '') +
+    '<div class="s-rec-actions">' +
       list.map((b, i) =>
         '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
         b.attr + '>' + b.html + '</button>').join('') +
@@ -10810,7 +10840,7 @@
             : ph && t.decision
               ? '<span class="b-tl-move' + (t.decision === 'lost' ? ' is-out' : '') + '">→ ' +
                 (t.decision === 'won' ? 'Signed'
-                  : t.decision === 'later' ? 'Parked' : 'Declined') + '</span>'
+                  : t.decision === 'later' ? 'Rescheduled' : 'Declined') + '</span>'
               : '') +
           '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
         '</summary>' +
@@ -11415,7 +11445,7 @@
     if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
     phasesOf(c).forEach((t) => steps.push({
       k: t.decision ? (t.decision === 'won' ? 'Signed'
-        : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
+        : t.decision === 'later' ? 'Rescheduled' : 'They said no') : (PHASE[t.phase] || {}).label,
       t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0] +
         (t.out ? ' · ' + MEET_OUT_BY[t.out].label.toLowerCase() : ''),
       tone: t.decision === 'lost' ? 'warn'
@@ -11463,7 +11493,7 @@
         (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (called[top.checkpoint] || {}).tone || 'ok' });
       phasesOf(top).slice(-1).forEach((t) => steps.push({
         k: t.decision ? (t.decision === 'won' ? 'Signed'
-        : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
+        : t.decision === 'later' ? 'Rescheduled' : 'They said no') : (PHASE[t.phase] || {}).label,
         /* How it went rides with who and when. It is the half of a meeting
            a CRM never keeps, and on the strip it is the difference between
            four identical nodes and a story. */
