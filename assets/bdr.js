@@ -14597,7 +14597,22 @@
       const first = tasks[0];
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
         (tasks.length > 1 ? ' Then ' + tasks.slice(1, 3).map((t) => esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
-        '<div class="b-cuts">' + tasks.slice(0, 4).map((t) =>
+        /* ══ THREE BUTTONS READING "SAY HOW IT WENT" ══════════════════════
+           Every unrecorded meeting builds a task with the same verb on it,
+           so a morning with three of them put three identical chips in a
+           row. They do different things — each carries its own sentence to
+           write — and nothing on any of them said which, so the reader had
+           one control offered three times and no way to choose between them.
+           A keyboard reader had it worse: three buttons, one name.
+
+           One of each verb. The sentence above already says there are more
+           of the same behind it, pressing this writes up the first, and
+           asking again offers the next. The whole list is in the canvas and
+           on Today, both of which name the person on every row. */
+        '<div class="b-cuts">' + (function () {
+          const seen = Object.create(null);
+          return tasks.filter((t) => (seen[t.cta] ? false : (seen[t.cta] = 1))).slice(0, 4);
+        })().map((t) =>
           '<button class="s-insight-lnk" type="button" data-ask="' + esc(t.ask) + '">' + esc(t.cta) + '</button>').join('') + '</div>';
     }
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +

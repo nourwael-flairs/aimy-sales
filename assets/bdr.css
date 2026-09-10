@@ -76,6 +76,13 @@
    chip because a chip that says "Due" and a number beside it that says 12 are
    two things to read for one fact. */
 .b-cuts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+/* The row's margin is on the BOTTOM, which is right where it belongs — above
+   a grid of results on a page. In an answer it is the other way round: the
+   chips follow a sentence and were sitting on it, with twelve pixels of
+   nothing under them where the card ends. `:not(.b-cuts-row)` is the answer
+   rows and only those; the page's own cut row keeps what it had. */
+.b-cuts:not(.b-cuts-row) { margin-top: 10px; }
+.b-cuts:not(.b-cuts-row):last-child { margin-bottom: 0; }
 .b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
 
 /* §4 held a campaign row. Campaigns are cards in the same grid as people
