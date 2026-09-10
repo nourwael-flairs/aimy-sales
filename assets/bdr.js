@@ -16513,6 +16513,13 @@
     if (t.closest('#peekClose')) { peekAll(); peekHide(); return; }
     /* The card is the door. Mid-thought it does not make you wait — the
        answer is already worked out, so it lands and the canvas opens on it. */
+    /* A chip is its own control and does its own thing. No `return`: the
+       card gets out of the way — the answer is finished and written to the
+       thread first, so nothing is lost — and then the press falls through to
+       the `data-ask` handler below, which is what actually does it. Opening
+       the canvas over a surface the chip has just changed is the opposite of
+       what was asked for. */
+    if (t.closest('#peekActs')) { peekAll(); peekHide(); }
     if (t.closest('#peekOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
     if (t.closest('#canvasOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
