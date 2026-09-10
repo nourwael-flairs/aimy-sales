@@ -1869,9 +1869,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px;
   align-items: start; padding: 14px 16px; border-radius: 14px;
 }
+/* Centred on the sentence, which is not the same as centred on the block.
+   `align-items: start` stays, because the ask has a row of four buttons
+   under its line and centring against the pair would put the mark beside
+   the gap between them -- the same fault the facts' marks had. It takes the
+   sentence's own type metrics so `1lh` below means the line the mark has to
+   sit on rather than whatever leading it inherited, and it lands on that
+   line whether the sentence runs to one or three. */
 .b-state-mark {
   display: grid; place-items: center; width: 28px; height: 28px;
-  border-radius: 9px; margin-top: 1px; flex: none;
+  border-radius: 9px; flex: none;
+  font-size: var(--t-lead); line-height: var(--lh-base);
+  margin-top: calc((var(--t-lead) * var(--lh-base) - 28px) / 2);
+  margin-top: calc((1lh - 28px) / 2);
 }
 .b-state-mark > svg { width: 15px; height: 15px; }
 .b-state-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
