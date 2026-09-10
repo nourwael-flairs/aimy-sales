@@ -93,8 +93,16 @@ const defined = new Set();
 const SEL_RE = /\.(-?[A-Za-z_][A-Za-z0-9_-]*)/g;
 [CSS, DS, SALES].forEach((src) => {
   /* Selectors only: strip declaration blocks first, or `.5s` and decimal
-     values in `transform: scale(.98)` register as class names. */
-  const selectors = src.replace(/\{[^{}]*\}/g, '{}');
+     values in `transform: scale(.98)` register as class names.
+
+     ══ AND COMMENTS FIRST OF ALL ════════════════════════════════════════
+     Check 4 has stripped them since it was written, for exactly this reason,
+     and this one never did. A stylesheet that explains itself by NAMING the
+     rules it no longer has — "`.b-qcard-why` stood here" — was handing this
+     scan a definition for a class the file does not define, so a rule
+     deleted out from under four live call sites passed green. The prose is
+     not the stylesheet. */
+  const selectors = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{[^{}]*\}/g, '{}');
   let x;
   const re = new RegExp(SEL_RE.source, 'g');
   while ((x = re.exec(selectors))) defined.add(x[1]);

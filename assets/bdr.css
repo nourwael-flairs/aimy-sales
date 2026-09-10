@@ -212,10 +212,20 @@
    line and the note ran flush to the card's left edge while the name and the
    company above them were indented — a ragged margin down the middle of every
    card. The 14px is the library's number, not a new one. */
-/* `.b-qcard-why` and `.b-qcard-note` stood here with the padding that put
-   them in the card's own text column. Both are off the card — the why was an
-   insight drawn outside the insight, and the note was the evidence for a
-   sentence the card already says. */
+/* ══ AND IT IS STILL A CARD'S LINE, ON TWO OTHER CARDS ═════════════════════
+   `.b-qcard-note` is gone: it was the evidence for a sentence the card was
+   already saying. `.b-qcard-why` came off the PERSON card for the same kind
+   of reason — the why was an insight drawn outside the insight — and the
+   rule went with it, which broke two cards nobody had looked at. A campaign
+   card says how many of its people are left to call and a list card says how
+   many of its people are callable; neither is an insight and both need the
+   text column the name and the description above them stand in. */
+.b-qcard-why {
+  padding: 8px 14px 0;
+  font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--ink-primary);
+}
+.b-qcard-why b { font-weight: var(--fw-extrabold); }
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -2958,7 +2968,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* One under the other in a 282px column, which is the shape the rail has
    spare — and the reason these two could carry a figure at 32px on a page
    is the reason they still can here: there is nothing beside them. */
-.rail-doors { display: grid; gap: 12px; margin-top: 14px; }
+.rail-doors { display: grid; gap: 10px; margin-top: 12px; }
 .b-door {
   display: flex; flex-direction: column; gap: 12px; width: 100%; height: 100%;
   text-align: left; padding: 18px 20px 20px;
@@ -3175,8 +3185,44 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* On a page the two doors sit in a column 282px wide, so the figure and its
    bar have the width of the card rather than half of it. Nothing else about
    them changes: same card, same steps, same promise on the floor of it. */
-.rail-doors .b-door { padding: 16px 16px 18px; gap: 10px; }
-.rail-doors .b-door-fig { font-size: var(--t-figure); }
+/* ══ A RAIL CARD IS A GLANCE, NOT A PAGE ═══════════════════════════════════
+   The doors were built at the page's own proportions — 18px of padding, a
+   24px figure, 12px between the parts — and dropped into a 272px column
+   where two of them plus the reading ran 975px inside an 829px rail. The
+   rail scrolled, which is the one thing a rail must not do to reach its own
+   foot.
+
+   Everything comes down one step and nothing changes rank: the figure is
+   still the loudest thing in its card, the caption still the quietest, and
+   the gap between them still reads as a gap. 145px of the overflow goes. */
+.rail-doors .b-door { padding: 13px 14px 14px; gap: 8px; }
+.rail-doors .b-door-fig { font-size: var(--fs-xl); }
+.rail-doors .b-door-say, .rail-doors .b-door-go { font-size: var(--t-small); }
+
+/* ══ THE FOOT, AND THE QUIETER WAY INTO THE CONSOLE ════════════════════════
+   Knowledge's shape, in this build's units: a hairline, an icon, a name and
+   a line saying what is behind it. `margin-top: auto` sits it at the bottom
+   of a short rail and after the last card on a long one — a gate pinned over
+   content that scrolls under it is a second thing to read past. */
+.rail-foot {
+  margin-top: auto; padding-top: 10px; flex-shrink: 0;
+  border-top: 1px solid var(--card-border);
+}
+.rail-console {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: var(--r-md);
+  background: none; font-family: inherit; text-align: left;
+  color: var(--ink-quiet); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.rail-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.rail-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.rail-console > svg { width: 15px; height: 15px; flex: none; opacity: 0.75; }
+.rail-console-lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rail-console-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); }
+.rail-console-sub {
+  font-size: var(--t-micro); color: var(--ink-faint); line-height: var(--lh-snug);
+}
 
 /* The read-back's card. The record's own metadata grid, at two columns
    because a canvas turn is half the width of a page. */

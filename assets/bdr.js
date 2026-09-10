@@ -3850,7 +3850,27 @@
         '</div>' +
       '</div>' +
       /* Only this desk has a day and a book to stand here. */
-      (isMgr() ? railDoors() : '');
+      (isMgr() ? railDoors() : '') +
+      /* ══ THE QUIETER OF THE TWO WAYS INTO THE CONSOLE ══════════════════
+         Knowledge's own note on the same control: the corner button is the
+         one that gets found, this is the one that gets used, because it sits
+         where the hand already is once somebody knows the page. The panel it
+         opens is the same one — the build, what the corpus holds, who you
+         are looking as, and the way back to the seed.
+
+         `margin-top: auto` on the foot, so on a short rail it sits at the
+         bottom and on a long one it follows the last card. A gate pinned to
+         the viewport over content that scrolls under it is a second thing to
+         read past. */
+      '<div class="rail-foot">' +
+        '<button class="rail-console" type="button" data-proto>' +
+          chIcon('grid') +
+          '<span class="rail-console-lines">' +
+            '<span class="rail-console-name">Console</span>' +
+            '<span class="rail-console-sub">The build, the corpus, who you are</span>' +
+          '</span>' +
+        '</button>' +
+      '</div>';
   }
 
   /* ══ THE PILL IS THE DOOR TO THE OTHER DESK ════════════════════════════
@@ -11851,6 +11871,14 @@
 
   /* ── The prototype panel. Not product UI: what the corpus holds, the way
      back to the previous build, and the reset. ── */
+  function protoToggle(openOnly) {
+    const panel = byId('protoPanel');
+    const btn = byId('protoToggle');
+    panel.hidden = openOnly ? false : !panel.hidden;
+    if (btn) btn.setAttribute('aria-expanded', String(!panel.hidden));
+    paintProto();
+  }
+
   function paintProto() {
     const p = byId('protoPanel');
     if (p.hidden) return;
@@ -12151,6 +12179,7 @@
     industry: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
     campaign: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/> <line x1="4" x2="4" y1="22" y2="15"/>',
     target: '<circle cx="12" cy="12" r="10"/> <circle cx="12" cy="12" r="6"/> <circle cx="12" cy="12" r="2"/>',
+    grid: '<rect width="7" height="7" x="3" y="3" rx="1"/> <rect width="7" height="7" x="14" y="3" rx="1"/> <rect width="7" height="7" x="14" y="14" rx="1"/> <rect width="7" height="7" x="3" y="14" rx="1"/>',
     web: '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
     calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
@@ -15878,14 +15907,12 @@
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
 
-    const pt = t.closest('#protoToggle');
-    if (pt) {
-      const panel = byId('protoPanel');
-      panel.hidden = !panel.hidden;
-      pt.setAttribute('aria-expanded', String(!panel.hidden));
-      paintProto();
-      return;
-    }
+    /* Two controls, one panel. The corner toggle owns `aria-expanded`
+       because it is the one the panel is anchored to; the rail's gate is a
+       way in rather than a disclosure, so it opens rather than toggles —
+       pressing a door you can see is not how you shut it. */
+    if (t.closest('#protoToggle')) { protoToggle(); return; }
+    if (t.closest('[data-proto]')) { protoToggle(true); return; }
 
     /* ══ THE WHOLE CARD IS THE DOOR ════════════════════════════════════════
        A card is a hundred and eighty pixels of one thing, and only the title
