@@ -159,7 +159,50 @@ mineDefined.forEach((c) => {
    A stray closing brace ends the stylesheet's outermost block early, and
    every rule after it is silently discarded. The V3 build's CSS audit never
    checked this and reported green through exactly that. Counted outside
-   strings and comments, and reported with the line the imbalance reaches. */
+   strings and comments, and reported with the line the imbalance reaches.
+
+   A stray close marker does the same damage by another route, and this file
+   was blind to it in the same way. Splicing a paragraph into a block that
+   already carried its close leaves the new prose OUTSIDE the comment, as CSS
+   nobody wrote, and the rule under it never parses. Worse here than
+   anywhere: checks 3 and 4 strip comments before they scan, so a broken
+   comment quietly changes what they are looking at and they go green on it.
+   That is not hypothetical — this check exists because it happened, to a
+   sentence that was itself about comments closing early.
+
+   Walked rather than counted. A comment naming the open marker is common in
+   a file that explains its own rules, and counting would call that an
+   imbalance; the walk sees it for what it is, because CSS comments do not
+   nest. Two failures, and they are different: a close with nothing open has
+   put prose into the sheet, and an open with no close has eaten the rest of
+   the file.
+
+   What this cannot see: an open marker halfway down that the NEXT comment's
+   close swallows. Structurally that is one long comment and it is exactly
+   what a long comment looks like, so nothing here can tell them apart. Its
+   fingerprint is check 4's count of rules this build defines, which drops by
+   however many the comment ate. Watch that number after a CSS edit; it moves
+   for a reason or it does not move. */
+{
+  let i = 0, line = 1, openAt = -1, strayAt = 0;
+  while (i < CSS.length) {
+    const two = CSS[i] + CSS[i + 1];
+    if (CSS[i] === '\n') line++;
+    if (openAt < 0) {
+      if (two === '/*') { openAt = line; i += 2; continue; }
+      if (two === '*/' && !strayAt) strayAt = line;
+    } else if (two === '*/') { openAt = -1; i += 2; continue; }
+    i++;
+  }
+  if (strayAt) {
+    fail('5 comments', 'bdr.css closes a comment that was never opened, at line ' +
+      strayAt + ' — everything between it and the block above is CSS nobody wrote');
+  }
+  if (openAt >= 0) {
+    fail('5 comments', 'bdr.css opens a comment at line ' + openAt +
+      ' and never closes it — every rule after it is gone');
+  }
+}
 {
   const stripped = CSS.replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
   let depth = 0, line = 1, worstLine = 0;
