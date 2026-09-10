@@ -2615,6 +2615,37 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
   color: var(--ink-faint); white-space: nowrap;
 }
+
+/* ══ WHAT AN ACCOUNT IS WORTH TO US ════════════════════════════════════════
+   Three of anything ranked wants three treatments, and the one this build
+   will not spend is colour: it has two poles and colour stopped naming
+   categories. So the rank is carried on the axes that are free — a mark that
+   counts, an ink that steps, a weight that steps with it — and every level
+   differs from its neighbour on all three.
+
+   Rising heights rather than three bars of a size. It is the one mark a
+   person reads as a rank without being taught it, which is what lets the
+   word come off the cards: nobody needs telling which end of a signal bar
+   is more, and a meter that has to be explained is a word with extra steps.
+
+   The unlit bars stay drawn in the rule ink. Three of three against one of
+   three is a comparison; three marks against one mark is a reader counting
+   nothing against nothing. */
+.b-tier {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--fs-2xs); white-space: nowrap;
+}
+.b-tier-pips { display: inline-flex; align-items: flex-end; gap: 2px; }
+.b-tier-pip { width: 3px; border-radius: 1px; background: var(--ink-rule); }
+.b-tier-pip:nth-child(1) { height: 5px; }
+.b-tier-pip:nth-child(2) { height: 7px; }
+.b-tier-pip:nth-child(3) { height: 9px; }
+.b-tier.is-gold { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.b-tier.is-silver { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
+.b-tier.is-bench { color: var(--ink-quiet); font-weight: var(--fw-medium); }
+.b-tier.is-gold .b-tier-pip.is-on { background: var(--ink-primary); }
+.b-tier.is-silver .b-tier-pip.is-on { background: var(--ink-secondary); }
+.b-tier.is-bench .b-tier-pip.is-on { background: var(--ink-quiet); }
 .b-cal-etime {
   flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d200); font-variant-numeric: tabular-nums;

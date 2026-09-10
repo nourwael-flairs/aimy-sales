@@ -2337,7 +2337,10 @@
          `padding-top: 2px`, so stacking them gives back exactly the 2px
          the wrap's row-gap was giving, and no rule changes. */
       (a ? '<p class="b-qcard-where">' +
-        fact('company', esc(a.name)) +
+        /* Inside the company fact rather than beside it: the measured
+           two-lines-of-two above is what four facts and four marks need to
+           hold their shape, and a fifth item breaks it at every width. */
+        fact('company', esc(a.name) + (isMgr() ? tierMark(a) : '')) +
         fact('industry', esc(indLabel(a))) + '</p>' +
         '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
@@ -3688,8 +3691,14 @@
     return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i, 8) + '">' +
       '<span class="b-dc-name">' + esc(c.name) + '</span>' +
+      /* The mark goes beside the COMPANY, here and on the queue card and on
+         the account itself, so the rule is learnable in one place: pips next
+         to a company name say what that account is worth to us. It is not
+         beside the amount — the amount is this deal, and the pips are every
+         deal they could ever give us. */
       '<span class="b-dc-co b-fact">' + chIcon('company') +
-        '<span>' + esc(a ? a.name : 'No company named') + '</span></span>' +
+        '<span>' + esc(a ? a.name : 'No company named') + '</span>' +
+        (a ? tierMark(a) : '') + '</span>' +
       '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
       /* No mark. Every card on the board carries an amount, in the same
          place, bold and in tabular figures — a mark on all of them tells
@@ -4368,7 +4377,11 @@
     SRC_INDEX = by;
     return by;
   }
-  const clearMoney = () => { SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; };
+  /* `tierOf` reads won deals, so a deal signed or undone in this session
+     changes a tier — it belongs with the rest of the derived money. */
+  const clearMoney = () => {
+    SRC_INDEX = null; CELL_MEANS = null; ODDS_CACHE = null; TIER_CACHE = null;
+  };
   const srcOf = (c) => srcIndex()[c.id] || null;
   /* Nobody on a list came in some other way — they were in the book before
      the lists were, which is our own crawl finding them. Their arrival date
@@ -4487,6 +4500,138 @@
      rendered anywhere on its own. */
   const dealWorth = (c) => acvOf(c).value;
 
+  /* ── What an ACCOUNT is worth, which is not what a deal is worth ──────
+
+     `acvOf` prices one deal. It cannot answer the question a manager asks
+     before deciding whose week this is: of these two companies, which is
+     the bigger prize? A deal is the one thing they are buying now; an
+     account is everything they could ever buy, and the two rank differently
+     — a 6,000-staff telecom with a small pilot open outranks a 90-staff
+     software house with a larger one, and the board sorted them the other
+     way round because the amount was all it had.
+
+     Three terms. One is not enough to separate two companies of the same
+     size, and four is a score nobody can argue with:
+
+       what could fit   the services `IND_FIT` puts against their sector, at
+                        their size band, at list price. The prize.
+       ways in          how many different job functions we hold a name for.
+                        A company where we know one QA manager is a narrower
+                        account than one where we know quality, support,
+                        technology and operations.
+       proof            they have signed with us before. The one term that
+                        moves, and it moves once, upward, for a reason
+                        nobody disputes.
+
+     Deliberately NOT in it: how far the open deal has got. A tier that
+     climbed as you worked the account would justify the work by the work —
+     gold because you called them, called because they are gold. Potential
+     is a fact about them, not a record of us. */
+  const ceilingOf = (a) => {
+    const fit = a && IND_FIT[a.industry];
+    if (!fit) return 0;
+    const band = priceBand(a.size);
+    return fit.fits.reduce((n, k) => n + ((PRICE[k] || PRICE.qa)[band] || 0), 0);
+  };
+  /* Functions, not people. Six names in the same support team is one door
+     held open six times; quality, support, technology and operations is four
+     different budgets, which is what makes an account wide. */
+  const doorsAt = (a) => {
+    if (!a) return 0;
+    const seen = Object.create(null);
+    consAt(a.id).forEach((c) => (seen[titleBand(c.title)] = 1));
+    return Object.keys(seen).length;
+  };
+  const provenAt = (a) => !!a && consAt(a.id).some((c) => isDeal(c) && stageOf(c) === 'won');
+
+  /* Their words, out of the CRM this desk came from — Gold, Silver, Bench
+     is what the team already says out loud, and a ranking nobody uses the
+     name of is a ranking nobody uses. `days` is the check-in the tier buys
+     and `play` is how much of a week it is worth, both drawn where they
+     apply rather than kept as a rule somebody has to remember.
+
+     `cls` is the class spelled out rather than built from `k`. The audit
+     looks for a rule's own name in the source, and a class assembled as
+     'is-' + k is a rule nothing in this file mentions — three real rules
+     would have been reported dead every run from here on. */
+  const ACC_TIERS = [
+    /* `at` is the points bar, and each one is a sentence before it is a
+       number. Gold: the prize is real AND there is more than one way in —
+       four points is reachable as a top-band ceiling with two functions
+       named, as a middling one with three, or as a middling one they have
+       already bought from, and all three describe the same account. Silver:
+       either half of that on its own. Bench: neither.
+
+       Measured on the book before it was set. The bar at five put 15 of 200
+       accounts in gold, which is a key-account list rather than a tier, and
+       left half the book benched — a ranking whose bottom is the majority
+       has told a manager to ignore most of their own desk. */
+    { k: 'gold', cls: 'is-gold', label: 'Gold', pips: 3, at: 4, days: 21,
+      play: 'Worth the trip and a standing check-in. Ask what else is on their roadmap.' },
+    { k: 'silver', cls: 'is-silver', label: 'Silver', pips: 2, at: 2, days: 45,
+      play: 'Worth working, not worth a flight. Keep it on the calendar and let it earn more.' },
+    { k: 'bench', cls: 'is-bench', label: 'Bench', pips: 1, at: 0, days: 90,
+      play: 'Answer them well, but do not build the week around it.' },
+  ];
+  const TIER = Object.create(null);
+  ACC_TIERS.forEach((t) => (TIER[t.k] = t));
+  let TIER_CACHE = null;
+  function tierOf(a) {
+    if (!a) return TIER.bench;
+    if (!TIER_CACHE) TIER_CACHE = Object.create(null);
+    if (TIER_CACHE[a.id]) return TIER_CACHE[a.id];
+    const ceil = ceilingOf(a), doors = doorsAt(a), proven = provenAt(a);
+    const pts = (ceil >= 300000 ? 3 : ceil >= 150000 ? 2 : ceil >= 70000 ? 1 : 0) +
+      (doors >= 3 ? 2 : doors >= 2 ? 1 : 0) + (proven ? 2 : 0);
+    const t = ACC_TIERS.filter((x) => pts >= x.at)[0] || TIER.bench;
+    TIER_CACHE[a.id] = Object.assign({}, t,
+      { pts: pts, ceiling: ceil, doors: doors, proven: proven });
+    return TIER_CACHE[a.id];
+  }
+  /* Gold 0, Silver 1, Bench 2 — an ascending key, so a sort reads the same
+     way every other rank in this file does. */
+  const tierRank = (c) => 3 - tierOf(accOf(c)).pips;
+  const checkinDays = (c) => tierOf(accOf(c)).days;
+
+  /* ══ A RANK IS DRAWN AS A RANK, NOT AS A COLOUR AND NOT AS A WORD ══════
+     Gold and Silver are colour words and the obvious move is to spend the
+     colours on them. This build stopped colour naming categories — it has
+     two poles and nothing else — and gold against silver survives neither a
+     dark ground nor a reader who cannot separate them.
+
+     So it is a meter: three bars of rising height, lit up to the tier, with
+     the ink and the weight stepping alongside. Rising heights rather than
+     three of a size, because that is the one mark a person reads as a rank
+     without being taught it — nobody has to be told which end of a signal
+     bar is more.
+
+     The word rides along only where there is room to teach it: the account
+     itself and the brief. On a card in a list of fifteen the meter is the
+     whole mark, and the label is on the element for a hover — a name you
+     already know does not need repeating fifteen times, and a name you do
+     not know is on the page the pips lead to. */
+  function tierMark(a, word) {
+    const t = tierOf(a);
+    const say = esc(t.label) + ' account';
+    return '<span class="b-tier ' + t.cls + '" title="' + say + '"' +
+      (word ? '' : ' role="img" aria-label="' + say + '"') + '>' +
+      '<span class="b-tier-pips" aria-hidden="true">' +
+        [1, 2, 3].map((n) =>
+          '<i class="b-tier-pip' + (n <= t.pips ? ' is-on' : '') + '"></i>').join('') +
+      '</span>' + (word ? esc(t.label) : '') +
+    '</span>';
+  }
+  /* The half of the reasoning the masthead's money figure does not already
+     carry. Second person, because both facts are about what this desk holds
+     rather than about the company. */
+  function tierWhy(a) {
+    const t = tierOf(a);
+    return (t.doors >= 2
+      ? 'You have a name in <b>' + commas(t.doors) + '</b> of their functions'
+      : t.doors === 1 ? 'You have one way in' : 'You have nobody on file here') +
+      (t.proven ? ', and they have signed with us before.' : ', and they have never bought.');
+  }
+
   /* When it closed. `stageOf` reads the last phase touchpoint, so the day it
      carries is the day the decision was taken — a deal ended by hand and
      never written down has no date, and is left out of a period's sums
@@ -4520,8 +4665,15 @@
      `QUIET_DAYS`, which is seven and belongs to the caller's four-touch rule
      — a cold lead nobody has rung in a week is behind, and a deal between
      two meetings booked a fortnight apart is not. Same word, two desks, two
-     rhythms, so two numbers with the desk in the name of each. */
-  const DEAL_QUIET_DAYS = 30;
+     rhythms, so two numbers with the desk in the name of each.
+
+     ══ AND ONE NUMBER FOR EVERY ACCOUNT WAS THE WRONG SHAPE ═════════════
+     Thirty days flat says a 90-staff bench account and a 6,000-staff gold
+     one are owed the same attention, which is the opposite of what a ranking
+     is for: the point of knowing which account is the bigger prize is that
+     it buys a different rhythm. The window is the tier's now — three weeks,
+     six weeks, a quarter — so the surface that names quiet deals names the
+     gold ones and stops nagging about the bench. */
   /* The last thing anybody did to this record, of any kind. `DB.touchesOf`
      is sorted newest first at load, so this is the head of the list. */
   function lastActivity(c) {
@@ -5084,7 +5236,7 @@
     const late = live.filter((c) => daysBetween(TODAY_ISO, closeBy(c)) < 0);
     const quiet = live.filter((c) => {
       const at = lastActivity(c);
-      return !at || daysBetween(at, TODAY_ISO) > DEAL_QUIET_DAYS;
+      return !at || daysBetween(at, TODAY_ISO) > checkinDays(c);
     });
     if (late.length) {
       bits.push('<b>' + esc(plural(late.length, 'deal')) + '</b> ' +
@@ -5093,8 +5245,8 @@
         esc(worth(late)) + '</b>.');
     } else if (quiet.length) {
       bits.push('<b>' + esc(worth(quiet)) + '</b> is sitting in ' +
-        esc(plural(quiet.length, 'deal')) + ' nobody has touched in ' +
-        esc(plural(DEAL_QUIET_DAYS, 'day')) + '.');
+        esc(plural(quiet.length, 'deal')) +
+        ' nobody has touched inside the window their account is worth.');
     }
 
     /* The campaign that returned most per euro, and the one that returned
@@ -8865,6 +9017,38 @@
      signature — going back a fortnight after they signed reads as a company
      that wanted a bigger number, not one that noticed something. Ninety
      days, counted from the day the deal closed. */
+  /* ══ WHAT OF OURS FITS WHOM ═══════════════════════════════════════════
+     `SELLS` is the eight things we sell and `SVC_NEXT` is what follows what.
+     Neither says what fits a SECTOR, so nothing in the product could answer
+     "how much of our work could this company ever buy" — which is the
+     question an account ranking is an answer to.
+
+     Three or four each and never all eight: a table saying everything fits
+     everybody has ranked nothing. The sentence is what a manager would say
+     to justify the row, and it is drawn on the account. */
+  const IND_FIT = {
+    software: { fits: ['test', 'eng', 'know', 'qa'],
+      why: 'they ship faster than they can check, and the documentation never catches up' },
+    banking: { fits: ['back', 'qa', 'know', 'support'],
+      why: 'regulated work that has to be evidenced, and a contact centre nobody scores' },
+    logistics: { fits: ['support', 'voice', 'back', 'data'],
+      why: 'where-is-my-order is most of the queue, and most of it is answerable without a person' },
+    health: { fits: ['support', 'know', 'back'],
+      why: 'the answers exist and are on paper, and the phones do not stop' },
+    retail: { fits: ['voice', 'support', 'qa', 'data'],
+      why: 'seasonal volume they cannot hire for twice a year' },
+    energy: { fits: ['support', 'back', 'know', 'test'],
+      why: 'long-running systems, long contracts, and a queue that spikes with the weather' },
+    public: { fits: ['know', 'support', 'back'],
+      why: 'one answer to one question, and a procurement cycle that rewards a documented one' },
+    telecom: { fits: ['voice', 'qa', 'support', 'data'],
+      why: 'the largest contact centres in the book, and the most conversations nobody listens to' },
+    industry: { fits: ['back', 'support', 'test', 'data'],
+      why: 'back office that grew by acquisition, and shop-floor systems nobody tests' },
+    hospitality: { fits: ['voice', 'support', 'know'],
+      why: 'bookings, changes and cancellations, at night and in four languages' },
+  };
+
   const SVC_NEXT = {
     voice: { to: 'qa', why: 'the agent is taking calls nobody is scoring, and the person ' +
       'who signed for the agent is the person who owns quality' },
@@ -9009,6 +9193,20 @@
              call — the numbers that decide whether this company is worth
              the afternoon. */
           '<div>' +
+            /* First of the rank, for a manager. Everything else on this line
+               says how big they are and who we hold; this says what that
+               adds up to, which is the one figure that decides whether this
+               company gets the afternoon. */
+            /* Not through `fact`. Every other fact on this line opens with a
+               glyph naming its kind, and the meter IS this one's glyph — a
+               money icon in front of it is two marks for one fact, and the
+               reader has to work out that only the second one is saying
+               something. */
+            (isMgr()
+              ? '<span class="b-fact">' + tierMark(a, 1) +
+                '<span>· <b>' + esc(euro(ceilingOf(a))) +
+                '</b> of our work could fit</span></span>'
+              : '') +
             fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
             fact('role', esc(plural(people.length, 'person')) + ' here') +
             fact('phone', (call.length
@@ -9021,6 +9219,7 @@
             (REGION[a.region] ? fact('where', esc(REGION[a.region].label)) : '') +
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
+            (isMgr() ? '<span>' + tierWhy(a) + '</span>' : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
@@ -10510,7 +10709,12 @@
     let out = (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
     if (campId) out = out.filter((c) => c.camps.indexOf(campId) >= 0);
     if (bucket && bucket !== 'all') out = out.filter((c) => stageOf(c) === bucket);
-    out.sort((a, b) => dealRank(a) - dealRank(b) || (closeBy(a) < closeBy(b) ? -1 : 1));
+    /* What is owed, then what it is worth having, then when it lands. The
+       middle term is the whole of the ranking's job: two deals equally late
+       are not equally worth the afternoon, and before this the tie went to
+       whichever happened to close sooner. */
+    out.sort((a, b) => dealRank(a) - dealRank(b) || tierRank(a) - tierRank(b) ||
+      (closeBy(a) < closeBy(b) ? -1 : 1));
     return UI.cap ? out.slice(0, UI.cap) : out;
   }
 
@@ -13074,6 +13278,19 @@
 
     /* ── 3. what is already known ── */
     const know = [];
+    /* First, because it is the line that changes how the rest is used. A
+       gold account and a bench one get the same case study and the same
+       objections; what differs is how much of the week the answer is worth,
+       and a brief that does not say so is a brief read the same way twice. */
+    if (a) {
+      /* No <b> on the figure. In a prep line the first bold is the caption
+         treatment — block, uppercase, quiet — so a second one turned the
+         money into a heading of its own and broke the sentence across three
+         lines. The meter is this line's emphasis; the figure sits in the
+         prose beside it, which is what `.b-prep-owed` already does. */
+      know.push(['How far to go', tierMark(a, 1) + ' — ' + esc(euro(ceilingOf(a))) +
+        ' of our work could fit here. ' + esc(tierOf(a).play)]);
+    }
     know.push(['Who', esc(ASK_OF[(camp && camp.sells[0]) || 'qa']) + ' is who this campaign asks for, ' +
       'and ' + esc(c.name.split(' ')[0]) + ' is ' + esc(c.title.toLowerCase()) + '.']);
     /* Something they put in public is the best opener there is, and it is
@@ -15164,6 +15381,7 @@
     vlists: VLISTS,
     read: readCall,
     meetings: meetings, unrecorded: unrecorded,
+    tierOf: tierOf, ceilingOf: ceilingOf,
     patch: patchCon,
     addTouch: addTouch,
     dropTouch: dropTouch,
