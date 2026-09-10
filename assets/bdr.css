@@ -1948,38 +1948,88 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    and styles with a display is one line away from the same bug. */
 .b-peek[hidden] { display: none; }
 .aimy-float-wrap.has-peek .filter-tray { display: none; }
+/* ══ THE EDGE, NOT THE GLOW ════════════════════════════════════════════════
+   A flat fill with a black drop shadow is what a card looks like before
+   anybody has decided what it is made of. Three changes and it is a surface:
+
+   A vertical wash rather than one colour. Eight percent of white at the top
+   edge falling to the raised ground by 60% — the light in this shell comes
+   from above, and a panel lit from above is the difference between a shape
+   and an object.
+
+   An inner top hairline at 6%, which is the refraction an edge has where it
+   catches that light. This is the honest version of the glow a card like
+   this usually gets: the light is ON the edge rather than leaking out of it.
+
+   And the shadow is tinted to the ground it falls on. Pure black over a blue
+   ground reads as a hole; #0a0e14 at two distances — a wide soft one for the
+   lift and a tight one for the contact — reads as a card above a page. */
 .b-peek-card {
   pointer-events: all; position: relative;
   width: 100%; max-width: 760px;
   display: flex; align-items: flex-start; gap: 4px;
-  padding: 4px; border-radius: 20px;
-  background: var(--card-bg-raised); border: 1px solid var(--card-border);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
-  animation: b-peek-in 260ms var(--ease-out);
+  padding: 5px; border-radius: 22px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--card-bg-raised) 92%, #ffffff) 0%,
+    var(--card-bg-raised) 60%);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 20px 48px -14px rgba(10, 14, 20, 0.7),
+    0 2px 6px rgba(10, 14, 20, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* Overshoot rather than ease-out. The card is arriving, not fading in, and
+     a thing that arrives settles. */
+  animation: b-peek-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* On white the wash has nowhere to go and the hairline is invisible, so the
+   surface is made by the shadow alone — lighter, and tinted to the same
+   ground rather than to black. */
+:root[data-theme="light"] .b-peek-card {
+  background: var(--card-bg);
+  box-shadow:
+    0 20px 44px -16px rgba(16, 24, 40, 0.18),
+    0 2px 6px rgba(16, 24, 40, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 @keyframes b-peek-in {
-  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.985); }
   to { opacity: 1; transform: none; }
 }
 /* The whole card is the press, so the text inside it is left-aligned rather
-   than centred the way a button's label would be. */
+   than centred the way a button's label would be — and there is no label
+   under it saying so. "Open the canvas" was a caption explaining a control
+   that is already the size of the sentence it holds; a card that is entirely
+   pressable does not need a second, smaller thing to press.
+
+   `transform` and `opacity` only, and the push is a pixel down rather than a
+   scale: a 760px card that scales on press wobbles at its corners, where the
+   same card moving one pixel reads as a key going down. */
 .b-peek-open {
   flex: 1 1 auto; min-width: 0; display: grid;
-  grid-template-columns: auto minmax(0, 1fr); gap: 10px;
-  padding: 12px 12px 12px 13px; border: 0; border-radius: 17px;
+  grid-template-columns: auto minmax(0, 1fr); gap: 12px;
+  padding: 14px 14px 14px 15px; border: 0; border-radius: 18px;
   background: none; font-family: inherit; text-align: left; cursor: pointer;
-  transition: background-color var(--t-fast);
+  transition: background-color var(--t-fast), transform 120ms var(--ease-out);
 }
 .b-peek-open:hover { background: rgba(var(--accent-rgb), 0.07); }
+.b-peek-open:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .b-peek-open:active { transform: none; } }
 .b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* The same edge, one size down. A tinted square with a flat fill beside a
+   lit card reads as a sticker on it. */
 .b-peek-mark {
-  display: grid; place-items: center; width: 26px; height: 26px;
-  border-radius: 8px; background: rgba(var(--accent-rgb), 0.14);
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(180deg,
+    rgba(var(--accent-rgb), 0.22) 0%, rgba(var(--accent-rgb), 0.12) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.16);
   /* The sentence's own leading, so the mark sits on the first line however
      many the answer runs to — the rule the facts and the state block use. */
   font-size: var(--t-body); line-height: var(--lh-base);
-  margin-top: calc((var(--t-body) * var(--lh-base) - 26px) / 2);
-  margin-top: calc((1lh - 26px) / 2);
+  margin-top: calc((var(--t-body) * var(--lh-base) - 28px) / 2);
+  margin-top: calc((1lh - 28px) / 2);
 }
 .b-peek-mark > svg { width: 13px; height: 15px; }
 .b-peek-body {
@@ -1989,22 +2039,25 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--d100); text-wrap: pretty;
 }
 .b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
-/* Only where there is more. The fade is drawn on the card's own ground, so
-   it has to be the card's colour and not a guess at it. */
+/* Only where there is more, and now it is the ONLY thing that says so —
+   the caption under it is gone. That is the right amount: a sentence cut
+   mid-air says there is more of it, and a reader who wants the rest presses
+   the thing they are already reading.
+
+   Drawn on the card's own ground, which is a wash rather than a flat colour
+   now, so the fade ends on the colour the bottom of the card actually is
+   rather than on the one the top of it started as. */
 .b-peek.is-clipped .b-peek-body::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.4em;
   background: linear-gradient(to bottom, transparent, var(--card-bg-raised));
   pointer-events: none;
 }
-.b-peek-more {
-  display: none; grid-column: 2; margin-top: 8px;
-  font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--accent-text);
+:root[data-theme="light"] .b-peek.is-clipped .b-peek-body::after {
+  background: linear-gradient(to bottom, transparent, var(--card-bg));
 }
-.b-peek.is-clipped .b-peek-more { display: block; }
-.b-peek.is-thinking .b-peek-more { display: none; }
 .b-peek-x {
   flex: none; display: grid; place-items: center; width: 32px; height: 32px;
-  margin-top: 6px; margin-right: 6px;
+  margin-top: 8px; margin-right: 7px;
   border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
   cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
 }
