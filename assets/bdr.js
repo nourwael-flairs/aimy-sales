@@ -1975,15 +1975,14 @@
       }
 
       /* ══ AND A SECOND SALE SOMEWHERE ══════════════════════════════════
-         `dealType` reads whether anybody at this company has signed, and
-         every account that had signed held exactly one deal — so Expansion
-         was a value nothing could ever be, which is a field that looks
-         broken rather than a field that is empty.
+         Every account that had signed held exactly one deal, which is not
+         what a book looks like after a year: some of what a desk sells is
+         sold to companies it has already sold to, and a corpus where that
+         has never once happened reads as a corpus rather than a book.
 
-         The fix is not to write the type down. It is to give the book what
-         a book has after a year: a handful of accounts being sold to twice.
-         The deal is re-pointed rather than re-made, because the account is
-         only where a deal sits — nothing on its own record moves. */
+         Written into the seed rather than onto a record, and the deal is
+         re-pointed rather than re-made — the account is only where a deal
+         sits, so nothing on the deal's own record moves. */
       const wonAcc = [];
       con.forEach((c) => {
         if (c.checkpoint !== 'handed-over') return;
@@ -10339,17 +10338,20 @@
             /* ══ ALL THAT IS LEFT OF THE DEAL BLOCK ═══════════════════════
                 One fact, in the rank that already holds what this record is
                 about: the campaign it came from, then the thing we would
-                sell them, then who they are and where. The kind comes with
-                it — first sale or second is the difference between having to
-                prove we can do it and only having to prove this is the next
-                thing, and it is one word.
+                sell them, then who they are and where.
+
+                It carried the kind beside it for one commit — New business
+                or Expansion, on a `b-kind` — and it was the fourth thing on
+                a line that already needed 656px for four. A tag that pushes
+                the rank it sits in into a second line costs more than a word
+                is worth, and whether this is a first sale or a second is on
+                the account page, where the other deals at that company are.
 
                 Only where there is a deal. A lead nobody has handed over is
                 not being sold anything yet, and the campaign beside it
                 already says what it would be. */
             (isMgr() && c.checkpoint === 'handed-over'
-              ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet') +
-                ' <span class="b-kind">' + esc(dealType(c)) + '</span>')
+              ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet'))
               : '') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
@@ -10916,15 +10918,6 @@
     if (Math.abs(hash(c.id + ':sell')) % 4) return opened;
     return fit[Math.abs(hash(c.id + ':sell2')) % fit.length];
   }
-  /* ══ WHETHER THIS IS A FIRST SALE OR A SECOND ══════════════════════════
-     Derived, because the answer is already written: somebody at this company
-     has signed, or nobody has. Storing it would be a field to keep in step
-     with a fact that keeps itself. It is worth naming because the two are
-     different conversations — the first has to prove we can do it and the
-     second only has to prove this is the next thing. */
-  const dealType = (c) => (consAt(c.acc).some((y) =>
-    y.id !== c.id && isDeal(y) && stageOf(y) === 'won') ? 'Expansion' : 'New business');
-
   function amountOf(c) {
     const a = accOf(c);
     const sell = sellOf(c);
