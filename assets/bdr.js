@@ -365,6 +365,18 @@
        Lost is Won. */
     { k: 'won',        label: 'Won',      tone: 'ok' },
     { k: 'lost',       label: 'Lost',     tone: 'err' },
+    /* ══ NOT NOW IS A DECISION, AND IT WAS BEING FILED AS A DEFEAT ══════
+       A deal somebody asked us to come back to had nowhere to go. It either
+       stayed in its phase looking like live pipeline — inflating what is
+       open and drawing a check-in nag every three weeks for an account that
+       has told us to stop — or it was marked Lost, which is a different
+       answer and destroys the one signal a lost column is for.
+
+       Parking is the opposite of losing: a lost deal owes nothing and a
+       parked one owes exactly one thing, a date to pick it back up. That is
+       what `nextForStage` gives it, and it is why this column earns a place
+       the board did not have room for by accident. */
+    { k: 'later',      label: 'Follow-up', tone: 'neutral' },
   ];
   const DEAL_STAGE = Object.create(null);
   DEAL_STAGES.forEach((x, i) => { DEAL_STAGE[x.k] = x; x.n = i; });
@@ -1856,7 +1868,7 @@
            Three in five reach a decision; of those, a little over half sign.
            His own book is five won against seven lost, and a corpus where
            everything closes is as useless as one where nothing does. */
-        let when = handed;
+        let when = handed, parked = null;
         const roll = (h >> 16) % 10;
         const ends = roll < 6;
         /* ══ AND A DEAL THAT DOES NOT END STOPS SOMEWHERE ══════════════
@@ -1872,16 +1884,31 @@
           when = new Date(when.getTime() + (14 + ((h >> (2 * pi)) % 22)) * DAY_MS);
           if (when.getTime() > TODAY.getTime()) break;
           const ph = PHASES[pi];
-          const decision = ph.k === 'resolution' ? (((h >> 24) % 9) < 5 ? 'won' : 'lost') : null;
+          /* Won, lost, or asked to come back — three ways a conversation
+             ends and the third is the one the board could not hold. */
+          const decision = ph.k !== 'resolution' ? null
+            : ((h >> 24) % 9) < 4 ? 'won' : ((h >> 24) % 9) < 7 ? 'lost' : 'later';
           touch.push({
             id: 't' + tId++, con: c.id, camp: k.id, by: mgr, at: when.toISOString(), secs: 0,
             outcome: 'phase', phase: ph.k, decision: decision,
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
+              : decision === 'later' ? 'Not now. They asked us to come back to it.'
               : ph.label + ' held. ' + REP[mgr].name.split(' ')[0] + ' ' + ph.did + '.',
             lines: [], next: null, moved: null, called: 'handed-over',
           });
+          if (decision === 'later') parked = when;
+        }
+        /* ══ A PARKED DEAL OWES A DATE, OR IT IS A LOST ONE ═══════════════
+           `setStage` gives one to every deal parked by hand and the seed gave
+           none to the four it parked, so the card said "back on the desk when
+           you say so" — which is what a deal nobody parked says. Six to
+           sixteen weeks out from the day it was parked, so some of them have
+           already come round, which is the state worth being able to see. */
+        if (parked) {
+          const back = new Date(parked.getTime() + (42 + ((h >> 13) % 70)) * DAY_MS);
+          c.next = { what: 'Pick it back up', due: back.toISOString().slice(0, 10) };
         }
       }
     }
@@ -4016,6 +4043,16 @@
         from: 'the resolution on this record',
         act: { label: 'Open the account', attr: 'data-acc="' + esc(c.acc) + '"' } };
     }
+    if (st === 'later') {
+      const due = c.next ? daysBetween(TODAY_ISO, c.next.due) : null;
+      return due != null && due <= 0
+        ? { text: 'Parked, and the day to pick it back up has come.',
+            from: 'the date you set when you parked it', act: call }
+        : { text: 'Parked. Back on the desk ' +
+            esc(c.next ? sayWhen(c.next.due) : 'when you say so') + '.',
+            from: 'the date you set when you parked it',
+            act: { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' } };
+    }
     /* A meeting that has been and gone with nothing written up is the one
        thing on this desk that costs money by sitting still. */
     if (MGR_UNREC[c.id]) {
@@ -4118,7 +4155,7 @@
           DEAL_STAGES.map((st) => {
             const rows = by[st.k];
             const sum = rows.reduce((n, c) => n + dealWorth(c), 0);
-            const end = st.k === 'won' || st.k === 'lost';
+            const end = st.k === 'won' || st.k === 'lost' || st.k === 'later';
             return '<div class="' + (end ? 'b-col is-end' : 'b-col') + '">' +
               '<div class="b-col-head">' +
                 '<span class="b-col-cap">' + esc(st.label) +
@@ -10481,7 +10518,8 @@
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
             : ph && t.decision
               ? '<span class="b-tl-move' + (t.decision === 'lost' ? ' is-out' : '') + '">→ ' +
-                (t.decision === 'won' ? 'Signed' : 'Declined') + '</span>'
+                (t.decision === 'won' ? 'Signed'
+                  : t.decision === 'later' ? 'Parked' : 'Declined') + '</span>'
               : '') +
           '<span class="s-call-ago">' + esc(sayAgo(t.at)) + '</span>' +
         '</summary>' +
@@ -10542,9 +10580,17 @@
     if (!ph.length) return 'qual';
     const last = ph[ph.length - 1];
     if (last.phase !== 'resolution') return last.phase;
-    return last.decision === 'lost' ? 'lost' : 'won';
+    return last.decision === 'lost' ? 'lost'
+      : last.decision === 'later' ? 'later' : 'won';
   }
-  const dealLive = (c) => stageOf(c) !== 'won' && stageOf(c) !== 'lost';
+  /* Parked is not open. It is off the pipeline the forecast is built on —
+     counting a deal nobody is working as money in play is the oldest way a
+     pipeline lies — and it is not decided either, which is why it keeps a
+     date and Lost does not. */
+  const dealLive = (c) => {
+    const k = stageOf(c);
+    return k !== 'won' && k !== 'lost' && k !== 'later';
+  };
   /* Nobody handed over a lead the manager met himself, and a record that
      says they did is the page inventing a colleague. */
   const addedByHand = (c) => (DB.touchesOf[c.id] || [])
@@ -10603,6 +10649,11 @@
     const last = ph.length ? ph[ph.length - 1] : null;
     if (st === 'won') return 'They signed <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
     if (st === 'lost') return 'They said no <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
+    /* Parked deals write a resolution touchpoint like the other two ends, so
+       without this the basis line fell through to the phase's own name and
+       read "Resolution 9 Aug" — the internal word for the row, on the one
+       card whose whole point is that nothing was resolved. */
+    if (st === 'later') return 'You parked it <b>' + esc(sayWhen(last.at.slice(0, 10))) + '</b>';
     if (!last) {
       const when = esc(sayWhen((c.checkpointAt || '').slice(0, 10)));
       return addedByHand(c)
@@ -10627,10 +10678,16 @@
     { k: 'commercial', label: 'Proposal sent' },
     { k: 'won',        label: 'They signed' },
     { k: 'lost',       label: 'They passed' },
+    { k: 'later',      label: 'Not now' },
   ];
   function dealMoves(c) {
-    const at = stageRank(stageOf(c));
-    if (at >= stageRank('won')) return [];
+    const k = stageOf(c);
+    if (k === 'won' || k === 'lost') return [];
+    /* Parking is not ending, and picking it back up is the whole point of
+       having parked it — so a follow-up gets every move a running deal has,
+       minus the one it is already in. */
+    if (k === 'later') return DEAL_MOVES.filter((m) => m.k !== 'later');
+    const at = stageRank(k);
     return DEAL_MOVES.filter((m) => stageRank(m.k) > at);
   }
   /* What each stage leaves owed. An ended deal owes nothing and says so by
@@ -10639,6 +10696,10 @@
     if (k === 'discovery') return { what: 'Meeting with them', due: dayAdd(7) };
     if (k === 'proof') return { what: 'Proposal to them', due: dayAdd(7) };
     if (k === 'commercial') return { what: 'Chase the proposal', due: dayAdd(5) };
+    /* The one thing a parked deal owes, and the whole difference between
+       parking and losing. Two months, which is the shortest "not now" that
+       is not really a no. */
+    if (k === 'later') return { what: 'Pick it back up', due: dayAdd(60) };
     return null;
   }
   function setStage(conId, k, said) {
@@ -10647,7 +10708,7 @@
     if (!c || !st) return;
     const before = { checkpointAt: c.checkpointAt, next: c.next };
     const now = new Date().toISOString();
-    const ended = k === 'won' || k === 'lost';
+    const ended = k === 'won' || k === 'lost' || k === 'later';
     const t = {
       id: 'd' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
@@ -10658,6 +10719,7 @@
          stop trusting. */
       note: said || (k === 'won' ? 'They signed on the terms agreed.'
         : k === 'lost' ? 'They decided against it.'
+        : k === 'later' ? 'Not now. They asked us to come back to it.'
         : (PHASE[k] || {}).label + ' held.'),
       lines: [], next: null, moved: null, called: 'handed-over',
     };
@@ -11021,7 +11083,8 @@
     const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
     if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
     phasesOf(c).forEach((t) => steps.push({
-      k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
+      k: t.decision ? (t.decision === 'won' ? 'Signed'
+        : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
       t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
       tone: t.decision === 'lost' ? 'warn' : 'ok',
     }));
@@ -11066,7 +11129,8 @@
       steps.push({ k: rungLabel(top.checkpoint), t: top.name.split(' ')[0] +
         (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (called[top.checkpoint] || {}).tone || 'ok' });
       phasesOf(top).slice(-1).forEach((t) => steps.push({
-        k: t.decision ? (t.decision === 'won' ? 'Signed' : 'They said no') : (PHASE[t.phase] || {}).label,
+        k: t.decision ? (t.decision === 'won' ? 'Signed'
+        : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
         t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
         tone: t.decision === 'lost' ? 'warn' : 'ok',
       }));
