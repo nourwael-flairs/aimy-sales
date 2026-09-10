@@ -2632,8 +2632,8 @@
         if (isMgr()) return aimyBlock(dealSays(c), true);
         const said = aimySays(c);
         const why = whyLine(c);
-        if (!said) return why ? aimyBlock({ text: why + '.', from: 'the record' }) : '';
-        return aimyBlock({ text: (why ? why + '. ' : '') + said.text, from: said.from });
+        if (!said) return why ? aimyBlock({ text: why + '.' }, true) : '';
+        return aimyBlock({ text: (why ? why + '. ' : '') + said.text }, true);
       })() +
       '<div class="tc-gov b-qcard-foot">' +
         /* What it is worth, where the number to call sits on the caller's
@@ -2880,11 +2880,14 @@
      smallest type on the page, naming an internal a reader would have to
      know the code to parse.
 
-     So `bare` lets a caller decline to sign, and the deal cards do. Nothing
-     else does: the account, the list, the campaign and the diary all make
-     claims a reader could reasonably dispute, and those keep their line. A
-     card saying a meeting has been and gone with nothing written up is
-     disputed by opening it, which is one press away.
+     So `bare` lets a caller decline to sign, and every card in the grid
+     does — a caller's as well as a manager's. "Engy Saleh noted it" under a
+     card on Engy's own desk is the product telling her who she is.
+
+     Nothing else declines: the account, the list, the campaign and the diary
+     all make claims a reader could reasonably dispute, and those keep their
+     line. A card saying a meeting has been and gone with nothing written up
+     is disputed by opening it, which is one press away.
 
      `dealSays` still carries every `from`. They are the reasoning behind the
      ranking and they are read on the record; what changed is where they are
