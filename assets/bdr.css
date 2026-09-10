@@ -146,15 +146,26 @@
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
   margin: 0; font-size: var(--t-body);
 }
+/* == THE ONE YOU ARE ON IS THE HEADING; THE REST ARE NOT ==================
+   The README has described this block since it was built -- "the one you are
+   on at heading weight, the other two quiet beside it and pressable" -- and
+   the CSS gave all five extrabold and separated the current one by ink
+   alone. Four tabs at 800 read as four headings, and the strip stopped
+   looking like a heading with alternatives and started looking like a menu
+   bar shouting.
+
+   Ink alone is also one axis, which is the thing this build stopped
+   accepting everywhere else: a rank differs from its neighbour in at least
+   two of {size, weight, ink}. Now it differs in two. */
 .b-switch-btn {
   appearance: none; border: 0; background: transparent; padding: 0;
   cursor: pointer; font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-tight); color: var(--ink-muted);
-  transition: color var(--t-fast);
+  transition: color var(--t-fast), font-weight var(--t-fast);
 }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-.b-switch-btn.is-on { color: var(--d50); }
+.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
 .b-switch-n {
   margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);

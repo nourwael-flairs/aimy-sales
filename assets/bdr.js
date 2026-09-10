@@ -520,16 +520,30 @@
     ? a.city + (a.country ? ', ' + a.country : '') : 'Location not known');
   const accKnown = (a) => !!(a && INDUSTRY[a.industry] && a.size);
 
+  /* ══ A REGION IS NOT A COUNTRY ═════════════════════════════════════════
+     Five of the nine were single countries — Netherlands, Belgium, France,
+     Ireland, Italy — sitting in a list called Region beside four that were
+     actually regions. So the axis meant two different things depending on
+     which row you picked, and a campaign aimed at Belgium could not be told
+     from one aimed at the Nordics by anything except how many countries
+     happened to be in it.
+
+     Seven now, every one a group a sales desk is actually organised into
+     and none of them a single country. They do not overlap, so a company
+     belongs to exactly one, which is what `CC_REGION` needs to be a lookup
+     rather than a search.
+
+     France sits in Southern Europe. It is the one debatable placement here
+     — some EMEA desks run it alone — but a region of one country is the
+     thing this list just stopped having. */
   const REGIONS = [
-    { k: 'nl',     label: 'Netherlands',  cc: ['NL'] },
-    { k: 'be',     label: 'Belgium',      cc: ['BE'] },
-    { k: 'dach',   label: 'DACH',         cc: ['DE', 'AT', 'CH'] },
-    { k: 'nordic', label: 'Nordics',      cc: ['DK', 'SE', 'NO', 'FI'] },
-    { k: 'fr',     label: 'France',       cc: ['FR'] },
-    { k: 'ie',     label: 'Ireland',      cc: ['IE'] },
-    { k: 'iberia', label: 'Iberia',       cc: ['ES', 'PT'] },
-    { k: 'it',     label: 'Italy',        cc: ['IT'] },
-    { k: 'cee',    label: 'Central Europe', cc: ['PL', 'CZ'] },
+    { k: 'benelux', label: 'Benelux',                  cc: ['NL', 'BE', 'LU'] },
+    { k: 'dach',    label: 'DACH',                     cc: ['DE', 'AT', 'CH'] },
+    { k: 'nordics', label: 'Nordics',                  cc: ['DK', 'SE', 'NO', 'FI'] },
+    { k: 'uki',     label: 'UK & Ireland',             cc: ['GB', 'IE'] },
+    { k: 'seur',    label: 'Southern Europe',          cc: ['FR', 'IT', 'ES', 'PT', 'GR'] },
+    { k: 'cee',     label: 'Central & Eastern Europe', cc: ['PL', 'CZ', 'HU', 'RO'] },
+    { k: 'mena',    label: 'MENA',                     cc: ['EG', 'AE', 'SA', 'MA', 'JO'] },
   ];
   const REGION = Object.create(null);
   REGIONS.forEach((x) => (REGION[x.k] = x));
@@ -959,6 +973,12 @@
     ['Madrid', 'ES'], ['Barcelona', 'ES'], ['Valencia', 'ES'], ['Lisbon', 'PT'], ['Porto', 'PT'],
     ['Milan', 'IT'], ['Rome', 'IT'], ['Turin', 'IT'],
     ['Warsaw', 'PL'], ['Krakow', 'PL'], ['Prague', 'CZ'],
+    ['Budapest', 'HU'], ['Bucharest', 'RO'], ['Athens', 'GR'], ['Luxembourg', 'LU'],
+    ['London', 'GB'], ['Manchester', 'GB'], ['Birmingham', 'GB'], ['Leeds', 'GB'],
+    /* MENA is the desk's own back yard — FlairsTech sells out of Cairo — and
+       it was the one region with nowhere for a company to be. */
+    ['Cairo', 'EG'], ['Alexandria', 'EG'], ['Dubai', 'AE'], ['Abu Dhabi', 'AE'],
+    ['Riyadh', 'SA'], ['Jeddah', 'SA'], ['Casablanca', 'MA'], ['Amman', 'JO'],
   ];
   const CC_REGION = Object.create(null);
   REGIONS.forEach((r) => r.cc.forEach((c) => (CC_REGION[c] = r.k)));
@@ -6007,9 +6027,34 @@
   ];
   const titleBand = (t) => (TITLE_BANDS.filter((b) => b.re.test(t))[0] || { k: 'other' }).k;
 
-  const COUNTRY_OPTS = [['NL', 'Netherlands'], ['BE', 'Belgium'], ['DE', 'Germany'],
-    ['FR', 'France'], ['IE', 'Ireland'], ['SE', 'Sweden'], ['DK', 'Denmark'],
-    ['ES', 'Spain'], ['IT', 'Italy']];
+  /* ══ TYPED ONCE, AND IT WAS ALREADY WRONG ══════════════════════════════
+     Nine countries written by hand against a corpus that held sixteen, so
+     Austria, Switzerland, Norway, Finland, Portugal, Poland and Czechia were
+     in the book and unreachable from the one control that narrows by where.
+     Adding MENA would have made it eight of twenty-six.
+
+     Derived from the cities the corpus is actually built from, in the order
+     the regions are listed, so a country can never be in the book and absent
+     from the filter again. */
+  const COUNTRY_NAME = {
+    NL: 'Netherlands', BE: 'Belgium', LU: 'Luxembourg',
+    DE: 'Germany', AT: 'Austria', CH: 'Switzerland',
+    DK: 'Denmark', SE: 'Sweden', NO: 'Norway', FI: 'Finland',
+    GB: 'United Kingdom', IE: 'Ireland',
+    FR: 'France', IT: 'Italy', ES: 'Spain', PT: 'Portugal', GR: 'Greece',
+    PL: 'Poland', CZ: 'Czechia', HU: 'Hungary', RO: 'Romania',
+    EG: 'Egypt', AE: 'United Arab Emirates', SA: 'Saudi Arabia',
+    MA: 'Morocco', JO: 'Jordan',
+  };
+  const COUNTRY_OPTS = (function () {
+    const inBook = Object.create(null);
+    CITIES.forEach((c) => (inBook[c[1]] = 1));
+    const out = [];
+    REGIONS.forEach((r) => r.cc.forEach((cc) => {
+      if (inBook[cc] && COUNTRY_NAME[cc]) out.push([cc, COUNTRY_NAME[cc]]);
+    }));
+    return out;
+  })();
 
   /* The criteria, out of the URL. `bt` is a comma list of `axis:value`, so a
      half-described search is a link somebody can send. */
@@ -6653,7 +6698,11 @@
        — and names no sector at all, so it read nothing and the empty builder
        went silent. The campaign carries an industry and a region as fields;
        there is no sentence to parse. */
-    const THE_REGION = { nl: 1, nordic: 1 };
+    /* "in Netherlands" was the seam this exists to close; the region keys
+       moved, so the set moves with them. Benelux, the Nordics and the UK &
+       Ireland take an article; DACH, MENA, Southern Europe and Central &
+       Eastern Europe do not. */
+    const THE_REGION = { benelux: 1, nordics: 1, uki: 1 };
     const short = camps.filter(campOpen)
       .map((k) => ({ k: k, left: queue(k.id, 'all').length }))
       .sort((a, b) => a.left - b.left)[0];
