@@ -1603,7 +1603,7 @@
                exists to catch, and a corpus where every meeting is described
                cannot show it. Keyed per phase, so one deal's four meetings
                can go well, badly and unsaid in turn. */
-            out: OUT_SEED(c.id, ph.k),
+            out: ph.k === 'resolution' ? null : OUT_SEED(c.id, ph.k),
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -1952,7 +1952,7 @@
             outcome: 'phase', phase: ph.k, decision: decision,
             why: decision === 'lost'
               ? LOST_WHY[Math.abs(hash(c.id + ':lostwhy')) % LOST_WHY.length].k : null,
-            out: OUT_SEED(c.id, ph.k),
+            out: ph.k === 'resolution' ? null : OUT_SEED(c.id, ph.k),
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -10633,7 +10633,13 @@
       const out = t.moved && isExit(t.moved[1]);
       /* the director's meetings are milestones too; a lost resolution is drawn as a way out */
       const ph = t.outcome === 'phase';
-      const phTone = ph ? (t.decision === 'lost' ? 'warn' : 'ok') : null;
+      /* ══ THE ROW'S TONE IS HOW IT WENT, WHERE ANYBODY SAID ═════════════
+         Every meeting on the record drew the same green dot, because the
+         tone was read off the fact that a meeting happened. A demo that
+         went badly and a demo that went well are the two things a manager
+         opens this list to tell apart, and they were the same row. */
+      const phTone = ph ? (t.decision === 'lost' ? 'warn'
+        : t.out ? MEET_OUT_BY[t.out].tone : 'ok') : null;
       return head + '<details class="s-call b-tl-item' + (up || out || ph ? ' is-milestone' : '') + '"' +
         (i === 0 && pg.p === 0 ? ' open' : '') + '>' +
         '<summary class="s-call-sum">' +
@@ -10644,6 +10650,12 @@
             esc(whoDid(t).name) + '</span>' +
           '<span class="s-call-out tone-' + esc(o ? o.tone : (phTone || 'neutral')) + '">' +
             esc(kindLabel(t)) + '</span>' +
+          /* And said in words beside it, because a colour is not a reading.
+             A row nobody described keeps its silence: no word, and the
+             neutral-green a meeting has always had. */
+          (ph && t.out
+            ? '<span class="b-kind">' + esc(MEET_OUT_BY[t.out].label.toLowerCase()) + '</span>'
+            : '') +
           /* the chip names the rung reached; when the outcome already says it
              ("Callback → Callback") the call on the dot is the milestone */
           (t.moved && rungLabel(t.moved[1]) !== kindLabel(t)
@@ -10892,8 +10904,13 @@
       outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
       /* Only when somebody said it. A meeting with no reading is a meeting
          nobody described, which is a different record from one that went
-         nowhere. */
-      out: out || null,
+         nowhere.
+
+         And never on the one that ends the deal. A resolution IS the
+         outcome — the row already carries Signed, Declined or Parked — so a
+         reading of how the room went beside it made "Resolution · went well
+         · Parked", which is the record arguing with itself. */
+      out: ended ? null : (out || null),
       proposals: [], objections: [], openings: [],
       /* What was actually said, when there was something said. A record
          that paraphrases you when it has your own words is a record you
