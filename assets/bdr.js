@@ -3297,7 +3297,6 @@
       const n = (DB.touchesOf[c.id] || []).length;
       const r = called[c.checkpoint];
       return {
-        subject: c.name,
         card: {
           state: 'reading',
           /* CALLS ARE CALLS. A hand-over settled by hand and the director's
@@ -3321,7 +3320,6 @@
     if (k && mine(k) && !campOpen(k)) {
       const members = membersOf(k.id);
       return {
-        subject: k.name,
         card: {
           state: 'completed',
           text: 'It closed <b>' + esc(sayWhen(k.to)) + '</b>. Nothing on it is dialled now.',
@@ -3335,7 +3333,6 @@
       const cq = queue(k.id);
       const cback = cq.filter((x) => x.checkpoint === 'callback').length;
       return {
-        subject: k.name,
         card: {
           state: cback ? 'staged' : 'detected',
           text: cback
@@ -3357,7 +3354,6 @@
       const call = people.filter(callable);
       const sig = signalOf(a);
       return {
-        subject: a.name,
         card: {
           state: sig ? 'detected' : 'reading',
           text: sig
@@ -3375,7 +3371,6 @@
       const withNum = people.filter((c) => c.phone).length;
       const on = campsOn(l);
       return {
-        subject: l.name,
         card: {
           state: on.length ? 'reading' : 'staged',
           text: on.length
@@ -3403,7 +3398,6 @@
          the rail holds and nothing else on any surface does. */
       const week = meetings(TODAY_ISO, dayAdd(7)).length;
       return {
-        subject: null,
         card: {
           state: now.length ? 'staged' : 'detected',
           text: now.length
@@ -3418,7 +3412,6 @@
     }
     const back = q.filter((x) => x.checkpoint === 'callback').length;
     return {
-      subject: null,
       card: {
         state: back ? 'staged' : 'detected',
         text: back
@@ -3830,21 +3823,19 @@
     const c = r.card;
     byId('appRail').innerHTML =
       '<div class="rail-read">' +
-        /* ══ THE EYEBROW SAID WHAT THE NAME UNDER IT ALREADY SAID ═════════
-           "THIS COMPANY" over the company's name, "THIS LIST" over the
-           list's — a label naming the KIND of the thing directly beneath it,
-           on a rail whose whole content is about that thing. And on the two
-           surfaces with no subject it stood alone reading "YOUR BOOK" over a
-           card that opens "10 deals want something today", which is the same
-           sentence in fewer words and a size smaller.
+        /* ══ THE RAIL SAID WHERE YOU WERE STANDING, TWICE ═════════════════
+           A scope block stood here: an eyebrow naming the KIND of thing, and
+           under it the thing's name. The eyebrow went first — "THIS COMPANY"
+           over the company's name is a label for what the next line already
+           is — and the name has followed it, for the reason that was true of
+           both. The page has a masthead four hundred pixels to the right
+           carrying that name at three times the size, and on the surfaces
+           with no subject the block read "YOUR BOOK" over a card that opens
+           "10 deals want something today".
 
-           The name stays where there is one, and the block goes entirely
-           where there is not — an empty flex column with a gap in it is two
-           pixels of nothing at the top of the rail. */
-        (r.subject
-          ? '<div class="rail-scope">' +
-            '<span class="rail-scope-name">' + esc(r.subject) + '</span></div>'
-          : '') +
+           A rail is a short, complete thing to READ. Repeating the page's
+           title into it is the one job it does not have, and every reading
+           in it already speaks about whatever the page is showing. */
         '<div class="bcard rail-card">' +
           '<div class="bcard-meta"><span class="type-label rail-state p2">' +
             esc(WS_LABEL[c.state] || 'Reading') + '</span></div>' +

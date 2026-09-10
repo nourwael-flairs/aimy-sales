@@ -3735,19 +3735,12 @@ body.is-calling { --fb-reserve: var(--call-width); }
 }
 /* ── WHOSE CONTEXT THIS IS ──
 
-   The rail changes what it holds, so it has to say what it is holding. The
-   eyebrow is the smallest step on the scale and the name is body size: a
-   label above a subject, not a second page title competing with the one
-   four hundred pixels to the right.
-
-   Four scopes share this — the book, a campaign, a list, a lead — so it is
-   `.rail-scope` rather than `.rail-camp`, which was named after the only
-   one of the four that had it. */
+   It was an eyebrow over a name, and the comment here argued the name was
+   "not a second page title competing with the one four hundred pixels to the
+   right". It was exactly that, only smaller — and the rail's own reading
+   already speaks about whatever the page is showing, so nothing was lost by
+   taking both away. */
 .rail-read { display: flex; flex-direction: column; gap: 16px; }
-.rail-scope { display: flex; flex-direction: column; gap: 2px; }
-.rail-scope-name {
-  font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--d50);
-}
 
 /* ── THE CONCLUSION ──
 
