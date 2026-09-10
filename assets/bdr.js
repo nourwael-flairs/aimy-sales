@@ -13686,11 +13686,58 @@
 
   function peekEl() { return byId('aimyPeek'); }
 
+  /* ══ THE BAR SAYS IT IS WORKING, AND OFFERS THE WAY OUT ════════════════
+     The card above the bar showed the wait and the bar itself showed
+     nothing — so the control you asked from, which is where the eye already
+     is, gave no sign it had taken the question.
+
+     Knowledge's design system already solves this and says so in its own
+     comment: the beam rides `.overlay-input-bar` and `.aimy-float-bar`
+     because the two products share one composer in three shells. This file
+     was simply an older cut of that stylesheet and did not have the block.
+     It does now, byte for byte, and this is the driver Knowledge writes for
+     it — the element built here rather than put in the markup, for the
+     reason its own comment gives: a state no markup has to know about is a
+     state no shell can ship without the way out of it.
+
+     `is-generating` turns the send button into a stop square in CSS alone.
+     What is NOT css is the name it announces, and a button that has become
+     Stop while still saying Send is worse than one that never changed. */
+  function generating(on) {
+    const bar = byId('aimyFloatBar');
+    if (!bar) return;
+    if (!bar.querySelector('.beam')) {
+      const b = document.createElement('span');
+      b.className = 'beam';
+      b.setAttribute('aria-hidden', 'true');
+      /* The bloom is a real element because the beam has three layers and a
+         pseudo-element only gives two. It carries no content and no class:
+         it is the third box, and `.beam > i` is all the stylesheet needs. */
+      b.appendChild(document.createElement('i'));
+      bar.insertBefore(b, bar.firstChild);
+    }
+    bar.classList.toggle('is-generating', !!on);
+    const send = byId('floatSend');
+    if (send) {
+      send.setAttribute('aria-label', on ? 'Stop generating' : 'Run');
+      send.title = on ? 'Stop generating' : '';
+    }
+    /* The empty bar says what it is doing, and the question it usually asks
+       is parked on the element the first time it is replaced rather than
+       written out here, where it would go stale the day it is reworded. */
+    const el = byId('floatInput');
+    if (el) {
+      if (el.dataset.ph === undefined) el.dataset.ph = el.placeholder || '';
+      el.placeholder = on ? 'Generating…' : el.dataset.ph;
+    }
+  }
+
   function peekAsk(html) {
     const box = peekEl();
     if (!box) { say('aimy', html); return; }
     peekStop();
     PEEK_DUE = html;
+    generating(true);
     box.hidden = false;
     box.classList.add('is-thinking');
     box.classList.remove('is-clipped');
@@ -13735,6 +13782,7 @@
        showing it costs one line, where the fade was promising a canvas full
        of something that was already on screen. */
     peekStream(body, html, () => {
+      generating(false);
       body.style.maxHeight = '';
       const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
       if (body.scrollHeight - body.clientHeight > lh) {
@@ -13749,6 +13797,7 @@
     if (PEEK_AT) { clearTimeout(PEEK_AT); PEEK_AT = null; }
     stopThinking();
     peekStreamStop();
+    generating(false);
   }
 
   /* Whatever is owed, all of it: the answer that has not been written to
@@ -16554,6 +16603,18 @@
   });
   document.addEventListener('click', (e) => {
     if (e.target.closest('#floatSend')) {
+      /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ═══════════
+         While an answer is coming there is nothing to send: the square is
+         a stop, so it stops. During the wait nothing has been said yet, so
+         nothing is written and the card closes on a question that was
+         called off. Once the words are arriving the answer exists and is
+         already in the thread, so the press finishes them rather than
+         throwing away what was asked for — under whatever had already been
+         said, never instead of it. */
+      if (byId('aimyFloatBar').classList.contains('is-generating')) {
+        if (PEEK_RAF) peekAll(); else { PEEK_DUE = null; peekHide(); }
+        return;
+      }
       const el = byId('floatInput'); const v = el.value; el.value = ''; runInput(v);
     } else if (e.target.closest('#overlaySend')) {
       const el = byId('overlayInput'); const v = el.value; el.value = ''; runInput(v);
