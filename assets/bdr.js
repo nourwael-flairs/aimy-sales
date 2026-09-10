@@ -4040,7 +4040,9 @@
   }
   function bookBar() {
     const a = bookAttain();
-    const scale = Math.max(a.target, a.booked) || 1;
+    /* The same reserve the report's own bar keeps, for the same reason and
+       so the door and the page draw one shape. */
+    const scale = Math.max(a.target * 1.2, a.booked) || 1;
     const pc = Math.max(0, Math.min(100, (a.booked / scale) * 100));
     const at = Math.max(0, Math.min(100, (a.target / scale) * 100));
     return '<span class="b-door-bar">' +
@@ -5136,7 +5138,26 @@
     const bestArr = Math.max.apply(null, now.byLine.map((r) => r.arr).concat([0]));
     const age = dealAge(deals);
 
-    const scale = Math.max(a.target, a.forecast, a.booked) || 1;
+    /* ══ THE SCALE HAS TO MEAN THE SAME THING TWICE ═════════════════════
+       It was the largest of the three figures, which makes the bar's own
+       length a moving quantity: the same length means different money on
+       different days, and the target mark slides along the track as the
+       book fills even though the target has not moved. A reader cannot
+       compare this bar to the one they saw last week, and half the point of
+       an attainment bar is that they can.
+
+       It is also why the mark sat hard against the end. The target is the
+       largest of the three in every quarter that has not already beaten it,
+       so 100% WAS the target — and hitting the number exactly and beating
+       it by a third drew the same picture: a full bar.
+
+       The target plus a fifth, then. The scale is anchored to the one
+       figure that does not move, the mark lands at 83% with the run-up in
+       front of it and somewhere to go past it, and a quarter that outruns
+       even the reserve widens the scale to fit rather than clipping — the
+       mark moving down is itself the news. */
+    const OVERSHOOT = 1.2;
+    const scale = Math.max(a.target * OVERSHOOT, a.forecast, a.booked) || 1;
     const pcOf = (v) => Math.max(0, Math.min(100, (v / scale) * 100));
     const bookedPc = pcOf(a.booked);
     const fcastPc = Math.max(0, pcOf(a.forecast) - bookedPc);
