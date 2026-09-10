@@ -2781,8 +2781,25 @@
            idle ones is a page whose flags all mean the same thing. */
         (camp ? '<span class="b-kind">' + esc(camp) + '</span>'
           : '<span class="tag tag-warn">Not on a campaign</span>') +
-        '<span class="tc-type b-fact">' + chIcon('web') +
-          '<span>' + esc(l.via) + '</span></span>' +
+        /* ══ WHICH TOOL FOUND THEM IS NOT A FACT ABOUT THE LIST ══════════
+           The right of this row carried `l.via` — Apollo, ZoomInfo, Exa /
+           Serper — which is wrong twice.
+
+           It is not true: `via` is one label on a list whose people can have
+           come from anywhere. A search runs across several tools, a name is
+           added by hand, a number is filled by a second supplier; one string
+           at the top of a card states a single provenance the list does not
+           actually have.
+
+           And it is not wanted. Nothing a person decides about a list turns
+           on which tool returned it — they decide whether to work it, and
+           the tag beside this already answers that. The card's own slot goes
+           back to holding nothing, which is the right amount.
+
+           Where provenance IS the point it stays: on the list's own record,
+           on a lead's story as the line that says where they came from, and
+           inside the search index so typing a supplier's name still finds
+           the lists that used it. */
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
@@ -2833,7 +2850,7 @@
     const gap = people.filter((c) => !c.phone).length;
     if (gap) {
       return { text: '<b>' + commas(gap) + '</b> of them came back without a number, so they ' +
-        'cannot be called.', from: l.via + ' filled the rest' };
+        'cannot be called.', from: 'the records that came back' };
     }
     const done = people.filter((c) => c.checkpoint !== 'not-called').length;
     return { text: '<b>' + commas(done) + '</b> of ' + commas(people.length) + ' have been called.',
