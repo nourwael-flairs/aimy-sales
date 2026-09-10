@@ -1764,6 +1764,124 @@
       k.resources.forEach((x) => { x.name = named[x.kind] || x.name; });
     });
 
+    /* ══ A BOOK WITH A PAST ═══════════════════════════════════════════════
+       The manager's board held 26 deals and two of them had ever been
+       decided. Not "few losses" — none: every deal on it was still running,
+       so the Lost column drew Nothing here, a win rate had nothing to be a
+       rate of, and `acvOf`'s comparable tier had two signed deals to average
+       across the whole book.
+
+       The cause is that this desk's history WAS the caller's history. A deal
+       exists here only where the ladder handed one over, the ladder is forty
+       days old at its oldest, and four phases take three weeks to two months
+       to walk. Nothing had time to finish.
+
+       So the manager gets what a manager has: deals that predate the
+       caller's corpus. New records rather than a rewrite — the ladder's
+       touchpoints are Engy's own week and shifting them would move it — on
+       campaigns she was never crewed on, so no page she reads changes.
+
+       Every fact below is keyed on `hash`. `r()` is not called once, so the
+       generator does not move and everything above this line is what it was.
+
+       A quarter of them never met a caller at all. They arrived asking,
+       which is the third way a lead reaches this desk and the one the corpus
+       could not show — every existing deal came up the ladder, so "where did
+       this come from" had two possible answers and needed three. */
+    {
+      const HIST_N = 22;
+      const of = (arr, h) => arr[Math.abs(h) % arr.length];
+      /* Finished campaigns first: old business belongs to a campaign that
+         has ended. Never one the caller is crewed on. */
+      const notHers = camp.filter((k) => k.crew.indexOf(DEFAULT_ME) < 0);
+      const shut = notHers.filter((k) => k.state === 'done');
+      const homes = shut.length ? shut.concat(notHers) : (notHers.length ? notHers : camp);
+      const callers = REPS.filter((x) => x.fn === 'bdr');
+
+      for (let i = 0; i < HIST_N; i++) {
+        const h = Math.abs(hash('hist:' + i));
+        const k = of(homes, h);
+        const a = of(acc, h >> 3);
+        const mgr = k.owner || MANAGERS[0].id;
+        /* Two to nine months back, which is the window his own book's
+           average deal age of four and a half months is drawn from. */
+        const handed = new Date(TODAY.getTime() - (62 + (h >> 6) % 214) * DAY_MS);
+        const inbound = ((h >> 20) % 4) === 0;
+        const by = inbound ? null : of(callers, h >> 9).id;
+
+        const c = {
+          id: 'p' + con.length, acc: a.id,
+          name: of(FIRST, h >> 2) + ' ' + of(LAST, h >> 11),
+          title: of(TITLES, h >> 14),
+          phone: '+' + of(['31 6 ', '32 4 ', '49 1', '46 7', '353 8', '33 6 '], h >> 17) +
+            String(1000000 + (h % 8999999)),
+          email: null, camps: [k.id], owner: by,
+          checkpoint: 'handed-over', checkpointAt: handed.toISOString(),
+          attempts: inbound ? 0 : 2 + ((h >> 5) % 3),
+          lastCallAt: null, next: null, remember: null, dnc: false,
+          fate: null, enrichedAt: null, manager: mgr,
+        };
+        c.email = c.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').join('.') + '@' + a.domain;
+        con.push(c);
+
+        /* The call that got them warm, where there was one. One rather than a
+           ladder: what this desk needs from a deal three months old is that
+           it started somewhere, and a full history of somebody else's calls
+           on a record nobody is going to re-read is corpus for its own sake. */
+        if (!inbound) {
+          const rang = new Date(handed.getTime() - (4 + (h >> 8) % 20) * DAY_MS);
+          c.lastCallAt = rang.toISOString();
+          touch.push({
+            id: 't' + tId++, con: c.id, camp: k.id, by: by, at: rang.toISOString(),
+            secs: 120 + (h % 400), outcome: 'reached', proposals: ['meeting'],
+            objections: [], openings: [], note: 'Got through. They will take a meeting.',
+            lines: [], next: null, moved: ['not-called', 'meeting-set'], called: 'meeting-set',
+          });
+        }
+        touch.push({
+          id: 't' + tId++, con: c.id, camp: k.id, by: by || mgr, at: handed.toISOString(),
+          secs: 0, outcome: 'checkpoint', proposals: [], objections: [], openings: [],
+          note: inbound ? 'They came to us.' : 'Handed to ' + REP[mgr].name + '.',
+          lines: [], next: null,
+          moved: [inbound ? 'not-called' : 'meeting-set', 'handed-over'], called: 'handed-over',
+        });
+
+        /* The phases, walked forward at the pace this business actually runs
+           — a fortnight to five weeks between meetings, not the three to ten
+           days the recent deals use, which is why none of them had finished.
+           Three in five reach a decision; of those, a little over half sign.
+           His own book is five won against seven lost, and a corpus where
+           everything closes is as useless as one where nothing does. */
+        let when = handed;
+        const roll = (h >> 16) % 10;
+        const ends = roll < 6;
+        /* ══ AND A DEAL THAT DOES NOT END STOPS SOMEWHERE ══════════════
+           The first cut walked every deal to the last phase and only then
+           asked whether it decided, so the four in ten that never decided
+           all came to rest in the same column: sixteen deals with the price
+           on the table, against two on the board this is being read beside.
+           A pipeline does not stall at one point. It stalls wherever the
+           conversation stopped — after the scoping call, after the demo,
+           after the number went over. */
+        const goes = ends ? PHASES.length : 1 + (roll % 3);
+        for (let pi = 0; pi < goes; pi++) {
+          when = new Date(when.getTime() + (14 + ((h >> (2 * pi)) % 22)) * DAY_MS);
+          if (when.getTime() > TODAY.getTime()) break;
+          const ph = PHASES[pi];
+          const decision = ph.k === 'resolution' ? (((h >> 24) % 9) < 5 ? 'won' : 'lost') : null;
+          touch.push({
+            id: 't' + tId++, con: c.id, camp: k.id, by: mgr, at: when.toISOString(), secs: 0,
+            outcome: 'phase', phase: ph.k, decision: decision,
+            proposals: [], objections: [], openings: [],
+            note: decision === 'won' ? 'They signed on the terms agreed.'
+              : decision === 'lost' ? 'They decided against it.'
+              : ph.label + ' held. ' + REP[mgr].name.split(' ')[0] + ' ' + ph.did + '.',
+            lines: [], next: null, moved: null, called: 'handed-over',
+          });
+        }
+      }
+    }
+
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
   }
 
