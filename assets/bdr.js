@@ -14828,20 +14828,22 @@
          So the second is said in full and the remainder stay terse. Both
          desks read the same shape and the answer runs to four lines at
          either, which is what the card was built to cut. */
-      /* Three said in full, the remainder terse. Two filled the card's
-         three lines exactly, which is the one length that never shows what
-         the card does — it neither cuts nor leaves room. Three runs it to
-         four, so the answer is cut and the fade says there is more of it,
-         which is what the card is for. Still every word of it true: each of
-         these is a task with its own sentence already written. */
+      /* ══ THE FIRST THING, AND HOW MANY ARE BEHIND IT ═══════════════
+         This has been three shapes now — one task in full plus two terse,
+         then three in full — and the short one is right for a reason worth
+         writing down: THIS ANSWER HAS CHIPS, and the chips are the other
+         tasks. Reading out the second and third put the same information on
+         the card twice, once as prose to read and once as a control to
+         press, and pushed the prose into the fade so the reading half was
+         cut while the pressing half sat under it whole.
+
+         So the sentence names the first and counts the rest, and the row
+         underneath is what the rest ARE. Two lines, which is what a card
+         above a text field should ask of anyone. */
       const first = tasks[0];
-      const rest = tasks.slice(1);
-      const said = (t, lead) => ' ' + lead + ' <b>' + esc(t.type.toLowerCase()) + '</b>: ' + esc(t.body);
+      const behind = tasks.length - 1;
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
-        (rest.length ? said(rest[0], 'Then') : '') +
-        (rest.length > 1 ? said(rest[1], 'After that,') : '') +
-        (rest.length > 2 ? ' Then ' + rest.slice(2, 4).map((t) =>
-          esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
+        (behind ? ' ' + esc(plural(behind, 'thing')) + ' behind it.' : '') +
         /* ══ THREE BUTTONS READING "SAY HOW IT WENT" ══════════════════════
            Every unrecorded meeting builds a task with the same verb on it,
            so a morning with three of them put three identical chips in a
