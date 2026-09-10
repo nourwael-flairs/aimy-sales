@@ -2769,20 +2769,35 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    Under the diary, and deliberately not another card: it is the same
    surface's unfinished business, so it reads as the bottom of the diary
    rather than as a second thing to do. */
-.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); max-width: 560px; }
+/* ══ THE MEASURE BELONGS TO THE PROSE, NOT TO THE SECTION ═════════════════
+   560px sat on the whole block, so the rule that separates this from the
+   diary stopped two-thirds across, the caption's row ended there, and the
+   door on it landed in the middle of the page with the page's own right
+   edge a long way past it. A section spans its block; the thing that
+   needs a measure is the sentence.
+
+   Which also gives the section one right edge: the door on the caption's
+   row and the verb at the end of every row under it now line up on it. */
+.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); }
 /* The caption and the door on one row: what has not been written down, and
    the way to what has. The caption keeps its own type — a control beside a
    micro capital is the pair this row is for, not a mismatch to correct. */
 .b-loop-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 6px;
+  /* The rows below carry 10px of their own so the hover ground clears their
+     text. This row is not pressable and has no ground to protect, so without
+     the same inset its door stood nine pixels outside the column of verbs it
+     is the head of. One edge for the section. */
+  padding-right: 10px;
 }
 .b-loop-cap {
   margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 .b-loop-say {
-  margin: 0 0 10px; font-size: var(--t-body); color: var(--d100);
+  margin: 0 0 10px; max-width: 560px;
+  font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); text-wrap: pretty;
 }
 /* ══ WHAT IS OWED, ACROSS EVERY SURFACE ════════════════════════
