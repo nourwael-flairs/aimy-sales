@@ -2923,28 +2923,29 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   width: 13px; height: 13px; flex: none; color: var(--ink-muted);
   align-self: center; margin-top: -1px;
 }
-/* == A MARK LABELS WHAT THE WORDS CANNOT ==================================
-   Rank one is three facts at lead size: the campaign, the job, the company.
-   Read any of them and there is nothing left to work out, so a 13px drawing
-   in front of each saying which KIND of fact it is hands the reader
-   something they have already got. What the marks did instead was cut one
-   sentence into three chunks with a picture at the head of each, which is
-   why a masthead of two lines was read as a masthead of seven things.
+/* == THE MARK IS THE SEPARATOR, ON EVERY RANK =============================
+   Rank one lost its marks for four commits and took the middot instead. The
+   argument was that a campaign name, a job title and a company name say
+   which kind of thing they are without a drawing in front of them -- true of
+   those three, and no longer true of the rank, because what we sell them
+   joined it. "Logistics, Southern Europe · Data annotation" is a campaign
+   beside a product, and neither announces which it is. The flag and the box
+   said so; a middot says nothing.
 
-   Off, and the middot the rest of the build separates facts with comes back
-   with them. Three facts, one line, one thing to read.
+   And the marks were never what fixed this masthead. Two ranks that read as
+   one were 16/500 over 14/400 with the SAME 13px mark, and what separated
+   them was dropping rank two to micro with a mark to match -- two steps of
+   size, which stands whether or not rank one is drawn with marks. Taking
+   them off was a second measure on top of a fix that had already landed,
+   and it was the one that cost information.
 
-   Rank two keeps its marks and earns them. A number, an address, a profile
-   and a door to four colleagues are four different errands, and down at
-   micro a mark is quicker to tell apart than the words are to read. */
-.s-rec-facts > div:first-child .b-fact > svg { display: none; }
-/* Two separators for one job is one too many, and rank one has no marks
-   left to do it -- so it takes the middot and rank two keeps its marks.
-   `:has` rather than the adjacency it replaces, because the rule now hangs
-   off the fact BEFORE the gap: this one is followed by another marked one,
-   so the two marks are already the boundary and a dot between them is the
-   second fence around one field. */
-.s-rec-facts > div + div .b-fact:has(+ .b-fact)::after { content: none; }
+   So the marks are back, and with them the rule this file has always held:
+   two separators for one job is one too many. Where a mark arrives the
+   middot goes -- on every rank now rather than only on rank two, because
+   `:has` hangs the rule off the fact BEFORE the gap and does not care which
+   row it is in. A bare fact beside a marked one still takes a dot; it is
+   the only thing it has. */
+.s-rec-facts .b-fact:has(+ .b-fact)::after { content: none; }
 .s-rec-facts > div + div .b-fact > svg { width: 11px; height: 11px; }
 .s-rec-facts > div { gap: 4px 16px; }
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
