@@ -542,7 +542,7 @@
     { ind: 'retail', sell: 'support', who: 'Halbert & Co',
       say: 'We carried their peak — November through January — without them hiring a single seasonal agent.' },
     { ind: 'energy', sell: 'know', who: 'Nordwerk',
-      say: 'Field engineers stopped ringing the office to ask what the procedure was; the answer is one search and it is the same answer every time.' },
+      say: 'Field engineers stopped calling the office to ask what the procedure was; the answer is one search and it is the same answer every time.' },
     { ind: 'public', sell: 'know', who: 'Gemeente Aalsdijk',
       say: 'The same question was getting three different answers from three desks. One answer surface, and the escalations halved.' },
     { ind: 'telecom', sell: 'voice', who: 'Brennan Telecom',
@@ -1422,7 +1422,7 @@
         'Talked it through. They asked me to send the case study.', 'Got through. Timing is the problem, not the fit.'],
       callback: ['Asked me to call back next week.', 'Bad moment, call back Thursday.', 'Call them back after the board meeting.'],
       gatekeeper: ['Reception would not put me through.', 'Screened. Assistant took a message.', 'Front desk again, they are in workshops all week.'],
-      'no-answer': ['No answer.', 'Rang out.', 'Left a voicemail.', 'Straight to answerphone.'],
+      'no-answer': ['No answer.', 'Nobody picked up.', 'Left a voicemail.', 'Straight to answerphone.'],
       'not-interested': ['Not interested, they have just signed with someone.', 'No appetite this year.', 'Brushed me off.'],
       'wrong-number': ['Wrong number, they left last year.', 'Number is not in service.'],
       'do-not-call': ['Asked to be taken off the list.', 'Do not call again.'],
@@ -1893,10 +1893,10 @@
            it started somewhere, and a full history of somebody else's calls
            on a record nobody is going to re-read is corpus for its own sake. */
         if (!inbound) {
-          const rang = new Date(handed.getTime() - (4 + (h >> 8) % 20) * DAY_MS);
-          c.lastCallAt = rang.toISOString();
+          const called = new Date(handed.getTime() - (4 + (h >> 8) % 20) * DAY_MS);
+          c.lastCallAt = called.toISOString();
           touch.push({
-            id: 't' + tId++, con: c.id, camp: k.id, by: by, at: rang.toISOString(),
+            id: 't' + tId++, con: c.id, camp: k.id, by: by, at: called.toISOString(),
             secs: 120 + (h % 400), outcome: 'reached', proposals: ['meeting'],
             objections: [], openings: [], note: 'Got through. They will take a meeting.',
             lines: [], next: null, moved: ['not-called', 'meeting-set'], called: 'meeting-set',
@@ -9968,23 +9968,33 @@
           '</div>' +
           /* Rank two: our record of them. */
           '<div>' +
-            fact('web', esc(a.domain)) +
+            /* A domain is a door like every other one on this page. It
+               was the only fact in the masthead that named a place you
+               could go and gave you no way to go there. */
+            fact('web', '<a class="s-inline-btn" href="https://' + esc(a.domain) +
+              '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>') +
             (REGION[a.region] ? fact('where', esc(REGION[a.region].label)) : '') +
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
-            (isMgr() ? '<span>' + tierWhy(a) + '</span>' : '') +
             /* Beside the reasoning, because the two are one thought: this is
                what the account is worth, and this is what that buys it. The
                glyph is the clock the other facts on this line each have for
                their own kind. */
             (ci ? fact('clock', '<span class="b-due' + (ci.late ? ' is-late' : '') + '">' +
               ci.text + '</span>') : '') +
-            '<span>' + (camps.length
+            /* ══ A MARK OR A MIDDOT, AND THIS ROW HAS MARKS ══════════════
+               The campaigns were the one child of this rank drawn as a bare
+               span, so the separator rule gave it the only thing it had — a
+               dot — while every marked fact beside it separated by its mark.
+               One row, two kinds of boundary. It takes the campaign's own
+               flag now, which the record's masthead has always given it, and
+               the dots go with the last bare span. */
+            fact('campaign', (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +
                   '">' + esc(k.name) + '</button>').join(', ') +
                 (camps.length > 3 ? ' and ' + (camps.length - 3) + ' more of yours' : '')
-              : 'on none of your campaigns') + '</span>' +
+              : 'on none of your campaigns')) +
           '</div>' +
         '</div>' +
         '<div class="s-rec-actions">' +
@@ -10043,7 +10053,22 @@
      not worth a panel, so on that reading the block is not drawn. */
   function accLead(a, people, hist, call, free) {
     const said = accSays(a, people, hist);
-    if (!said || said.from === 'the account itself') return '';
+    /* ══ WHY THE SHIELD SAYS WHAT IT SAYS ══════════════════════════════
+       `tierWhy` stood in the masthead's second rank between the domain and
+       the campaigns, a reading in a row of facts. It is not a fact. Nothing
+       on the record says "you have a name in three of their functions" —
+       the build works it out by counting the title bands of the people on
+       file and whether anybody at the company has ever signed, which is a
+       judgement about a set, and judgements go where this product puts
+       them.
+
+       Second in the sentence rather than first: it is true of the account
+       every day, and the line above it is what CHANGED. News, then the
+       frame the news sits in. Where nothing has changed it is the whole
+       reading, and this block used to draw nothing at all in that case. */
+    const why = isMgr() ? tierWhy(a) : '';
+    const thin = !said || said.from === 'the account itself';
+    if (thin && !why) return '';
     const got = hist.filter((t) => t.outcome === 'reached')[0];
     const who = got && DB.byCon[got.con];
     let door = '';
@@ -10068,9 +10093,11 @@
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>' +
-        '<span class="work-state ws-detected" data-work-state="detected">' + esc(said.from) + '</span>' +
+        '<span class="work-state ws-detected" data-work-state="detected">' +
+          esc(thin ? 'what this desk holds here' : said.from) + '</span>' +
       '</div>' +
-      '<p class="s-lead-deck">' + said.text + '</p>' +
+      '<p class="s-lead-deck">' +
+        (thin ? why : said.text + (why ? ' ' + why : '')) + '</p>' +
       (door ? '<div class="s-lead-acts">' + door + '</div>' : '') +
     '</section>';
   }
@@ -10811,7 +10838,7 @@
          far up the ladder it got. */
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
-          'First rung ' + esc(sayDay(oldest.at)) +
+          'First called ' + esc(sayDay(oldest.at)) +
           (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
         '</div>'
         : '') +
@@ -11381,7 +11408,7 @@
     steps.push(foundBy
       ? { k: 'Found on a list', t: sayDay(list.at), tone: 'neutral' }
       : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
-    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
       steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
     const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
@@ -11428,7 +11455,7 @@
     const reached = live.filter((c) => rank(c.checkpoint) >= rank('answered'));
     const top = live.slice().sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
     const steps = [];
-    if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
+    if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     const got = calls.filter((t) => t.outcome === 'reached')[0];
     if (got) steps.push({ k: 'Got through', t: sayDay(got.at) + ' · ' + esc((DB.byCon[got.con] || {}).name || '').split(' ')[0], tone: 'ok' });
     if (top && rank(top.checkpoint) >= rank('answered')) {
@@ -11460,7 +11487,14 @@
       next: next, done: handed,
       hand: (!handed && top && rank(top.checkpoint) >= rank('answered'))
         ? 'Your part ends at <b>Interested</b> — ' + esc(directorOf(top).name) + ' takes it from there.' : '',
-      cite: cityLabel(a) + ' · ' + indLabel(a),
+      /* ══ THE HEAD SAID WHAT THE MASTHEAD HAD JUST SAID ══════════════
+         "Valencia · Retail", forty pixels under an eyebrow reading COMPANY ·
+         RETAIL · VALENCIA, ES. A `cite` names the set a story was read from,
+         and on a campaign it earns that -- the story there is drawn from
+         some of the book and the line says which. This story is drawn from
+         one company, and the reader is on that company's page with its name
+         at the top. There is no set to name. */
+      cite: '',
     };
   }
   /* The hand-over from the company page: the furthest person, once warm. */
@@ -12128,7 +12162,7 @@
     ],
     'no-answer-rang': [
       ['you', 'Dialling…'],
-      ['them', 'The line rings out.'],
+      ['them', 'Nobody picks up.'],
       ['you', 'Nobody picked up on the second call either.'],
     ],
     'declined-signed': [
@@ -14162,12 +14196,12 @@
         return camp ? camp.pitch : 'Ask what they are running this with today.';
       case 'no-answer':
         return 'They have never picked up — ' + plural(c.attempts, 'attempt') +
-          ' so far. Say why you keep ringing rather than that you have been.';
+          ' so far. Say why you keep calling rather than that you have been.';
       case 'callback':
         return 'They asked to be called back' + (c.next
           ? ', and it ' + (daysBetween(TODAY_ISO, c.next.due) < 0 ? 'was due ' : 'is due ') +
             sayWhen(c.next.due)
-          : '') + '. Open on that: you are ringing when they said, not out of the blue.';
+          : '') + '. Open on that: you are calling when they said, not out of the blue.';
       case 'answered':
         return 'You have already spoken. Pick up where it stopped' +
           (said ? ' — ' + said : '') + ', and do not reintroduce yourself.';
@@ -16225,7 +16259,7 @@
     ],
     bdr: [
       'Spoke to {name}, they want a demo next week',
-      'Rang {name} again, no answer',
+      'Called {name} again, no answer',
       '{name} asked me to call back on Thursday',
       'Got {name} on the phone, the price came up straight away',
       'Reception would not put me through to {name}',

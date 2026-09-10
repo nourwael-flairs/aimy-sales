@@ -2919,9 +2919,28 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    The middot separator goes wherever a mark arrives: two separators for one
    job is one too many, and the gap does the rest. */
 .b-fact { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+/* == CENTRED ON THE FIRST LINE, WHICH IS BOTH ANSWERS AT ONCE =============
+   `align-self: center` centres the mark on the whole box, so a fact of one
+   line got it level with the words and a fact that wrapped got it level with
+   the gap between them -- floating beside the middle of a sentence with no
+   line to belong to.
+
+   Centred on the FIRST line instead. Where there is only one line that is
+   the same thing as centred, and where there are two it sits against the
+   line the sentence starts on. One rule, both behaviours, and no counting
+   of lines: `1lh` is this element's own line box, so it follows whatever
+   size the row is set at without being told.
+
+   The mark's size moves to `--mark` so the sum can read it. Every rule that
+   used to set width and height sets that instead, and each still gets its
+   own centring for free. */
 .b-fact > svg {
-  width: 13px; height: 13px; flex: none; color: var(--ink-muted);
-  align-self: center; margin-top: -1px;
+  --mark: 13px;
+  width: var(--mark); height: var(--mark); flex: none; color: var(--ink-muted);
+  align-self: flex-start;
+  /* For anything without `lh`: the row's own leading, in ems. */
+  margin-top: calc((var(--lh-base, 1.5) * 1em - var(--mark)) / 2);
+  margin-top: calc((1lh - var(--mark)) / 2);
 }
 /* == THE MARK IS THE SEPARATOR, ON EVERY RANK =============================
    Rank one lost its marks for four commits and took the middot instead. The
@@ -2946,13 +2965,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    row it is in. A bare fact beside a marked one still takes a dot; it is
    the only thing it has. */
 .s-rec-facts .b-fact:has(+ .b-fact)::after { content: none; }
-.s-rec-facts > div + div .b-fact > svg { width: 11px; height: 11px; }
+.s-rec-facts > div + div .b-fact > svg { --mark: 11px; }
 .s-rec-facts > div { gap: 4px 16px; }
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
    13px mark beside it reads as the loudest thing in the corner. */
-.tc-type.b-fact > svg { width: 11px; height: 11px; }
-.b-node-name.b-fact > svg { width: 12px; height: 12px; }
+.tc-type.b-fact > svg { --mark: 11px; }
+.b-node-name.b-fact > svg { --mark: 12px; }
 
 /* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
    Smaller than on a record, because the line they sit on is smaller: a
@@ -2960,8 +2979,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    which is the opposite of what a mark is for. The facts line becomes a
    wrapping row so a long company name takes its mark with it. */
 .b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
-.b-qcard-where .b-fact > svg { width: 12px; height: 12px; }
-.b-qcard-num.b-fact > svg { width: 12px; height: 12px; }
+.b-qcard-where .b-fact > svg { --mark: 12px; }
+.b-qcard-num.b-fact > svg { --mark: 12px; }
 
 /* The campaign's team block carries its own caption and the top margin that
    goes with sitting inside the metadata grid. On a record it is a section
