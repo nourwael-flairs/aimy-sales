@@ -79,8 +79,12 @@
 /* The row's margin is on the BOTTOM, which is right where it belongs — above
    a grid of results on a page. In an answer it is the other way round: the
    chips follow a sentence and were sitting on it, with twelve pixels of
-   nothing under them where the card ends. `:not(.b-cuts-row)` is the answer
-   rows and only those; the page's own cut row keeps what it had. */
+   nothing under them where the answer ends. `:not(.b-cuts-row)` is the
+   answer rows and only those; the page's own cut row keeps what it had.
+
+   This is why every answer had to be made to use the row. The rule reaches
+   an answer in the card and the same answer in the thread, and it cannot
+   reach a chip that was appended to the sentence as a word. */
 .b-cuts:not(.b-cuts-row) { margin-top: 10px; }
 .b-cuts:not(.b-cuts-row):last-child { margin-bottom: 0; }
 .b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }

@@ -13307,7 +13307,24 @@
             '<button class="b-chat-item" type="button" data-ask="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>'
         : '');
   }
-  function openCanvas() { byId('aimyOverlay').classList.add('open'); paintBasis(); paintChats(); }
+  /* ══ THE CANVAS IS THE THREAD, SO THE CARD STANDS DOWN ════════════════
+     Fifteen things open this: a brief, a prep sheet, a campaign's resource,
+     the mark in the bar, the card itself. Any of them can fire while an
+     answer is still on screen above the composer, which left a peek at
+     something the thread now shows in full, stranded behind the surface
+     showing it.
+
+     Here rather than at fifteen call sites, and `peekAll` before the paint
+     so whatever the card still owed is in the thread by the time the thread
+     draws. A question gets the card; a document — a brief, a sheet, a
+     resource — is not a peek's worth of anything and goes straight here. */
+  function openCanvas() {
+    peekAll();
+    peekHide();
+    byId('aimyOverlay').classList.add('open');
+    paintBasis();
+    paintChats();
+  }
   function closeCanvas() {
     /* X on a live call is hanging up, and hanging up is a call that
        happened: it ends into the read-back rather than vanishing unlogged.
@@ -14635,6 +14652,18 @@
     const door = (label, over) =>
       '<button class="s-insight-lnk" type="button" data-go="' + esc(JSON.stringify(over)) +
       '">' + esc(label) + '</button>';
+    /* ══ ONE WAY TO PUT A CHIP ON AN ANSWER ════════════════════════════
+       Half the answers in this function wrapped their chips in a `b-cuts`
+       row and half appended them to the end of the sentence with a space,
+       which made them a word in the paragraph. It shows in three places at
+       once: in the thread they sat on the last line with no gap above them;
+       in the card the row rule could not reach them, so they kept the
+       sentence's spacing; and the card lifts a `b-cuts` row out of the box
+       the three-line cap applies to, so a bare chip stayed inside the prose
+       and could be cut in half by the fade.
+
+       One row, and every answer that has chips uses it. */
+    const doors = (html) => '<div class="b-cuts">' + html + '</div>';
 
     if (/\b(decision|decided|signed|handed)\b/.test(q)) {
       const hits = decidedHits();
@@ -14691,8 +14720,8 @@
       const late = queue(S.camp || null, 'callback').filter((c) => c.next && c.next.due < TODAY_ISO).length;
       return '<b>' + plural(counts.callback || 0, 'person') + '</b> asked to be called back' +
         (S.camp ? ' on this campaign' : ' across your ' +
-        plural(myCampaigns().length, 'campaign')) + (late ? ', <b>' + commas(late) + '</b> of them overdue' : '') + '. ' +
-        door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' }));
+        plural(myCampaigns().length, 'campaign')) + (late ? ', <b>' + commas(late) + '</b> of them overdue' : '') + '.' +
+        doors(door('Show them', Object.assign(cleared(), { camp: S.camp || '', q: 'callback' })));
     }
     if (/how many|left|remaining|to call/.test(q)) {
       /* the after-meeting cut is not called, so it is not in the sum; it is said */
@@ -14701,9 +14730,10 @@
         BUCKETS.filter((b) => b.k !== 'after' && counts[b.k]).map((b) =>
           commas(counts[b.k]) + ' ' + b.label.toLowerCase()).join(', ') + '.' +
         (counts.after ? ' And <b>' + plural(counts.after, 'meeting') + '</b> ' +
-          (counts.after === 1 ? 'has' : 'have') + ' passed without a word.' : '') + ' ' +
-        door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' })) +
-        (counts.after ? ' ' + door('Say what happened', Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : '');
+          (counts.after === 1 ? 'has' : 'have') + ' passed without a word.' : '') +
+        doors(door('Work the queue', Object.assign(cleared(), { camp: S.camp || '' })) +
+          (counts.after ? door('Say what happened',
+            Object.assign(cleared(), { camp: S.camp || '', q: 'after' })) : ''));
     }
     if (/happened|yesterday|today.*call|did i/.test(q)) {
       /* today and yesterday both answered "the last two days" */
@@ -14757,8 +14787,8 @@
           : st.left > 0 ? ', with ' + plural(st.left, 'day') + ' to go — ' + st.perWeek + ' a week lands the other ' + st.need
           : ', past its end date and ' + st.need + ' short') +
         '. <b>' + commas(cq.length) + '</b> to call' + (backs || fresh ? ': ' +
-          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never called' : null].filter(Boolean).join(', ') : '') + '. ' +
-        door('Open the campaign', Object.assign(cleared(), { camp: named.id }));
+          [backs ? plural(backs, 'callback') : null, fresh ? commas(fresh) + ' never called' : null].filter(Boolean).join(', ') : '') + '.' +
+        doors(door('Open the campaign', Object.assign(cleared(), { camp: named.id })));
     }
     /* ══ WHAT TO DO FIRST ══════════════════════════════════════════════════
        The bell's own footer asks it, and got the fallback. The bell's rows
@@ -14769,9 +14799,24 @@
         return isMgr() ? 'Nothing is waiting on you. The diary is clear.'
           : 'Nothing is waiting on you. call the next one.';
       }
+      /* ══ THE SECOND THING IS WORTH A SENTENCE TOO ═══════════════════
+         Every task here carries one — "3 people asked to be called back and
+         their day has come", "2 meetings have passed and nobody has said
+         whether they turned up" — and only the first was ever read out. The
+         rest collapsed to a category and a time, which tells you when to do
+         something without telling you what it is, and a reader deciding
+         what to do first is deciding between the first two.
+
+         So the second is said in full and the remainder stay terse. Both
+         desks read the same shape and the answer runs to four lines at
+         either, which is what the card was built to cut. */
       const first = tasks[0];
+      const rest = tasks.slice(1);
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
-        (tasks.length > 1 ? ' Then ' + tasks.slice(1, 3).map((t) => esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
+        (rest.length ? ' Then <b>' + esc(rest[0].type.toLowerCase()) + '</b>: ' +
+          esc(rest[0].body) : '') +
+        (rest.length > 1 ? ' After that, ' + rest.slice(1, 3).map((t) =>
+          esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
         /* ══ THREE BUTTONS READING "SAY HOW IT WENT" ══════════════════════
            Every unrecorded meeting builds a task with the same verb on it,
            so a morning with three of them put three identical chips in a
@@ -16577,8 +16622,8 @@
        the canvas over a surface the chip has just changed is the opposite of
        what was asked for. */
     if (t.closest('#peekActs')) { peekAll(); peekHide(); }
-    if (t.closest('#peekOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
-    if (t.closest('#canvasOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
+    if (t.closest('#peekOpen')) { openCanvas(); paintThread(); return; }
+    if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
     if (ask) { taskGo(ask.getAttribute('data-ask')); return; }
 
