@@ -3864,13 +3864,27 @@
          the viewport over content that scrolls under it is a second thing to
          read past. */
       '<div class="rail-foot">' +
-        '<button class="rail-console" type="button" data-proto>' +
+        /* ══ THE CONSOLE IS A PLACE, NOT A PANEL ═══════════════════════
+           This opened the local proto panel — the build stamp, the corpus
+           counts, who you are looking as, the way back to the seed. That
+           panel is this prototype talking about itself; the console is a
+           surface of the product, and it is at Knowledge. A gate at the foot
+           of the rail that says Console should go to the console.
+
+           An anchor rather than a button carrying a script: it is a
+           destination, so it is a link, and the browser's own middle-click,
+           copy-link and open-in-new-tab all work without being written. New
+           tab because it leaves this build entirely and a desk with a call
+           open should not lose it. The panel keeps its own door — the mark
+           in the corner still opens it. */
+        '<a class="rail-console" href="https://aimy-knowledge.nour-ali.workers.dev/console" ' +
+          'target="_blank" rel="noopener">' +
           chIcon('grid') +
           '<span class="rail-console-lines">' +
             '<span class="rail-console-name">Console</span>' +
             '<span class="rail-console-sub">Documents &amp; Corpus</span>' +
           '</span>' +
-        '</button>' +
+        '</a>' +
       '</div>';
   }
 
@@ -11979,10 +11993,14 @@
 
   /* ── The prototype panel. Not product UI: what the corpus holds, the way
      back to the previous build, and the reset. ── */
-  function protoToggle(openOnly) {
+  /* `openOnly` went with the rail's gate: that door opened rather than
+     toggled, because pressing a door you can see is not how you shut it.
+     The corner mark is a disclosure and toggles, which is the only
+     behaviour left. */
+  function protoToggle() {
     const panel = byId('protoPanel');
     const btn = byId('protoToggle');
-    panel.hidden = openOnly ? false : !panel.hidden;
+    panel.hidden = !panel.hidden;
     if (btn) btn.setAttribute('aria-expanded', String(!panel.hidden));
     paintProto();
   }
@@ -14810,12 +14828,19 @@
          So the second is said in full and the remainder stay terse. Both
          desks read the same shape and the answer runs to four lines at
          either, which is what the card was built to cut. */
+      /* Three said in full, the remainder terse. Two filled the card's
+         three lines exactly, which is the one length that never shows what
+         the card does — it neither cuts nor leaves room. Three runs it to
+         four, so the answer is cut and the fade says there is more of it,
+         which is what the card is for. Still every word of it true: each of
+         these is a task with its own sentence already written. */
       const first = tasks[0];
       const rest = tasks.slice(1);
+      const said = (t, lead) => ' ' + lead + ' <b>' + esc(t.type.toLowerCase()) + '</b>: ' + esc(t.body);
       return 'First, <b>' + esc(first.type.toLowerCase()) + '</b>: ' + esc(first.body) +
-        (rest.length ? ' Then <b>' + esc(rest[0].type.toLowerCase()) + '</b>: ' +
-          esc(rest[0].body) : '') +
-        (rest.length > 1 ? ' After that, ' + rest.slice(1, 3).map((t) =>
+        (rest.length ? said(rest[0], 'Then') : '') +
+        (rest.length > 1 ? said(rest[1], 'After that,') : '') +
+        (rest.length > 2 ? ' Then ' + rest.slice(2, 4).map((t) =>
           esc(t.type.toLowerCase()) + ' — ' + esc(t.when)).join(', then ') + '.' : '') +
         /* ══ THREE BUTTONS READING "SAY HOW IT WENT" ══════════════════════
            Every unrecorded meeting builds a task with the same verb on it,
@@ -16682,12 +16707,13 @@
     const rst = t.closest('[data-reset]');
     if (rst) { reset(); return; }
 
-    /* Two controls, one panel. The corner toggle owns `aria-expanded`
-       because it is the one the panel is anchored to; the rail's gate is a
-       way in rather than a disclosure, so it opens rather than toggles —
-       pressing a door you can see is not how you shut it. */
+    /* One control, one panel. The rail's gate was the second way in and it
+       is a link to the console now, so `data-proto` is wired to nothing and
+       goes — the audit said so the moment the gate changed. The mark in the
+       corner is the prototype handler and keeps everything the panel holds:
+       the build, the corpus, who you are looking as, the queue cap and the
+       way back to the seed. */
     if (t.closest('#protoToggle')) { protoToggle(); return; }
-    if (t.closest('[data-proto]')) { protoToggle(true); return; }
 
     /* ══ THE WHOLE CARD IS THE DOOR ════════════════════════════════════════
        A card is a hundred and eighty pixels of one thing, and only the title

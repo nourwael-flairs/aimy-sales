@@ -3639,7 +3639,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .rail-console {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 10px; border: 0; border-radius: var(--r-md);
-  background: none; font-family: inherit; text-align: left;
+  /* An anchor now, so it brings a browser underline and an inherited link
+     colour that this row sets for itself two lines down. */
+  background: none; font-family: inherit; text-align: left; text-decoration: none;
   color: var(--ink-quiet); cursor: pointer;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
