@@ -13627,6 +13627,7 @@
   let PEEK_AT = null;
   let PEEK_DUE = null;
   let PEEK_RAF = 0;
+  let PEEK_ACTS = '';
 
   /* ══ THE ANSWER ARRIVES AS IT IS WRITTEN ═══════════════════════════════
      A reply that appears whole is a lookup. One that arrives at reading
@@ -13661,8 +13662,21 @@
        finish every run without the closure that started them. */
     runs.forEach((r) => { r.node.__full = r.full; r.node.nodeValue = ''; });
     let at = 0, ch = 0;
+    /* ══ THE RATE FOLLOWS THE LENGTH ═══════════════════════════════════
+       Three characters a frame is a rate, and a rate makes a long answer
+       take longer than a short one in exact proportion — the capability
+       list is 488 characters and sat there typing for the better part of
+       three seconds, most of it into the two lines the cap hides.
+
+       A budget instead of a rate: whatever it takes to finish in about
+       ninety frames, floored at two so a short answer still arrives as
+       words rather than at once. Every answer now takes about the same
+       time to write, which is what makes the wait feel like a wait for an
+       answer rather than a wait proportional to one. */
+    const total = runs.reduce((n, r) => n + r.full.length, 0);
+    const perFrame = Math.max(2, Math.ceil(total / 90));
     const tick = () => {
-      let budget = 3;
+      let budget = perFrame;
       while (budget > 0 && at < runs.length) {
         const r = runs[at];
         if (ch >= r.full.length) { at++; ch = 0; continue; }
@@ -13674,6 +13688,40 @@
       if (whenDone) whenDone();
     };
     tick();
+  }
+
+  /* ══ THE ANSWER IS FINISHED ═══════════════════════════════════════════
+     Everything that can only be true once the last word has landed: the bar
+     stops working, the chips arrive, and the cut is measured. Reached two
+     ways — the stream running out, or a press that finished it early — and
+     it has to do the same thing both times, which is why it is a function
+     and not the tail of the stream. */
+  function peekSettle() {
+    generating(false);
+    const box = peekEl();
+    if (!box || box.hidden) return;
+    const body = byId('peekBody');
+    const host = byId('peekActs');
+    if (PEEK_ACTS && !host.innerHTML) {
+      host.innerHTML = PEEK_ACTS;
+      /* `--i` per chip, which is the stagger Knowledge's gate gives its own
+         chips and the pattern this build already reads it by. */
+      const chips = host.querySelectorAll('.s-insight-lnk');
+      for (let i = 0; i < chips.length; i++) chips[i].style.setProperty('--i', i);
+    }
+    body.style.maxHeight = '';
+    const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
+    /* Half a line, not a whole one. The cap is three, so a fourth line is a
+       real fourth line and fades — but an answer that overruns by a few
+       pixels rather than by a line is shown instead, which is the case this
+       guard was written for: a trailing control makes its line taller than
+       the ones above it, and a fade over six pixels promises a canvas full
+       of something already on screen. */
+    if (body.scrollHeight - body.clientHeight > lh / 2) {
+      box.classList.add('is-clipped');
+    } else if (body.scrollHeight > body.clientHeight) {
+      body.style.maxHeight = 'none';
+    }
   }
 
   /* Stopping fills the words in rather than leaving them half-written. The
@@ -13743,6 +13791,7 @@
     box.classList.remove('is-clipped');
     byId('peekBody').style.maxHeight = '';
     byId('peekActs').innerHTML = '';
+    PEEK_ACTS = '';
     byId('aimyFloatWrap').classList.add('has-peek');
     /* Knowledge's own placeholder, markup and all: the mark on the left,
        what it is doing on the right. `startThinking` finds the canvas by
@@ -13777,9 +13826,19 @@
        time an answer ends in something else. */
     const cut = document.createElement('div');
     cut.innerHTML = html;
+    /* ══ HELD BACK UNTIL THE SENTENCE IS FINISHED ══════════════════════
+       They were placed the moment the answer was read apart, which put four
+       buttons under a sentence that was still arriving — the reader is
+       offered what to do about something they have not finished reading, and
+       the row jumps as the line above it wraps.
+
+       So the chips are parked here and land in `peekSettle`, which is the
+       one place that knows the words are done: the end of the stream, or a
+       press that finished them early. */
     const acts = cut.querySelector('.b-cuts');
     if (acts) acts.remove();
-    byId('peekActs').innerHTML = acts ? acts.outerHTML : '';
+    PEEK_ACTS = acts ? acts.outerHTML : '';
+    byId('peekActs').innerHTML = '';
     /* Its own name. `html` is the const this function opened with and the
        one already written to the thread; assigning to it threw, and a throw
        here leaves the card thinking forever with the chips of an answer it
@@ -13797,22 +13856,7 @@
        line to hide them. Under a line's worth, the box gives way instead:
        showing it costs one line, where the fade was promising a canvas full
        of something that was already on screen. */
-    peekStream(body, prose, () => {
-      generating(false);
-      body.style.maxHeight = '';
-      const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
-      /* Half a line, not a whole one. The cap is three now, so a fourth line
-         is a real fourth line and fades — but an answer that overruns by a
-         few pixels rather than by a line still gets shown instead, which is
-         the case this guard was written for: a trailing control makes its
-         line taller than the ones above it, and a fade over six pixels
-         promises a canvas full of something already on screen. */
-      if (body.scrollHeight - body.clientHeight > lh / 2) {
-        box.classList.add('is-clipped');
-      } else if (body.scrollHeight > body.clientHeight) {
-        body.style.maxHeight = 'none';
-      }
-    });
+    peekStream(body, prose, peekSettle);
   }
 
   function peekStop() {
@@ -13834,6 +13878,9 @@
         const walk = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
         let n;
         while ((n = walk.nextNode())) if (n.__full) n.nodeValue = n.__full;
+        /* Finished early is still finished: the chips land and the cut is
+           measured, the same as if the last character had arrived on time. */
+        peekSettle();
       }
     }
   }
@@ -14686,10 +14733,23 @@
         })().map((t) =>
           '<button class="s-insight-lnk" type="button" data-ask="' + esc(t.ask) + '">' + esc(t.cta) + '</button>').join('') + '</div>';
     }
+    /* ══ THE ONE ANSWER THAT IS A LIST OF EVERYTHING ═══════════════════
+       And so the one long enough to be cut, which is what the card above the
+       bar is for. It named the eleven questions and then stopped at the
+       first of the three ways a sentence WRITES something — the two it left
+       out are the ones a manager uses most.
+
+       Gated, because they are gated. `readMeet` and `readBook` are both
+       behind `isMgr()` in `runInput`, so telling a caller their sentence
+       moves a deal would be this page describing a route it will not take.
+       The desk that has them is told about them. */
     return 'I can say what is due, how many are left, what happened today or yesterday, when ' +
       'people answer, which meetings passed, what changed at the companies you call, who went ' +
       'quiet, who got a decision, which lists are off a campaign, how a campaign stands, and ' +
-      'what to do first. Name a person or a campaign to go there; a sentence about a call logs it.';
+      'what to do first. Name a person or a campaign to go there, and describe who to look for ' +
+      'to get a list back. A sentence about a call logs it' +
+      (isMgr() ? ', a sentence about a meeting moves the deal, and a sentence with a day in it ' +
+        'books the meeting' : '') + '.';
   }
 
   /* ══ THE CALL IN THE CANVAS, PORTED FROM THE V3 BUILD ═══════════════════

@@ -2071,6 +2071,31 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    no chips, so it costs no space of its own. */
 .b-peek-acts { display: block; }
 .b-peek-acts:empty { display: none; }
+/* Knowledge's own chip entrance, shape for shape: 420ms on the shared ease,
+   rising 0.375rem from nothing, staggered off `--i`. It arrives after the
+   sentence rather than with it, so the stagger reads as the answer handing
+   you what to do about it — which is the order the two things happen in.
+
+   NINETY, NOT FORTY. Both numbers are that file's: 40ms staggers the gate's
+   suggestion chips, which are a wall of them and want to arrive as one
+   surface, and 90ms staggers its skeleton rows, which want to be counted.
+   Four chips at 40 is 120ms end to end — one movement. At 90 the last one
+   lands 270ms after the first, which is slow enough to read as four things
+   arriving and still finished before the eye leaves the card. It carries on
+   from the words: the sentence types itself in, then the chips come one at
+   a time behind it. */
+.b-peek-acts .s-insight-lnk {
+  opacity: 0;
+  animation: b-chip-in 420ms var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes b-chip-in {
+  from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-peek-acts .s-insight-lnk { animation: none; opacity: 1; }
+}
 /* Only where there is more, and now it is the ONLY thing that says so —
    the caption under it is gone. That is the right amount: a sentence cut
    mid-air says there is more of it, and a reader who wants the rest presses
@@ -2122,6 +2147,19 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    The clip comes off while it thinks. There is nothing to fade to when what
    is in the box is a mark and four words. */
 .b-peek.is-thinking .b-peek-body { max-height: none; }
+/* ══ THE PILL, ONE SIZE DOWN ═══════════════════════════════════════════════
+   The design system's `.ai-thinking` is built for a chat bubble, where it
+   stands in for a whole message and is sized to hold that place. Here it sits
+   in a card whose own padding already frames it, so it was carrying a second
+   frame at a message's scale — 9/15 of padding, a 16px label and a 26px mark
+   inside a box that is only ever one line tall.
+
+   Down a step and no further: the mark to 22, the label to the `--t-small`
+   this build uses for a line that is not the reading, and the padding to
+   7/13. Scoped to the card, so the bubble's own version is untouched. */
+.b-peek .ai-thinking { gap: 8px; padding: 7px 13px; }
+.b-peek .ai-thinking-label { font-size: var(--t-small); }
+.b-peek .think-mark { width: 1.375rem; height: 1.375rem; }
 .think-mark {
   width: 1.625rem; height: 1.625rem;
   flex-shrink: 0;
