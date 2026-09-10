@@ -329,41 +329,19 @@
 
    `text-wrap: pretty` because these run two and three lines in a 340px card
    and the last line is where a lone word lands. */
-/* ── THE FACT IS LOUDER THAN THE WORD FOR IT ──────────────────────────────
-   These were the wrong way round: the label took --d300 and the sentence it
-   labels took --d400 off `.tc-summary`, so on every campaign and list card
-   the brightest thing in the line was the word "Goal" and the goal itself
-   was the dimmer half. A caption is a signpost — it is read once, to learn
-   what kind of fact follows, and never again. The fact is read every time.
+/* ── AND THE WORD FOR IT IS A MARK NOW ──────────────────────
+   Both cards that use this ran a caption in front of the sentence — Goal,
+   Who — and a caption in front of a sentence is read as its first word
+   whatever its size, weight and ink. The list card dropped its label; the
+   campaign card's became the target from the icon set, drawn through
+   `.b-fact` like every other icon-then-fact row in the build.
 
-   SWAPPING THE INK WAS HALF AN ANSWER. Measured after it, the label was
-   13/700/--d400 and the goal it labels was 13/700's opposite — 13/400/--d300
-   — so size tied, ink said read the goal and weight said read the word. The
-   eye takes the loudest of the three and this line had no loudest. The card
-   settles it the way §THE RAMP settles the person card: the three axes move
-   together, and a caption is the bottom rung of the ramp rather than a
-   competitor on it.
-
-     12 / 600 / d400   the word            `.tc-type`'s recipe exactly, so the
-                                           two captions on this card match
-     13 / 500 / d200   the goal            a step under the AiMY sentence,
-                                           two under the numbers that lead
-
-   Semibold at twelve px and --d400 is a label, not emphasis — the ramp
-   already says so of the campaign chip, and this is the same species of
-   thing. It was eleven, which is the floor and reserved for capitals; the
-   detail stays above it on size and on ink both.
-
-   The gap stays on the label alone rather than on every bold thing in the
-   line, so a figure set in bold inside the sentence keeps its own spacing
-   and its own ink. */
+   So the `> b:first-child` recipe that sat here — twelve semibold in
+   --d400, tuned against the sentence over three passes — has nothing left
+   to style. It goes with the words it was for. */
 .b-qcard-what {
   text-wrap: pretty;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
-}
-.b-qcard-what > b:first-child {
-  font-size: var(--t-small); font-weight: var(--fw-semibold);
-  color: var(--ink-muted); margin-right: 5px;
 }
 
 /* The keyboard cursor on a card. A call rather than a tint: a card already

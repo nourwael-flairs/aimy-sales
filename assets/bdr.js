@@ -2679,7 +2679,23 @@
          the frame those are read inside, not a fourth figure competing with
          them. What the line was missing was not weight, it was the right
          fact under the right word. */
-      '<p class="tc-summary b-qcard-what"><b>Goal</b> ' + campGoalSay(k) + '</p>' +
+      /* ══ THE MARK SAYS WHAT KIND OF FACT THIS IS, AND SAYS IT ONCE ═════
+         The word "Goal" sat in front of the goal, and a caption in front of
+         a sentence is read as the sentence's first word — "Goal 4 new
+         clients for Data annotation" — however far its size, weight and ink
+         are pushed from the line's. The list card had the same construction
+         with "Who" and simply dropped it, because the sentence there was
+         already a description of who.
+
+         This one cannot: "4 new clients for Data annotation" with nothing in
+         front of it could be a target, a tally or a claim, and the label is
+         what says which. So the label stops being a word. A target is the
+         one mark nobody has to be taught, it cannot be read as prose, and it
+         costs a line no width at all. `.b-fact` is the build's own
+         icon-then-fact row and blockifies inside the card's column, so the
+         sentence wraps under itself rather than under the mark. */
+      '<p class="tc-summary b-qcard-what b-fact">' + chIcon('target') +
+        '<span>' + campGoalSay(k) + '</span></p>' +
       (isDraft(k)
         ? '<div class="b-qcard-why">' + (members.length
           ? '<b>' + commas(members.length) + '</b> on it, and nobody calling them yet'
@@ -11550,6 +11566,7 @@
     staff: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/> <circle cx="9" cy="7" r="4"/> <path d="M22 21v-2a4 4 0 0 0-3-3.87"/> <path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     industry: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
     campaign: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/> <line x1="4" x2="4" y1="22" y2="15"/>',
+    target: '<circle cx="12" cy="12" r="10"/> <circle cx="12" cy="12" r="6"/> <circle cx="12" cy="12" r="2"/>',
     web: '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
     calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
