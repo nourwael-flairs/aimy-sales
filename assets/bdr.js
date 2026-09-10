@@ -3571,14 +3571,56 @@
       .sort((a, b) => (a.at < b.at ? 1 : -1));
   }
 
+  /* ══ A YEAR OF NOTES IS NOT A PAGE ═════════════════════════════════════
+     Forty-nine of them arrived as one run with a pager underneath, so
+     reading back to August meant pressing Next and losing where you were.
+     Notes are kept by when they happened, which is also how anybody looks
+     for one — so the months ARE the pages and the accordion is the pager.
+
+     `<details>` is this build's own accordion: keyboard-operable, and it
+     needs no state, no handler and no data attribute. The newest month
+     opens, because that is the one you came for; every older one is a press
+     away and says on its face how much is behind it.
+
+     The year is only written when it is not this one. "September 2026" on
+     every row of a book that is entirely 2026 is four characters that never
+     distinguish anything. */
+  function notesMonths(all) {
+    const out = [];
+    const at = Object.create(null);
+    all.forEach((t) => {
+      const k = t.at.slice(0, 7);
+      if (!at[k]) { at[k] = { k: k, rows: [] }; out.push(at[k]); }
+      at[k].rows.push(t);
+    });
+    return out;
+  }
+  const monthLabel = (k) => MONTH_FULL[+k.slice(5, 7) - 1] +
+    (k.slice(0, 4) === TODAY_ISO.slice(0, 4) ? '' : ' ' + k.slice(0, 4));
+
+  /* The day headings inside a month, the same ones `feedBlock` draws. Not
+     `feedBlock` itself: that pages what it is given, and the months are the
+     paging now. */
+  function notesRows(rows) {
+    let day = '';
+    return '<div class="b-feed">' + rows.map((t) => {
+      const d = t.at.slice(0, 10);
+      const head = d !== day ? '<h3 class="b-month">' + esc(dayLabel(t.at)) + '</h3>' : '';
+      day = d;
+      return head + '<div class="s-qrow b-feed-row">' + campTouchRow(t, true) + '</div>';
+    }).join('') + '</div>';
+  }
+
   function notesPage() {
-    const all = notesOf();
+    const months = notesMonths(notesOf());
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
       '<section class="s-block s-block-wide" aria-label="Notes">' +
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">Notes</h2>' +
-          '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
+          /* No total. Every month on the page carries its own count, and a
+             figure at the top that is only the sum of the figures below it
+             answers no question the page is for. */
           /* ══ THE PAGE THAT LISTS THEM HAD NO WAY TO ADD ONE ════════════
              Its empty state has always said where a note comes from — say
              what happened in the bar, or hold the mic — and then left you to
@@ -3591,8 +3633,19 @@
              and the cursor is the whole of what this button owes. */
           '<button class="s-insight-lnk" type="button" data-fill="">New note</button>' +
         '</div>' +
-        feedBlock(all, 'You have not written anything down yet. Say what happened ' +
-          'in the bar — or hold the mic — and it lands here.', true, 'note') +
+        (months.length
+          ? months.map((g, i) =>
+            '<details class="b-nmo"' + (i === 0 ? ' open' : '') + '>' +
+              '<summary class="b-nmo-sum">' +
+                '<span class="b-nmo-name">' + esc(monthLabel(g.k)) + '</span>' +
+                /* Its own month's. It is the only count on this page now,
+                   which is the one that tells two months apart. */
+                '<span class="b-nmo-n">' + esc(plural(g.rows.length, 'note')) + '</span>' +
+              '</summary>' +
+              notesRows(g.rows) +
+            '</details>').join('')
+          : '<p class="b-vfoot">You have not written anything down yet. Say what happened ' +
+            'in the bar — or hold the mic — and it lands here.</p>') +
       '</section>' +
     '</div>';
   }

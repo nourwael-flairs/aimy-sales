@@ -1329,13 +1329,14 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    disclosure in the build that still snapped — the rule listed the two that
    existed when it was written. A component's behaviour belongs to the
    component, not to the surfaces that happened to use it first. */
-.s-call, .s-trace, .s-crew { interpolate-size: allow-keywords; }
-.s-call::details-content, .s-trace::details-content, .s-crew::details-content {
+.s-call, .s-trace, .s-crew, .b-nmo { interpolate-size: allow-keywords; }
+.s-call::details-content, .s-trace::details-content, .s-crew::details-content,
+.b-nmo::details-content {
   height: 0; overflow: clip;
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
 .s-call[open]::details-content, .s-trace[open]::details-content,
-.s-crew[open]::details-content { height: auto; }
+.s-crew[open]::details-content, .b-nmo[open]::details-content { height: auto; }
 /* ── AND THE MARK IS DRAWN, NOT TYPED ─────────────────────────────────────
    Every other mark in this product is a Lucide path at 2px in a 24 viewBox,
    set by `chIcon`. This one was U+25B8, a solid triangle out of whatever
@@ -1353,7 +1354,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    `align-self` is dead and a 12px box rests its bottom edge on the baseline —
    two px above where a glyph read. A `translateY` would do both and then have
    to be carried through the rotation below, so neither is one. */
-.s-call-sum::before, .s-trace-sum::before {
+.s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before {
   content: ""; display: inline-block; flex: none; align-self: center;
   width: 12px; height: 12px; margin-right: 0.35em; vertical-align: -2px;
   background: currentColor;
@@ -1361,9 +1362,26 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   mask: var(--chevron-right) center / 12px 12px no-repeat;
   transition: transform 160ms var(--ease-out);
 }
-.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
+.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before,
+.b-nmo[open] .b-nmo-sum::before {
   content: ""; transform: rotate(90deg);
 }
+
+/* A month of notes, folded. No rule between them: a closed month is already
+   one line with a chevron on it, and a hairline above each one draws a
+   boundary the summaries were drawing for themselves — two marks for one
+   division, on a page whose whole job is a quiet list. */
+.b-nmo-sum {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 11px 10px 11px 0; list-style: none;
+}
+.b-nmo-sum::-webkit-details-marker { display: none; }
+.b-nmo-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-nmo-name {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+/* Its own month's, right where the eye already stops. */
+.b-nmo-n { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-quiet); }
 
 /* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════
    The read-back's hint names the digits that set an outcome. A keycap: the
@@ -1409,7 +1427,8 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
 @media (prefers-reduced-motion: reduce) {
   .s-call::details-content, .s-trace::details-content,
-  .s-call-sum::before, .s-trace-sum::before,
+  .s-crew::details-content, .b-nmo::details-content,
+  .s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before,
   .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
   .b-gate { animation: none; }
 }
