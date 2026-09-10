@@ -3575,9 +3575,9 @@
     const all = notesOf();
     return '<div class="s-home">' +
       '<div class="b-topbar s-block-wide">' + backHere() + '</div>' +
-      '<section class="s-block s-block-wide" aria-label="Your notes">' +
+      '<section class="s-block s-block-wide" aria-label="Notes">' +
         '<div class="s-camp-list-head">' +
-          '<h2 class="s-block-h">Your notes</h2>' +
+          '<h2 class="s-block-h">Notes</h2>' +
           '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
           /* ══ THE PAGE THAT LISTS THEM HAD NO WAY TO ADD ONE ════════════
              Its empty state has always said where a note comes from — say
@@ -4282,7 +4282,7 @@
         '<h4 class="b-loop-cap">Never written down</h4>' +
         '<button class="s-insight-lnk" type="button" data-go="' +
           esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
-          '">Your notes</button>' +
+          '">Notes</button>' +
       '</div>' +
       (!un.length
         ? '<p class="b-loop-say">Every meeting that has been and gone has been ' +
