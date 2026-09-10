@@ -1956,6 +1956,35 @@
           c.next = { what: 'Pick it back up', due: back.toISOString().slice(0, 10) };
         }
       }
+
+      /* ══ AND A SECOND SALE SOMEWHERE ══════════════════════════════════
+         `dealType` reads whether anybody at this company has signed, and
+         every account that had signed held exactly one deal — so Expansion
+         was a value nothing could ever be, which is a field that looks
+         broken rather than a field that is empty.
+
+         The fix is not to write the type down. It is to give the book what
+         a book has after a year: a handful of accounts being sold to twice.
+         The deal is re-pointed rather than re-made, because the account is
+         only where a deal sits — nothing on its own record moves. */
+      const wonAcc = [];
+      con.forEach((c) => {
+        if (c.checkpoint !== 'handed-over') return;
+        const ph = touch.filter((t) => t.con === c.id && t.decision === 'won');
+        if (ph.length && wonAcc.indexOf(c.acc) < 0) wonAcc.push(c.acc);
+      });
+      if (wonAcc.length) {
+        const open = con.filter((c) => c.id.indexOf('p') === 0 &&
+          c.checkpoint === 'handed-over' && Number(c.id.slice(1)) >= CON_N &&
+          !touch.some((t) => t.con === c.id && t.decision));
+        open.slice(0, Math.min(4, wonAcc.length * 2)).forEach((c, i) => {
+          const to = acc[Number(wonAcc[i % wonAcc.length].slice(1))];
+          if (!to) return;
+          c.acc = to.id;
+          c.email = c.name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').join('.') +
+            '@' + to.domain;
+        });
+      }
     }
 
     return { camp: camp, acc: acc, con: con, touch: touch, net: net, list: list };
@@ -4986,8 +5015,8 @@
      same cell are better evidence than the price list is. Three tiers, and
      the page states which it is reading — a pipeline that cannot say how
      much of itself is a guess is a pipeline nobody should act on. */
-  const cellOf = (c) => { const k = dealCamp(c); const a = accOf(c);
-    return (k && k.sells && k.sells.length ? k.sells[0] : 'qa') + '|' + priceBand(a ? a.size : 300); };
+  const cellOf = (c) => { const a = accOf(c);
+    return sellOf(c) + '|' + priceBand(a ? a.size : 300); };
   let CELL_MEANS = null;
   /* ══ WHAT A DEAL IS WORTH CANNOT DEPEND ON WHO IS LOOKING ══════════════
      This read `dealBook()` — the deals belonging to whoever has the page
@@ -10059,8 +10088,7 @@
   function dealBlock(c) {
     const a = accOf(c);
     const k = dealCamp(c);
-    const sells = k && k.sells && k.sells.length
-      ? listSay(k.sells.map((x) => (SELL[x] || {}).name || x)) : 'nothing named yet';
+    const sells = (SELL[sellOf(c)] || {}).name || 'nothing named yet';
     const owner = c.owner ? actor(c.owner) : null;
     const days = daysBetween(TODAY_ISO, closeBy(c));
     return '<section class="s-block s-block-wide" aria-label="The deal">' +
@@ -10085,8 +10113,16 @@
             ? (days < 0 ? 'that is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
               : 'about ' + plural(days, 'day') + ' out, counted from the last meeting.')
             : 'it is already decided.') + '</p>') +
-        cmPart('What we sell them', '<p class="b-cmeta-p">' + esc(sells) +
-          (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
+        /* What this deal is for, which kind of sale it is, and — only when
+           they differ — what the campaign opened on. A record that shows the
+           campaign's product where the deal's should be is the page telling
+           you about the plan instead of about the deal. */
+        cmPart('What we sell them', '<p class="b-cmeta-p"><b>' + esc(sells) + '</b>' +
+          '<span class="b-kind">' + esc(dealType(c)) + '</span></p>' +
+          (k ? '<p class="b-cmeta-p">' + (sellDrifted(c)
+            ? 'On <b>' + esc(k.name) + '</b>, which opened on ' +
+              esc((SELL[k.sells[0]] || {}).name || 'something else') + '.'
+            : 'On <b>' + esc(k.name) + '</b>.') + '</p>' : '')) +
         /* Only on the deals it is true of. A "Why we lost it" reading "not
            applicable" down every live record is the form showing you its
            own fields. */
@@ -10693,10 +10729,48 @@
      answers for whoever is looking. */
   const dealCamp = (c) => (c && c.camps.length ? DB.byCamp[c.camps[0]] : null);
 
+  /* ══ A DEAL IS NOT ALWAYS FOR WHAT THE CAMPAIGN OPENED WITH ════════════
+     The product read the campaign's first `sells` and called that the deal's
+     — so a whole campaign's worth of deals were for one thing, priced at one
+     price, and a manager reading his own board could not tell that the QA
+     conversation at one of them had turned into an engineering one three
+     meetings ago. That turn is most of the job.
+
+     One in four drifts, and it drifts onto something that actually fits the
+     account: `IND_FIT` already says which of the eight belong in that
+     sector, and a deal that wandered off into a service nobody there could
+     use would be a worse fiction than the one it replaced.
+
+     The price follows the deal, not the campaign, which is the whole point
+     of knowing — engineering teams are three times QA at the same size, and
+     a board that prices the drift at the old number is a forecast built on
+     what somebody meant to sell. */
+  function sellOf(c) {
+    const k = dealCamp(c);
+    const opened = k && k.sells && k.sells.length ? k.sells[0] : 'qa';
+    const a = accOf(c);
+    const fit = a && IND_FIT[a.industry] ? IND_FIT[a.industry].fits : null;
+    if (!fit || !fit.length) return opened;
+    if (Math.abs(hash(c.id + ':sell')) % 4) return opened;
+    return fit[Math.abs(hash(c.id + ':sell2')) % fit.length];
+  }
+  const sellDrifted = (c) => {
+    const k = dealCamp(c);
+    return !!k && k.sells && k.sells.length && sellOf(c) !== k.sells[0];
+  };
+
+  /* ══ WHETHER THIS IS A FIRST SALE OR A SECOND ══════════════════════════
+     Derived, because the answer is already written: somebody at this company
+     has signed, or nobody has. Storing it would be a field to keep in step
+     with a fact that keeps itself. It is worth naming because the two are
+     different conversations — the first has to prove we can do it and the
+     second only has to prove this is the next thing. */
+  const dealType = (c) => (consAt(c.acc).some((y) =>
+    y.id !== c.id && isDeal(y) && stageOf(y) === 'won') ? 'Expansion' : 'New business');
+
   function amountOf(c) {
     const a = accOf(c);
-    const k = dealCamp(c);
-    const sell = (k && k.sells && k.sells.length ? k.sells[0] : 'qa');
+    const sell = sellOf(c);
     const band = (PRICE[sell] || PRICE.qa)[priceBand(a ? a.size : 300)];
     const j = (Math.abs(hash(c.id + ':amt')) % 45) - 22;
     return Math.round((band * (1 + j / 100)) / 500) * 500;
