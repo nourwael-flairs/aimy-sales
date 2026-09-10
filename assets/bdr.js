@@ -4643,11 +4643,18 @@
          because it has to follow the shield's curve exactly — a highlight
          that misses the edge by a subpixel is a seam, and a seam at fifteen
          pixels is the only thing anybody sees. */
-      /* Cropped to the shield rather than the 24-square it was drawn in.
-           At a 24 viewBox the path spans x4 to x20, so a third of the box
-           was empty and the mark hung two pixels shy of the right edge
-           every other row on the card lines up on. */
-      '<svg class="b-tier-shield" viewBox="4 2 16 20" aria-hidden="true">' +
+      /* The box is the shield plus exactly the room its widest stroke needs.
+         It was the 24-square the path was drawn in, which left a third of it
+         empty and hung the mark two pixels shy of the edge every other row
+         on the card lines up on. Cropping it tight to the path fixed that
+         and broke bench: a fill clips at the path, but a 2-unit stroke is
+         centred ON the path and paints a unit outside it, so the hollow
+         shield lost its left, right and bottom edges to the viewport.
+
+         Half the widest stroke, on all four sides. Filled tiers overpaint
+         that margin with nothing and are unaffected; the hollow one now has
+         somewhere to put its outline. */
+      '<svg class="b-tier-shield" viewBox="3 1.2 18 21.6" aria-hidden="true">' +
         '<path class="b-tier-face" ' +
           'd="M12 2.4 20 5.2v6.1c0 4.7-3.2 8.4-8 10.3-4.8-1.9-8-5.6-8-10.3V5.2Z"/>' +
         '<path class="b-tier-lit" d="M12 2.4 4 5.2v6.1c0 4.7 3.2 8.4 8 10.3Z"/>' +

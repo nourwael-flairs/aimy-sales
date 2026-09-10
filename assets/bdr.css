@@ -2632,7 +2632,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--fs-2xs); white-space: nowrap;
 }
 .b-tier-shield {
-  width: 12px; height: 15px; flex: none;
+  /* Height only: the viewBox carries the aspect, so one number sets the
+     mark and the box can never disagree with the shape inside it. */
+  height: 16px; width: auto; flex: none;
   filter: drop-shadow(0 1px 1.5px var(--tier-cast));
 }
 
@@ -2670,7 +2672,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    on the field, so it takes the outline, no wash and no lift, and stays
    the quietest thing in a column of fifteen. */
 .b-tier.is-bench .b-tier-shield { filter: none; }
-.b-tier.is-bench .b-tier-face { fill: none; stroke: var(--ink-rule); stroke-width: 2.2; }
+.b-tier.is-bench .b-tier-face { fill: none; stroke: var(--ink-rule); stroke-width: 2; }
 .b-tier.is-bench .b-tier-lit { fill: none; }
 
 /* The word keeps the ink and weight steps it always had. Only the shield
