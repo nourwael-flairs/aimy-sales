@@ -3579,6 +3579,17 @@
         '<div class="s-camp-list-head">' +
           '<h2 class="s-block-h">Your notes</h2>' +
           '<span class="s-block-say">' + esc(plural(all.length, 'note')) + '</span>' +
+          /* ══ THE PAGE THAT LISTS THEM HAD NO WAY TO ADD ONE ════════════
+             Its empty state has always said where a note comes from — say
+             what happened in the bar, or hold the mic — and then left you to
+             find the bar yourself. The control does what the sentence says.
+
+             No prefill. A note is a touchpoint on somebody, so the words
+             have to carry a name, and every phrase this could open with —
+             "Had a call with", "Had a meeting with" — guesses at the kind of
+             thing that happened. The bar's own placeholder is the prompt,
+             and the cursor is the whole of what this button owes. */
+          '<button class="s-insight-lnk" type="button" data-fill="">New note</button>' +
         '</div>' +
         feedBlock(all, 'You have not written anything down yet. Say what happened ' +
           'in the bar — or hold the mic — and it lands here.', true, 'note') +
@@ -4255,10 +4266,28 @@
      in the bell, and each row hands over the words rather than a form. */
   function openLoop() {
     const un = unrecorded();
-    if (!un.length) return '';
+    /* ══ THE GAP AND THE RECORD, ON ONE ROW ════════════════════════════
+       The way onto the notes stood on its own under this section, which put
+       a pill at the foot of the page with nothing to belong to. It belongs
+       on this caption's row: one names what has NOT been written down and
+       the other opens what has, and a reader who has just read the first is
+       already asking the second.
+
+       Which means the section can no longer disappear when the list is
+       empty — the door would go with it, and it is the only one onto the
+       notes in the product. An empty loop is also the one piece of good
+       news this page has, so it says so rather than saying nothing. */
     return '<div class="b-loop">' +
-      '<h4 class="b-loop-cap">Never written down</h4>' +
-      '<p class="b-loop-say">' + plural(un.length, 'meeting') +
+      '<div class="b-loop-head">' +
+        '<h4 class="b-loop-cap">Never written down</h4>' +
+        '<button class="s-insight-lnk" type="button" data-go="' +
+          esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
+          '">Your notes</button>' +
+      '</div>' +
+      (!un.length
+        ? '<p class="b-loop-say">Every meeting that has been and gone has been ' +
+          'written up.</p>'
+        : '<p class="b-loop-say">' + plural(un.length, 'meeting') +
         (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
         'Say how it went in a sentence and AiMY moves the deal.</p>' +
       un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
@@ -4269,7 +4298,7 @@
           '<span class="b-loop-what">' + esc(m.title) + ' at ' + esc(clockOf(m)) + '</span>' +
         '</span>' +
         '<span class="b-loop-go">Say how it went</span>' +
-      '</button>').join('') +
+      '</button>').join('')) +
     '</div>';
   }
 
@@ -4294,17 +4323,6 @@
         '<div class="s-camp-list-head">' + switcher('cal') + '</div>' +
         '<div class="b-diary" id="calPage">' + calBody(CALSEL) + '</div>' +
         openLoop() +
-        /* ══ AND WHAT DID GET WRITTEN DOWN ═══════════════════════════════
-           The notes block came off Today, and its "All of them" was the only
-           door onto `notesPage` in the product — take it away and the
-           surface is reachable by typing a URL. It belongs here rather than
-           there anyway: this is the page about meetings, `openLoop` is the
-           ones nobody wrote up, and this is where the rest of them went. */
-        '<div class="b-acts b-acts-end">' +
-          '<button class="s-inline-btn" type="button" data-go="' +
-            esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
-            '">What you said</button>' +
-        '</div>' +
       '</section>' +
     '</div>';
   }

@@ -2770,8 +2770,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    surface's unfinished business, so it reads as the bottom of the diary
    rather than as a second thing to do. */
 .b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); max-width: 560px; }
+/* The caption and the door on one row: what has not been written down, and
+   the way to what has. The caption keeps its own type — a control beside a
+   micro capital is the pair this row is for, not a mismatch to correct. */
+.b-loop-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 6px;
+}
 .b-loop-cap {
-  margin: 0 0 6px; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
 .b-loop-say {
