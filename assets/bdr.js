@@ -10237,7 +10237,7 @@
            they differ — what the campaign opened on. A record that shows the
            campaign's product where the deal's should be is the page telling
            you about the plan instead of about the deal. */
-        cmPart('What we sell them', '<p class="b-cmeta-p"><b>' + esc(sells) + '</b>' +
+        cmPart('What we sell them', '<p class="b-cmeta-p"><b>' + esc(sells) + '</b> ' +
           '<span class="b-kind">' + esc(dealType(c)) + '</span></p>' +
           /* Which campaign is a fact in the masthead now, so this says the
              one thing the masthead cannot: that the deal has moved off what
@@ -10259,11 +10259,11 @@
         /* The third branch said "Nobody is named as the caller", which is a
            sentence about the record rather than about the deal — and it now
            covers ten deals on this desk that arrived without one. Nothing is
-           missing on them. Nobody rang them, because they rang us. */
+           missing on them. Nobody called them, because they called us. */
         cmPart('Found by', '<p class="b-cmeta-p">' +
-          (owner ? '<b>' + esc(owner.name) + '</b> rang them cold and got them warm.'
+          (owner ? '<b>' + esc(owner.name) + '</b> called them cold and got them warm.'
             : addedByHand(c) ? 'You did — added by hand, so only what you typed is known.'
-            : '<b>They came to us.</b> Nobody here rang them first.') + '</p>') +
+            : '<b>They came to us.</b> Nobody here called them first.') + '</p>') +
       '</div>' +
     '</section>';
   }
@@ -11538,7 +11538,7 @@
      dialling has one question, which is where this lead stands with me.
 
      So a cut IS a rung. Four of them, because four rungs are callable: you
-     have not called them, you rang and nobody answered, they asked to be called
+     have not called them, you called and nobody answered, they asked to be called
      back, or you got them and there is no meeting yet. Past that a meeting
      is booked and they leave the queue — the BDR's part is done until it
      happens. Nothing here has a name that is not already on the ladder. */
@@ -12881,7 +12881,7 @@
     const today = DB.touch.filter((t) => t.by === me().id && t.at.slice(0, 10) === TODAY_ISO && OUTCOME[t.outcome]);
     if (today.length) {
       tasks.push({ id: 'run-today', sev: 'p3', type: 'Run', when: 'today',
-        body: 'You rang ' + plural(today.length, 'person') + ' today: ' +
+        body: 'You called ' + plural(today.length, 'person') + ' today: ' +
           today.filter((t) => t.outcome === 'reached').length + ' got through, ' +
           today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length + ' meetings set.',
         cta: 'Read the summary', ask: 'What happened today?' });
@@ -12901,7 +12901,7 @@
     const quiet = queue(null, 'all').filter(quietUnderFour);
     if (quiet.length) {
       tasks.push({ id: 'four-touch', sev: 'p3', type: 'Touchpoints', when: quiet.length + ' under four',
-        body: plural(quiet.length, 'person') + ' you rang or reached went quiet before the fourth touch. ' +
+        body: plural(quiet.length, 'person') + ' you called or reached went quiet before the fourth touch. ' +
           'The rule is four before you let go.',
         cta: 'Show them', ask: 'Who went quiet before the fourth touch?' });
     }
@@ -14006,7 +14006,7 @@
     }
     if (/\b(quiet|fourth|four touch|touchpoints?)\b/.test(q)) {
       const quiet = queue(null, 'all').filter(quietUnderFour);
-      if (!quiet.length) return 'Nobody you rang or reached has gone quiet under four touches.';
+      if (!quiet.length) return 'Nobody you called or reached has gone quiet under four touches.';
       return '<b>' + plural(quiet.length, 'person') + '</b> went quiet before the fourth touch. They are first in their cuts now.' +
         '<div class="b-cuts">' +
           '<button class="s-insight-lnk" type="button" data-call="' + esc(quiet[0].id) + '">Call ' + esc(quiet[0].name.split(' ')[0]) + '</button>' +
@@ -14306,7 +14306,7 @@
     }
     if (c.owner) {
       const first = hist.filter((t) => OUTCOME[t.outcome]).slice(-1)[0];
-      know.push(['How it started', esc(actor(c.owner).name) + ' rang them cold' +
+      know.push(['How it started', esc(actor(c.owner).name) + ' called them cold' +
         (first ? ' on ' + esc(sayDay(first.at.slice(0, 10))) : '') + ' and got them warm.']);
     }
     if (ph.length) {

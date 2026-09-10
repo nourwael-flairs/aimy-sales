@@ -3198,7 +3198,16 @@ body.is-calling { --fb-reserve: var(--call-width); }
    the 8px between facts inside one, so a rank reads as a group. */
 .s-rec-facts { display: flex; flex-direction: column; gap: 4px; line-height: var(--lh-base); }
 .s-rec-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
-.s-rec-facts span + span::before { content: '·'; color: var(--ink-muted); margin-right: 8px; }
+/* The separator trails the fact it follows rather than leading the one
+   after. A ::before sits first inside the NEXT item's box, and these are
+   flex rows that wrap, so every wrapped line opened on a punctuation mark.
+   And on every child, not between spans only: paired as span + span it
+   separated a bare fact from a marked one and left two marked ones
+   touching, which is how an account masthead came to read "5 people here1
+   you can call now". */
+.s-rec-facts > div > *:not(:last-child)::after {
+  content: '·'; color: var(--ink-muted); margin-left: 8px;
+}
 /* The two figures every ICP is written against. The only thing in the block
    that is bigger, heavier and brighter than the rest — which is also what
    lets a qualifier sit beside one without needing a box to be seen.

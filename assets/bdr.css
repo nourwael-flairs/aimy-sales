@@ -916,21 +916,35 @@
    it is the sentence the campaign exists for, and it was 13px grey. */
 .s-home > .s-rec-head { display: flex; flex-direction: column; }
 .s-home .s-rec-kind { margin-bottom: 6px; }
-.s-home .s-rec-title { margin-bottom: 12px; }
+.s-home .s-rec-title { margin-bottom: 14px; }
 .s-home .s-rec-facts { gap: 0; }
 .s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
-/* Eight, where it was six. Two ranks a step apart in size need a gap that
-   reads as a gap: at six they were one block of text with a size change in
-   the middle of it, which is what made a masthead of two lines feel like
-   four. */
-.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 8px; }
+/* == ONE STEP IS NOT A RANK, IT IS A WOBBLE ===============================
+   Measured on the record: 16/500/#d8e0e8 over 14/400/#c8d2dc, both carrying
+   the same 13px mark. Four distinctions -- size, weight, ink, position --
+   every one of them turned down so far that not one arrives. Four weak
+   signals do not add up to a strong one. They add up to a reader who cannot
+   tell whether this is one band or two, and settles for seven things.
+
+   Micro: two steps and 4px, with the mark dropping the same amount beside
+   it. Rank one is now a sentence and rank two a strip of utilities, and
+   nobody has to compare them to see which is which. Eight between them
+   stands: they are a tight group, and the space that matters is below. */
+.s-home .s-rec-facts > div + div { font-size: var(--t-micro); margin-top: 8px; }
 /* ══ TWO CONTROL ROWS ARE ONE GROUP ═══════════════════════════════════════
    Measured with the eyebrow still in: 5px to the name, 8 to the facts, 14 to
    the actions, 11 to the moves — four gaps with no order in them, so the two
    rows that are both controls sat further apart than the facts and the first
-   of them. Tight groups, generous separation: 18 opens the controls after the
-   facts, 10 holds the second control row to the first. */
-.s-home .s-rec-actions { margin-top: 18px; }
+   of them. Tight groups, generous separation.
+
+   Then 18 was measured against what it has to separate, and it was not
+   enough. The gaps ran 11, 8, 15, 8 -- four numbers inside seven pixels of
+   each other, which is a block of text with some spaces in it rather than a
+   masthead with parts. Space only reads as space when it is unequal: 8
+   inside a group, 13 at the identity break, 25 where the reference ends and
+   the things you can DO begin. Three sizes of gap, three groups, and a
+   reader who counts three rather than eighteen. */
+.s-home .s-rec-actions { margin-top: 28px; }
 .s-home .b-ask { margin-top: 10px; }
 /* Four ghosts and a caption wrap on a phone, and a pill row wrapping on its
    baseline leaves the caption stranded on the line above. Centre them. */
@@ -2878,7 +2892,29 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   width: 13px; height: 13px; flex: none; color: var(--ink-muted);
   align-self: center; margin-top: -1px;
 }
-.s-rec-facts .b-fact + .b-fact::before { content: none; }
+/* == A MARK LABELS WHAT THE WORDS CANNOT ==================================
+   Rank one is three facts at lead size: the campaign, the job, the company.
+   Read any of them and there is nothing left to work out, so a 13px drawing
+   in front of each saying which KIND of fact it is hands the reader
+   something they have already got. What the marks did instead was cut one
+   sentence into three chunks with a picture at the head of each, which is
+   why a masthead of two lines was read as a masthead of seven things.
+
+   Off, and the middot the rest of the build separates facts with comes back
+   with them. Three facts, one line, one thing to read.
+
+   Rank two keeps its marks and earns them. A number, an address, a profile
+   and a door to four colleagues are four different errands, and down at
+   micro a mark is quicker to tell apart than the words are to read. */
+.s-rec-facts > div:first-child .b-fact > svg { display: none; }
+/* Two separators for one job is one too many, and rank one has no marks
+   left to do it -- so it takes the middot and rank two keeps its marks.
+   `:has` rather than the adjacency it replaces, because the rule now hangs
+   off the fact BEFORE the gap: this one is followed by another marked one,
+   so the two marks are already the boundary and a dot between them is the
+   second fence around one field. */
+.s-rec-facts > div + div .b-fact:has(+ .b-fact)::after { content: none; }
+.s-rec-facts > div + div .b-fact > svg { width: 11px; height: 11px; }
 .s-rec-facts > div { gap: 4px 16px; }
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
