@@ -2837,7 +2837,23 @@
 
   /* The AiMY block on a card. The mark, the line, and where the line came
      from — because an insight that cannot say its basis is an assertion. */
-  function aimyBlock(said) {
+  /* ══ AND SOMETIMES THE SOURCE IS THE SENTENCE ══════════════════════════
+     Every reading in this build signs itself with what it read, and it
+     should. On a board card it stopped being provenance and started being
+     jargon — "the diary against the record" under forty-eight cards, in the
+     smallest type on the page, naming an internal a reader would have to
+     know the code to parse.
+
+     So `bare` lets a caller decline to sign, and the deal cards do. Nothing
+     else does: the account, the list, the campaign and the diary all make
+     claims a reader could reasonably dispute, and those keep their line. A
+     card saying a meeting has been and gone with nothing written up is
+     disputed by opening it, which is one press away.
+
+     `dealSays` still carries every `from`. They are the reasoning behind the
+     ranking and they are read on the record; what changed is where they are
+     drawn, not whether the sentence has a source. */
+  function aimyBlock(said, bare) {
     if (!said) return '';
     /* THE SIZE IS AN ATTRIBUTE, NOT ONLY A RULE. An `<svg>` with no width or
        height attribute and no CSS reaching it falls back to the replaced
@@ -2851,7 +2867,7 @@
       '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" aria-hidden="true">' +
         '<use href="#aimy-logo-small"/></svg>' +
       '<span class="b-aimy-say">' + said.text +
-        '<span class="b-aimy-from">' + esc(said.from) + '</span>' +
+        (bare ? '' : '<span class="b-aimy-from">' + esc(said.from) + '</span>') +
       '</span>' +
     '</div>';
   }
@@ -4168,35 +4184,41 @@
           ' and still never warm-called.',
         from: 'the hand-over', act: call };
     }
+    /* ══ HOW THE ROOM WENT, ON EVERY CARD THAT HAS BEEN IN ONE ═════════
+       Below the two things that are wrong — a meeting nobody wrote up, a
+       step past its date — the loudest true fact about a deal is how the
+       last meeting went. It is the half a CRM never keeps, it is the thing
+       that says whether the step underneath it will land, and it opens the
+       sentence rather than trailing it because it is the part somebody
+       scanning a column is reading for.
+
+       Silent deals say nothing about it. A meeting nobody described is not
+       a meeting that went flat, and a card that fills the gap with a shrug
+       is the invention this build refuses everywhere else. */
+    const ph = phasesOf(c);
+    const lastOut = ph.length && ph[ph.length - 1].out ? MEET_OUT_BY[ph[ph.length - 1].out] : null;
+    const went = lastOut ? 'Last time <b>' + esc(lastOut.said) + '</b>. ' : '';
+
     const at = lastActivity(c);
     if (at && daysBetween(at, TODAY_ISO) > checkinDays(c)) {
       const t = tierOf(a);
-      return { text: 'Nothing said for <b>' + esc(plural(daysBetween(at, TODAY_ISO), 'day')) +
-          '</b>, and a ' + esc(t.label.toLowerCase()) + ' account is worth one every ' +
-          esc(t.every) + '.',
-        from: 'the last thing anybody did here', act: call };
+      return { text: went + 'Nothing said for <b>' +
+          esc(plural(daysBetween(at, TODAY_ISO), 'day')) + '</b>, and a ' +
+          esc(t.label.toLowerCase()) + ' account is worth one every ' + esc(t.every) + '.',
+        act: call };
     }
     /* Nothing is wrong with it, so the card says the one thing about it that
        is not on any other card: how it got here. Ten deals on this desk
        arrived without a caller and nothing anywhere said so. */
-    if (channelOf(c).k === 'inbound') {
+    if (channelOf(c).k === 'inbound' && !lastOut) {
       return { text: 'They came to us. No caller spent a minute getting this one.',
-        from: 'no call before the hand-over', act: call };
+        act: call };
     }
     if (c.next) {
-      /* When the last meeting was described, that is the more useful half of
-         the sentence: the step you set is on the card either way, and how the
-         room went is the thing that says whether the step will land. */
-      const ph = phasesOf(c);
-      const out = ph.length && ph[ph.length - 1].out ? MEET_OUT_BY[ph[ph.length - 1].out] : null;
-      return { text: (out
-          ? 'Last time <b>' + esc(out.label.toLowerCase()) + '</b>. '
-          : '') + '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
-        from: out ? 'what you said after the meeting' : 'the step you set',
+      return { text: went + '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
         act: { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } };
     }
-    return { text: 'Running, and nothing is owed on it today.',
-      from: 'the record', act: call };
+    return { text: went + 'Running, and nothing is owed on it today.', act: call };
   }
 
   /* The passed-and-unwritten meetings, keyed by lead, worked out once for a
@@ -4228,7 +4250,7 @@
       /* No mark. Every card on the board carries an amount, in the same
          place, bold and in tabular figures — a mark on all of them tells
          one from another not at all, which is the whole job of a mark. */
-      (isMgr() ? aimyBlock(said) : '') +
+      (isMgr() ? aimyBlock(said, true) : '') +
       '<div class="b-dc-foot">' +
         '<span class="b-dc-amt">' + esc(euro(dealWorth(c))) + '</span>' +
         (isMgr() && said.act
@@ -4239,42 +4261,13 @@
     '</article>';
   }
 
-  /* ══ A COLUMN SAYS HOW MUCH, AND NOT HOW IT IS GOING ═══════════════════
-     The head carries a count and a sum, which are the two facts a column can
-     state about itself without reading a single deal in it. Neither says the
-     thing a manager scanning seven columns is actually looking for: fourteen
-     deals with the price on the table is a number, and five of them having
-     gone badly last time is the news.
-
-     Ranked, and one only — the same rule the cards follow, for the same
-     reason. A head that lists the whole mix is a head nobody reads, and
-     three columns of it is a table. Badly first because it is the one worth
-     acting on; then the ones nobody wrote up, because a stage where half the
-     meetings are unrecorded is a stage whose count means nothing; then the
-     good news, which is worth saying when it is all there is.
-
-     Only where a meeting has happened. Not met has none by definition, and
-     the three ended columns are history — how the last meeting went stopped
-     mattering the moment somebody signed, passed or parked it. Those keep
-     the line as an empty box so all seven heads are one height and the card
-     lists start on one line. */
-  function colOut(rows, st) {
-    const live = st.k !== 'qual' && st.k !== 'won' && st.k !== 'lost' && st.k !== 'later';
-    if (!live || !rows.length) return '<p class="b-col-out" aria-hidden="true"></p>';
-    let bad = 0, quiet = 0, good = 0;
-    rows.forEach((c) => {
-      const ph = phasesOf(c);
-      const out = ph.length ? ph[ph.length - 1].out : null;
-      if (out === 'cool') bad++;
-      else if (out === 'warm') good++;
-      else if (ph.length) quiet++;
-    });
-    const say = bad ? '<b>' + commas(bad) + '</b> went badly last time'
-      : quiet ? '<b>' + commas(quiet) + '</b> with nothing said last time'
-      : good ? '<b>' + commas(good) + '</b> went well last time'
-      : '';
-    return '<p class="b-col-out">' + say + '</p>';
-  }
+  /* ══ A TALLY IS NOT A THING TO DO ══════════════════════════════════════
+     A `colOut` stood here and put "4 with nothing said last time" under each
+     column head. It was true and nobody could act on it: the number names a
+     set the column is already showing, and reading it tells you to go and
+     look at the cards — which you are doing. The fact belongs on the card
+     that owns it, where the verb beside it is the answer, and that is where
+     it went. */
 
   function dealsPage() {
     unrecIndex();
@@ -4308,7 +4301,6 @@
                    beside the name is the one place the zero belongs. */
                 (rows.length ? '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' : '') +
               '</div>' +
-              colOut(rows, st) +
               (rows.length
                 ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
                 : '<p class="b-col-none">Nothing here</p>') +
@@ -13279,11 +13271,15 @@
      words a positive reading is built from, and a lexicon ordered by
      optimism reads every disappointment backwards. */
   const MEET_OUT = [
-    { k: 'cool', label: 'Went badly', tone: 'err',
+    { k: 'cool', label: 'Went badly', said: 'it went badly', tone: 'err',
       re: /\b(went badly|did ?n[o']t go well|didnt go well|not convinced|unconvinced|pushed back|push back|lukewarm|hesitant|sceptical|skeptical|not interested|cooled|hard work)\b/i },
-    { k: 'flat', label: 'Nothing moved', tone: 'neutral',
+    /* `said` is the same fact written as a clause. "Last time it nothing
+       moved" is what happens when a label is dropped into a sentence it was
+       not written for: the label names the state, this one continues the
+       line, and no one string does both. */
+    { k: 'flat', label: 'Nothing moved', said: 'nothing moved', tone: 'neutral',
       re: /\b(nothing moved|no movement|went nowhere|same as before|no further|stalled|non-?committal|no decision|treading water)\b/i },
-    { k: 'warm', label: 'Went well', tone: 'ok',
+    { k: 'warm', label: 'Went well', said: 'it went well', tone: 'ok',
       re: /\b(went well|good meeting|great meeting|really well|very well|they are keen|they're keen|keen|positive|enthusiastic|loved it|very interested|excited|promising|strong meeting)\b/i },
   ];
   const MEET_OUT_BY = Object.create(null);

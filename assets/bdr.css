@@ -2407,18 +2407,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d100);
   font-variant-numeric: tabular-nums;
 }
-/* Under the count and the sum, which are what the column IS; this is how it
-   is going. Reserved on every column even where there is nothing to say, so
-   seven heads are one height and the card lists start on one line — an empty
-   box rather than a rule that only sometimes applies. */
-.b-col-out {
-  margin: -6px 0 0;
-  /* The two in px and equal, not a min-height against an inherited leading:
-     an empty box reserved at 1.2em came back three pixels under a filled one
-     and the card lists started on two different lines. */
-  min-height: 16px; line-height: 16px;
-  font-size: var(--t-small); color: var(--ink-quiet);
-}
 .b-col-none { margin: 0; font-size: var(--t-small); color: var(--ink-muted); }
 .b-col-list {
   display: flex; flex-direction: column; gap: 8px;
