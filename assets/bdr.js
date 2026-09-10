@@ -160,22 +160,23 @@
   /* The verb alone, for a sentence that already carries its own number. */
   const verbFor = (n, one) => (n === 1 ? one : IRREGULAR[one] || one + 's');
 
-  /* ══ A TAG IS A NAME, SO IT IS CAPITALISED LIKE ONE ═════════════════════
-     Sentence case is right for anything with a verb doing work — a button,
-     a cut, a line of prose. A tag is none of those. "Meeting Set" is the
-     NAME of a state; "meeting set" is a thing that happened to somebody.
-     Both words take the capital, the way a proper noun does.
+  /* ══ A TAG IS A NAME, AND A NAME IS NOT TITLE CASE ═════════════════════
+     `tagCase` stood here and title-cased any two-word label at the render
+     site, on the argument that "Meeting Set" is the NAME of a state where
+     "meeting set" is a thing that happened to somebody. Read on a card it
+     does not hold: "Not Met" and "Wrong Number" look like headings that
+     lost their sentence, and the rule stopped at two words, so "Do not
+     call" sat beside "No Answer" in the same column wearing different
+     capitals.
 
-     Past two words it has stopped being a name and become a phrase, and
-     title-casing a phrase turns it into a headline — so those are left
-     alone. The same string can be a tag here and a button there; this runs
-     where the pill is drawn, never on the table it came from. */
-  const tagCase = (s) => {
-    const w = String(s == null ? '' : s).split(' ');
-    return w.length === 2
-      ? w.map((x) => x.replace(/^./, (c) => c.toUpperCase())).join(' ')
-      : String(s == null ? '' : s);
-  };
+     The tags this build added since — Closing soon, Not on a campaign —
+     were written in sentence case and never went through it, so the
+     product was already drawing both conventions at once.
+
+     One convention: a tag renders its label as the label is written. Every
+     table in the vocabulary is sentence case, which is also how a person
+     writes these words down, and the pill's ground and weight say it is a
+     label without the capitals having to. */
 
   /* ══ 2. VOCABULARY ══════════════════════════════════════════════════════ */
 
@@ -2304,7 +2305,7 @@
       'style="--i:' + Math.min(i || 0, 8) + '" ' +
       'data-open="con:' + esc(c.id) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + esc(r.tone) + '">' + esc(tagCase(r.label)) + '</span>' +
+        '<span class="tag tag-' + esc(r.tone) + '">' + esc(r.label) + '</span>' +
         (camp ? '<span class="tc-type b-fact">' + chIcon('campaign') +
           '<span>' + esc(camp.name) + '</span></span>' : '') +
       '</div>' +
@@ -6394,7 +6395,7 @@
           esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div><span>' + esc(l.crit) + '</span></div>' +
@@ -7286,7 +7287,7 @@
       '<section class="s-rec-head s-block-wide">' +
         '<span class="s-rec-kind">Looking · ' + esc(kind) + ' · via ' + esc(f.name) + '</span>' +
         '<div class="s-rec-title"><h1 class="s-rec-name">' + esc(buildName()) + '</h1>' +
-          '<span class="s-meta-st tone-warn">Not Saved</span></div>' +
+          '<span class="s-meta-st tone-warn">Not saved</span></div>' +
         '<div class="s-rec-facts"><div><span>' + esc(describeTerms(terms())) + '</span></div></div>' +
       '</section>' +
       '<div class="pipe s-block-wide"><div class="pipe-card" id="pipeCard">' +
@@ -7953,8 +7954,14 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(k.name) + '</h1>' +
+          /* The card's rule, on the record: the chip is where the campaign
+             stands and the clock is the measure beside it. `.s-meta-st` is
+             the same component as `.tag` under the shell's own name, so it
+             answers the same question. */
           '<span class="s-meta-st tone-' + (left <= 0 ? 'err' : left < 21 ? 'warn' : 'neutral') + '">' +
-            (left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
+            (left <= 0 ? 'Closed' : left < 21 ? 'Closing soon' : 'Running') + '</span>' +
+          '<span class="b-kind">' + (left > 0 ? esc(plural(left, 'day')) + ' left'
+            : 'closed ' + esc(sayWhen(k.to))) + '</span>' +
         '</div>' +
         campMeta(k) +
         '<div class="s-rec-actions">' +
@@ -8995,7 +9002,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(tagCase(chip.label)) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -9393,7 +9400,7 @@
         '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
-          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(tagCase(rg.label)) + '</span>' +
+          '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
@@ -13055,7 +13062,7 @@
 
     /* ── 2. where the deal stands ── */
     body += '<div class="b-prep-state">' +
-      '<span class="tag tag-' + esc(st.tone) + '">' + esc(tagCase(st.label)) + '</span>' +
+      '<span class="tag tag-' + esc(st.tone) + '">' + esc(st.label) + '</span>' +
       '<span class="b-prep-owed">' + esc(dealLive(c)
         ? 'worth ' + euro(dealWorth(c)) + ', expected ' + sayDay(closeBy(c))
         : 'decided') + '</span>' +
@@ -13103,7 +13110,7 @@
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
             '<span class="tag tag-warn b-back-k">' +
-              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
+              esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -13147,7 +13154,7 @@
     /* ── 1. where they stand, and what is owed ── */
     body += '<div class="b-prep-state">' +
       '<span class="tag tag-' + esc(rg.tone === 'neutral' ? 'neutral' : rg.tone) + '">' +
-        esc(tagCase(rg.label)) + '</span>' +
+        esc(rg.label) + '</span>' +
       '<span class="b-prep-owed">' + esc(rg.say) +
         (c.checkpointAt ? esc(', since ' + sayWhen(c.checkpointAt)) : '') + '</span>' +
       (c.next
@@ -13189,7 +13196,7 @@
         '<div class="b-back">' + camp.objections.map((o) =>
           '<div class="b-back-row">' +
             '<span class="tag tag-warn b-back-k">' +
-              esc(tagCase((OBJECTION[o.k] || {}).label || o.k)) + '</span>' +
+              esc((OBJECTION[o.k] || {}).label || o.k) + '</span>' +
             '<p class="b-back-v">' + esc(o.say) + '</p>' +
           '</div>').join('') + '</div>';
     }
@@ -13501,7 +13508,7 @@
         '.</p>' +
       '<div class="b-cuts">' + Object.keys(by).map((k) =>
         '<span class="tag tag-' + esc((OUTCOME[k] || { tone: 'neutral' }).tone) + '">' +
-        by[k] + ' ' + esc(tagCase((OUTCOME[k] || { label: k }).label)) + '</span>').join('') + '</div>' +
+        by[k] + ' ' + esc((OUTCOME[k] || { label: k }).label) + '</span>').join('') + '</div>' +
       '<div class="s-callsum-rows">' +
         '<div class="s-callsum-row"><span class="s-callsum-mem">What it was worth</span>' +
           '<span class="s-callsum-val">' + (got
