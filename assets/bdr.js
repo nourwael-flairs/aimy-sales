@@ -2738,8 +2738,8 @@
          sat in the description slot unnamed beside a card that names it. */
       '<p class="tc-summary b-qcard-what"><b>Who</b> ' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
-        commas(call) + '</b> of them ringable</div>' +
-      aimyBlock(listSays(l, people, call, camp)) +
+        commas(call) + '</b> of them callable</div>' +
+      aimyBlock(listSays(l, people, call, !!camp)) +
       '<div class="tc-gov b-qcard-foot">' +
         '<span class="b-qcard-num b-fact">' + chIcon('calendar') +
           '<span>built ' + esc(sayWhen(l.at)) + '</span></span>' +
@@ -2756,8 +2756,14 @@
     return '<div class="b-grid">' + rows.map(lcard).join('') + '</div>';
   }
 
-  function listSays(l, people, call, camp) {
-    if (!camp) {
+  /* ══ A BOOLEAN, BECAUSE THAT IS ALL IT EVER ASKED ═════════════════════
+     Both of these took "the campaign" and used it for one thing: whether
+     there is one. A list can now be on several, so the callers hold an
+     array — and an empty array is truthy, which would have made a list on
+     no campaign take the on-a-campaign branch in silence. The parameter is
+     the question it was always asking. */
+  function listSays(l, people, call, onCamp) {
+    if (!onCamp) {
       /* the facts above say "7 on AiMY Knowledge"; the lead cannot then say
          nobody is in the queue */
       const on = people.filter((c) => c.camps.some((k) => DB.byCamp[k] && mine(DB.byCamp[k]))).length;
@@ -6219,7 +6225,7 @@
      is, who on it is left to call. The page answered with the name in the
      caption gutter, the criteria and the counts in one grey sentence, and
      no Call action at all — a list of forty-six people, thirty-two of them
-     ringable, and nowhere to press.
+     callable, and nowhere to press.
 
      Now: the masthead with the one chip that matters beside the name, what
      AiMY makes of the list with a door, the action row decided by state,
@@ -6248,7 +6254,11 @@
 
     /* [2] ONE ROW, DECIDED BY STATE. Off a campaign the list has one job —
        getting onto one — so the chips are the row. On one, the phone. */
-    const actions = camp
+    /* `camp` is a set now, and an empty array is truthy — so this branched
+       on "is there a campaign" and got yes for a list on none, then drew
+       "Open undefined" where the way onto a campaign should have been. One
+       door per campaign, because with two of them there is no first. */
+    const actions = camp.length
       ? (first
           ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
               '">Call the next one on this list</button>' +
@@ -6257,8 +6267,8 @@
                 esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call them</button>'
               : '')
           : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
-        '<button class="s-inline-btn" type="button" data-camp="' + esc(camp.id) + '">' +
-          'Open ' + esc(camp.name) + '</button>'
+        camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +
+          '">Open ' + esc(campName(x)) + '</button>').join('')
       : campMenu({ id: 'listCampPick', opts: campOpts(), cls: 's-insight-lnk primary',
           label: 'Put it on a campaign', cap: 'Put it on', go: 'list:' + l.id });
 
@@ -6278,8 +6288,8 @@
              gap, with its door. */
           '<div>' +
             '<span>' + (call.length
-              ? '<b>' + commas(call.length) + '</b> ringable'
-              : 'nobody ringable') + '</span>' +
+              ? '<b>' + commas(call.length) + '</b> callable'
+              : 'nobody callable') + '</span>' +
             (function () {
               const by = Object.create(null);
               let none = 0;
@@ -6297,7 +6307,7 @@
               }).length : 0;
               return tops.map((kid) => '<span><b>' + commas(by[kid]) + '</b> on ' +
                 '<button class="s-inline-btn" type="button" data-camp="' + esc(kid) + '">' +
-                esc(DB.byCamp[kid].name) + '</button></span>').join('') +
+                esc(campName(DB.byCamp[kid])) + '</button></span>').join('') +
                 (onOthers ? '<span><b>' + commas(onOthers) + '</b> on ' + (others === 1 ? 'one other' : 'other campaigns') + '</span>' : '') +
                 (none ? '<span><b>' + commas(none) + '</b> on none</span>' : '');
             })() +
@@ -6314,7 +6324,7 @@
         '<div class="s-rec-actions">' + actions + '</div>' +
       '</section>' +
 
-      listLead(l, people, call, camp) +
+      listLead(l, people, call, camp.length > 0) +
 
       '<section class="s-block s-block-wide" aria-label="Who is on it">' +
         '<div class="s-camp-list-head"><h2 class="s-block-h">Who is on it</h2>' +
@@ -6411,8 +6421,8 @@
      that mean something — it is on no campaign, or people came back without
      a number — get the block. The fallback, how many have been called, is what
      the funnel two sections down shows, and is not drawn as a panel. */
-  function listLead(l, people, call, camp) {
-    const said = listSays(l, people, call.length, camp);
+  function listLead(l, people, call, onCamp) {
+    const said = listSays(l, people, call.length, onCamp);
     if (!said || said.from === 'their own records') return '';
     const first = call[0];
     /* The missing-number reading gets V3's verb; the no-campaign reading
@@ -6422,7 +6432,7 @@
         'Fill in what is missing</button>'
       : first
         ? '<button class="s-insight-lnk" type="button" data-call="' + esc(first.id) + '">Call ' +
-          esc(first.name.split(' ')[0]) + (camp ? '' : ' anyway') + '</button>'
+          esc(first.name.split(' ')[0]) + (onCamp ? '' : ' anyway') + '</button>'
         : '';
     return '<section class="s-insight is-lead b-lead-slim s-block-wide" aria-label="What AiMY makes of this list">' +
       '<div class="s-lead-mark">' +
@@ -7889,7 +7899,7 @@
      The masthead carried one unlabelled sentence and two counts: the goal
      with nothing saying it was the goal, how many people are on it, and how
      many of those are yours to call. Both counts were already stated below
-     — the roster count heads Where it stands, and the ringable count sits
+     — the roster count heads Where it stands, and the callable count sits
      under To call — so the masthead was spending its whole width repeating
      the page while five things a caller has to know before dialling were
      nowhere on it at all.
