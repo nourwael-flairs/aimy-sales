@@ -2474,6 +2474,12 @@
        closes. All three are true until a write changes the book, and a write
        is always followed by a repaint. */
     clearMoney();
+    /* Every surface a manager reads draws `qcard`, and `dealSays` asks
+       which of these leads has a meeting nobody wrote up. Worked out once
+       per paint rather than once per card — and here rather than on the
+       one page that used to own it, because the account and the campaign
+       draw the same card. */
+    unrecIndex();
     const pre = prePaint();
     SAID_SIGNAL = null;
     dropLists();
@@ -2604,7 +2610,17 @@
       (last && last.note
         ? '<p class="tc-quote b-qcard-note">' + esc(last.note) + '</p>'
         : '') +
-      aimyBlock(aimySays(c)) +
+      /* ══ ONE CARD, TWO DESKS ═══════════════════════════════════════════
+         The board's `dealCard` was a second card for the same record, built
+         because a kanban column is 310px and a queue card is not. With the
+         board gone there is one grid on both desks, so the reading the board
+         card carried moves here: `dealSays` ranks a deal the way `aimySays`
+         reads a lead, and each desk gets the one written for it.
+
+         Bare on the manager's, signed on the caller's — the same call the
+         board made and for the same reason: a ranked sentence with its own
+         verb underneath does not also need to name the table it read. */
+      (isMgr() ? aimyBlock(dealSays(c), true) : aimyBlock(aimySays(c))) +
       '<div class="tc-gov b-qcard-foot">' +
         /* What it is worth, where the number to call sits on the caller's
            card: the one figure a manager scans a list of deals for. */
@@ -2620,8 +2636,14 @@
            ranked, so the top card is the recommendation and says so by being
            the only filled thing on the surface. */
         (isMgr()
-          ? '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') +
-            '" type="button" data-con="' + esc(c.id) + '">Open</button>'
+          /* The verb that answers the reading above it, rather than Open on
+             every card — which is what pressing the card already does. */
+          ? (function () {
+            const act = dealSays(c).act;
+            return '<button class="s-insight-lnk' + (i === 0 ? ' primary' : '') + '" ' +
+              'type="button" ' + (act ? act.attr : 'data-con="' + esc(c.id) + '"') + '>' +
+              esc(act ? act.label : 'Open') + '</button>';
+          })()
           : afterMeeting(c)
           /* the decision, inline, on the card: the meeting is the fact, the
              two answers are the whole of the job on this cut */
@@ -3695,7 +3717,7 @@
     if (l) return backBtn('data-back', 'Back to ' + cap(l.name));
     /* A deal opened from the board goes back to the board: `on` rides
        through the navigation, so the only thing missing was the word. */
-    if (S.on === 'deals') return backBtn('data-back', 'Back to the board');
+    if (S.on === 'deals') return backBtn('data-back', 'Back to accounts');
     if (S.on === 'cal') return backBtn('data-back', 'Back to the diary');
     if (S.on === 'money') return backBtn('data-back', 'Back to Financials');
     /* Named for where it now comes from. `data-back` clears to the briefing,
@@ -3736,7 +3758,10 @@
            They are the same component either way — `calBody` draws the
            month and the day, and the only difference is what it stands in. */
         ? one('today', 'Today', null, cleared()) +
-          one('deals', 'Deals', queue().length, Object.assign(cleared(), { on: 'deals' })) +
+          /* The URL key stays `deals`: it is in bookmarks, in `backHere`, in
+             every `data-go` payload on the page, and renaming a key to match
+             a label is a migration for a word. */
+          one('deals', 'Accounts', queue().length, Object.assign(cleared(), { on: 'deals' })) +
           one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
         : one('calls', 'Calls', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
@@ -4221,44 +4246,13 @@
     return { text: went + 'Running, and nothing is owed on it today.', act: call };
   }
 
-  /* The passed-and-unwritten meetings, keyed by lead, worked out once for a
-     board of forty-eight rather than once per card. Cleared with the rest of
-     the derived money, because recording one changes it. */
+  /* The passed-and-unwritten meetings, keyed by lead. `unrecorded` walks
+     the book, and a card asking it once each is the book walked forty-eight
+     times; `paint` fills this once and every card reads it. */
   let MGR_UNREC = Object.create(null);
   function unrecIndex() {
     MGR_UNREC = Object.create(null);
     if (isMgr()) unrecorded().forEach((m) => { if (m.con) MGR_UNREC[m.con.id] = m; });
-  }
-
-  function dealCard(c, i) {
-    const a = accOf(c);
-    const said = dealSays(c);
-    return '<article class="b-dealcard" data-open="con:' + esc(c.id) + '" ' +
-      'style="--i:' + Math.min(i, 8) + '">' +
-      '<div class="b-dc-top">' +
-        '<button class="b-dc-name" type="button" data-con="' + esc(c.id) + '">' +
-          esc(c.name) + '</button>' +
-        /* Gated like every other site the mark appears on. This board is a
-           manager's surface, but `?on=deals` is a URL a caller can type and
-           `dealsPage` does not turn her away — so an ungated mark here put
-           134 shields on a desk that has no ranking. */
-        (isMgr() && a ? tierMark(a) : '') +
-      '</div>' +
-      '<span class="b-dc-co b-fact">' + chIcon('company') +
-        '<span>' + esc(a ? a.name : 'No company named') + '</span></span>' +
-      '<span class="b-dc-why">' + dealWhy(c) + '</span>' +
-      /* No mark. Every card on the board carries an amount, in the same
-         place, bold and in tabular figures — a mark on all of them tells
-         one from another not at all, which is the whole job of a mark. */
-      (isMgr() ? aimyBlock(said, true) : '') +
-      '<div class="b-dc-foot">' +
-        '<span class="b-dc-amt">' + esc(euro(dealWorth(c))) + '</span>' +
-        (isMgr() && said.act
-          ? '<button class="s-insight-lnk" type="button" ' + said.act.attr + '>' +
-            esc(said.act.label) + '</button>'
-          : '') +
-      '</div>' +
-    '</article>';
   }
 
   /* ══ A TALLY IS NOT A THING TO DO ══════════════════════════════════════
@@ -4269,45 +4263,31 @@
      that owns it, where the verb beside it is the answer, and that is where
      it went. */
 
+  /* ══ THE BOARD WAS A SECOND DESIGN FOR ONE JOB ═════════════════════════
+     Seven columns, each scrolling inside itself, each 310px wide, each with
+     its own card — a whole second card component, built because a kanban
+     column cannot hold the card the rest of the product uses. And what it
+     bought was the stage, which is a filter chip on every other surface in
+     this build.
+
+     A caller's queue is a grid of cards over a row of cuts. A manager's
+     deals are the same thing: a set, narrowed, worked one page at a time.
+     They are the same job and now they are the same page — `queueBlock`
+     draws both, `cuts` already reads `MGR_BUCKETS`, `cutOf` already returns
+     the stage, and `dealQueue` already filters on it. Nothing here is new;
+     what went was the duplicate.
+
+     What is lost is seeing all seven stages at once, and it was worth less
+     than it looks: a column you can only read three of without scrolling
+     sideways is not an overview, and the sentence above the block already
+     says where the money sits. */
   function dealsPage() {
-    unrecIndex();
-    const all = queue(null, 'all').filter((c) => matches(conHay(c)));
-    const by = Object.create(null);
-    DEAL_STAGES.forEach((st) => (by[st.k] = []));
-    all.forEach((c) => by[stageOf(c)].push(c));
-    /* No briefing strip here. Today is a surface of its own one tab along,
-       and repeating its heading and its four verbs above a board is the
-       page telling you twice where you are. The takeaway is the head. */
+    const all = queue(null, 'all');
+    const counts = Object.create(null);
+    all.forEach((c) => { const b = cutOf(c); counts[b] = (counts[b] || 0) + 1; });
     return '<div class="s-home">' +
       dealsTake() +
-      '<section class="s-block s-block-wide" aria-label="The board">' +
-        '<div class="s-camp-list-head">' + switcher('deals') +
-          findBox('Find a name, a company, a campaign') + '</div>' +
-        '<div class="b-board">' +
-          DEAL_STAGES.map((st) => {
-            const rows = by[st.k];
-            const sum = rows.reduce((n, c) => n + dealWorth(c), 0);
-            const end = st.k === 'won' || st.k === 'lost' || st.k === 'later';
-            return '<div class="' + (end ? 'b-col is-end' : 'b-col') + '">' +
-              '<div class="b-col-head">' +
-                '<span class="b-col-cap">' + esc(st.label) +
-                  '<span class="b-col-n">' + commas(rows.length) + '</span></span>' +
-                /* ══ AN EMPTY COLUMN HAS NO TOTAL, IT HAS NOTHING ═══════════
-                   Lost drew "0" beside its name and "€0" at the far end, over
-                   a column whose body already says Nothing here — three ways
-                   of saying the same absence, one of them set as a figure in
-                   a row of real ones. A total is a fact about the things in
-                   a column; with no things there is no fact, and the count
-                   beside the name is the one place the zero belongs. */
-                (rows.length ? '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' : '') +
-              '</div>' +
-              (rows.length
-                ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
-                : '<p class="b-col-none">Nothing here</p>') +
-            '</div>';
-          }).join('') +
-        '</div>' +
-      '</section>' +
+      queueBlock(all, counts, 'deals') +
     '</div>';
   }
 
@@ -6920,12 +6900,17 @@
       plural(pg.total, one, many) + '.</p>';
   }
 
-  function queueBlock(all, counts) {
+  /* `here` is which tab drew it. The caller has one queue and it is home;
+     the manager has two surfaces sharing this block, and a switcher that
+     underlines Today while you are standing on Deals is the page lying about
+     where you are. */
+  function queueBlock(all, counts, here) {
     /* Narrowed BEFORE paging, so the foot line counts what matched rather
        than what page fifteen of the unsearched list happens to hold. */
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
     const call = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
-    return '<section class="s-block s-block-wide" aria-label="To call">' +
+    return '<section class="s-block s-block-wide" aria-label="' +
+      (isMgr() ? 'Your accounts' : 'To call') + '">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
          call 15`, and those two are drawn from what the search matched —
@@ -6941,7 +6926,7 @@
         (S.camp
           ? '<h2 class="s-block-h">' + (S.q === 'after' ? 'After the meeting'
             : isMgr() ? 'The deals on it' : 'To call') + '</h2>'
-          : switcher(isMgr() ? 'today' : 'calls')) +
+          : switcher(here || (isMgr() ? 'today' : 'calls'))) +
         /* On a campaign too. Two hundred and twenty-eight people across
            sixteen pages is the same problem the queue has, and the filter
            below already narrows whatever set it is handed. */
@@ -6959,7 +6944,10 @@
         : '') +
       cuts(counts, all, call) +
       qgrid(pg.rows) +
-      pager(pg, 'person') +
+      /* The block is two desks' now. A caller pages through people and a
+         manager pages through deals — the same records, and not the same
+         noun, because what he is counting is how many are still to close. */
+      pager(pg, isMgr() ? 'deal' : 'person') +
     '</section>';
   }
   /* Where you are, and the two ways to move. Never "load more": a caller
@@ -15469,6 +15457,13 @@
       const over = cleared();
       over.q = cut.getAttribute('data-q');
       if (S.camp) over.camp = S.camp;
+      /* ══ AND THE SURFACE IS ALSO WHAT YOU ARE LOOKING AT ══════════════
+         The same defect the note above fixed for a campaign, one surface
+         later. `cleared()` drops `on`, so pressing Lost on the manager's own
+         tab narrowed the queue and then landed you on Today, which does not
+         draw a queue at all — the chip worked and the page it worked on
+         disappeared. Every key that says WHERE you are survives a cut. */
+      if (S.on) over.on = S.on;
       go(over);
       return;
     }

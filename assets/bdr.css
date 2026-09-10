@@ -2368,108 +2368,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-menu-item.is-on:hover { background: rgba(var(--accent-rgb), 0.22); }
 
 /* ══ 69. THE BOARD ═════════════════════════════════════════════════════════
-   Six columns that scroll inside their own container, so a board wider than
-   the window never makes the page move sideways. Each column's list scrolls
-   inside itself, which leaves the heading — the count and the sum, the two
-   things a column exists to tell you — standing still above it without a
-   sticky rule that would have nothing to stick to.
+   Gone. Seven columns each scrolling inside itself, each with a card
+   component of its own, and what the whole apparatus bought was the stage
+   — which is a filter chip on every other surface in this build. The
+   manager's deals are a grid of cards over a row of cuts now, which is
+   what the caller's queue has always been, and one card draws both.
 
-   The boundary between columns is a hairline, not a gap: a gap between
-   groups of cards reads as more cards missing. */
-.b-board {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(310px, 1fr);
-  overflow-x: auto; overscroll-behavior-x: contain;
-  margin-top: 16px; padding-bottom: 4px;
-}
-.b-col {
-  min-width: 0; display: flex; flex-direction: column; gap: 12px;
-  padding: 0 14px; border-right: 1px solid var(--card-border);
-}
-.b-col:first-child { padding-left: 0; }
-.b-col:last-child { border-right: 0; padding-right: 0; }
-/* Won and Lost are read, not worked, so they take less of the width.
-   The floor was 232, which fits a name and a company and then makes the
-   basis line under them wrap to three. 268 is a card that holds its own
-   sentence, and 310 is one that holds the reading AiMY put under it. The
-   board scrolls inside itself either way, so the width it
-   costs is width the page never had to give. */
-.b-col.is-end { grid-column: span 1; }
-.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(310px, 1fr); }
-
-.b-col-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.b-col-cap {
-  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.b-col-n { font-variant-numeric: tabular-nums; color: var(--ink-muted); margin-left: 6px; }
-.b-col-sum {
-  margin-left: auto; flex: none;
-  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d100);
-  font-variant-numeric: tabular-nums;
-}
-.b-col-none { margin: 0; font-size: var(--t-small); color: var(--ink-muted); }
-.b-col-list {
-  display: flex; flex-direction: column; gap: 8px;
-  max-height: 58svh; overflow-y: auto; overscroll-behavior-y: contain;
-  padding-right: 2px;
-}
-
-.b-dealcard {
-  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
-  font-family: inherit; cursor: pointer;
-  padding: 11px 12px; border-radius: var(--r-md);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: border-color var(--t-fast), background-color var(--t-fast),
-    transform 160ms var(--ease-out);
-  animation: b-surface-in 200ms var(--ease-out) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
-}
-.b-dealcard:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
-.b-dealcard:active { transform: scale(0.99); }
-.b-dealcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* ── THE SAME FOUR RANKS THE QUEUE CARD HAS, IN A NARROWER COLUMN ─────────
-   Every run on this card was 14px — the name at 600, the company at 400, the
-   basis at 400 and the amount at 700 — so a board of thirty deals had thirty
-   names that did not lead their own cards. It is the queue card's problem in
-   a column six across instead of three, and it takes the queue card's answer
-   one step smaller: 16 rather than 18 for the name, because the column is
-   half the width and an 18px name wraps.
-
-     16 / 800 / primary     the name
-     16 / 700 / secondary   the amount
-     14 / 500 / muted       the company
-     14 / 400 / muted       the basis */
-.b-dc-name {
-  font-size: var(--t-body); font-weight: var(--fw-extrabold);
-  line-height: var(--lh-tight); color: var(--ink-primary);
-  /* A button now, because the card grew a second control and a control
-     inside a control is not markup. It keeps none of a button's chrome. */
-  padding: 0; border: 0; background: none; font-family: inherit;
-  text-align: left; cursor: pointer; min-width: 0;
-}
-.b-dc-name:hover { color: var(--accent); }
-.b-dc-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* The amount and the verb on one line: what it is worth, and the one thing
-   to do about it. */
-.b-dc-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; margin-top: 7px;
-}
-.b-dc-co { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--ink-muted); }
-/* The one line of basis under a deal. It is the sentence the card is for,
-   and it was the smallest thing on it. */
-.b-dc-why {
-  font-size: var(--t-small); color: var(--ink-muted); line-height: 1.45;
-  margin-top: 3px; text-wrap: pretty;
-}
-.b-dc-amt {
-  margin-top: 6px; font-size: var(--t-body); font-weight: var(--fw-bold);
-  color: var(--ink-secondary); font-variant-numeric: tabular-nums;
-}
-@media (prefers-reduced-motion: reduce) {
-  .b-dealcard { animation: none; transition: none; }
-  .b-dealcard:active { transform: none; }
-}
+   The number stays with the gap in it. A section that was here and is not
+   is worth more in the sequence than a renumbering that makes the file
+   look as though it never had a board. */
 
 /* ══ 70. THE DIARY ═════════════════════════════════════════════════════════
    A month of dots over one day in full. The reference this is built from is
@@ -2701,9 +2608,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    padding lives on its children, so the wrapper carries the right inset
    the title already had on its left. */
 .b-qcard-top { display: flex; align-items: baseline; gap: 8px; padding-right: 14px; }
-.b-dc-top { display: flex; align-items: baseline; gap: 8px; }
 .b-qcard-top .b-tier,
-.b-dc-top .b-tier,
 .s-rec-title .b-tier { margin-left: auto; }
 
 .b-cal-etime {
@@ -2950,7 +2855,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
    13px mark beside it reads as the loudest thing in the corner. */
 .tc-type.b-fact > svg { width: 11px; height: 11px; }
-.b-dc-co.b-fact > svg { width: 11px; height: 11px; }
 .b-node-name.b-fact > svg { width: 12px; height: 12px; }
 
 /* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
