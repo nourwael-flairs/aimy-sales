@@ -2441,6 +2441,18 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-dc-name {
   font-size: var(--t-body); font-weight: var(--fw-extrabold);
   line-height: var(--lh-tight); color: var(--ink-primary);
+  /* A button now, because the card grew a second control and a control
+     inside a control is not markup. It keeps none of a button's chrome. */
+  padding: 0; border: 0; background: none; font-family: inherit;
+  text-align: left; cursor: pointer; min-width: 0;
+}
+.b-dc-name:hover { color: var(--accent); }
+.b-dc-name:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The amount and the verb on one line: what it is worth, and the one thing
+   to do about it. */
+.b-dc-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-top: 7px;
 }
 .b-dc-co { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--ink-muted); }
 /* The one line of basis under a deal. It is the sentence the card is for,

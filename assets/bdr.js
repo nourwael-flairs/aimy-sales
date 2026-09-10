@@ -359,7 +359,11 @@
     { k: 'discovery',  label: 'Scoped',   tone: 'neutral' },
     { k: 'proof',      label: 'Shown',    tone: 'neutral' },
     { k: 'commercial', label: 'Priced',   tone: 'neutral' },
-    { k: 'won',        label: 'Signed',   tone: 'ok' },
+    /* Won against Lost. "Signed" is what the MONEY did — the attainment
+       key and the timeline node both keep it, because there the fact is an
+       event somebody can date. A column is a state, and the state opposite
+       Lost is Won. */
+    { k: 'won',        label: 'Won',      tone: 'ok' },
     { k: 'lost',       label: 'Lost',     tone: 'err' },
   ];
   const DEAL_STAGE = Object.create(null);
@@ -3974,12 +3978,105 @@
      The columns scroll inside their own container and each list scrolls
      inside itself, so the page never moves sideways and the headings — the
      count and the sum, which is what the column is for — stay put. */
+  /* ══ WHAT AiMY MAKES OF ONE DEAL, AND THE VERB THAT FOLLOWS ════════════
+     A column of cards each carrying a name, a company and a date is a list
+     you read. The one thing a manager wants off it is which of the twelve
+     needs him — and that was on the card nowhere, because the basis line
+     says what HAPPENED and never what it means.
+
+     Ranked, and only ever one: the loudest true thing about this deal. A
+     card that lists three observations has ranked none of them, and the
+     board is twelve cards wide.
+
+     Every rung carries the verb that answers it, so the reading and the
+     doing are the same row rather than a note and a hunt. `from` is the
+     provenance every AiMY sentence in this build carries — what it read to
+     say that — because a card that asserts without sourcing is the one
+     thing the product refuses. */
+  function dealSays(c) {
+    const st = stageOf(c);
+    const a = accOf(c);
+    const first = (c.name || '').split(' ')[0];
+    const call = c.phone && !c.dnc
+      ? { label: 'Call ' + first, attr: 'data-call="' + esc(c.id) + '"' }
+      : { label: 'Open', attr: 'data-con="' + esc(c.id) + '"' };
+
+    if (st === 'won') {
+      const exp = expansionsOf(c.acc)[0];
+      return exp
+        ? { text: 'They bought and it landed. <b>' + esc(SELL[exp.next].name) +
+            '</b> is the one that fits next.',
+            from: 'what they signed for', act: { label: 'Open the account',
+            attr: 'data-acc="' + esc(c.acc) + '"' } }
+        : { text: 'Signed. Nothing else in the range fits them yet.',
+            from: 'what they signed for', act: null };
+    }
+    if (st === 'lost') {
+      return { text: 'They said no. The account is still yours to work.',
+        from: 'the resolution on this record',
+        act: { label: 'Open the account', attr: 'data-acc="' + esc(c.acc) + '"' } };
+    }
+    /* A meeting that has been and gone with nothing written up is the one
+       thing on this desk that costs money by sitting still. */
+    if (MGR_UNREC[c.id]) {
+      const m = MGR_UNREC[c.id];
+      return { text: 'You met them <b>' + esc(sayWhen(m.iso)) +
+          '</b> and nothing here says how it went.',
+        from: 'the diary against the record',
+        act: { label: 'Say how it went',
+          attr: 'data-fill="' + esc('Had a ' + m.kind + ' with ' + c.name + ', ') + '"' } };
+    }
+    if (c.next && daysBetween(TODAY_ISO, c.next.due) < 0) {
+      return { text: '<b>' + esc(c.next.what) + '</b> was due ' +
+          esc(sayWhen(c.next.due)) + ' and has not been done.',
+        from: 'the step you set', act: call };
+    }
+    if (st === 'qual') {
+      return { text: 'Handed to you ' + esc(sayWhen((c.checkpointAt || '').slice(0, 10))) +
+          ' and still never warm-called.',
+        from: 'the hand-over', act: call };
+    }
+    const at = lastActivity(c);
+    if (at && daysBetween(at, TODAY_ISO) > checkinDays(c)) {
+      const t = tierOf(a);
+      return { text: 'Nothing said for <b>' + esc(plural(daysBetween(at, TODAY_ISO), 'day')) +
+          '</b>, and a ' + esc(t.label.toLowerCase()) + ' account is worth one every ' +
+          esc(t.every) + '.',
+        from: 'the last thing anybody did here', act: call };
+    }
+    /* Nothing is wrong with it, so the card says the one thing about it that
+       is not on any other card: how it got here. Ten deals on this desk
+       arrived without a caller and nothing anywhere said so. */
+    if (channelOf(c).k === 'inbound') {
+      return { text: 'They came to us. No caller spent a minute getting this one.',
+        from: 'no call before the hand-over', act: call };
+    }
+    if (c.next) {
+      return { text: '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
+        from: 'the step you set',
+        act: { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } };
+    }
+    return { text: 'Running, and nothing is owed on it today.',
+      from: 'the record', act: call };
+  }
+
+  /* The passed-and-unwritten meetings, keyed by lead, worked out once for a
+     board of forty-eight rather than once per card. Cleared with the rest of
+     the derived money, because recording one changes it. */
+  let MGR_UNREC = Object.create(null);
+  function unrecIndex() {
+    MGR_UNREC = Object.create(null);
+    if (isMgr()) unrecorded().forEach((m) => { if (m.con) MGR_UNREC[m.con.id] = m; });
+  }
+
   function dealCard(c, i) {
     const a = accOf(c);
-    return '<button class="b-dealcard" type="button" data-con="' + esc(c.id) + '" ' +
+    const said = dealSays(c);
+    return '<article class="b-dealcard" data-open="con:' + esc(c.id) + '" ' +
       'style="--i:' + Math.min(i, 8) + '">' +
       '<div class="b-dc-top">' +
-        '<span class="b-dc-name">' + esc(c.name) + '</span>' +
+        '<button class="b-dc-name" type="button" data-con="' + esc(c.id) + '">' +
+          esc(c.name) + '</button>' +
         /* Gated like every other site the mark appears on. This board is a
            manager's surface, but `?on=deals` is a URL a caller can type and
            `dealsPage` does not turn her away — so an ungated mark here put
@@ -3992,11 +4089,19 @@
       /* No mark. Every card on the board carries an amount, in the same
          place, bold and in tabular figures — a mark on all of them tells
          one from another not at all, which is the whole job of a mark. */
-      '<span class="b-dc-amt">' + esc(euro(dealWorth(c))) + '</span>' +
-    '</button>';
+      (isMgr() ? aimyBlock(said) : '') +
+      '<div class="b-dc-foot">' +
+        '<span class="b-dc-amt">' + esc(euro(dealWorth(c))) + '</span>' +
+        (isMgr() && said.act
+          ? '<button class="s-insight-lnk" type="button" ' + said.act.attr + '>' +
+            esc(said.act.label) + '</button>'
+          : '') +
+      '</div>' +
+    '</article>';
   }
 
   function dealsPage() {
+    unrecIndex();
     const all = queue(null, 'all').filter((c) => matches(conHay(c)));
     const by = Object.create(null);
     DEAL_STAGES.forEach((st) => (by[st.k] = []));
@@ -9890,10 +9995,14 @@
             : 'it is already decided.') + '</p>') +
         cmPart('What we sell them', '<p class="b-cmeta-p">' + esc(sells) +
           (k ? ', on <b>' + esc(k.name) + '</b>' : '') + '.</p>') +
+        /* The third branch said "Nobody is named as the caller", which is a
+           sentence about the record rather than about the deal — and it now
+           covers ten deals on this desk that arrived without one. Nothing is
+           missing on them. Nobody rang them, because they rang us. */
         cmPart('Found by', '<p class="b-cmeta-p">' +
           (owner ? '<b>' + esc(owner.name) + '</b> rang them cold and got them warm.'
             : addedByHand(c) ? 'You did — added by hand, so only what you typed is known.'
-            : 'Nobody is named as the caller.') + '</p>') +
+            : '<b>They came to us.</b> Nobody here rang them first.') + '</p>') +
       '</div>' +
     '</section>';
   }
@@ -10440,6 +10549,28 @@
      says they did is the page inventing a colleague. */
   const addedByHand = (c) => (DB.touchesOf[c.id] || [])
     .some((id) => TOUCH[id] && TOUCH[id].outcome === 'added');
+
+  /* ══ THE THIRD WAY A LEAD REACHES THIS DESK ════════════════════════════
+     Two of them were already derivable — a caller owns the lead, or the
+     manager typed it in himself — and the third had nothing to derive from.
+     Everything that was neither fell to "Nobody is named as the caller",
+     which reads as missing data, and was only ever right because the corpus
+     held no lead that arrived on its own.
+
+     It holds them now. A deal with no caller and nothing hand-added is one
+     that came to us, and that is a fact about the deal rather than a hole
+     in it. Derived, not stored: all three answers are already written on
+     the record in what is and is not there, and a field would be a fourth
+     copy of the same thing to keep in step. */
+  const CHANNELS = [
+    { k: 'bdr', label: 'From a caller' },
+    { k: 'inbound', label: 'Came to us' },
+    { k: 'own', label: 'You brought them in' },
+  ];
+  const CHANNEL = Object.create(null);
+  CHANNELS.forEach((x) => (CHANNEL[x.k] = x));
+  const channelOf = (c) => (addedByHand(c) ? CHANNEL.own
+    : c.owner ? CHANNEL.bdr : CHANNEL.inbound);
   /* The campaign the deal belongs to, read the same way the index and the
      seed's own hand-over note read it, rather than through `campFor`, which
      answers for whoever is looking. */
