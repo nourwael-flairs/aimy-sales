@@ -474,7 +474,7 @@
   background: none; border: 0; outline: none;
   font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
 }
-.b-find input::placeholder { color: var(--ink-muted); }
+.b-find input::placeholder { color: var(--ink-placeholder); }
 /* A way out that does not need the keyboard. Only drawn when there is
    something to clear, so it is never a control that does nothing. */
 .b-find-x {
@@ -1438,7 +1438,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   padding: 8px 12px; border-radius: 10px;
   background: var(--card-bg); border: 1px solid var(--card-border);
 }
-.b-pick-find::placeholder { color: var(--ink-muted); }
+.b-pick-find::placeholder { color: var(--ink-placeholder); }
 .b-pick-find:focus-visible {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
@@ -3015,7 +3015,23 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
   transition: border-color var(--t-base);
 }
-.b-draft-name::placeholder { color: var(--ink-muted); }
+/* ══ AN ABSENCE MUST NOT READ AS A VALUE ═══════════════════════════════════
+   Measured on the campaign draft, where a page of empty fields is the normal
+   state: "Choose" rendered #c8d2dc and "FlairsTech" — a real answer beside it
+   — rendered #d8e0e8. One step on the ramp, same size, same weight. The rule
+   this build adopted for every other pair of ranks is that they differ in at
+   least two of {size, weight, ink}, and the two things on this page that must
+   never be confused differed on one axis by its smallest increment.
+
+   `--ink-placeholder` has been in the shell the whole time, declared as "the
+   ONE exception — must not read as a value" and pointed at by nothing. Every
+   placeholder in this product asked for `--ink-muted`, which the same block
+   calls "the floor for TYPE. Slightly quiet, still read" — a value.
+
+   It is legible, not invisible: 6.1:1 on the page ground, well past AA. The
+   point is not that a placeholder is hard to read, it is that it cannot be
+   mistaken for an answer. */
+.b-draft-name::placeholder { color: var(--ink-placeholder); }
 .b-draft-name:hover { border-bottom-color: var(--card-border); }
 .b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-in {
@@ -3024,7 +3040,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   min-width: 0; width: 100%; max-width: 34ch;
   transition: border-color var(--t-base);
 }
-.b-draft-in::placeholder { color: var(--ink-muted); }
+.b-draft-in::placeholder { color: var(--ink-placeholder); }
 .b-draft-in:hover { border-bottom-color: var(--card-border-hover); }
 .b-draft-in:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-pick {
@@ -3034,7 +3050,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-draft-pick:hover { color: var(--accent-text); border-bottom-color: var(--accent); }
 .b-draft-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-draft-none { color: var(--ink-muted); }
+/* "Choose" is not a value, it is the absence of one, and it sits in the
+   slot a value will occupy. It takes the placeholder rank for the same
+   reason the inputs do — it IS a placeholder, drawn by hand because the slot
+   is a menu button rather than an input. */
+.b-draft-none { color: var(--ink-placeholder); }
 /* When it closes is a fact on the record, not a footnote about one. And a
    field that holds one or two digits is sized for one or two digits: at the
    full 34ch it took the whole cell and pushed its own unit onto a second

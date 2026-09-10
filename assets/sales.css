@@ -1341,7 +1341,9 @@ body {
   border: 1px solid var(--glass-border); background: transparent;
   font-family: inherit; font-size: var(--fs-xs); color: var(--d100);
 }
-.ov-chat-input::placeholder { color: var(--d600); }
+/* `--d600` is the rule-and-hairline step, which the ink block names as
+   NON-TEXT — quieter than a placeholder is allowed to be. */
+.ov-chat-input::placeholder { color: var(--ink-placeholder); }
 .ov-chat-input:focus-visible { outline: 2px solid var(--brand); outline-offset: -1px; }
 
 .ov-chat-group { display: flex; flex-direction: column; gap: 2px; }
@@ -1668,7 +1670,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
   background: none; border: 0; outline: none;
   font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
 }
-.dd-search input::placeholder { color: var(--ink-muted); }
+.dd-search input::placeholder { color: var(--ink-placeholder); }
 /* DETACHED, not hidden: `display:none` would still leave it in the
    library's `.v2-dropdown-option` query, and arrow keys would walk through
    rows nobody can see. */

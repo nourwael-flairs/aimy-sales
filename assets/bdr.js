@@ -7622,7 +7622,7 @@
              saying. A number to pace against is what a campaign learns from
              running; guessing at it before the first call is made was asking
              for a fact nobody in the room has. */
-          draftField('Timeframe', draftText('weeks', String(weeks), '6') +
+          draftField('Time frame', draftText('weeks', String(weeks), '6') +
             '<span class="b-draft-unit">weeks · closes ' + esc(sayDay(k.to)) + '</span>') +
         '</div>' +
         /* What is still missing stays down here with the fields it is about.
@@ -13463,7 +13463,7 @@
       draftField('Region', esc(regionLabel(CBUILD.region))) +
       draftField('The team', esc(listSay(crew))) +
       draftField('Counted in', esc(commas(CBUILD.n) + ' ' + CBUILD.noun + 's')) +
-      draftField('Timeframe', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
+      draftField('Time frame', esc(plural(CBUILD.weeks, 'week') + ' \u00b7 closes ' +
         sayDay(dayAdd(CBUILD.weeks * 7)))) +
     '</div>';
   }
