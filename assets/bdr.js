@@ -4239,6 +4239,43 @@
     '</article>';
   }
 
+  /* ══ A COLUMN SAYS HOW MUCH, AND NOT HOW IT IS GOING ═══════════════════
+     The head carries a count and a sum, which are the two facts a column can
+     state about itself without reading a single deal in it. Neither says the
+     thing a manager scanning seven columns is actually looking for: fourteen
+     deals with the price on the table is a number, and five of them having
+     gone badly last time is the news.
+
+     Ranked, and one only — the same rule the cards follow, for the same
+     reason. A head that lists the whole mix is a head nobody reads, and
+     three columns of it is a table. Badly first because it is the one worth
+     acting on; then the ones nobody wrote up, because a stage where half the
+     meetings are unrecorded is a stage whose count means nothing; then the
+     good news, which is worth saying when it is all there is.
+
+     Only where a meeting has happened. Not met has none by definition, and
+     the three ended columns are history — how the last meeting went stopped
+     mattering the moment somebody signed, passed or parked it. Those keep
+     the line as an empty box so all seven heads are one height and the card
+     lists start on one line. */
+  function colOut(rows, st) {
+    const live = st.k !== 'qual' && st.k !== 'won' && st.k !== 'lost' && st.k !== 'later';
+    if (!live || !rows.length) return '<p class="b-col-out" aria-hidden="true"></p>';
+    let bad = 0, quiet = 0, good = 0;
+    rows.forEach((c) => {
+      const ph = phasesOf(c);
+      const out = ph.length ? ph[ph.length - 1].out : null;
+      if (out === 'cool') bad++;
+      else if (out === 'warm') good++;
+      else if (ph.length) quiet++;
+    });
+    const say = bad ? '<b>' + commas(bad) + '</b> went badly last time'
+      : quiet ? '<b>' + commas(quiet) + '</b> with nothing said last time'
+      : good ? '<b>' + commas(good) + '</b> went well last time'
+      : '';
+    return '<p class="b-col-out">' + say + '</p>';
+  }
+
   function dealsPage() {
     unrecIndex();
     const all = queue(null, 'all').filter((c) => matches(conHay(c)));
@@ -4271,6 +4308,7 @@
                    beside the name is the one place the zero belongs. */
                 (rows.length ? '<span class="b-col-sum">' + esc(euro(sum)) + '</span>' : '') +
               '</div>' +
+              colOut(rows, st) +
               (rows.length
                 ? '<div class="b-col-list">' + rows.map(dealCard).join('') + '</div>'
                 : '<p class="b-col-none">Nothing here</p>') +
