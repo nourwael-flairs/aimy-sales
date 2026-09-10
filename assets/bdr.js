@@ -4417,7 +4417,32 @@
     if (l) return l.at;
     return c.checkpointAt ? c.checkpointAt.slice(0, 10) : null;
   };
-  const srcVia = (c) => { const l = srcOf(c); return l && l.via ? l.via : 'crawl'; };
+  /* ══ A LIST IS NOT ONE SUPPLIER ═══════════════════════════════════════
+     This charged every person on a list at the list's own `via`, so a list
+     of forty-six was forty-six leads at one price, and the whole sourcing
+     line moved in one step whenever a single label changed.
+
+     A list is a search run across whichever tools answer it, plus rows the
+     crawl already had, plus whatever a second supplier filled in. That is
+     why the label came off the card and off the record — but the cost side
+     still has to know it, and it is the one place the difference is worth
+     real money: a seat on Sales Navigator is 45 cents a lead and our own
+     crawl is three, so a mixed list averaged at either end is a sourcing
+     figure nobody should read.
+
+     The list's `via` is the tool that answered most of it, so it keeps the
+     majority and the rest fall to the others. By hash on the person, so a
+     lead costs the same on every repaint, on every reload, and on both
+     desks — the same rule every other modelled fact in this file follows. */
+  const SRC_POOL = Object.keys(PRICE_FIND);
+  const SRC_MAJORITY = 62;
+  const srcVia = (c) => {
+    const l = srcOf(c);
+    if (!l || !l.via) return 'crawl';
+    if (Math.abs(hash(c.id + ':src')) % 100 < SRC_MAJORITY) return l.via;
+    const rest = SRC_POOL.filter((n) => n !== l.via);
+    return rest[Math.abs(hash(c.id + ':src2')) % rest.length];
+  };
   const srcSpend = (c) => PRICE_FIND[srcVia(c)] || PRICE_FIND.crawl;
 
   /* One person's enrichment bill. Two fields are worth paying for on a
@@ -6629,8 +6654,12 @@
       backBtn('data-go="' + esc(JSON.stringify(Object.assign(cleared(), { on: 'lists' }))) + '"', 'Back to lists') +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind">List · ' + esc(plural(people.length, 'person')) + ' · found by ' +
-          esc(l.via) + ' · ' + esc(sayWhen(l.at)) + '</span>' +
+        /* Not "found by X". The list has several sources and this named one
+           of them as though it were the answer; and which tool returned a
+           row is not something anybody decides anything by, here or on the
+           card. When it was built is. */
+        '<span class="s-rec-kind">List · ' + esc(plural(people.length, 'person')) +
+          ' · built ' + esc(sayWhen(l.at)) + '</span>' +
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(l.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
@@ -10559,8 +10588,12 @@
     const steps = [];
     /* where they came from */
     const foundBy = list && !(calls.length && calls[0].at.slice(0, 10) < list.at);
+    /* The list, not the supplier that returned this row. Both because the
+       people on one list came from several, and because arriving on a list
+       is the fact — which tool answered that particular search is a line
+       item on the invoice, not a step in anybody's story. */
     steps.push(foundBy
-      ? { k: 'Found by ' + list.via, t: sayDay(list.at), tone: 'neutral' }
+      ? { k: 'Found on a list', t: sayDay(list.at), tone: 'neutral' }
       : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
     if (calls.length) steps.push({ k: 'First rung', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
