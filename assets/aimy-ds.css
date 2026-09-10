@@ -1554,6 +1554,300 @@
 
 
     /* ═══════════════════════════════════════════════
+       PORTED WHOLE FROM KNOWLEDGE'S DESIGN SYSTEM
+
+       Not rebuilt. Knowledge's copy of this file already carries the beam and
+       the stop square, and its own comment says they ride `.aimy-float-bar` —
+       this bar, by name — because the two products share one composer in
+       three shells. What was missing here was the block itself: this file is
+       an older cut of the same stylesheet.
+
+       Taken byte for byte and dropped at the same seam it sits at there, so
+       the two files stay a clean diff of each other. Everything below to the
+       badge block is theirs, including the reasoning.
+    ═══════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════
+       THE BEAM — the composer while AiMY is answering
+
+       A glow that rides the border of the bar for as long as an answer is being
+       produced. It is the same fact the thinking mark carries inside the thread,
+       put where the eye already is: you asked from the bar, so the bar is what
+       should tell you the question was taken.
+
+       It rides both composers the product has — .overlay-input-bar on the gate
+       and in the canvas, .aimy-float-bar on the workbench — because they are
+       one control in three shells, and an answer is being produced for
+       whichever of them is on screen.
+
+       ══ THE COLOUR DOES NOT MOVE. THE WINDOW ONTO IT DOES. ════════════════
+       This is the whole mechanism, and it is worth stating plainly because
+       every obvious reading of "a beam going round a border" is a different
+       thing that looks wrong.
+
+       Seven coloured blobs are pinned to fixed points ON the perimeter — some
+       pushed just past it, which is why several sit at -6% or 100% — in the
+       order of --ai. They never move. Over them sits a CONIC GRADIENT USED AS A
+       MASK, a soft wedge of opacity with transparency either side of it, and
+       what animates is the single angle that conic is drawn from.
+
+       So the wedge sweeps the border and reveals whatever colour is pinned
+       under it at that moment. The light appears to travel and to change colour
+       as it travels, while nothing coloured has moved at all — and because the
+       colours are fixed to the shape, the bar's own corners and ends are lit by
+       the blobs nearest them rather than by whatever a travelling lamp happened
+       to be carrying when it got there.
+
+       A slow HUE SHIFT runs underneath, ±30° over 18 seconds, so the palette
+       drifts on a period long enough that you never see it turn.
+
+       ══ THE WEDGE IS WIDER THAN THE REFERENCE'S, AND HAS TO BE ════════════
+       A cone measures ANGLE, and angle maps onto a perimeter evenly only on a
+       shape near square. The reference is a 348×122 card — about 3:1, where the
+       mismatch does not show. This bar is 720×54, about 14:1, and there the two
+       long edges are 45% of the distance but 48% of the turn while each end is
+       5.4% of the distance in 2.4% of the turn. The light therefore crosses the
+       two ends around 2.2× quicker than it crosses the edges, and a narrow wedge
+       turns that into a visible flick twice a lap.
+
+       Widening the wedge is what absorbs it: the stroke's runs 42%→90% of the
+       turn rather than 54%→78%, and the bloom's plateau is 3% of the turn rather
+       than 0.5% — at any speed, half a percent of a turn is a hard line rather
+       than a light. Both peaks come DOWN as they widen, 0.75 to 0.62 and 0.85 to
+       0.70, because a wedge twice as wide lays down twice as much light for the
+       same stop values.
+
+       4.2 SECONDS A LAP, against the reference's 1.96. The reference sweeps a
+       card you look at; this sweeps the control you are waiting at, and it has
+       to still be doing it in thirty seconds' time without having become the
+       thing in the room.
+
+       THREE LAYERS, in the order they stack:
+         · ::before  the inner glow — the blobs at low alpha, held to the outer
+                     band of the bar by two linear masks, so it hugs the edge
+                     rather than filling the middle
+         · ::after   the stroke — a white wedge over the same blobs, cut to the
+                     border itself by border-box-minus-content-box
+         · > i       the bloom — the wedge again, blurred, which is what makes
+                     the leading edge read as light rather than as paint
+
+       The opacities — 0.42, 0.26, 0.24 — are what keep it quiet enough to be
+       caught out of the corner of the eye rather than looked at.
+
+       THE BAR TAKES A STACKING CONTEXT AND THE BEAM SITS AT -1. A negative
+       child paints ABOVE the background of the element that forms the context
+       and BELOW everything in flow inside it — which is exactly the one slot
+       this needs, and it takes no rule on the children to get there. The
+       alternative was lifting the icon, the input and the send button onto
+       z-index and trusting the next child added to the bar to join them.
+    ═══════════════════════════════════════════════ */
+    @property --beam-angle { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+
+    .overlay-input-bar,
+    .aimy-float-bar { position: relative; isolation: isolate; }
+
+    /* inset -1px, not 0: an absolutely positioned child is laid out against the
+       PADDING box, which is inside the bar's 1px border — so at inset 0 the
+       stroke would light the pixel next to the border rather than the border
+       itself, and its 40px radius would sit a pixel proud of the bar's. At -1px
+       the beam's box is the border box exactly and the two curves agree.
+
+       The fade belongs on the wrapper rather than on each layer: one transition
+       takes all three in and out together, and the spin only ever runs while
+       there is an answer to run it for. */
+    .beam {
+      position: absolute; inset: -1px;
+      border-radius: inherit;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 420ms var(--ease-out);
+    }
+    .is-generating > .beam { opacity: 1; animation: beam-spin 4.2s linear infinite; }
+
+    /* The seven blobs, pinned. Shared by all three layers through a custom
+       property so the stroke, the glow and the bloom can never disagree about
+       where the colour is — which they would, the first time one of them was
+       retuned on its own. */
+    .beam {
+      --beam-blobs:
+        radial-gradient(ellipse 130px 30px at  16%  -8%, rgb(139, 79,244), transparent),
+        radial-gradient(ellipse 104px 26px at  41%  -5%, rgb( 51,105,255), transparent),
+        radial-gradient(ellipse  84px 26px at  87%  -4%, rgb(106, 91,245), transparent),
+        radial-gradient(ellipse  30px 42px at   1%  60%, rgb( 97,173,241), transparent),
+        radial-gradient(ellipse  28px 40px at 100%  32%, rgb( 76,203,224), transparent),
+        radial-gradient(ellipse 168px 28px at  68% 104%, rgb(  0,102,255), transparent),
+        radial-gradient(ellipse  96px 24px at  31% 104%, rgb(111,223,226), transparent);
+    }
+
+    .beam::before,
+    .beam::after,
+    .beam > i {
+      content: ""; position: absolute; inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    /* The inner glow. Held to the outer band by the two linear masks — 14px top
+       and bottom, 28px left and right — which is what keeps the colour on the
+       edge of a 54px bar instead of behind the placeholder. */
+    .beam::before {
+      background: var(--beam-blobs);
+      box-shadow: inset 0 0 9px 1px rgba(255,255,255,0.22);
+      opacity: 0.42;
+      -webkit-mask-image:
+        conic-gradient(from var(--beam-angle),
+          transparent 0%, transparent 30%,
+          rgba(255,255,255,0.1) 36%, rgba(255,255,255,0.35) 44%,
+          #fff 52%, #fff 80%,
+          rgba(255,255,255,0.35) 86%, rgba(255,255,255,0.1) 92%,
+          transparent 95%, transparent 100%),
+        linear-gradient(#fff, transparent 14px, transparent calc(100% - 14px), #fff),
+        linear-gradient(to right, #fff, transparent 28px, transparent calc(100% - 28px), #fff);
+      -webkit-mask-composite: source-in, source-over;
+      mask-image:
+        conic-gradient(from var(--beam-angle),
+          transparent 0%, transparent 30%,
+          rgba(255,255,255,0.1) 36%, rgba(255,255,255,0.35) 44%,
+          #fff 52%, #fff 80%,
+          rgba(255,255,255,0.35) 86%, rgba(255,255,255,0.1) 92%,
+          transparent 95%, transparent 100%),
+        linear-gradient(#fff, transparent 14px, transparent calc(100% - 14px), #fff),
+        linear-gradient(to right, #fff, transparent 28px, transparent calc(100% - 28px), #fff);
+      mask-composite: intersect, add;
+      z-index: 1;
+    }
+
+    /* The stroke. A white wedge laid over the same blobs and cut to the border
+       alone: border box, minus content box, is the one pixel between them. */
+    .beam::after {
+      padding: 1px;
+      background:
+        conic-gradient(from var(--beam-angle),
+          transparent 0%, transparent 42%,
+          rgba(255,255,255,0.06) 48%,
+          rgba(255,255,255,0.20) 54%,
+          rgba(255,255,255,0.42) 60%,
+          rgba(255,255,255,0.62) 66%,
+          rgba(255,255,255,0.42) 72%,
+          rgba(255,255,255,0.20) 78%,
+          rgba(255,255,255,0.06) 84%,
+          transparent 90%, transparent 100%),
+        var(--beam-blobs);
+      opacity: 0.26;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      z-index: 2;
+    }
+
+    /* The bloom. The wedge again, tighter and blurred — this is the layer that
+       makes the leading edge read as light rather than as a painted arc. */
+    .beam > i {
+      padding: 1px;
+      background: conic-gradient(from var(--beam-angle),
+        transparent 0%, transparent 50%,
+        rgba(255,255,255,0.03) 56%,
+        rgba(255,255,255,0.10) 61%,
+        rgba(255,255,255,0.24) 65%,
+        rgba(255,255,255,0.46) 68%,
+        rgba(255,255,255,0.70) 71%,
+        rgba(255,255,255,0.70) 74%,
+        rgba(255,255,255,0.46) 77%,
+        rgba(255,255,255,0.24) 80%,
+        rgba(255,255,255,0.10) 84%,
+        rgba(255,255,255,0.03) 88%,
+        transparent 94%);
+      opacity: 0.24;
+      filter: blur(8px) brightness(1.3) saturate(1.2);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      z-index: 3;
+    }
+
+    /* The palette drifts underneath the sweep, on a period long enough that you
+       never catch it turning. brightness and saturate are carried in the same
+       declaration because a filter is one value — split across two rules, the
+       second would simply replace the first. */
+    .is-generating > .beam::before,
+    .is-generating > .beam::after { animation: beam-hue 18s ease-in-out infinite; }
+
+    /* Light theme, and it is not a tint of the dark one. On black the beam ADDS
+       and any colour at all reads; on white it can only darken, so the same
+       values disappeared into the page — measured, not guessed: at the dark
+       theme's alphas the sweep was invisible against the gate's own pale
+       lavender ground. The colours go to saturated mid-tones rather than the
+       light tints that look right in a swatch and vanish on a white surface,
+       and every layer roughly doubles in strength. */
+    :root[data-theme="light"] .beam {
+      --beam-blobs:
+        radial-gradient(ellipse 130px 30px at  16%  -8%, rgb(109, 40,217), transparent),
+        radial-gradient(ellipse 104px 26px at  41%  -5%, rgb( 29, 78,216), transparent),
+        radial-gradient(ellipse  84px 26px at  87%  -4%, rgb( 76, 50,224), transparent),
+        radial-gradient(ellipse  30px 42px at   1%  60%, rgb( 14,116,180), transparent),
+        radial-gradient(ellipse  28px 40px at 100%  32%, rgb( 13,148,160), transparent),
+        radial-gradient(ellipse 168px 28px at  68% 104%, rgb(  0, 88,200), transparent),
+        radial-gradient(ellipse  96px 24px at  31% 104%, rgb( 16,168,170), transparent);
+    }
+    :root[data-theme="light"] .beam::before {
+      opacity: 0.8;
+      box-shadow: inset 0 0 9px 1px rgba(16,24,40,0.10);
+    }
+    :root[data-theme="light"] .beam::after { opacity: 0.7; }
+    :root[data-theme="light"] .beam > i   { opacity: 0.4; }
+
+    @keyframes beam-spin {
+      to { --beam-angle: 360deg; }
+    }
+    @keyframes beam-hue {
+      0%, 100% { filter: hue-rotate(-30deg) brightness(1.3) saturate(1.2); }
+      50%      { filter: hue-rotate( 30deg) brightness(1.3) saturate(1.2); }
+    }
+
+    /* ── The send button becomes the stop button ──
+       The same control, because there is only ever one thing to do with the
+       composer while an answer is coming and it is not sending another. The
+       square is drawn HERE rather than added as a second icon to the four send
+       buttons across the two shells: nothing in the markup has to know about
+       the state, so no shell can ship the beam without the way out of it. */
+    .is-generating .overlay-send,
+    .is-generating .aimy-float-send {
+      background: rgba(var(--accent-rgb),0.22);
+      box-shadow: none;
+      transform: none;
+    }
+    .is-generating .overlay-send:hover,
+    .is-generating .aimy-float-send:hover {
+      background: rgba(var(--accent-rgb),0.34);
+      box-shadow: none;
+      transform: none;
+    }
+    .is-generating .overlay-send > svg,
+    .is-generating .aimy-float-send > .send-icon { display: none; }
+    .is-generating .overlay-send::after,
+    .is-generating .aimy-float-send::after {
+      content: "";
+      width: 9px; height: 9px;
+      border-radius: 2px;
+      background: var(--d50);
+    }
+    :root[data-theme="light"] .is-generating .overlay-send::after,
+    :root[data-theme="light"] .is-generating .aimy-float-send::after { background: var(--d900); }
+
+    /* ── A turn that was called off ──
+       Under whatever had already been said, never instead of it. */
+    .msg-stopped {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 8px;
+      font-size: 14px; font-weight: 600;
+      color: var(--ink-muted);
+    }
+    .msg-stopped svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.8; }
+
+    /* ═══════════════════════════════════════════════
        AIMY BADGE (logo badge on float icon)
     ═══════════════════════════════════════════════ */
     .aimy-badge {
@@ -3533,6 +3827,14 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
+      /* The beam is the answer being produced, so it cannot simply stop. The
+         sweep goes and the colour stays: the wedge is parked where it lights
+         the long bottom edge, and the blobs behind it are pinned there anyway,
+         so what is left is a lit border that does not move. */
+      .is-generating > .beam { animation: none !important; --beam-angle: 168deg; }
+      .is-generating > .beam::before,
+      .is-generating > .beam::after { animation: none !important;
+        filter: brightness(1.3) saturate(1.2); }
       /* Looping decorative motion — stop outright */
       .signal-dot,
       .stream-cursor,

@@ -76,6 +76,17 @@
    chip because a chip that says "Due" and a number beside it that says 12 are
    two things to read for one fact. */
 .b-cuts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+/* The row's margin is on the BOTTOM, which is right where it belongs — above
+   a grid of results on a page. In an answer it is the other way round: the
+   chips follow a sentence and were sitting on it, with twelve pixels of
+   nothing under them where the answer ends. `:not(.b-cuts-row)` is the
+   answer rows and only those; the page's own cut row keeps what it had.
+
+   This is why every answer had to be made to use the row. The rule reaches
+   an answer in the card and the same answer in the thread, and it cannot
+   reach a chip that was appended to the sentence as a word. */
+.b-cuts:not(.b-cuts-row) { margin-top: 10px; }
+.b-cuts:not(.b-cuts-row):last-child { margin-bottom: 0; }
 .b-cut-n { font-variant-numeric: tabular-nums; opacity: 0.65; margin-left: 4px; }
 
 /* §4 held a campaign row. Campaigns are cards in the same grid as people
@@ -146,15 +157,26 @@
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px;
   margin: 0; font-size: var(--t-body);
 }
+/* == THE ONE YOU ARE ON IS THE HEADING; THE REST ARE NOT ==================
+   The README has described this block since it was built -- "the one you are
+   on at heading weight, the other two quiet beside it and pressable" -- and
+   the CSS gave all five extrabold and separated the current one by ink
+   alone. Four tabs at 800 read as four headings, and the strip stopped
+   looking like a heading with alternatives and started looking like a menu
+   bar shouting.
+
+   Ink alone is also one axis, which is the thing this build stopped
+   accepting everywhere else: a rank differs from its neighbour in at least
+   two of {size, weight, ink}. Now it differs in two. */
 .b-switch-btn {
   appearance: none; border: 0; background: transparent; padding: 0;
   cursor: pointer; font-family: var(--font-display);
-  font-size: var(--fs-lg); font-weight: var(--fw-extrabold);
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-tight); color: var(--ink-muted);
-  transition: color var(--t-fast);
+  transition: color var(--t-fast), font-weight var(--t-fast);
 }
 .b-switch-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-.b-switch-btn.is-on { color: var(--d50); }
+.b-switch-btn.is-on { color: var(--d50); font-weight: var(--fw-extrabold); }
 .b-switch-n {
   margin-left: 6px; font-size: var(--fs-xs); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-muted);
@@ -201,7 +223,20 @@
    line and the note ran flush to the card's left edge while the name and the
    company above them were indented — a ragged margin down the middle of every
    card. The 14px is the library's number, not a new one. */
-.b-qcard-why { padding: 8px 14px 0; }
+/* ══ AND IT IS STILL A CARD'S LINE, ON TWO OTHER CARDS ═════════════════════
+   `.b-qcard-note` is gone: it was the evidence for a sentence the card was
+   already saying. `.b-qcard-why` came off the PERSON card for the same kind
+   of reason — the why was an insight drawn outside the insight — and the
+   rule went with it, which broke two cards nobody had looked at. A campaign
+   card says how many of its people are left to call and a list card says how
+   many of its people are callable; neither is an insight and both need the
+   text column the name and the description above them stand in. */
+.b-qcard-why {
+  padding: 8px 14px 0;
+  font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug); color: var(--ink-primary);
+}
+.b-qcard-why b { font-weight: var(--fw-extrabold); }
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -217,7 +252,7 @@
    indent, and an indent is what it was costing. Nothing else on this card is
    ruled; the italic and the drop to --d300 already say the words are somebody
    else's. So the note joins the one column every other line here keeps. */
-.b-qcard .b-qcard-note { padding: 6px 14px 0; border-left: 0; }
+
 
 /* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
    The first cut ranked by ink alone and everything was a different grey, with
@@ -283,15 +318,7 @@
 
    600 for the sentence, 800 for the two things in it that are the reason the
    card is here. */
-.b-qcard-why {
-  font-size: var(--fs-base); font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug); color: var(--ink-primary);
-}
-.b-qcard-why b { font-weight: var(--fw-extrabold); }
-.b-qcard .b-qcard-note {
-  margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-regular);
-  line-height: var(--lh-snug); color: var(--ink-muted);
-}
+
 
 /* The number and the one action, pushed to the foot of the card so every card
    in a row ends on the same line.
@@ -305,6 +332,11 @@
   margin-top: auto; display: flex; align-items: center;
   justify-content: space-between; gap: 8px; flex-wrap: wrap;
 }
+/* With the amount off the manager's card the foot holds one thing, and
+   space-between puts a lone child on the left — under a card whose every
+   other row is left-aligned, which made the verb read as another line of
+   text. It stays where it has always been. */
+.b-qcard .b-qcard-foot > :only-child { margin-left: auto; }
 .b-qcard-num {
   font-size: var(--fs-base); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-secondary);
@@ -318,41 +350,25 @@
 
    `text-wrap: pretty` because these run two and three lines in a 340px card
    and the last line is where a lone word lands. */
-/* ── THE FACT IS LOUDER THAN THE WORD FOR IT ──────────────────────────────
-   These were the wrong way round: the label took --d300 and the sentence it
-   labels took --d400 off `.tc-summary`, so on every campaign and list card
-   the brightest thing in the line was the word "Goal" and the goal itself
-   was the dimmer half. A caption is a signpost — it is read once, to learn
-   what kind of fact follows, and never again. The fact is read every time.
+/* ── AND THE WORD FOR IT IS A MARK NOW ──────────────────────
+   Both cards that use this ran a caption in front of the sentence — Goal,
+   Who — and a caption in front of a sentence is read as its first word
+   whatever its size, weight and ink. The list card dropped its label; the
+   campaign card's became the target from the icon set, drawn through
+   `.b-fact` like every other icon-then-fact row in the build.
 
-   SWAPPING THE INK WAS HALF AN ANSWER. Measured after it, the label was
-   13/700/--d400 and the goal it labels was 13/700's opposite — 13/400/--d300
-   — so size tied, ink said read the goal and weight said read the word. The
-   eye takes the loudest of the three and this line had no loudest. The card
-   settles it the way §THE RAMP settles the person card: the three axes move
-   together, and a caption is the bottom rung of the ramp rather than a
-   competitor on it.
-
-     12 / 600 / d400   the word            `.tc-type`'s recipe exactly, so the
-                                           two captions on this card match
-     13 / 500 / d200   the goal            a step under the AiMY sentence,
-                                           two under the numbers that lead
-
-   Semibold at twelve px and --d400 is a label, not emphasis — the ramp
-   already says so of the campaign chip, and this is the same species of
-   thing. It was eleven, which is the floor and reserved for capitals; the
-   detail stays above it on size and on ink both.
-
-   The gap stays on the label alone rather than on every bold thing in the
-   line, so a figure set in bold inside the sentence keeps its own spacing
-   and its own ink. */
+   So the `> b:first-child` recipe that sat here — twelve semibold in
+   --d400, tuned against the sentence over three passes — has nothing left
+   to style. It goes with the words it was for. */
+/* The mark belongs to the first line, not to the block. `.b-fact` centres its
+   glyph, which is right for a one-line fact and wrong the moment the sentence
+   wraps: on a two-line goal the target floated into the gap between the lines,
+   pointing at neither. Top-aligned, and nudged onto the cap height of the line
+   it opens. */
+.b-qcard-what.b-fact > svg { align-self: flex-start; margin-top: 6px; }
 .b-qcard-what {
   text-wrap: pretty;
   font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--d200);
-}
-.b-qcard-what > b:first-child {
-  font-size: var(--t-small); font-weight: var(--fw-semibold);
-  color: var(--ink-muted); margin-right: 5px;
 }
 
 /* The keyboard cursor on a card. A call rather than a tint: a card already
@@ -474,7 +490,7 @@
   background: none; border: 0; outline: none;
   font-family: var(--font-sans); font-size: var(--fs-xs); color: var(--d50);
 }
-.b-find input::placeholder { color: var(--ink-muted); }
+.b-find input::placeholder { color: var(--ink-placeholder); }
 /* A way out that does not need the keyboard. Only drawn when there is
    something to clear, so it is never a control that does nothing. */
 .b-find-x {
@@ -911,11 +927,47 @@
    it is the sentence the campaign exists for, and it was 13px grey. */
 .s-home > .s-rec-head { display: flex; flex-direction: column; }
 .s-home .s-rec-kind { margin-bottom: 6px; }
-.s-home .s-rec-title { margin-bottom: 10px; }
+.s-home .s-rec-title { margin-bottom: 14px; }
 .s-home .s-rec-facts { gap: 0; }
 .s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
-.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 6px; }
-.s-home .s-rec-actions { margin-top: 16px; }
+/* == ONE STEP IS NOT A RANK, IT IS A WOBBLE ===============================
+   Measured on the record: 16/500/#d8e0e8 over 14/400/#c8d2dc, both carrying
+   the same 13px mark. Four distinctions -- size, weight, ink, position --
+   every one of them turned down so far that not one arrives. Four weak
+   signals do not add up to a strong one. They add up to a reader who cannot
+   tell whether this is one band or two, and settles for seven things.
+
+   Micro: two steps and 4px, with the mark dropping the same amount beside
+   it. Rank one is now a sentence and rank two a strip of utilities, and
+   nobody has to compare them to see which is which. Eight between them
+   stands: they are a tight group, and the space that matters is below. */
+.s-home .s-rec-facts > div + div { font-size: var(--t-micro); margin-top: 8px; }
+/* ══ TWO CONTROL ROWS ARE ONE GROUP ═══════════════════════════════════════
+   Measured with the eyebrow still in: 5px to the name, 8 to the facts, 14 to
+   the actions, 11 to the moves — four gaps with no order in them, so the two
+   rows that are both controls sat further apart than the facts and the first
+   of them. Tight groups, generous separation.
+
+   Then 18 was measured against what it has to separate, and it was not
+   enough. The gaps ran 11, 8, 15, 8 -- four numbers inside seven pixels of
+   each other, which is a block of text with some spaces in it rather than a
+   masthead with parts. Space only reads as space when it is unequal: 8
+   inside a group, 13 at the identity break, 25 where the reference ends and
+   the things you can DO begin. Three sizes of gap, three groups, and a
+   reader who counts three rather than eighteen. */
+.s-home .s-rec-actions { margin-top: 28px; }
+/* Ten held these two rows as one group on the grounds that both are
+   controls. They are not one job. The row above is what to do with this
+   person NEXT -- call them, get ready to; this row is what already happened,
+   and pressing one of these moves the deal rather than starting anything.
+   Twenty, which lands between the 13 that breaks identity from reference
+   and the 28 that breaks reference from doing, so the order still reads
+   downward and the biggest gap in the masthead is still the one that
+   matters most. */
+.s-home .b-ask { margin-top: 20px; }
+/* Four ghosts and a caption wrap on a phone, and a pill row wrapping on its
+   baseline leaves the caption stranded on the line above. Centre them. */
+.s-home .b-ask { align-items: center; }
 
 /* [3] INSIDE A SECTION. Heading → first row 12, action row → chips 12, chips
    → grid 16, grid → foot 12. The action row had been pulled up into the
@@ -927,7 +979,6 @@
 /* [4] THE LAST MUTED INK. Smaller is allowed; dimmer is not. */
 .b-switch-n, .b-switch-btn.is-on .b-switch-n { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 .s-starts-cap { color: var(--ink-muted); }
-.rail-scope-cap { color: var(--ink-muted); font-weight: var(--fw-semibold); }
 
 /* [5] THE LEAD BLOCK'S PROPORTIONS. Figure 24 over sentence 15, deck 17, the
    today-line at UI size, and 16 to the actions — measured at 56 before with
@@ -1318,13 +1369,14 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    disclosure in the build that still snapped — the rule listed the two that
    existed when it was written. A component's behaviour belongs to the
    component, not to the surfaces that happened to use it first. */
-.s-call, .s-trace, .s-crew { interpolate-size: allow-keywords; }
-.s-call::details-content, .s-trace::details-content, .s-crew::details-content {
+.s-call, .s-trace, .s-crew, .b-nmo { interpolate-size: allow-keywords; }
+.s-call::details-content, .s-trace::details-content, .s-crew::details-content,
+.b-nmo::details-content {
   height: 0; overflow: clip;
   transition: height 200ms var(--ease-out), content-visibility 200ms allow-discrete;
 }
 .s-call[open]::details-content, .s-trace[open]::details-content,
-.s-crew[open]::details-content { height: auto; }
+.s-crew[open]::details-content, .b-nmo[open]::details-content { height: auto; }
 /* ── AND THE MARK IS DRAWN, NOT TYPED ─────────────────────────────────────
    Every other mark in this product is a Lucide path at 2px in a 24 viewBox,
    set by `chIcon`. This one was U+25B8, a solid triangle out of whatever
@@ -1342,7 +1394,7 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
    `align-self` is dead and a 12px box rests its bottom edge on the baseline —
    two px above where a glyph read. A `translateY` would do both and then have
    to be carried through the rotation below, so neither is one. */
-.s-call-sum::before, .s-trace-sum::before {
+.s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before {
   content: ""; display: inline-block; flex: none; align-self: center;
   width: 12px; height: 12px; margin-right: 0.35em; vertical-align: -2px;
   background: currentColor;
@@ -1350,9 +1402,26 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
   mask: var(--chevron-right) center / 12px 12px no-repeat;
   transition: transform 160ms var(--ease-out);
 }
-.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before {
+.s-call[open] .s-call-sum::before, .s-trace[open] .s-trace-sum::before,
+.b-nmo[open] .b-nmo-sum::before {
   content: ""; transform: rotate(90deg);
 }
+
+/* A month of notes, folded. No rule between them: a closed month is already
+   one line with a chevron on it, and a hairline above each one draws a
+   boundary the summaries were drawing for themselves — two marks for one
+   division, on a page whose whole job is a quiet list. */
+.b-nmo-sum {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 11px 10px 11px 0; list-style: none;
+}
+.b-nmo-sum::-webkit-details-marker { display: none; }
+.b-nmo-sum:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-nmo-name {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+/* Its own month's, right where the eye already stops. */
+.b-nmo-n { margin-left: auto; font-size: var(--fs-2xs); color: var(--ink-quiet); }
 
 /* ══ 35. A KEY IS DRAWN AS A KEY ═══════════════════════════════════════════
    The read-back's hint names the digits that set an outcome. A keycap: the
@@ -1398,7 +1467,8 @@ button.pipe-chip:focus-visible { outline: 2px solid var(--brand); outline-offset
 
 @media (prefers-reduced-motion: reduce) {
   .s-call::details-content, .s-trace::details-content,
-  .s-call-sum::before, .s-trace-sum::before,
+  .s-crew::details-content, .b-nmo::details-content,
+  .s-call-sum::before, .s-trace-sum::before, .b-nmo-sum::before,
   .ds-theme-toggle svg, .s-pick-tick .s-tick, .s-pick-tick .s-tick::after { transition: none; }
   .b-gate { animation: none; }
 }
@@ -1438,7 +1508,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   padding: 8px 12px; border-radius: 10px;
   background: var(--card-bg); border: 1px solid var(--card-border);
 }
-.b-pick-find::placeholder { color: var(--ink-muted); }
+.b-pick-find::placeholder { color: var(--ink-placeholder); }
 .b-pick-find:focus-visible {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
@@ -1786,6 +1856,338 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
 .b-nm-by { font-size: var(--t-small); color: var(--ink-muted); }
+
+/* ══ 47. WHERE A DEAL STANDS, IN ONE BLOCK ═════════════════════════════════
+   `b-nm-do`'s drawing, because it is the same kind of thing: one statement,
+   a mark, and the sentence that says what it is — so the mark keeps
+   `b-nm-mark`'s square rather than a second class that would draw it again.
+
+   Two blocks used to sit in this slot. The unwritten meeting was a bordered
+   card and the ended deal was a bold line of text with nothing around it,
+   and they never appear together — a deal is either running and owes a
+   write-up, or it has stopped. One question, two drawings, which is the
+   duplicate this build keeps removing. One drawing now, four tones.
+
+   The tone is the pole where there is one: ok signed, err said no. Ask
+   takes the accent, because it is a thing to do rather than a thing that
+   happened. Rescheduled takes the card's own ground and no colour at all —
+   nothing went well or badly there, a date moved.
+
+   In a section rather than in the masthead, because it is not always there.
+   A prompt on every record all the time is furniture, and furniture is not
+   read. */
+.b-state {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px;
+  align-items: start; padding: 14px 16px; border-radius: 14px;
+}
+/* Centred on the sentence, which is not the same as centred on the block.
+   `align-items: start` stays, because the ask has a row of four buttons
+   under its line and centring against the pair would put the mark beside
+   the gap between them -- the same fault the facts' marks had. It takes the
+   sentence's own type metrics so `1lh` below means the line the mark has to
+   sit on rather than whatever leading it inherited, and it lands on that
+   line whether the sentence runs to one or three. */
+.b-state-mark {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border-radius: 9px; flex: none;
+  font-size: var(--t-lead); line-height: var(--lh-base);
+  margin-top: calc((var(--t-lead) * var(--lh-base) - 28px) / 2);
+  margin-top: calc((1lh - 28px) / 2);
+}
+.b-state-mark > svg { width: 15px; height: 15px; }
+.b-state-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.b-state-say {
+  margin: 0; font-size: var(--t-lead); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50); max-width: 62ch; text-wrap: pretty;
+}
+.b-state-say b { font-weight: var(--fw-extrabold); }
+.b-state-moves { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.b-state.is-ask { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
+.b-state.is-ask .b-state-mark { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18); }
+.b-state.is-won { background: var(--ok-bg); border: 1px solid color-mix(in srgb, var(--ok) 28%, transparent); }
+.b-state.is-won .b-state-mark { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.b-state.is-lost { background: var(--err-bg); border: 1px solid color-mix(in srgb, var(--err) 28%, transparent); }
+.b-state.is-lost .b-state-mark { color: var(--err-text); background: color-mix(in srgb, var(--err) 18%, transparent); }
+.b-state.is-later { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+.b-state.is-later .b-state-mark { color: var(--ink-quiet); background: var(--card-bg); }
+
+
+/* ══ 47c. A CONTROL AiMY PERFORMS ══════════════════════════════════════════
+   "Prepare me for 10:30" was drawn as a link -- accent text, no edge --
+   under a block of six meetings. That is the treatment this system reserves
+   for something that only goes somewhere, and this goes nowhere: it reads
+   the record, the campaign and everything ever said into it, and writes a
+   sheet. A control has an edge, so it takes one.
+
+   The ghost's box exactly, because the two stand in rows together and a
+   near-miss on height or padding reads as a mistake rather than a decision.
+   What is added is the mark and the accent, and they are added for a reason
+   the reader can use: every other button on the page does what its verb
+   says, and this one hands the work to AiMY. The surfaces that already do
+   that carry the same mark at the head of the block.
+
+   Two of the three `data-prep` controls are not here. Both sit in rows that
+   set their own weight from position -- the primary of a record's action
+   row, the verb under a card's reading -- and taking that away from them to
+   make three look alike would cost more than it bought. */
+.b-ai { color: var(--accent-text); border-color: rgba(var(--accent-rgb), 0.35); }
+.b-ai:hover {
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.10);
+  border-color: rgba(var(--accent-rgb), 0.5);
+}
+.b-ai > svg { width: 13px; height: 15px; flex: none; }
+
+/* Off-screen but in the tree: read aloud, never drawn, and never a focus
+   stop of its own. `clip-path` rather than the old 1px-clip trick, and a
+   negative margin so it cannot add a stray pixel to a grid row. */
+.b-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; border: 0; overflow: hidden; white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* ══ THE PARTS NOBODY DRAWS ════════════════════════════════════════════════
+   Text selection shipped as the browser's own blue on every surface of this
+   build — the one piece of chrome that is visible on every page and belongs
+   to no design system in it. It is the accent at low alpha now, which is
+   what the rest of the ink is picked against, and the foreground is left
+   alone so contrast cannot be lost behind it.
+
+   Build-wide rather than scoped to one card: a selection colour that changes
+   depending on which box the words are in is worse than the default it
+   replaced. */
+::selection { background: rgba(var(--accent-rgb), 0.28); }
+
+/* ══ 47d. THE ANSWER, BEFORE THE CANVAS ════════════════════════════════════
+   Anchored to the bar the way the scope tray is — `bottom: calc(100% + 8px)`
+   rather than a fixed offset that assumes a bar height — and the same 760px
+   the bar itself is, so the card and the input it came from are one column.
+
+   The tray steps aside while it is up. They want the same eight pixels, and
+   an answer you just asked for outranks the filters you did not.
+
+   Clipped rather than scrolled. A scroller inside a card above a text field
+   is a second place to put the wheel, and the whole point of this card is
+   that it is a glance: what fits, a fade, and a door to the rest. */
+.b-peek {
+  position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+  display: flex; justify-content: center; pointer-events: none; z-index: 2;
+}
+/* `display: flex` above outranks the shell's `[hidden] { display: none }` --
+   same specificity, later in the cascade -- so the card sat on screen from
+   boot with nothing in it. Every element this build hides with the attribute
+   and styles with a display is one line away from the same bug. */
+.b-peek[hidden] { display: none; }
+.aimy-float-wrap.has-peek .filter-tray { display: none; }
+/* ══ THE COMPOSER'S OWN SKIN ═══════════════════════════════════════════════
+   The pass before this built it as a card: the raised card ground, a wash
+   down it, the card border, a card shadow tinted to the page. Every one of
+   those is right for a card and wrong for this, because this is not a card.
+   It is what the input said back, and dressed as a card it read as a
+   notification that had floated in over the page and happened to land there.
+
+   Nothing says "connected" as directly as being made of the same material.
+   The bar is #1e2428 with a nine-percent edge, an inner top hairline at
+   five, and a two-part shadow — one wide and soft for the lift, one
+   hairline for the contact. This is that, exactly, so the two read as one
+   object with a seam across it rather than as two things at two heights.
+   The gap closes to six: near enough to be that seam, far enough to be two.
+
+   TOKENISED BECAUSE TWO RULES NEED IT NOW. The shell hard-codes the literal
+   in `.aimy-float-bar`, which is why the value is written here rather than
+   read from a token that never existed. That rule still carries its own
+   copy: until the shell adopts these, the composer's material has to be
+   changed in both places. */
+:root { --composer-skin: #1e2428; --composer-edge: rgba(255, 255, 255, 0.09); }
+:root[data-theme="light"] { --composer-skin: #ffffff; --composer-edge: rgba(16, 24, 40, 0.14); }
+/* The prose and the chips stack; the dismiss sits beside both. Two boxes
+   rather than three flex children, so the chips line up under the sentence
+   instead of beside it. */
+.b-peek-main { flex: 1 1 auto; min-width: 0; }
+.b-peek-card {
+  pointer-events: all; position: relative;
+  width: 100%; max-width: 760px;
+  display: flex; align-items: flex-start; gap: 4px;
+  padding: 5px; border-radius: 24px;
+  background: var(--composer-skin);
+  border: 1px solid var(--composer-edge);
+  /* The bar's shadow, at a third. Taking its material was right and taking
+     its LIFT was not: that shadow is the weight of the composer against the
+     page, and the card is not a second thing floating over the same page —
+     it is the top of the one object. Cast at full strength it read as
+     stacked, which is the thing this pass set out to stop.
+
+     Enough is left to hold it off the rows scrolling under it, and the
+     contact hairline and the inner edge stay untouched, because those are
+     what make it the same material rather than what makes it float. */
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Overshoot rather than ease-out. The card is arriving, not fading in, and
+     a thing that arrives settles. */
+  animation: b-peek-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* The shell's own light values for the same two shadows, and no inner
+   hairline: on white there is no light for an edge to catch. */
+:root[data-theme="light"] .b-peek-card {
+  box-shadow:
+    0 4px 16px rgba(16, 24, 40, 0.09),
+    0 0 0 1px rgba(16, 24, 40, 0.03);
+}
+/* One authored moment, and it reaches past transform and opacity. The card
+   resolves out of the blur the bar behind it is already carrying, which is
+   the same material arriving rather than a box sliding in — 6px is small
+   enough to stay on the compositor and short enough that nothing waits on
+   it. `filter` and not `backdrop-filter`: animating the backdrop re-samples
+   everything under the card every frame. */
+@keyframes b-peek-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.985); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+/* The whole card is the press, so the text inside it is left-aligned rather
+   than centred the way a button's label would be — and there is no label
+   under it saying so. "Open the canvas" was a caption explaining a control
+   that is already the size of the sentence it holds; a card that is entirely
+   pressable does not need a second, smaller thing to press.
+
+   `transform` and `opacity` only, and the push is a pixel down rather than a
+   scale: a 760px card that scales on press wobbles at its corners, where the
+   same card moving one pixel reads as a key going down. */
+.b-peek-open {
+  display: grid; width: 100%;
+  padding: 14px 16px; border: 0; border-radius: 20px;
+  background: none; font-family: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--t-fast), transform 120ms var(--ease-out);
+}
+.b-peek-open:hover { background: rgba(var(--accent-rgb), 0.07); }
+.b-peek-open:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .b-peek-open:active { transform: none; } }
+.b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-peek-body {
+  position: relative; display: block; overflow: hidden;
+  /* Three. A peek is a glance and four lines is a paragraph — and with the
+     chips lifted out of this box, three lines of prose is all it ever holds,
+     so the cut lands on reading rather than on something to press. */
+  max-height: calc(var(--t-body) * var(--lh-base) * 3);
+  font-size: var(--t-body); line-height: var(--lh-base);
+  color: var(--d100); text-wrap: pretty;
+}
+.b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
+/* Outside the cap and outside the press, so it is never cut and never
+   opens the canvas; gone entirely when the answer carries no chips, so it
+   costs no space of its own. The padding is the button's own, minus the
+   bottom, so the chips sit under the sentence on the same left edge. */
+.b-peek-acts { display: block; padding: 0 16px 14px; }
+.b-peek-acts:empty { display: none; }
+/* The button keeps its full box when it is alone and gives up its bottom
+   padding when the chips follow, so the gap between them is the chip row's
+   own ten and not that plus fourteen. */
+.b-peek-open:has(+ .b-peek-acts:not(:empty)) { padding-bottom: 0; }
+/* Knowledge's own chip entrance, shape for shape: 420ms on the shared ease,
+   rising 0.375rem from nothing, staggered off `--i`. It arrives after the
+   sentence rather than with it, so the stagger reads as the answer handing
+   you what to do about it — which is the order the two things happen in.
+
+   NINETY, NOT FORTY. Both numbers are that file's: 40ms staggers the gate's
+   suggestion chips, which are a wall of them and want to arrive as one
+   surface, and 90ms staggers its skeleton rows, which want to be counted.
+   Four chips at 40 is 120ms end to end — one movement. At 90 the last one
+   lands 270ms after the first, which is slow enough to read as four things
+   arriving and still finished before the eye leaves the card. It carries on
+   from the words: the sentence types itself in, then the chips come one at
+   a time behind it. */
+.b-peek-acts .s-insight-lnk {
+  opacity: 0;
+  animation: b-chip-in 420ms var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes b-chip-in {
+  from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b-peek-acts .s-insight-lnk { animation: none; opacity: 1; }
+}
+/* Only where there is more, and now it is the ONLY thing that says so —
+   the caption under it is gone. That is the right amount: a sentence cut
+   mid-air says there is more of it, and a reader who wants the rest presses
+   the thing they are already reading.
+
+   Drawn on the card's own ground, which is a wash rather than a flat colour
+   now, so the fade ends on the colour the bottom of the card actually is
+   rather than on the one the top of it started as. */
+.b-peek.is-clipped .b-peek-body::after {
+  /* One line's worth. Over a three-line box a 2.4em fade covered most of
+     what it was meant to be revealing. */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1.7em;
+  background: linear-gradient(to bottom, transparent, var(--composer-skin));
+  pointer-events: none;
+}
+/* 32px of button under a 14px mark, and a thumb wants 44. The target grows
+   and the button does not: an invisible box centred on it takes the press,
+   so the card keeps its proportions and the finger keeps its margin. */
+.b-peek-x {
+  position: relative;
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  margin-top: 8px; margin-right: 7px;
+  border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
+  cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-peek-x::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+.b-peek-x:hover { color: var(--ink-primary); background: var(--card-bg); }
+.b-peek-x:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* ══ THE MARK IT THINKS WITH ═══════════════════════════════════════════════
+   `.ai-thinking` and `.ai-thinking-label` are already in this shell's design
+   system, so the row and its label need nothing here. `.think-mark` is not,
+   and it arrives as Knowledge writes it, to the character:
+
+     width: 1.625rem; height: 1.625rem;
+     flex-shrink: 0;
+     color: var(--ai-text);
+     vertical-align: middle;
+
+   The `color` is load-bearing rather than decorative — the canvas reads its
+   own floor colour off it, which is why the mark is painted in one place and
+   not two. Nothing here guards reduced motion: `startThinking` asks the
+   media query itself and draws the mark once, at rest, because the state is
+   information and only the movement is decoration.
+
+   The clip comes off while it thinks. There is nothing to fade to when what
+   is in the box is a mark and four words. */
+.b-peek.is-thinking .b-peek-body { max-height: none; }
+/* ══ THE PILL, ONE SIZE DOWN ═══════════════════════════════════════════════
+   The design system's `.ai-thinking` is built for a chat bubble, where it
+   stands in for a whole message and is sized to hold that place. Here it sits
+   in a card whose own padding already frames it, so it was carrying a second
+   frame at a message's scale — 9/15 of padding, a 16px label and a 26px mark
+   inside a box that is only ever one line tall.
+
+   Down a step and no further: the mark to 22, the label to the `--t-small`
+   this build uses for a line that is not the reading, and the padding to
+   7/13. Scoped to the card, so the bubble's own version is untouched. */
+/* No pill. The card is the container and a second rounded box inside it,
+   with its own ground and its own border, was a container drawn around a
+   mark and four words that were already contained. What is left is the
+   thing happening and what it is doing, which is all the state was ever
+   saying. */
+.b-peek .ai-thinking {
+  gap: 9px; padding: 0; background: none; border: 0; border-radius: 0;
+}
+.b-peek .ai-thinking-label { font-size: var(--t-small); }
+.b-peek .think-mark { width: 1.375rem; height: 1.375rem; }
+.think-mark {
+  width: 1.625rem; height: 1.625rem;
+  flex-shrink: 0;
+  color: var(--ai-text);
+  vertical-align: middle;
+}
+@media (prefers-reduced-motion: reduce) { .b-peek-card { animation: none; } }
 
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
@@ -2360,91 +2762,15 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-menu-item.is-on:hover { background: rgba(var(--accent-rgb), 0.22); }
 
 /* ══ 69. THE BOARD ═════════════════════════════════════════════════════════
-   Six columns that scroll inside their own container, so a board wider than
-   the window never makes the page move sideways. Each column's list scrolls
-   inside itself, which leaves the heading — the count and the sum, the two
-   things a column exists to tell you — standing still above it without a
-   sticky rule that would have nothing to stick to.
+   Gone. Seven columns each scrolling inside itself, each with a card
+   component of its own, and what the whole apparatus bought was the stage
+   — which is a filter chip on every other surface in this build. The
+   manager's deals are a grid of cards over a row of cuts now, which is
+   what the caller's queue has always been, and one card draws both.
 
-   The boundary between columns is a hairline, not a gap: a gap between
-   groups of cards reads as more cards missing. */
-.b-board {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(232px, 1fr);
-  overflow-x: auto; overscroll-behavior-x: contain;
-  margin-top: 16px; padding-bottom: 4px;
-}
-.b-col {
-  min-width: 0; display: flex; flex-direction: column; gap: 12px;
-  padding: 0 14px; border-right: 1px solid var(--card-border);
-}
-.b-col:first-child { padding-left: 0; }
-.b-col:last-child { border-right: 0; padding-right: 0; }
-/* Won and Lost are read, not worked, so they take less of the width. */
-.b-col.is-end { grid-column: span 1; }
-.b-board:has(.b-col.is-end) { grid-auto-columns: minmax(232px, 1fr); }
-
-.b-col-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.b-col-cap {
-  font-size: var(--t-ui); font-weight: var(--fw-semibold); color: var(--d50);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.b-col-n { font-variant-numeric: tabular-nums; color: var(--ink-muted); margin-left: 6px; }
-.b-col-sum {
-  margin-left: auto; flex: none;
-  font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d100);
-  font-variant-numeric: tabular-nums;
-}
-.b-col-none { margin: 0; font-size: var(--t-small); color: var(--ink-muted); }
-.b-col-list {
-  display: flex; flex-direction: column; gap: 8px;
-  max-height: 58svh; overflow-y: auto; overscroll-behavior-y: contain;
-  padding-right: 2px;
-}
-
-.b-dealcard {
-  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left;
-  font-family: inherit; cursor: pointer;
-  padding: 11px 12px; border-radius: var(--r-md);
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  transition: border-color var(--t-fast), background-color var(--t-fast),
-    transform 160ms var(--ease-out);
-  animation: b-surface-in 200ms var(--ease-out) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 30ms);
-}
-.b-dealcard:hover { border-color: var(--card-border-hover); background: var(--card-bg-raised); }
-.b-dealcard:active { transform: scale(0.99); }
-.b-dealcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-/* ── THE SAME FOUR RANKS THE QUEUE CARD HAS, IN A NARROWER COLUMN ─────────
-   Every run on this card was 14px — the name at 600, the company at 400, the
-   basis at 400 and the amount at 700 — so a board of thirty deals had thirty
-   names that did not lead their own cards. It is the queue card's problem in
-   a column six across instead of three, and it takes the queue card's answer
-   one step smaller: 16 rather than 18 for the name, because the column is
-   half the width and an 18px name wraps.
-
-     16 / 800 / primary     the name
-     16 / 700 / secondary   the amount
-     14 / 500 / muted       the company
-     14 / 400 / muted       the basis */
-.b-dc-name {
-  font-size: var(--t-body); font-weight: var(--fw-extrabold);
-  line-height: var(--lh-tight); color: var(--ink-primary);
-}
-.b-dc-co { font-size: var(--t-small); font-weight: var(--fw-medium); color: var(--ink-muted); }
-/* The one line of basis under a deal. It is the sentence the card is for,
-   and it was the smallest thing on it. */
-.b-dc-why {
-  font-size: var(--t-small); color: var(--ink-muted); line-height: 1.45;
-  margin-top: 3px; text-wrap: pretty;
-}
-.b-dc-amt {
-  margin-top: 6px; font-size: var(--t-body); font-weight: var(--fw-bold);
-  color: var(--ink-secondary); font-variant-numeric: tabular-nums;
-}
-@media (prefers-reduced-motion: reduce) {
-  .b-dealcard { animation: none; transition: none; }
-  .b-dealcard:active { transform: none; }
-}
+   The number stays with the gap in it. A section that was here and is not
+   is worth more in the sequence than a renumbering that makes the file
+   look as though it never had a board. */
 
 /* ══ 70. THE DIARY ═════════════════════════════════════════════════════════
    A month of dots over one day in full. The reference this is built from is
@@ -2587,7 +2913,98 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-ev .b-cal-dot { width: 8px; height: 8px; }
 /* The hour and the kind of thing it is, together as one mark. */
 .b-cal-evtop { display: flex; align-items: center; gap: 8px; }
-.b-cal-evtop .tag { flex: none; }
+.b-cal-evtop .b-kind { flex: none; }
+
+/* ══ WHAT KIND OF THING THIS IS ════════════════════════════════════════════
+   A tag says where a record STANDS. Five other things were wearing one — a
+   meeting's kind, an offering's kind, a campaign's clock, a list's
+   attachment, a tally — so the component meant five things and a reader
+   could not learn it once.
+
+   The four that are not states land here. It is a word, so it takes none of
+   the three treatments the system spends: a label has a fill, a control has
+   an edge, a link has neither and is coloured. This has none of them — the
+   minimal-component size, the ambient step, and no ground at all, which is
+   what leaves the tag beside it meaning something. */
+.b-kind {
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--ink-faint); white-space: nowrap;
+}
+
+/* ══ WHAT AN ACCOUNT IS WORTH TO US ══════════════════════════
+   A medal, which is the one place in this build where colour is allowed to
+   be the name of something. `ok` and `err` are a verdict on a thing that
+   happened; gold against silver is a verdict on nothing — it is what the
+   team already calls these accounts out loud, and a reader told an account
+   is gold and shown a grey mark has two facts to reconcile.
+
+   Bench is the shield with no fill: not a third metal, but the one that is
+   not on the field. That also leaves the three differing in something other
+   than hue, which is what holds them apart for a reader who cannot separate
+   gold from silver. */
+.b-tier {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--fs-2xs); white-space: nowrap;
+}
+.b-tier-shield {
+  /* Height only: the viewBox carries the aspect, so one number sets the
+     mark and the box can never disagree with the shape inside it. */
+  height: 16px; width: auto; flex: none;
+  filter: drop-shadow(0 1px 1.5px var(--tier-cast));
+}
+
+/* The metals. Each is three values rather than one — the face, a rim a
+   shade under it, and the cast the badge throws — and each pair is picked
+   against its own ground: a gold that reads on a dark page is a pale one,
+   and that same value on white is a yellow nobody would call gold. */
+:root {
+  --tier-gold: #d9a533;   --tier-gold-rim: #8f6a11;
+  --tier-silver: #aab6c3; --tier-silver-rim: #6b7783;
+  --tier-cast: rgba(0, 0, 0, 0.55);
+  --tier-lit: rgba(255, 255, 255, 0.34);
+}
+:root[data-theme="light"] {
+  --tier-gold: #c08f16;   --tier-gold-rim: #7d5c07;
+  --tier-silver: #939fab; --tier-silver-rim: #5d6873;
+  --tier-cast: rgba(16, 24, 40, 0.3);
+  --tier-lit: rgba(255, 255, 255, 0.42);
+}
+
+/* `paint-order` lays the fill down before the stroke, so the rim straddles
+   the outline and only its inner half survives. That is half a pixel of
+   dark all the way round, which is a bevel; without it the badge is a flat
+   shape with a shadow underneath. */
+.b-tier-face { stroke-width: 1; paint-order: fill stroke; stroke-linejoin: round; }
+.b-tier.is-gold .b-tier-face { fill: var(--tier-gold); stroke: var(--tier-gold-rim); }
+.b-tier.is-silver .b-tier-face { fill: var(--tier-silver); stroke: var(--tier-silver-rim); }
+
+/* One light source, upper left, where every struck thing a person has held
+   has its light. The point is not that anybody notices the highlight — it
+   is that without one the shape has no thickness. */
+.b-tier-lit { fill: var(--tier-lit); stroke: none; }
+
+/* Bench keeps none of it. It is not a third metal but the one that is not
+   on the field, so it takes the outline, no wash and no lift, and stays
+   the quietest thing in a column of fifteen. */
+.b-tier.is-bench .b-tier-shield { filter: none; }
+.b-tier.is-bench .b-tier-face { fill: none; stroke: var(--ink-rule); stroke-width: 2; }
+.b-tier.is-bench .b-tier-lit { fill: none; }
+
+/* The word keeps the ink and weight steps it always had. Only the shield
+   is coloured: gold TEXT at twelve pixels is a contrast problem on both
+   grounds, and the hierarchy on the line it lands in is the page's. */
+.b-tier.is-gold { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.b-tier.is-silver { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
+.b-tier.is-bench { color: var(--ink-quiet); font-weight: var(--fw-medium); }
+
+/* The name's own row, on a card and on a record, with the mark hard against
+   the right so a column of them can be scanned straight down. The card's
+   padding lives on its children, so the wrapper carries the right inset
+   the title already had on its left. */
+.b-qcard-top { display: flex; align-items: baseline; gap: 8px; padding-right: 14px; }
+.b-qcard-top .b-tier,
+.s-rec-title .b-tier { margin-left: auto; }
+
 .b-cal-etime {
   flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d200); font-variant-numeric: tabular-nums;
@@ -2665,15 +3082,76 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    Under the diary, and deliberately not another card: it is the same
    surface's unfinished business, so it reads as the bottom of the diary
    rather than as a second thing to do. */
-.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); max-width: 560px; }
+/* ══ THE MEASURE BELONGS TO THE PROSE, NOT TO THE SECTION ═════════════════
+   560px sat on the whole block, so the rule that separates this from the
+   diary stopped two-thirds across, the caption's row ended there, and the
+   door on it landed in the middle of the page with the page's own right
+   edge a long way past it. A section spans its block; the thing that
+   needs a measure is the sentence.
+
+   Which also gives the section one right edge: the door on the caption's
+   row and the verb at the end of every row under it now line up on it. */
+.b-loop { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--card-border); }
+/* The caption and the door on one row: what has not been written down, and
+   the way to what has. The caption keeps its own type — a control beside a
+   micro capital is the pair this row is for, not a mismatch to correct. */
+.b-loop-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 6px;
+  /* The rows below carry 10px of their own so the hover ground clears their
+     text. This row is not pressable and has no ground to protect, so without
+     the same inset its door stood nine pixels outside the column of verbs it
+     is the head of. One edge for the section. */
+  padding-right: 10px;
+}
 .b-loop-cap {
-  margin: 0 0 6px; font-size: var(--t-micro); font-weight: var(--fw-bold);
+  margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
-.b-loop-say {
-  margin: 0 0 10px; font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); text-wrap: pretty;
+/* The sentence under the caption is an `.b-aimy` now, so the measure it was
+   carrying moves onto that — a reading is prose and prose wants a line
+   length, whoever is saying it. */
+.b-loop .b-aimy { max-width: 560px; margin-bottom: 10px; }
+/* ══ WHAT IS OWED, ACROSS EVERY SURFACE ════════════════════════
+   The briefing's own list. A row is pressable end to end and carries no
+   edge of its own — the block is already a surface, and eight bordered
+   rows inside it is a table drawn by hand. The verb on the right is a
+   link: no fill, no edge, coloured, which is what colour is for here. */
+.b-owed { display: flex; flex-direction: column; }
+.b-owed-row {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 12px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
+.b-owed-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-owed-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .b-owed-row { animation: none; } }
+/* Two poles and nothing else, matching the bell exactly: p1 is a thing
+   that went wrong, p2 and p3 are things that have not happened yet, and
+   the order of the rows is what separates those two. */
+.b-owed-sev {
+  width: 6px; height: 6px; border-radius: 50%;
+  margin-top: 7px; flex: none; background: var(--d500);
+}
+.b-owed-sev.p1 { background: var(--err); }
+.b-owed-main { flex: 1; min-width: 0; }
+.b-owed-head { display: flex; align-items: baseline; gap: 8px; }
+.b-owed-type {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+.b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
+.b-owed-body {
+  display: block; margin-top: 2px;
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+}
+.b-owed-go {
+  flex: none; align-self: center; white-space: nowrap;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent);
+}
+
 .b-loop-row {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
   padding: 9px 10px; border: 0; border-radius: var(--r-md);
@@ -2761,18 +3239,59 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    The middot separator goes wherever a mark arrives: two separators for one
    job is one too many, and the gap does the rest. */
 .b-fact { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+/* == CENTRED ON THE FIRST LINE, WHICH IS BOTH ANSWERS AT ONCE =============
+   `align-self: center` centres the mark on the whole box, so a fact of one
+   line got it level with the words and a fact that wrapped got it level with
+   the gap between them -- floating beside the middle of a sentence with no
+   line to belong to.
+
+   Centred on the FIRST line instead. Where there is only one line that is
+   the same thing as centred, and where there are two it sits against the
+   line the sentence starts on. One rule, both behaviours, and no counting
+   of lines: `1lh` is this element's own line box, so it follows whatever
+   size the row is set at without being told.
+
+   The mark's size moves to `--mark` so the sum can read it. Every rule that
+   used to set width and height sets that instead, and each still gets its
+   own centring for free. */
 .b-fact > svg {
-  width: 13px; height: 13px; flex: none; color: var(--ink-muted);
-  align-self: center; margin-top: -1px;
+  --mark: 13px;
+  width: var(--mark); height: var(--mark); flex: none; color: var(--ink-muted);
+  align-self: flex-start;
+  /* For anything without `lh`: the row's own leading, in ems. */
+  margin-top: calc((var(--lh-base, 1.5) * 1em - var(--mark)) / 2);
+  margin-top: calc((1lh - var(--mark)) / 2);
 }
-.s-rec-facts .b-fact + .b-fact::before { content: none; }
+/* == THE MARK IS THE SEPARATOR, ON EVERY RANK =============================
+   Rank one lost its marks for four commits and took the middot instead. The
+   argument was that a campaign name, a job title and a company name say
+   which kind of thing they are without a drawing in front of them -- true of
+   those three, and no longer true of the rank, because what we sell them
+   joined it. "Logistics, Southern Europe · Data annotation" is a campaign
+   beside a product, and neither announces which it is. The flag and the box
+   said so; a middot says nothing.
+
+   And the marks were never what fixed this masthead. Two ranks that read as
+   one were 16/500 over 14/400 with the SAME 13px mark, and what separated
+   them was dropping rank two to micro with a mark to match -- two steps of
+   size, which stands whether or not rank one is drawn with marks. Taking
+   them off was a second measure on top of a fix that had already landed,
+   and it was the one that cost information.
+
+   So the marks are back, and with them the rule this file has always held:
+   two separators for one job is one too many. Where a mark arrives the
+   middot goes -- on every rank now rather than only on rank two, because
+   `:has` hangs the rule off the fact BEFORE the gap and does not care which
+   row it is in. A bare fact beside a marked one still takes a dot; it is
+   the only thing it has. */
+.s-rec-facts .b-fact:has(+ .b-fact)::after { content: none; }
+.s-rec-facts > div + div .b-fact > svg { --mark: 11px; }
 .s-rec-facts > div { gap: 4px 16px; }
 .b-kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 /* On a card the mark is smaller again: the line it sits on is 11px, and a
    13px mark beside it reads as the loudest thing in the corner. */
-.tc-type.b-fact > svg { width: 11px; height: 11px; }
-.b-dc-co.b-fact > svg { width: 11px; height: 11px; }
-.b-node-name.b-fact > svg { width: 12px; height: 12px; }
+.tc-type.b-fact > svg { --mark: 11px; }
+.b-node-name.b-fact > svg { --mark: 12px; }
 
 /* ══ 76. THE MARKS ON A CARD ═══════════════════════════════════════════════
    Smaller than on a record, because the line they sit on is smaller: a
@@ -2780,8 +3299,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    which is the opposite of what a mark is for. The facts line becomes a
    wrapping row so a long company name takes its mark with it. */
 .b-qcard-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
-.b-qcard-where .b-fact > svg { width: 12px; height: 12px; }
-.b-qcard-num.b-fact > svg { width: 12px; height: 12px; }
+.b-qcard-where .b-fact > svg { --mark: 12px; }
+.b-qcard-num.b-fact > svg { --mark: 12px; }
 
 /* The campaign's team block carries its own caption and the top margin that
    goes with sitting inside the metadata grid. On a record it is a section
@@ -2875,7 +3394,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* One under the other in a 282px column, which is the shape the rail has
    spare — and the reason these two could carry a figure at 32px on a page
    is the reason they still can here: there is nothing beside them. */
-.rail-doors { display: grid; gap: 12px; margin-top: 14px; }
+.rail-doors { display: grid; gap: 10px; margin-top: 12px; }
 .b-door {
   display: flex; flex-direction: column; gap: 12px; width: 100%; height: 100%;
   text-align: left; padding: 18px 20px 20px;
@@ -3015,7 +3534,23 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   background: none; border: 0; border-bottom: 1px solid transparent; padding: 2px 0;
   transition: border-color var(--t-base);
 }
-.b-draft-name::placeholder { color: var(--ink-muted); }
+/* ══ AN ABSENCE MUST NOT READ AS A VALUE ═══════════════════════════════════
+   Measured on the campaign draft, where a page of empty fields is the normal
+   state: "Choose" rendered #c8d2dc and "FlairsTech" — a real answer beside it
+   — rendered #d8e0e8. One step on the ramp, same size, same weight. The rule
+   this build adopted for every other pair of ranks is that they differ in at
+   least two of {size, weight, ink}, and the two things on this page that must
+   never be confused differed on one axis by its smallest increment.
+
+   `--ink-placeholder` has been in the shell the whole time, declared as "the
+   ONE exception — must not read as a value" and pointed at by nothing. Every
+   placeholder in this product asked for `--ink-muted`, which the same block
+   calls "the floor for TYPE. Slightly quiet, still read" — a value.
+
+   It is legible, not invisible: 6.1:1 on the page ground, well past AA. The
+   point is not that a placeholder is hard to read, it is that it cannot be
+   mistaken for an answer. */
+.b-draft-name::placeholder { color: var(--ink-placeholder); }
 .b-draft-name:hover { border-bottom-color: var(--card-border); }
 .b-draft-name:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-in {
@@ -3024,7 +3559,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   min-width: 0; width: 100%; max-width: 34ch;
   transition: border-color var(--t-base);
 }
-.b-draft-in::placeholder { color: var(--ink-muted); }
+.b-draft-in::placeholder { color: var(--ink-placeholder); }
 .b-draft-in:hover { border-bottom-color: var(--card-border-hover); }
 .b-draft-in:focus { outline: none; border-bottom-color: var(--accent); }
 .b-draft-pick {
@@ -3034,7 +3569,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-draft-pick:hover { color: var(--accent-text); border-bottom-color: var(--accent); }
 .b-draft-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.b-draft-none { color: var(--ink-muted); }
+/* "Choose" is not a value, it is the absence of one, and it sits in the
+   slot a value will occupy. It takes the placeholder rank for the same
+   reason the inputs do — it IS a placeholder, drawn by hand because the slot
+   is a menu button rather than an input. */
+.b-draft-none { color: var(--ink-placeholder); }
 /* When it closes is a fact on the record, not a footnote about one. And a
    field that holds one or two digits is sized for one or two digits: at the
    full 34ch it took the whole cell and pushed its own unit onto a second
@@ -3072,8 +3611,48 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 /* On a page the two doors sit in a column 282px wide, so the figure and its
    bar have the width of the card rather than half of it. Nothing else about
    them changes: same card, same steps, same promise on the floor of it. */
-.rail-doors .b-door { padding: 16px 16px 18px; gap: 10px; }
-.rail-doors .b-door-fig { font-size: var(--t-figure); }
+/* ══ A RAIL CARD IS A GLANCE, NOT A PAGE ═══════════════════════════════════
+   The doors were built at the page's own proportions — 18px of padding, a
+   24px figure, 12px between the parts — and dropped into a 272px column
+   where two of them plus the reading ran 975px inside an 829px rail. The
+   rail scrolled, which is the one thing a rail must not do to reach its own
+   foot.
+
+   Everything comes down one step and nothing changes rank: the figure is
+   still the loudest thing in its card, the caption still the quietest, and
+   the gap between them still reads as a gap. 145px of the overflow goes. */
+.rail-doors .b-door { padding: 13px 14px 14px; gap: 8px; }
+.rail-doors .b-door-fig { font-size: var(--fs-xl); }
+.rail-doors .b-door-say, .rail-doors .b-door-go { font-size: var(--t-small); }
+
+/* ══ THE FOOT, AND THE QUIETER WAY INTO THE CONSOLE ════════════════════════
+   Knowledge's shape, in this build's units: a hairline, an icon, a name and
+   a line saying what is behind it. `margin-top: auto` sits it at the bottom
+   of a short rail and after the last card on a long one — a gate pinned over
+   content that scrolls under it is a second thing to read past. */
+/* No rule above it. Knowledge's gate sits under a list of chats that runs to
+   the foot of its rail, where a hairline is what stops the last row and the
+   door reading as one thing. This rail ends in a card with its own border and
+   then eighty pixels of ground, so the rule was drawing a line across empty
+   space to separate two things already separated. */
+.rail-foot { margin-top: auto; padding-top: 10px; flex-shrink: 0; }
+.rail-console {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: var(--r-md);
+  /* An anchor now, so it brings a browser underline and an inherited link
+     colour that this row sets for itself two lines down. */
+  background: none; font-family: inherit; text-align: left; text-decoration: none;
+  color: var(--ink-quiet); cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.rail-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.rail-console:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.rail-console > svg { width: 15px; height: 15px; flex: none; opacity: 0.75; }
+.rail-console-lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rail-console-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); }
+.rail-console-sub {
+  font-size: var(--t-micro); color: var(--ink-faint); line-height: var(--lh-snug);
+}
 
 /* The read-back's card. The record's own metadata grid, at two columns
    because a canvas turn is half the width of a page. */
