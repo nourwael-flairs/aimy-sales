@@ -8937,20 +8937,6 @@
       '<div class="b-cmeta-say">' + body + '</div>' +
     '</div>';
 
-  /* ══ A FIGURE AND ITS BASIS ARE TWO RANKS ══════════════════════════════
-     Measured on the record: the figure 16px, the sentence saying where the
-     figure came from 16px, four percent of ink between them. Reading across
-     three columns for €47k meant reading four lines to find it — and the
-     honest half, that nothing comparable has closed so this is the price
-     list, was set at exactly the weight of the answer.
-
-     The figure takes the rank it already is. The basis keeps every word it
-     had, at small and quiet, which is where a footnote goes. `basis` is
-     whole paragraphs rather than a string, because two of these carry a
-     second sentence only sometimes. */
-  const cmFig = (cap, fig, basis) =>
-    cmPart(cap, '<p class="b-cmeta-fig">' + fig + '</p>' + (basis || ''));
-  const upper = (s) => s.replace(/^./, (ch) => ch.toUpperCase());
 
   /* ══ THE TEAM, AS PEOPLE ═══════════════════════════════════════════════
      "owned by Karim Fouad · with Sally Tarek and Omar Fathy" was a list of
@@ -10183,112 +10169,24 @@
      and what has been said, grouped by month. The last thing on the action
      row is the next person in the queue, because a finished record is one
      press from the next call and should not need the briefing in between. */
-  /* ══ THE DEAL, IN FOUR FACTS ═══════════════════════════════════════════
-     What it is worth, when it should land, what we are selling them and who
-     found them. None of these was typed on the record — a figure presented
-     as read when it was guessed is the one thing this record must never do —
-     so each of them says where it came from. */
-  /* Which of `acvOf`'s three tiers produced the figure beside it, in the
-     words a person would use for that tier. Kept beside `dealBlock` because
-     it exists only to explain that one line. */
-  function worthSay(c, k, sells, a) {
-    if (!k) return 'a placeholder. They are on no campaign, so nothing says what we would sell them.';
-    const v = acvOf(c);
-    const at = a && a.size ? headLabel(a) : 'their size';
-    /* NOT "what they signed for". `acvOf`'s top tier is called `read`
-       because a build that has order forms in it would read the figure off
-       one; this build has none, so a won deal is still priced off the list
-       and saying otherwise would be the exact invention the block above
-       forbids. The tier is honest about being empty. */
-    if (v.basis === 'read') {
-      return 'modelled from ' + esc(sells) + ' at ' + esc(at) +
-        '. They signed — no figure from the order form is on the record.';
-    }
-    if (v.basis === 'comparable') {
-      /* ONE COMPARABLE IS NOT AN AVERAGE, AND THE SENTENCE SAYS WHICH IT IS.
-         The cell is often thin — a single closed deal sets the figure for
-         every open one beside it — and that is left visible rather than
-         smoothed away, because a reader who can see the basis is one deal
-         can discount it, and one who is told "the average" cannot. */
-      const peers = cellMeans()[cellOf(c)] || [];
-      return (peers.length === 1
-        ? 'what the one deal we have closed for '
-        : 'the average of the ' + esc(plural(peers.length, 'deal')) + ' we have closed for ') +
-        esc(sells) + ' at ' + esc(at) +
-        (peers.length === 1 ? ' came out at' : '') + ', rather than the price list.';
-    }
-    return 'modelled from ' + esc(sells) + ' at ' + esc(at) +
-      '. Nothing comparable has closed yet, so this is the price list.';
-  }
-  function dealBlock(c) {
-    const a = accOf(c);
-    const k = dealCamp(c);
-    const sells = (SELL[sellOf(c)] || {}).name || 'nothing named yet';
-    const days = daysBetween(TODAY_ISO, closeBy(c));
-    return '<section class="s-block s-block-wide" aria-label="The deal">' +
-      '<div class="b-cmeta">' +
-        /* ══ THE BASIS HAS TO BE THE BASIS ═════════════════════════════════
-           This said "modelled from <product> at <size>" under every figure,
-           which was true while the only way to price a deal was the price
-           list. It is not the only way any more: once deals in the same
-           product-and-size cell have actually been signed, what THEY signed
-           for is better evidence than the list, and `acvOf` uses it. So the
-           sentence under the figure was describing an arithmetic the figure
-           had not been through.
+  /* ══ THE DEAL BLOCK, AND WHY THERE IS NOT ONE ══════════════════
+     A four-part section stood under the masthead: what the deal is worth,
+     when it should land, what we sell them, and — on a lost one — why we
+     lost it. Under each figure, the sentence saying where the figure came
+     from, because not one of these numbers was typed on the record.
 
-           Three tiers, three sentences, and the figure says which one it is.
-           A record that explains itself wrongly is worse than one that does
-           not explain itself, because the wrong explanation is the thing a
-           reader would quote in the room. */
-        cmFig('Worth', esc(euro(dealWorth(c))),
-          '<p class="b-cmeta-p">' + upper(worthSay(c, k, sells, a)) + '</p>') +
-        cmFig('Expected close', esc(sayDay(closeBy(c))),
-          '<p class="b-cmeta-p">' + (dealLive(c)
-            ? (days < 0 ? 'That is ' + plural(-days, 'day') + ' ago, counted from the last meeting.'
-              : 'About ' + plural(days, 'day') + ' out, counted from the last meeting.')
-            : 'It is already decided.') + '</p>') +
-        /* What this deal is for, which kind of sale it is, and — only when
-           they differ — what the campaign opened on. A record that shows the
-           campaign's product where the deal's should be is the page telling
-           you about the plan instead of about the deal. */
-        /* The kind of sale drops to the basis line with the other notes. It
-           was a `b-kind` beside the name — the treatment for a word that has
-           to sit on a line it does not own — and that line is the figure's
-           now, where an eleven-pixel tag against a twenty-pixel name is a
-           mark stranded beside something four times its size. */
-        cmFig('What we sell them', esc(sells),
-          '<p class="b-cmeta-p">' + esc(dealType(c)) + '.' +
-          /* Which campaign is a fact in the masthead now, so this says the
-             one thing the masthead cannot: that the deal has moved off what
-             the campaign opened with. When it has not, there is nothing here
-             to say. */
-          (k && sellDrifted(c)
-            ? ' The campaign opened on <b>' +
-              esc((SELL[k.sells[0]] || {}).name || 'something else') + '</b>.'
-            : '') + '</p>') +
-        /* Only on the deals it is true of. A "Why we lost it" reading "not
-           applicable" down every live record is the form showing you its
-           own fields. */
-        (stageOf(c) === 'lost'
-          ? cmFig('Why we lost it',
-            lostWhy(c) ? esc(lostWhy(c).label) : 'Not written down',
-            '<p class="b-cmeta-p">' + (lostWhy(c)
-              ? upper(esc(lostWhy(c).say)) + '.' +
-                (lostWhy(c).back ? ' That is a no for now rather than a no.' : '')
-              : 'Nothing was said when it closed.') + '</p>')
-          : '') +
-        /* ══ WHO FOUND THEM IS ALREADY SAID TWICE BELOW ══════════════════
-           A "Found by" part stood here. It is the one thing in this block
-           that is not about the deal — it is about how the record began —
-           and the two sections directly under it both carry it: the story
-           opens on the first call with its date and the name of whoever
-           made it, and the team lists that same person first, by the rule
-           that whoever found them leads it. Three tellings of one fact, and
-           this was the least specific of the three: no date, no count, and
-           a fourth part that took a second row of the grid to say it. */
-      '</div>' +
-    '</section>';
-  }
+     That last part is what finished it. Every figure in it is modelled, so
+     every figure needed a footnote longer than itself, and the section
+     spent four lines of a manager's page explaining its own arithmetic
+     rather than telling him anything about the company. A block that is
+     mostly a defence of its own numbers is a block whose numbers should not
+     be on the page.
+
+     What we sell them is the part he reads, and it is one fact, so it is a
+     fact in the masthead now. `worthSay`, `BAND_SAY` and `sellDrifted` went
+     with the section they existed to write. `acvOf` and `dealWorth` stay:
+     the money still adds up on the board, the report and the takeaway, and
+     those say "modelled" where they say it. */
 
   /* ══ WHO OF OURS HAS WORKED THIS ONE ═══════════════════════════════════
      The campaign has a team and a lead did not, which left the two desks
@@ -10438,6 +10336,21 @@
             fact('campaign', mineCamp
               ? esc(mineCamp.name) + (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '')
               : 'On no campaign') +
+            /* ══ ALL THAT IS LEFT OF THE DEAL BLOCK ═══════════════════════
+                One fact, in the rank that already holds what this record is
+                about: the campaign it came from, then the thing we would
+                sell them, then who they are and where. The kind comes with
+                it — first sale or second is the difference between having to
+                prove we can do it and only having to prove this is the next
+                thing, and it is one word.
+
+                Only where there is a deal. A lead nobody has handed over is
+                not being sold anything yet, and the campaign beside it
+                already says what it would be. */
+            (isMgr() && c.checkpoint === 'handed-over'
+              ? fact('sell', esc((SELL[sellOf(c)] || {}).name || 'nothing named yet') +
+                ' <span class="b-kind">' + esc(dealType(c)) + '</span>')
+              : '') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
                 esc(a.id) + '">' + esc(a.name) + '</button>') : '') +
@@ -10480,7 +10393,10 @@
         actionsRow(c) +
       '</section>' +
 
-      (isMgr() && c.checkpoint === 'handed-over' ? dealBlock(c) : '') +
+      /* Directly under the masthead, in the slot the deal block used to
+         hold — the first thing after who this is, because it is the only
+         thing on the page that is owed. */
+      askBlock(c) +
 
       storyBlock(storyOf(c)) +
 
@@ -10573,9 +10489,14 @@
        of the row of ordinary verbs and behind a gate of its own. */
     /* The same row, asking the question this desk answers: a caller records
        what a rung did, a manager records what a meeting did. */
+    /* The manager's half of this row left the masthead: what a MEETING did
+       is a question worth asking only when a meeting has been and gone with
+       nothing written up, and then it is worth a block of its own rather
+       than a line under the verbs. `askBlock` draws it. What a RUNG did
+       stays here: a caller records one on every call, so it is part of the
+       row rather than news. */
     const moves = (isMgr() && c.checkpoint === 'handed-over')
-      ? dealMoves(c).map((m) => ({ html: esc(m.label),
-        attr: 'data-deal="' + esc(c.id + ':' + m.k) + '"' }))
+      ? []
       : movesFor(c).filter((m) => m.k !== 'declined' && m.k !== 'handed-over')
         .map((m) => ({ html: esc(m.label), attr: 'data-move="' + esc(m.k) + '"' }));
     /* ══ THE HAND-OVER IS A CHOICE OF MANAGER ════════════════════════════
@@ -10639,7 +10560,14 @@
     /* [8] THE WAY OUT IS THE NEXT PERSON. Reads the same ranking the queue
        uses, so the name here is the card that would be first if you went
        back — which is the whole point of not going back. */
-    const next = queue(null, 'all').filter((x) => x.id !== c.id)[0];
+    /* ══ AND ONLY FOR THE DESK THAT HAS A QUEUE ════════════════════════
+       A caller works a list from the top and the way out of a record is the
+       next thing on it — which is why this is here at all. A manager has no
+       queue. His surface is a set of accounts he picks from, and he opened
+       this one because it is this one; "Next in the queue" told him there
+       was an order he was supposed to be following and named a stranger as
+       the next step. */
+    const next = isMgr() ? null : queue(null, 'all').filter((x) => x.id !== c.id)[0];
     return '<div class="s-rec-actions">' +
       list.map((b, i) =>
         '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
@@ -10668,6 +10596,53 @@
         '</div>'
       : '');
   }
+  /* ══ THE MEETING NOBODY WROTE UP ═══════════════════════════════════════
+     Four buttons behind the words "What happened?" stood in the masthead of
+     every deal, always. Two things were wrong with that.
+
+     It never said which meeting. "What happened?" over Proposal sent · They
+     signed · They passed · Rescheduled is a question about an event the page
+     not named — and the event is on the same record, one section down, with
+     its date and the name of whoever sat in it.
+
+     And it was on every deal all the time, so it was never news. The one
+     moment these four are worth a manager's attention is the moment a
+     meeting has happened and nothing on the record says how it went, which
+     is a state the ladder already holds: an outcome is written onto the
+     phase touchpoint, and that one has none. Where the last meeting HAS
+     been written up there is nothing to answer here, and the deal moves
+     through the voice loop like everything else.
+
+     So it stops being a row in a masthead and becomes what it is: one
+     outstanding thing, drawn the way this build draws an outstanding thing
+     — `b-nm-do`'s mark, tint and border, the same shape as the task on a
+     caller's record. */
+  function askBlock(c) {
+    if (!isMgr() || c.checkpoint !== 'handed-over') return '';
+    const ph = phasesOf(c);
+    const last = ph.length ? ph[ph.length - 1] : null;
+    /* A resolution carries the decision rather than a reading of the room,
+       so it is not a meeting waiting to be described. */
+    if (!last || last.out || last.phase === 'resolution') return '';
+    const moves = dealMoves(c);
+    if (!moves.length) return '';
+    const met = PHASE[last.phase];
+    return '<section class="s-block s-block-wide" aria-label="What happened at the meeting">' +
+      '<div class="b-unwrit">' +
+        '<span class="b-nm-mark">' + nmClock() + '</span>' +
+        '<div class="b-unwrit-text">' +
+          '<p class="b-unwrit-say">You had a <b>' +
+            esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
+            esc(sayDay(last.at.slice(0, 10))) + '</b>. What happened?</p>' +
+          '<div class="b-unwrit-moves">' +
+            moves.map((m) => '<button class="b-ghost" type="button" data-deal="' +
+              esc(c.id + ':' + m.k) + '">' + esc(m.label) + '</button>').join('') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }
+
   const rg2 = (c) => (called[c.checkpoint] || {}).say || 'they have left the ladder';
   /* ══ THE called'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
      Every rung says what it means TO THE PERSON RINGING, and the last one
@@ -10941,11 +10916,6 @@
     if (Math.abs(hash(c.id + ':sell')) % 4) return opened;
     return fit[Math.abs(hash(c.id + ':sell2')) % fit.length];
   }
-  const sellDrifted = (c) => {
-    const k = dealCamp(c);
-    return !!k && k.sells && k.sells.length && sellOf(c) !== k.sells[0];
-  };
-
   /* ══ WHETHER THIS IS A FIRST SALE OR A SECOND ══════════════════════════
      Derived, because the answer is already written: somebody at this company
      has signed, or nobody has. Storing it would be a field to keep in step
@@ -11010,7 +10980,7 @@
     { k: 'commercial', label: 'Proposal sent' },
     { k: 'won',        label: 'They signed' },
     { k: 'lost',       label: 'They passed' },
-    { k: 'later',      label: 'Not now' },
+    { k: 'later',      label: 'Rescheduled' },
   ];
   function dealMoves(c) {
     const k = stageOf(c);
@@ -12237,6 +12207,7 @@
     campaign: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/> <line x1="4" x2="4" y1="22" y2="15"/>',
     target: '<circle cx="12" cy="12" r="10"/> <circle cx="12" cy="12" r="6"/> <circle cx="12" cy="12" r="2"/>',
     grid: '<rect width="7" height="7" x="3" y="3" rx="1"/> <rect width="7" height="7" x="14" y="3" rx="1"/> <rect width="7" height="7" x="14" y="14" rx="1"/> <rect width="7" height="7" x="3" y="14" rx="1"/>',
+    sell: '<path d="m7.5 4.27 9 5.15"/> <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/> <path d="m3.3 7 8.7 5 8.7-5"/> <path d="M12 22V12"/>',
     web: '<circle cx="12" cy="12" r="10"/> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/> <path d="M2 12h20"/>',
     calendar: '<path d="M8 2v4"/> <path d="M16 2v4"/> <rect width="18" height="18" x="3" y="4" rx="2"/> <path d="M3 10h18"/>',
     spark: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',

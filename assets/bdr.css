@@ -1846,6 +1846,29 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-nm-by { font-size: var(--t-small); color: var(--ink-muted); }
 
+/* ══ 47. THE MEETING NOBODY WROTE UP ═══════════════════════════════════════
+   `b-nm-do`'s drawing, because it is the same kind of thing: one outstanding
+   item, a mark, and the sentence saying what it is — so the mark itself is
+   `b-nm-mark` rather than a second class that would draw the same square.
+
+   In a section of its own rather than a line in the masthead, because it is
+   not always there. A prompt that is on every record all the time is
+   furniture, and furniture is not read. The four answers are ghosts, which
+   is the box this build gives a control that is not the primary. */
+.b-unwrit {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px;
+  align-items: start; padding: 14px 16px; border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+}
+.b-unwrit-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.b-unwrit-say {
+  margin: 0; font-size: var(--t-lead); font-weight: var(--fw-semibold);
+  line-height: var(--lh-base); color: var(--d50); max-width: 60ch; text-wrap: pretty;
+}
+.b-unwrit-say b { font-weight: var(--fw-extrabold); }
+.b-unwrit-moves { display: flex; flex-wrap: wrap; gap: 8px; }
+
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
    set in 10px capitals so a document's name read as a label rather than a
@@ -2025,18 +2048,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   text-transform: uppercase; color: var(--ink-muted);
 }
 .b-cmeta-say { font-size: var(--t-body); color: var(--d100); }
-/* ══ THE ANSWER, AND THEN THE FOOTNOTE ════════════════════════════════════
-   Both were 16px with four percent of ink between them, so a column had to
-   be read before it could be scanned. Two steps up puts the figure a rank
-   clear of the sentence under it, and the sentence keeps every word at small
-   and quiet, which is what a basis is. `~` rather than `+`: the sell part
-   grows a second paragraph when the deal has drifted off what the campaign
-   opened on. */
-.b-cmeta-fig {
-  margin: 0 0 6px; font-size: var(--fs-xl); font-weight: var(--fw-bold);
-  line-height: 1.15; letter-spacing: -0.01em; color: var(--d50);
-}
-.b-cmeta-fig ~ .b-cmeta-p { font-size: var(--t-small); color: var(--ink-quiet); }
 .b-cmeta-p { margin: 0 0 10px; line-height: var(--lh-base); max-width: 44ch; text-wrap: pretty; }
 .b-cmeta-p:last-child { margin-bottom: 0; }
 .b-cmeta-p b { color: var(--d50); font-weight: var(--fw-bold); }
