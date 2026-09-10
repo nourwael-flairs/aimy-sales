@@ -2641,8 +2641,20 @@
         /* The amount takes no mark: on the manager's cards it is the only
            figure and it is already the boldest thing in the row. A number
            to ring is one of several kinds of fact a foot can hold. */
-        (isMgr()
-          ? '<span class="b-qcard-num">' + esc(euro(dealWorth(c))) + '</span>'
+        /* ══ WHAT IT IS WORTH IS NOT WHAT TO DO ABOUT IT ══════════════════
+           The manager's foot carried the amount. It is the one figure that
+           never changes what the next press is: a deal worth €120k and one
+           worth €25k are both a call, and which one you make is decided by
+           the reading above — late, unwritten, quiet — and never by the
+           number. Fifteen amounts down a page is a column of money nobody
+           adds up, on a surface that is a worklist rather than a forecast.
+
+           The forecast has a page. It is on the record, on the sentence over
+           this block, and on Financials, where the figures are read against
+           a target instead of one at a time.
+
+           The caller's number stays: a phone number IS the next press. */
+        (isMgr() ? ''
           : '<span class="b-qcard-num b-fact">' + chIcon('phone') + '<span>' +
             (c.phone ? esc(c.phone) : 'No number') + '</span></span>') +
         /* Only the first card is filled. Fifteen identical primaries is

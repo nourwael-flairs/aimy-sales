@@ -311,6 +311,11 @@
   margin-top: auto; display: flex; align-items: center;
   justify-content: space-between; gap: 8px; flex-wrap: wrap;
 }
+/* With the amount off the manager's card the foot holds one thing, and
+   space-between puts a lone child on the left — under a card whose every
+   other row is left-aligned, which made the verb read as another line of
+   text. It stays where it has always been. */
+.b-qcard .b-qcard-foot > :only-child { margin-left: auto; }
 .b-qcard-num {
   font-size: var(--fs-base); font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums; color: var(--ink-secondary);
