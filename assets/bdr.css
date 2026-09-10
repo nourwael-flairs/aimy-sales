@@ -2004,9 +2004,18 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   padding: 5px; border-radius: 24px;
   background: var(--composer-skin);
   border: 1px solid var(--composer-edge);
+  /* The bar's shadow, at a third. Taking its material was right and taking
+     its LIFT was not: that shadow is the weight of the composer against the
+     page, and the card is not a second thing floating over the same page —
+     it is the top of the one object. Cast at full strength it read as
+     stacked, which is the thing this pass set out to stop.
+
+     Enough is left to hold it off the rows scrolling under it, and the
+     contact hairline and the inner edge stay untouched, because those are
+     what make it the same material rather than what makes it float. */
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Overshoot rather than ease-out. The card is arriving, not fading in, and
      a thing that arrives settles. */
@@ -2016,7 +2025,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    hairline: on white there is no light for an edge to catch. */
 :root[data-theme="light"] .b-peek-card {
   box-shadow:
-    0 8px 32px rgba(16, 24, 40, 0.14),
+    0 4px 16px rgba(16, 24, 40, 0.09),
     0 0 0 1px rgba(16, 24, 40, 0.03);
 }
 /* One authored moment, and it reaches past transform and opacity. The card
@@ -2050,11 +2059,18 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .b-peek-body {
   position: relative; display: block; overflow: hidden;
-  max-height: calc(var(--t-body) * var(--lh-base) * 4);
+  /* Three. A peek is a glance and four lines is a paragraph — and with the
+     chips lifted out of this box, three lines of prose is all it ever holds,
+     so the cut lands on reading rather than on something to press. */
+  max-height: calc(var(--t-body) * var(--lh-base) * 3);
   font-size: var(--t-body); line-height: var(--lh-base);
   color: var(--d100); text-wrap: pretty;
 }
 .b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
+/* Outside the cap, so it is never cut; gone entirely when the answer carries
+   no chips, so it costs no space of its own. */
+.b-peek-acts { display: block; }
+.b-peek-acts:empty { display: none; }
 /* Only where there is more, and now it is the ONLY thing that says so —
    the caption under it is gone. That is the right amount: a sentence cut
    mid-air says there is more of it, and a reader who wants the rest presses
@@ -2064,7 +2080,9 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    now, so the fade ends on the colour the bottom of the card actually is
    rather than on the one the top of it started as. */
 .b-peek.is-clipped .b-peek-body::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.4em;
+  /* One line's worth. Over a three-line box a 2.4em fade covered most of
+     what it was meant to be revealing. */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1.7em;
   background: linear-gradient(to bottom, transparent, var(--composer-skin));
   pointer-events: none;
 }

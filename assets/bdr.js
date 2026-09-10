@@ -13742,6 +13742,7 @@
     box.classList.add('is-thinking');
     box.classList.remove('is-clipped');
     byId('peekBody').style.maxHeight = '';
+    byId('peekActs').innerHTML = '';
     byId('aimyFloatWrap').classList.add('has-peek');
     /* Knowledge's own placeholder, markup and all: the mark on the left,
        what it is doing on the right. `startThinking` finds the canvas by
@@ -13769,6 +13770,21 @@
     stopThinking();
     box.classList.remove('is-thinking');
     const body = byId('peekBody');
+    /* The answer arrives as one string and is read apart here: the prose into
+       the box the cap applies to, a trailing row of chips into its own, so
+       the cut can never take the controls with it. Parsed rather than
+       matched on — a regex over markup is the thing that breaks the first
+       time an answer ends in something else. */
+    const cut = document.createElement('div');
+    cut.innerHTML = html;
+    const acts = cut.querySelector('.b-cuts');
+    if (acts) acts.remove();
+    byId('peekActs').innerHTML = acts ? acts.outerHTML : '';
+    /* Its own name. `html` is the const this function opened with and the
+       one already written to the thread; assigning to it threw, and a throw
+       here leaves the card thinking forever with the chips of an answer it
+       never showed underneath — which is exactly what it did. */
+    const prose = cut.innerHTML;
     /* Clipped is measured, not guessed — and measured on the FINISHED
        answer, not on the two words that have arrived so far. A fade that
        switches on halfway through a stream flickers; one decided at the end
@@ -13781,11 +13797,17 @@
        line to hide them. Under a line's worth, the box gives way instead:
        showing it costs one line, where the fade was promising a canvas full
        of something that was already on screen. */
-    peekStream(body, html, () => {
+    peekStream(body, prose, () => {
       generating(false);
       body.style.maxHeight = '';
       const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
-      if (body.scrollHeight - body.clientHeight > lh) {
+      /* Half a line, not a whole one. The cap is three now, so a fourth line
+         is a real fourth line and fades — but an answer that overruns by a
+         few pixels rather than by a line still gets shown instead, which is
+         the case this guard was written for: a trailing control makes its
+         line taller than the ones above it, and a fade over six pixels
+         promises a canvas full of something already on screen. */
+      if (body.scrollHeight - body.clientHeight > lh / 2) {
         box.classList.add('is-clipped');
       } else if (body.scrollHeight > body.clientHeight) {
         body.style.maxHeight = 'none';
