@@ -2618,9 +2618,24 @@
     return '<article class="type-card s-card b-qcard" data-open="camp:' + esc(k.id) + '" ' +
       'style="--i:' + Math.min(i || 0, 8) + '">' +
       '<div class="tc-head">' +
-        '<span class="tag tag-' + (isDraft(k) ? 'neutral' : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
+        /* ══ THE TAG IS WHERE THE CAMPAIGN STANDS; THE CLOCK IS A MEASURE
+           This read "14 days left" — a reading off a clock, in the slot the
+           product now reserves for a state. A campaign stands in one of
+           four places and the tag says which; how long that leaves is the
+           number underneath it.
+
+           Closing soon is a state rather than a shade of running: it is
+           the one that changes what a manager does this week, and it is
+           what the amber was for when the tag was a clock. */
+        '<span class="tag tag-' + (isDraft(k) ? 'neutral'
+          : left > 0 && left < 21 ? 'warn' : 'neutral') + '">' +
           (isDraft(k) ? 'Draft'
-            : left > 0 ? esc(plural(left, 'day')) + ' left' : 'Closed ' + esc(sayWhen(k.to))) + '</span>' +
+            : left <= 0 ? 'Closed'
+            : left < 21 ? 'Closing soon' : 'Running') + '</span>' +
+        (isDraft(k) ? ''
+          : '<span class="b-kind">' +
+            (left > 0 ? esc(plural(left, 'day')) + ' left'
+              : 'closed ' + esc(sayWhen(k.to))) + '</span>') +
         /* ══ A CARD FOR ONE THAT IS NOT FINISHED BEING WRITTEN ═══════════
            Every lookup here assumed a complete campaign — `SELL[k.sells[0]]`
            on a draft with nothing chosen threw, and the whole campaigns page
@@ -2746,8 +2761,14 @@
       '<div class="tc-head">' +
         /* The tag says WHICH campaign. "On a campaign" told you the state
            and made you open the card to learn the one fact that matters. */
-        '<span class="tag tag-' + (camp ? 'ok' : 'warn') + '">' +
-          esc(camp || 'Not on a campaign') + '</span>' +
+        /* ══ ON A CAMPAIGN IS A STATE; WHICH ONE IS NOT ══════════════════
+           A list is either being worked or it is sitting there, and that is
+           the one thing about it worth a tag — so the tag is drawn for the
+           half that needs somebody to act, and where a working list IS
+           working becomes the word beside it. A card that flags only the
+           idle ones is a page whose flags all mean the same thing. */
+        (camp ? '<span class="b-kind">' + esc(camp) + '</span>'
+          : '<span class="tag tag-warn">Not on a campaign</span>') +
         '<span class="tc-type b-fact">' + chIcon('web') +
           '<span>' + esc(l.via) + '</span></span>' +
       '</div>' +
@@ -3777,7 +3798,11 @@
         '<span class="' + DOT_CLASS[m.kind] + '"></span>' +
         '<span class="b-cal-etime">' +
           esc(m.h == null ? 'all day' : clockOf(m)) + '</span>' +
-        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span>' +
+        /* A demo, a dinner, a meeting: what KIND of thing is in the diary,
+           which is not where any record stands. It keeps its words — the
+           coloured dot beside it cannot name a category on its own — and
+           gives up the pill. */
+        '<span class="b-kind">' + esc(k.label) + '</span>' +
       '</span>' +
       '<span class="b-cal-ename">' + esc(m.con.name) +
         '<span class="b-cal-ewhat">' + esc(m.title) +
@@ -4010,7 +4035,7 @@
           : '<span class="b-door-clock">' + chIcon('clock') + '</span>' + esc(clockOf(first))) +
       '</span>' +
       '<span class="b-door-who">' + esc(first.con.name) +
-        '<span class="tag tag-' + esc(k.tone) + '">' + esc(tagCase(k.label)) + '</span></span>' +
+        '<span class="b-kind">' + esc(k.label) + '</span></span>' +
       '<span class="b-door-say">' + esc(plural(on.length, 'thing')) +
         ' in the calendar today</span>';
   }
@@ -8047,7 +8072,10 @@
          it was a second copy of it in the smallest type on the page. */
       cmPart('What we sell them', sells.map((x) =>
         '<p class="b-cmeta-p"><b>' + esc(x.name) + '</b> ' +
-          '<span class="tag tag-neutral">' +
+          /* Product or service: what the offering IS. Nothing about it
+             stands anywhere, so it is a word beside the name rather than a
+             pill under it. */
+          '<span class="b-kind">' +
             esc((x.kind || 'offer').replace(/^./, (c) => c.toUpperCase())) + '</span></p>').join('')) +
       /* The name, and nothing after it. What the engagement is does not
          change a single thing a caller does in the next eight minutes. */

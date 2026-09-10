@@ -2598,7 +2598,23 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cal-ev .b-cal-dot { width: 8px; height: 8px; }
 /* The hour and the kind of thing it is, together as one mark. */
 .b-cal-evtop { display: flex; align-items: center; gap: 8px; }
-.b-cal-evtop .tag { flex: none; }
+.b-cal-evtop .b-kind { flex: none; }
+
+/* ══ WHAT KIND OF THING THIS IS ════════════════════════════════════════════
+   A tag says where a record STANDS. Five other things were wearing one — a
+   meeting's kind, an offering's kind, a campaign's clock, a list's
+   attachment, a tally — so the component meant five things and a reader
+   could not learn it once.
+
+   The four that are not states land here. It is a word, so it takes none of
+   the three treatments the system spends: a label has a fill, a control has
+   an edge, a link has neither and is coloured. This has none of them — the
+   minimal-component size, the ambient step, and no ground at all, which is
+   what leaves the tag beside it meaning something. */
+.b-kind {
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold);
+  color: var(--ink-faint); white-space: nowrap;
+}
 .b-cal-etime {
   flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d200); font-variant-numeric: tabular-nums;
