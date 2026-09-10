@@ -6971,10 +6971,19 @@
         : '') +
       cuts(counts, all, call) +
       qgrid(pg.rows) +
-      /* The block is two desks' now. A caller pages through people and a
-         manager pages through deals — the same records, and not the same
-         noun, because what he is counting is how many are still to close. */
-      pager(pg, isMgr() ? 'deal' : 'person') +
+      /* ══ AND THE FOOT COUNTS THE SAME THING THE TAB NAMES ═════════════
+         People on one desk, deals on the other, under a tab that says
+         Accounts on both: three nouns for one set, and a caller handing a
+         lead up had to translate twice. The tab is the name of the thing, so
+         the foot uses it.
+
+         It is a stretch on the caller's desk and the size of it is worth
+         writing down: her 134 rows sit at 76 companies, because a campaign
+         puts two and three people at the same one. Hers is a queue of people
+         AT accounts. The manager's is 48 at 44, which is the same word doing
+         honest work. Making it literal on both means one card per company
+         with its people inside it, which is a different queue. */
+      pager(pg, 'account') +
     '</section>';
   }
   /* Where you are, and the two ways to move. Never "load more": a caller
