@@ -916,10 +916,14 @@
    it is the sentence the campaign exists for, and it was 13px grey. */
 .s-home > .s-rec-head { display: flex; flex-direction: column; }
 .s-home .s-rec-kind { margin-bottom: 6px; }
-.s-home .s-rec-title { margin-bottom: 10px; }
+.s-home .s-rec-title { margin-bottom: 12px; }
 .s-home .s-rec-facts { gap: 0; }
 .s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
-.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 6px; }
+/* Eight, where it was six. Two ranks a step apart in size need a gap that
+   reads as a gap: at six they were one block of text with a size change in
+   the middle of it, which is what made a masthead of two lines feel like
+   four. */
+.s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 8px; }
 /* ══ TWO CONTROL ROWS ARE ONE GROUP ═══════════════════════════════════════
    Measured with the eyebrow still in: 5px to the name, 8 to the facts, 14 to
    the actions, 11 to the moves — four gaps with no order in them, so the two

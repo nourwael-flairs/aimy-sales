@@ -10395,6 +10395,22 @@
              the list made up. */
           (isMgr() && accOf(c) ? tierMark(accOf(c), 1) : '') +
         '</div>' +
+        /* ══ A RANK THAT WRAPS IS NOT A RANK ═══════════════════════════════
+           Two ranks are drawn here — the first at lead size, the second a
+           step under it — and the first held six facts, so it wrapped. A
+           wrapped rank is read as two, and the reader saw three equal bands
+           where the design has two: campaign, job, company on one line, then
+           industry, city and headcount on another at exactly the same size.
+
+           The four that went are not facts about this person. Industry, where
+           and how many staff describe the COMPANY, and so does its domain —
+           and the company's name two facts along is a door to the page that
+           carries all four, with the people at it, the signal on it and what
+           has been said there. A masthead that reprints the next page's
+           contents is the reason this one needed three lines.
+
+           Three and four now, each on its own line, and the ranks read as the
+           two the type has always said they were. */
         '<div class="s-rec-facts">' +
           '<div>' +
             fact('campaign', mineCamp
@@ -10402,10 +10418,7 @@
               : 'On no campaign') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
-                esc(a.id) + '">' + esc(a.name) + '</button>') +
-              fact('industry', esc(indLabel(a))) +
-              fact('where', esc(whereLabel(a))) +
-              fact('staff', esc(headLabel(a))) : '') +
+                esc(a.id) + '">' + esc(a.name) + '</button>') : '') +
           '</div>' +
           '<div>' +
             fact('phone', c.phone
@@ -10428,8 +10441,7 @@
               esc(c.email) + '">' + esc(c.email) + '</a>') : '') +
             fact('linkedin', '<a class="s-inline-btn" href="https://www.linkedin.com/in/' +
               esc(liSlug(c)) + '" target="_blank" rel="noopener">' + esc(liSlug(c)) + '</a>') +
-            (a ? fact('web', '<a class="s-inline-btn" href="https://' + esc(a.domain) +
-              '" target="_blank" rel="noopener">' + esc(a.domain) + '</a>') : '') +
+
             (others.length
               ? fact('staff', coMenu(a, others, plural(others.length, 'other') + ' at ' + a.name))
               : (a ? fact('staff', 'the only person here') : '')) +
