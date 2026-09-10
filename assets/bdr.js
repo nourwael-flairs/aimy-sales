@@ -10483,9 +10483,11 @@
     const doIt = mgr ? 'data-deal="' + esc(c.id + ':lost') + '"' : 'data-move="declined"';
     return '<span class="b-menu-wrap b-end">' +
       '<button class="b-ghost b-end-open" type="button" data-pickopen="noGate" aria-haspopup="menu">' +
+        /* Its own svg only for the size and the hover opacity `b-end-mark`
+           carries inside a button; the drawing is the set's. */
         '<svg class="b-end-mark" viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
           'stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
-          '<circle cx="12" cy="12" r="8.75"/><path d="M5.8 18.2 18.2 5.8"/></svg>' +
+          ICONS.no + '</svg>' +
         '<span class="b-end-word">' + esc(word) + '</span></button>' +
       '<div class="b-menu b-end-pop" id="noGate" role="menu" hidden>' +
         '<span class="b-menu-cap">End it here</span>' +
@@ -10696,7 +10698,7 @@
           ? (c.next && c.next.due ? ' Back on the desk ' + esc(sayWhen(c.next.due)) + '.' : '')
           : '';
       return stateWrap(k === 'won' ? 'is-won' : k === 'lost' ? 'is-lost' : 'is-later',
-        chIcon(k === 'won' ? 'check' : k === 'lost' ? 'stop' : 'clock'),
+        chIcon(k === 'won' ? 'check' : k === 'lost' ? 'no' : 'clock'),
         '<p class="b-state-say">' + who + '<b>' + esc(word) + '</b> ' + when + '.' + tail + '</p>',
         'How this deal ended');
     }
@@ -12288,6 +12290,10 @@
     fwd: '<path d="m9 18 6-6-6-6"/>',
     plus: '<path d="M5 12h14"/> <path d="M12 5v14"/>',
     stop: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+    /* The circle and the stroke through it. Drawn once here and read by both
+       the control that ends a deal and the statement that says one ended,
+       so the mark on the record is the mark on the button that made it. */
+    no: '<circle cx="12" cy="12" r="8.75"/> <path d="M5.8 18.2 18.2 5.8"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>',
     mail: '<rect width="20" height="16" x="2" y="4" rx="2"/> <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
