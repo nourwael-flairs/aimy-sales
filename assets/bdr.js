@@ -2803,9 +2803,21 @@
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-list="' + esc(l.id) + '">' +
         esc(l.name) + '</button>' +
-      /* Same slot, same silence: this is who the search asked for, and it
-         sat in the description slot unnamed beside a card that names it. */
-      '<p class="tc-summary b-qcard-what"><b>Who</b> ' + esc(l.crit) + '.</p>' +
+      /* ══ A LABEL THAT WAS BEING READ AS THE FIRST WORD ═════════════════
+         This carried a "Who" in front of it, on the argument that the
+         description slot was unnamed. Thirteen semibold in muted ink against
+         sixteen medium is three axes of difference and it still did not
+         work: "Who Support directors at logistics companies" parses as a
+         question running into its answer. The contrast was never the
+         problem — adjacency was.
+
+         It could have gone to a line of its own, the way `.b-prep-line b`
+         does with the same construction. It does not need to. The sentence
+         is already a description of who: it opens with the job and says
+         where and how big, under a card title that names the same set. A
+         label that only repeats the first noun of the line beneath it is a
+         word the reader has to step over. */
+      '<p class="tc-summary b-qcard-what">' + esc(l.crit) + '.</p>' +
       '<div class="b-qcard-why"><b>' + commas(people.length) + '</b> people, <b>' +
         commas(call) + '</b> of them callable</div>' +
       aimyBlock(listSays(l, people, call, !!camp)) +
