@@ -1927,6 +1927,119 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-ai > svg { width: 13px; height: 15px; flex: none; }
 
+/* ══ 47d. THE ANSWER, BEFORE THE CANVAS ════════════════════════════════════
+   Anchored to the bar the way the scope tray is — `bottom: calc(100% + 8px)`
+   rather than a fixed offset that assumes a bar height — and the same 760px
+   the bar itself is, so the card and the input it came from are one column.
+
+   The tray steps aside while it is up. They want the same eight pixels, and
+   an answer you just asked for outranks the filters you did not.
+
+   Clipped rather than scrolled. A scroller inside a card above a text field
+   is a second place to put the wheel, and the whole point of this card is
+   that it is a glance: what fits, a fade, and a door to the rest. */
+.b-peek {
+  position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+  display: flex; justify-content: center; pointer-events: none; z-index: 2;
+}
+/* `display: flex` above outranks the shell's `[hidden] { display: none }` --
+   same specificity, later in the cascade -- so the card sat on screen from
+   boot with nothing in it. Every element this build hides with the attribute
+   and styles with a display is one line away from the same bug. */
+.b-peek[hidden] { display: none; }
+.aimy-float-wrap.has-peek .filter-tray { display: none; }
+.b-peek-card {
+  pointer-events: all; position: relative;
+  width: 100%; max-width: 760px;
+  display: flex; align-items: flex-start; gap: 4px;
+  padding: 4px; border-radius: 20px;
+  background: var(--card-bg-raised); border: 1px solid var(--card-border);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
+  animation: b-peek-in 260ms var(--ease-out);
+}
+@keyframes b-peek-in {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+/* The whole card is the press, so the text inside it is left-aligned rather
+   than centred the way a button's label would be. */
+.b-peek-open {
+  flex: 1 1 auto; min-width: 0; display: grid;
+  grid-template-columns: auto minmax(0, 1fr); gap: 10px;
+  padding: 12px 12px 12px 13px; border: 0; border-radius: 17px;
+  background: none; font-family: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+.b-peek-open:hover { background: rgba(var(--accent-rgb), 0.07); }
+.b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.b-peek-mark {
+  display: grid; place-items: center; width: 26px; height: 26px;
+  border-radius: 8px; background: rgba(var(--accent-rgb), 0.14);
+  /* The sentence's own leading, so the mark sits on the first line however
+     many the answer runs to — the rule the facts and the state block use. */
+  font-size: var(--t-body); line-height: var(--lh-base);
+  margin-top: calc((var(--t-body) * var(--lh-base) - 26px) / 2);
+  margin-top: calc((1lh - 26px) / 2);
+}
+.b-peek-mark > svg { width: 13px; height: 15px; }
+.b-peek-body {
+  position: relative; display: block; overflow: hidden;
+  max-height: calc(var(--t-body) * var(--lh-base) * 4);
+  font-size: var(--t-body); line-height: var(--lh-base);
+  color: var(--d100); text-wrap: pretty;
+}
+.b-peek-body b { color: var(--d50); font-weight: var(--fw-bold); }
+/* Only where there is more. The fade is drawn on the card's own ground, so
+   it has to be the card's colour and not a guess at it. */
+.b-peek.is-clipped .b-peek-body::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2em;
+  background: linear-gradient(to bottom, transparent, var(--card-bg-raised));
+  pointer-events: none;
+}
+.b-peek-more {
+  display: none; grid-column: 2; margin-top: 8px;
+  font-size: var(--t-small); font-weight: var(--fw-semibold); color: var(--accent-text);
+}
+.b-peek.is-clipped .b-peek-more { display: block; }
+.b-peek.is-thinking .b-peek-more { display: none; }
+.b-peek-x {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  margin-top: 6px; margin-right: 6px;
+  border: 0; border-radius: 50%; background: none; color: var(--ink-muted);
+  cursor: pointer; transition: color var(--t-fast), background-color var(--t-fast);
+}
+.b-peek-x:hover { color: var(--ink-primary); background: var(--card-bg); }
+.b-peek-x:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* ══ THE MARK IT THINKS WITH ═══════════════════════════════════════════════
+   `.ai-thinking` and `.ai-thinking-label` are already in this shell's design
+   system, so the row and its label need nothing here. `.think-mark` is not,
+   and it arrives as Knowledge writes it, to the character:
+
+     width: 1.625rem; height: 1.625rem;
+     flex-shrink: 0;
+     color: var(--ai-text);
+     vertical-align: middle;
+
+   The `color` is load-bearing rather than decorative — the canvas reads its
+   own floor colour off it, which is why the mark is painted in one place and
+   not two. Nothing here guards reduced motion: `startThinking` asks the
+   media query itself and draws the mark once, at rest, because the state is
+   information and only the movement is decoration.
+
+   The clip comes off while it thinks. There is nothing to fade to when what
+   is in the box is a mark and four words. */
+.b-peek.is-thinking .b-peek-body { max-height: none; }
+.b-peek.is-thinking .b-peek-mark { display: none; }
+.b-peek.is-thinking .b-peek-open { grid-template-columns: minmax(0, 1fr); }
+.think-mark {
+  width: 1.625rem; height: 1.625rem;
+  flex-shrink: 0;
+  color: var(--ai-text);
+  vertical-align: middle;
+}
+@media (prefers-reduced-motion: reduce) { .b-peek-card { animation: none; } }
+
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
    set in 10px capitals so a document's name read as a label rather than a

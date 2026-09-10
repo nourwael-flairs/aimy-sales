@@ -13382,6 +13382,307 @@
     TURNS.push({ who: who, html: html });
     paintThread();
   }
+
+  /* ══ THE MARK, DISPERSED AND REFORMED ══════════════════════════════════
+     Lifted from Knowledge's gate rather than written again. Two products
+     that make you wait in the same way are one product; two that each
+     invented a wait are two, and a reader who has seen one of them wait
+     should not have to learn the other's.
+
+     What changed, and it is all that changed: `export` is gone because this
+     file is one closure rather than a module, and the one `$$` call is a
+     `querySelectorAll` because this file has `$` and not `$$`. Every number,
+     every easing and every comment below is Knowledge's own. It samples
+     `#aimy-logo-small`, which this shell carries, and reads its colours off
+     `#aimy-rg`, which it carries too — so the port had nothing to supply.
+  */
+  /* ═══════════════════════════════════════════════
+     THINKING — the mark, dispersed and reformed
+
+     Three dots said "something is happening" and nothing else. This says who
+     is doing it: the AiMY mark scatters into an orbit, holds there while the
+     corpus is searched, and gathers back into itself.
+
+     ── Sampled, not hand-plotted ──
+     The mark is one <path>. Rather than rasterise it to a canvas and read
+     pixels back — which needs an image load, and taints the canvas on some
+     configurations, `file://` among them — the path is handed to `Path2D` and
+     candidate points are tested with `isPointInPath`. Pure geometry: no image,
+     no decode, no taint, and it works from a local file.
+
+     ── Cheap on purpose ──
+     Sampling runs ONCE, lazily, on the first answer. The loop runs only while
+     a placeholder is on screen and stops the moment its canvas leaves the DOM,
+     so nothing is burning frames between questions. About 90 points at 26px —
+     the reference uses 300 at 64px, and past a point more dots at this size is
+     just grey.
+  ═══════════════════════════════════════════════ */
+  /* ══ THE MARK'S OWN COLOURS ════════════════════════════════════════════
+     The logo is not one colour: it is a radial gradient running violet at the
+     centre out to blue at the rim. A single flat fill throws that away, and
+     the scatter is the one moment the gradient is legible as a gradient —
+     ninety dots each holding their own stop, spread out where the artwork
+     usually packs them into a 26px mark.
+
+     READ FROM THE <radialGradient> IN THE PAGE, not copied here. The stops,
+     the centre and the radius all come off the element the logo itself paints
+     with, so a rebrand moves this with it and cannot leave the two disagreeing.
+
+     A dot keeps the colour of the petal it CAME FROM, rather than taking one
+     from wherever it currently floats. The alternative reads as a colour wheel
+     the dots pass through; this reads as the mark coming apart and back
+     together, which is the thing being said. */
+  const hexRGB = (h) => {
+    h = String(h || '').trim().replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    const n = parseInt(h, 16);
+    return h.length === 6 && !isNaN(n) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : null;
+  };
+
+  function markGradient() {
+    const fallback = { cx: 75.72, cy: 73.83, r: 70.54,
+                       stops: [{ o: 0.26, c: [140, 79, 244] }, { o: 0.95, c: [0, 102, 255] }] };
+    try {
+      const g = $('#aimy-rg');
+      if (!g) return fallback;
+      const stops = [].slice.call(g.querySelectorAll('stop'))
+        .map((st) => ({ o: parseFloat(st.getAttribute('offset')), c: hexRGB(st.getAttribute('stop-color')) }))
+        .filter((st) => st.c && !isNaN(st.o))
+        .sort((a, b) => a.o - b.o);
+      if (!stops.length) return fallback;
+      return {
+        cx: parseFloat(g.getAttribute('cx')) || fallback.cx,
+        cy: parseFloat(g.getAttribute('cy')) || fallback.cy,
+        r: parseFloat(g.getAttribute('r')) || fallback.r,
+        stops: stops
+      };
+    } catch (e) { return fallback; }
+  }
+
+  /* SVG's own rule at the ends: before the first stop and after the last, the
+     gradient holds that stop's colour rather than fading out. */
+  function stopColour(stops, o) {
+    if (o <= stops[0].o) return stops[0].c;
+    const last = stops[stops.length - 1];
+    if (o >= last.o) return last.c;
+    for (let i = 1; i < stops.length; i++) {
+      if (o <= stops[i].o) {
+        const a = stops[i - 1], b = stops[i];
+        const t = (o - a.o) / (b.o - a.o || 1);
+        return [Math.round(a.c[0] + (b.c[0] - a.c[0]) * t),
+                Math.round(a.c[1] + (b.c[1] - a.c[1]) * t),
+                Math.round(a.c[2] + (b.c[2] - a.c[2]) * t)];
+      }
+    }
+    return last.c;
+  }
+
+  const THINK_N = 90;
+  let THINK_PTS = null;   /* null = not tried yet, [] = tried and failed */
+
+  function sampleMark() {
+    if (THINK_PTS) return THINK_PTS;
+    THINK_PTS = [];
+    try {
+      const path = $('#aimy-logo-small path');
+      const d = path && path.getAttribute('d');
+      if (!d || typeof Path2D === 'undefined') return THINK_PTS;
+      const cv = document.createElement('canvas');
+      const ctx = cv.getContext('2d');
+      if (!ctx) return THINK_PTS;
+      const p2 = new Path2D(d);
+      const grad = markGradient();
+      /* The symbol's own viewBox. Sampling in its coordinate space and
+         normalising afterwards keeps this correct if the artwork is replaced. */
+      const VW = 151.43, VH = 147.66;
+      cv.width = Math.ceil(VW); cv.height = Math.ceil(VH);
+      const pts = [];
+      /* A jittered grid rather than pure random: an even spread reads as the
+         shape, where clustering reads as noise. The step is tuned to overshoot
+         the target so the filter below still has enough to choose from. */
+      const step = Math.sqrt((VW * VH) / (THINK_N * 2.2));
+      for (let y = step / 2; y < VH; y += step) {
+        for (let x = step / 2; x < VW; x += step) {
+          const jx = x + (((x * 7 + y * 13) % 10) / 10 - 0.5) * step * 0.8;
+          const jy = y + (((x * 11 + y * 5) % 10) / 10 - 0.5) * step * 0.8;
+          if (ctx.isPointInPath(p2, jx, jy)) {
+            /* The gradient is defined in the artwork's own user space, so the
+               offset is measured there — before these coordinates are
+               normalised for the canvas. */
+            const off = Math.sqrt((jx - grad.cx) * (jx - grad.cx) + (jy - grad.cy) * (jy - grad.cy)) / grad.r;
+            const c = stopColour(grad.stops, off);
+            pts.push({ x: jx / VW - 0.5, y: jy / VH - 0.5, c: 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')' });
+          }
+        }
+      }
+      /* Each point gets a fixed orbit seat derived from where it sits in the
+         mark, so a point always leaves for the same place and comes back to
+         the same petal. Random seats every cycle would read as static. */
+      pts.forEach((pt, i) => {
+        const a = Math.atan2(pt.y, pt.x) + (i % 5) * 0.21;
+        const r = 0.34 + ((i * 37) % 11) / 55;
+        pt.ox = Math.cos(a) * r;
+        pt.oy = Math.sin(a) * r;
+        pt.sp = 0.6 + ((i * 17) % 7) / 10;
+        pt.sz = 0.7 + ((i * 23) % 5) / 8;
+      });
+      THINK_PTS = pts;
+    } catch (e) { THINK_PTS = []; }
+    return THINK_PTS;
+  }
+
+  /* dwell in the orbit, then gather, then hold the mark, then scatter again.
+     Shorter than the reference's 5.5s because this state lasts about a second
+     — a cycle nobody sees complete is a cycle nobody reads. */
+  const T_SCATTER = 620, T_ORBIT = 900, T_GATHER = 620, T_HOLD = 420;
+  const T_CYCLE = T_SCATTER + T_ORBIT + T_GATHER + T_HOLD;
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+  let thinkRAF = 0;
+
+  function thinkFrame(cv, ms) {
+    if (!cv.isConnected) return false;
+    const ctx = cv.getContext('2d');
+    const pts = sampleMark();
+    if (!ctx || !pts.length) return false;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const css = cv.clientWidth || 26;
+    if (cv.width !== Math.round(css * dpr)) {
+      cv.width = Math.round(css * dpr); cv.height = Math.round(css * dpr);
+    }
+    const S = cv.width;
+    ctx.clearRect(0, 0, S, S);
+
+    const phase = ms % T_CYCLE;
+    /* `mix` is 0 in the mark and 1 in the orbit. */
+    let mix;
+    if (phase < T_SCATTER) mix = easeInOut(phase / T_SCATTER);
+    else if (phase < T_SCATTER + T_ORBIT) mix = 1;
+    else if (phase < T_SCATTER + T_ORBIT + T_GATHER) mix = 1 - easeInOut((phase - T_SCATTER - T_ORBIT) / T_GATHER);
+    else mix = 0;
+
+    const spin = (ms / 2600) * Math.PI * 2;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      /* In orbit the seats rotate; in the mark they do not, so the logo
+         arrives upright rather than at whatever angle the spin had reached. */
+      const a = spin * p.sp;
+      const ox = p.ox * Math.cos(a) - p.oy * Math.sin(a);
+      const oy = p.ox * Math.sin(a) + p.oy * Math.cos(a);
+      const x = (p.x + (ox - p.x) * mix) * S * 0.92 + S / 2;
+      const y = (p.y + (oy - p.y) * mix) * S * 0.92 + S / 2;
+      const r = Math.max(0.6, p.sz * (S / 26) * (1 - mix * 0.25));
+      ctx.globalAlpha = 0.45 + (1 - mix) * 0.55;
+      /* Per dot rather than per frame. Ninety fill changes at 60fps is
+         nothing, and batching by colour would mean sorting a set that is
+         already in the order the eye reads it. */
+      if (p.c) ctx.fillStyle = p.c;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    return true;
+  }
+
+  function startThinking() {
+    stopThinking();
+    const cv = $('.think-mark');
+    if (!cv) return;
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ctx = cv.getContext && cv.getContext('2d');
+    /* Only a floor. Every dot sets its own fill from the mark's gradient; this
+       is what paints them if that could not be read. */
+    if (ctx) ctx.fillStyle = getComputedStyle(cv).color || '#61adf1';
+    /* Reduced motion still gets the mark, drawn once, at rest. The state is
+       information; only the movement is decoration. */
+    if (still) { thinkFrame(cv, T_SCATTER + T_ORBIT + T_GATHER + 1); return; }
+    const t0 = performance.now();
+    const step = () => {
+      if (!thinkFrame(cv, performance.now() - t0)) { thinkRAF = 0; return; }
+      thinkRAF = requestAnimationFrame(step);
+    };
+    step();
+  }
+
+  function stopThinking() {
+    if (thinkRAF) cancelAnimationFrame(thinkRAF);
+    thinkRAF = 0;
+  }
+
+  /* ══ THE PEEK ══════════════════════════════════════════════════════════
+     Three states and one card. Thinking, while the answer is being put
+     together; the answer, with as much of it as the card holds; and gone,
+     once you have read it or opened the rest.
+
+     The wait is real rather than decorative. `answer()` returns in under a
+     millisecond because everything it reads is already in memory, and a
+     reply that is simply THERE the instant you press send reads as a lookup
+     rather than as a reading — which is the opposite of what this build
+     wants said about it. 720ms is the shortest pause that registers as one.
+
+     Pressing the card mid-thought does not wait it out: the answer is
+     already computed, so it lands in the thread and the canvas opens on it. */
+  let PEEK_AT = null;
+  let PEEK_DUE = null;
+
+  function peekEl() { return byId('aimyPeek'); }
+
+  function peekAsk(html) {
+    const box = peekEl();
+    if (!box) { say('aimy', html); return; }
+    peekStop();
+    PEEK_DUE = html;
+    box.hidden = false;
+    box.classList.add('is-thinking');
+    box.classList.remove('is-clipped');
+    byId('aimyFloatWrap').classList.add('has-peek');
+    /* Knowledge's own placeholder, markup and all: the mark on the left,
+       what it is doing on the right. `startThinking` finds the canvas by
+       class the way it does there, so it has to be in the DOM first. */
+    byId('peekBody').innerHTML =
+      '<span class="ai-thinking">' +
+        '<canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>' +
+        '<span class="ai-thinking-label">Reading the book…</span>' +
+      '</span>';
+    startThinking();
+    PEEK_AT = setTimeout(peekFlush, 1400);
+  }
+
+  /* Whatever is owed lands in the thread whether or not the card is still
+     on screen. An answer that only exists while you are looking at it is a
+     record that forgets, and this one is written either way. */
+  function peekFlush() {
+    if (PEEK_AT) { clearTimeout(PEEK_AT); PEEK_AT = null; }
+    if (PEEK_DUE == null) return;
+    const html = PEEK_DUE;
+    PEEK_DUE = null;
+    say('aimy', html);
+    const box = peekEl();
+    if (!box || box.hidden) return;
+    stopThinking();
+    box.classList.remove('is-thinking');
+    const body = byId('peekBody');
+    body.innerHTML = html;
+    /* Clipped is measured, not guessed. A fade drawn over an answer that
+       fits dims a line for no reason, and the hint under it would promise
+       more where there is none. */
+    box.classList.toggle('is-clipped', body.scrollHeight - body.clientHeight > 2);
+  }
+
+  function peekStop() {
+    if (PEEK_AT) { clearTimeout(PEEK_AT); PEEK_AT = null; }
+    stopThinking();
+  }
+
+  function peekHide() {
+    peekStop();
+    const box = peekEl();
+    if (box) { box.hidden = true; box.classList.remove('is-thinking', 'is-clipped'); }
+    const wrap = byId('aimyFloatWrap');
+    if (wrap) wrap.classList.remove('has-peek');
+  }
   function paintThread() {
     const host = byId('overlayThread');
     if (!TURNS.length) {
@@ -14042,10 +14343,18 @@
       }
     }
 
-    openCanvas();
+    /* ══ THE ANSWER COMES TO THE BAR, NOT THE BAR TO THE ANSWER ═══════
+       `openCanvas()` stood here and covered the surface the question was
+       about before there was anything to show — ask "how many are left to
+       call?" and the queue you asked it from disappears behind an empty
+       thread. The reply lands in the card above the bar instead, and the
+       canvas opens only if you press it.
+
+       The thread is still written, in the same order and with the same two
+       turns, so the canvas is never behind: what changed is who decides to
+       look at it. */
     say('you', esc(t));
-    const a = answer(t);
-    say('aimy', a);
+    peekAsk(answer(t));
   }
 
   /* What AiMY can answer, and it is deliberately short: every question a BDR
@@ -15961,7 +16270,11 @@
       return;
     }
 
-    if (t.closest('#canvasOpen')) { openCanvas(); paintThread(); return; }
+    if (t.closest('#peekClose')) { peekFlush(); peekHide(); return; }
+    /* The card is the door. Mid-thought it does not make you wait — the
+       answer is already worked out, so it lands and the canvas opens on it. */
+    if (t.closest('#peekOpen')) { peekFlush(); peekHide(); openCanvas(); paintThread(); return; }
+    if (t.closest('#canvasOpen')) { peekFlush(); peekHide(); openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
     if (ask) { taskGo(ask.getAttribute('data-ask')); return; }
 
