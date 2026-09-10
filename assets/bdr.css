@@ -2809,11 +2809,10 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin: 0; font-size: var(--t-micro); font-weight: var(--fw-bold);
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
 }
-.b-loop-say {
-  margin: 0 0 10px; max-width: 560px;
-  font-size: var(--t-body); color: var(--d100);
-  line-height: var(--lh-base); text-wrap: pretty;
-}
+/* The sentence under the caption is an `.b-aimy` now, so the measure it was
+   carrying moves onto that — a reading is prose and prose wants a line
+   length, whoever is saying it. */
+.b-loop .b-aimy { max-width: 560px; margin-bottom: 10px; }
 /* ══ WHAT IS OWED, ACROSS EVERY SURFACE ════════════════════════
    The briefing's own list. A row is pressable end to end and carries no
    edge of its own — the block is already a surface, and eight bordered

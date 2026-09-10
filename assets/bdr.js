@@ -1116,6 +1116,14 @@
      Deterministic and rebuilt on every load, which is what lets the store
      persist only what changed. Everything here is fixture: no network, no
      telephony, no external data. */
+  /* Three in five described, and which way by the same hash. Named here so
+     both phase writers use one rule rather than two that drift. */
+  const OUT_KEYS = ['warm', 'warm', 'flat', 'cool'];
+  const OUT_SEED = (id, phase) => {
+    const h = Math.abs(hash(id + ':out:' + phase));
+    return h % 5 < 3 ? OUT_KEYS[(h >> 4) % OUT_KEYS.length] : null;
+  };
+
   function seed() {
     const r = rng(SEED);
     const camp = [];
@@ -1588,6 +1596,14 @@
                the way every other modelled fact in this file gets one. */
             why: decision === 'lost'
               ? LOST_WHY[Math.abs(hash(c.id + ':lostwhy')) % LOST_WHY.length].k : null,
+            /* ══ AND SOMETIMES NOBODY SAID ══════════════════════════════
+               Three in five of the meetings behind a deal carry a reading of
+               how they went; the rest carry none, because a manager who
+               walked out and wrote nothing is the state this whole loop
+               exists to catch, and a corpus where every meeting is described
+               cannot show it. Keyed per phase, so one deal's four meetings
+               can go well, badly and unsaid in turn. */
+            out: OUT_SEED(c.id, ph.k),
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -1936,6 +1952,7 @@
             outcome: 'phase', phase: ph.k, decision: decision,
             why: decision === 'lost'
               ? LOST_WHY[Math.abs(hash(c.id + ':lostwhy')) % LOST_WHY.length].k : null,
+            out: OUT_SEED(c.id, ph.k),
             proposals: [], objections: [], openings: [],
             note: decision === 'won' ? 'They signed on the terms agreed.'
               : decision === 'lost' ? 'They decided against it.'
@@ -4167,8 +4184,15 @@
         from: 'no call before the hand-over', act: call };
     }
     if (c.next) {
-      return { text: '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
-        from: 'the step you set',
+      /* When the last meeting was described, that is the more useful half of
+         the sentence: the step you set is on the card either way, and how the
+         room went is the thing that says whether the step will land. */
+      const ph = phasesOf(c);
+      const out = ph.length && ph[ph.length - 1].out ? MEET_OUT_BY[ph[ph.length - 1].out] : null;
+      return { text: (out
+          ? 'Last time <b>' + esc(out.label.toLowerCase()) + '</b>. '
+          : '') + '<b>' + esc(c.next.what) + '</b> ' + esc(sayWhen(c.next.due)) + '.',
+        from: out ? 'what you said after the meeting' : 'the step you set',
         act: { label: 'Prepare me', attr: 'data-prep="' + esc(c.id) + '"' } };
     }
     return { text: 'Running, and nothing is owed on it today.',
@@ -4703,12 +4727,20 @@
           esc(JSON.stringify(Object.assign(cleared(), { on: 'notes' }))) +
           '">Notes</button>' +
       '</div>' +
+      /* ══ THIS SENTENCE WAS ALWAYS AiMY'S ═══════════════════════════════
+         It reads the diary against the record, finds meetings nobody wrote
+         up and tells you what to do about them — which is the definition of
+         every other `.b-aimy` in the build — and it was set as plain page
+         copy. So it asserted without a mark and without a `from`, on the one
+         surface where the claim is a derivation rather than a fact off a
+         field, and a reader had no way to know which. */
       (!un.length
-        ? '<p class="b-loop-say">Every meeting that has been and gone has been ' +
-          'written up.</p>'
-        : '<p class="b-loop-say">' + plural(un.length, 'meeting') +
-        (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
-        'Say how it went in a sentence and AiMY moves the deal.</p>' +
+        ? aimyBlock({ text: 'Every meeting that has been and gone has been written up.',
+          from: 'the diary against the record' })
+        : aimyBlock({ text: '<b>' + esc(plural(un.length, 'meeting')) + '</b>' +
+          (un.length === 1 ? ' has' : ' have') + ' been and gone with nothing on the record. ' +
+          'Say how it went in a sentence and AiMY moves the deal.',
+          from: 'the diary against the record' }) +
       un.slice(0, 5).map((m, i) => '<button class="b-loop-row" type="button" ' +
         'data-fill="' + esc('Had a ' + m.kind + ' with ' + m.con.name + ', ') + '" ' +
         'style="--i:' + Math.min(i, 8) + '">' +
@@ -10847,7 +10879,7 @@
     if (k === 'later') return { what: 'Pick it back up', due: dayAdd(60) };
     return null;
   }
-  function setStage(conId, k, said) {
+  function setStage(conId, k, said, out) {
     const c = DB.byCon[conId];
     const st = DEAL_STAGE[k];
     if (!c || !st) return;
@@ -10858,6 +10890,10 @@
       id: 'd' + Date.now().toString(36) + Math.floor(Math.random() * 1000),
       con: c.id, camp: dealCamp(c) ? dealCamp(c).id : null, by: me().id, at: now, secs: 0,
       outcome: 'phase', phase: ended ? 'resolution' : k, decision: ended ? k : null,
+      /* Only when somebody said it. A meeting with no reading is a meeting
+         nobody described, which is a different record from one that went
+         nowhere. */
+      out: out || null,
       proposals: [], objections: [], openings: [],
       /* What was actually said, when there was something said. A record
          that paraphrases you when it has your own words is a record you
@@ -11230,8 +11266,10 @@
     phasesOf(c).forEach((t) => steps.push({
       k: t.decision ? (t.decision === 'won' ? 'Signed'
         : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
-      t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
-      tone: t.decision === 'lost' ? 'warn' : 'ok',
+      t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0] +
+        (t.out ? ' · ' + MEET_OUT_BY[t.out].label.toLowerCase() : ''),
+      tone: t.decision === 'lost' ? 'warn'
+        : t.out ? MEET_OUT_BY[t.out].tone : 'ok',
     }));
     /* where they stand, and what that costs you today */
     /* the owed thing is the chip on the task below, not a second sentence */
@@ -11276,8 +11314,13 @@
       phasesOf(top).slice(-1).forEach((t) => steps.push({
         k: t.decision ? (t.decision === 'won' ? 'Signed'
         : t.decision === 'later' ? 'Parked' : 'They said no') : (PHASE[t.phase] || {}).label,
-        t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0],
-        tone: t.decision === 'lost' ? 'warn' : 'ok',
+        /* How it went rides with who and when. It is the half of a meeting
+           a CRM never keeps, and on the strip it is the difference between
+           four identical nodes and a story. */
+        t: sayDay(t.at) + ' · ' + actor(t.by).name.split(' ')[0] +
+          (t.out ? ' · ' + MEET_OUT_BY[t.out].label.toLowerCase() : ''),
+        tone: t.decision === 'lost' ? 'warn'
+          : t.out ? MEET_OUT_BY[t.out].tone : 'ok',
       }));
     }
     const now = calls.length
@@ -13166,6 +13209,37 @@
     { k: 'proof', re: /\b(demo|proof|showed them|walked them through|pilot|poc)\b/i },
     { k: 'discovery', re: /\b(discovery|first meeting|intro|introductory|scoping|got into what)\b/i },
   ];
+  /* ══ HOW IT WENT IS NOT WHICH STEP IT REACHED ══════════════════════════
+     `MEET_SAID` reads the step — scoped, shown, priced — and a step is a
+     fact about the process. It says nothing about the thing a manager
+     actually walks out of the room knowing, which is whether they are going
+     to buy. Two demos reach Shown and one of them is over.
+
+     Three, because a fourth is a form. And nothing said is NOT a neutral
+     reading — it is no reading, and the record keeps the silence rather than
+     inventing a shrug. Which is why this returns null far more often than it
+     returns `flat`: `flat` is somebody saying it went nowhere.
+
+     The negative is tested first. "It didn't go well" contains most of the
+     words a positive reading is built from, and a lexicon ordered by
+     optimism reads every disappointment backwards. */
+  const MEET_OUT = [
+    { k: 'cool', label: 'Went badly', tone: 'err',
+      re: /\b(went badly|did ?n[o']t go well|didnt go well|not convinced|unconvinced|pushed back|push back|lukewarm|hesitant|sceptical|skeptical|not interested|cooled|hard work)\b/i },
+    { k: 'flat', label: 'Nothing moved', tone: 'neutral',
+      re: /\b(nothing moved|no movement|went nowhere|same as before|no further|stalled|non-?committal|no decision|treading water)\b/i },
+    { k: 'warm', label: 'Went well', tone: 'ok',
+      re: /\b(went well|good meeting|great meeting|really well|very well|they are keen|they're keen|keen|positive|enthusiastic|loved it|very interested|excited|promising|strong meeting)\b/i },
+  ];
+  const MEET_OUT_BY = Object.create(null);
+  MEET_OUT.forEach((x) => (MEET_OUT_BY[x.k] = x));
+  function readOut(text) {
+    for (let i = 0; i < MEET_OUT.length; i++) {
+      if (MEET_OUT[i].re.test(text)) return MEET_OUT[i].k;
+    }
+    return null;
+  }
+
   /* What they asked for next, if they asked for anything. */
   const NEXT_SAID = /\b(?:want|wants|wanted|asked for|asking for|set up|booked|book|scheduled|schedule|arranged|arrange|next)\b[^.]{0,40}?\b(demo|meeting|dinner|proposal|pricing|price|quote|numbers|call)\b/i;
   const NEXT_WHAT = { demo: 'Demo for them', meeting: 'Meeting with them',
@@ -13225,6 +13299,9 @@
       con: con, stage: stage, guessed: !stage,
       next: nx ? NEXT_WHAT[nx[1].toLowerCase()] : null,
       when: readWhen(text), clock: readClock(text),
+      /* Read off the whole sentence, not off `past`: "it went well and they
+         want a proposal" says how it went in the half that was cut out. */
+      out: readOut(text),
     };
   }
 
@@ -13399,11 +13476,14 @@
       return true;
     }
     PENDING = { kind: 'meet', con: c.id, to: to, guessed: f.guessed, next: f.next,
-      when: f.when, clock: f.clock, note: text };
+      when: f.when, clock: f.clock, note: text, out: f.out };
     openCanvas();
     say('you', esc(text));
     lbuildSpend();
     const bits = ['Moving <b>' + esc(c.name) + '</b> to <b>' + esc(DEAL_STAGE[to].label) + '</b>'];
+    /* Said back before the next step, because it is the half of the sentence
+       nobody expects a CRM to have heard. */
+    if (f.out) bits.push('marking it <b>' + esc(MEET_OUT_BY[f.out].label.toLowerCase()) + '</b>');
     if (f.next) bits.push('and putting <b>' + esc(f.next.toLowerCase()) + '</b> in the diary for <b>' +
       esc(sayWhen(dayAdd(f.when))) + '</b>' + (f.clock ? ' at <b>' + f.clock.h + ':' +
         String(f.clock.m).padStart(2, '0') + '</b>' : ''));
@@ -13437,7 +13517,7 @@
     }
     if (!c) { paintThread(); return; }
     /* A booking moves no deal: nothing has happened, something is going to. */
-    if (p.to) setStage(c.id, p.to, p.note);
+    if (p.to) setStage(c.id, p.to, p.note, p.out);
     if (p.next) {
       const due = dayAdd(p.when);
       patchCon(c, { next: { what: p.next, due: due } });
