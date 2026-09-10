@@ -1902,6 +1902,31 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-state.is-later .b-state-mark { color: var(--ink-quiet); background: var(--card-bg); }
 
 
+/* ══ 47c. A CONTROL AiMY PERFORMS ══════════════════════════════════════════
+   "Prepare me for 10:30" was drawn as a link -- accent text, no edge --
+   under a block of six meetings. That is the treatment this system reserves
+   for something that only goes somewhere, and this goes nowhere: it reads
+   the record, the campaign and everything ever said into it, and writes a
+   sheet. A control has an edge, so it takes one.
+
+   The ghost's box exactly, because the two stand in rows together and a
+   near-miss on height or padding reads as a mistake rather than a decision.
+   What is added is the mark and the accent, and they are added for a reason
+   the reader can use: every other button on the page does what its verb
+   says, and this one hands the work to AiMY. The surfaces that already do
+   that carry the same mark at the head of the block.
+
+   Two of the three `data-prep` controls are not here. Both sit in rows that
+   set their own weight from position -- the primary of a record's action
+   row, the verb under a card's reading -- and taking that away from them to
+   make three look alike would cost more than it bought. */
+.b-ai { color: var(--accent-text); border-color: rgba(var(--accent-rgb), 0.35); }
+.b-ai:hover {
+  color: var(--accent-text); background: rgba(var(--accent-rgb), 0.10);
+  border-color: rgba(var(--accent-rgb), 0.5);
+}
+.b-ai > svg { width: 13px; height: 15px; flex: none; }
+
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
    set in 10px capitals so a document's name read as a label rather than a

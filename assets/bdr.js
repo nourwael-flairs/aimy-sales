@@ -4048,8 +4048,14 @@
           '<div class="b-cal-agenda">' + on.map((m, i) => calRow(m, i)).join('') + '</div>' +
           (next
             ? '<div class="b-acts b-acts-end">' +
-                '<button class="s-inline-btn" type="button" data-prep="' + esc(next.con.id) +
-                  '">Prepare me for ' + esc(clockOf(next)) + '</button>' +
+                /* AiMY's own control, because this one does not go
+                   anywhere: it reads the record, the campaign and everything
+                   said into it, and writes a sheet. A link is for a thing
+                   that goes somewhere. */
+                '<button class="b-ghost b-ai" type="button" data-prep="' + esc(next.con.id) + '">' +
+                  '<svg viewBox="0 0 18 20" aria-hidden="true">' +
+                    '<use href="#aimy-logo-small"/></svg>' +
+                  'Prepare me for ' + esc(clockOf(next)) + '</button>' +
               '</div>'
             : '')
         : '<p class="s-block-sub">Nothing is in the diary today. Tell AiMY when you are ' +
