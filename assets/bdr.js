@@ -2542,7 +2542,6 @@
     /* At the caller's desk the tag is the rung; at the manager's it is the
        stage, because the rung stopped moving at the hand-over. */
     const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
-    const last = (DB.touchesOf[c.id] || []).map((id) => TOUCH[id]).filter(Boolean)[0];
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
        not made to wait a quarter of a second — and a repaint never runs the
@@ -2599,17 +2598,26 @@
         '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
-      /* An empty why is an empty row of padding, not an empty string. */
-      (function () {
-        const why = isMgr() ? dealWhy(c) : whyLine(c);
-        return why ? '<div class="b-qcard-why">' + why + '</div>' : '';
-      })() +
-      /* What was actually said, in the words it was written in. A caller
-         opening cold on somebody they rang last week is the thing this card
-         exists to stop. */
-      (last && last.note
-        ? '<p class="tc-quote b-qcard-note">' + esc(last.note) + '</p>'
-        : '') +
+      /* ══ ONE FACT, ONCE ════════════════════════════════════════════════
+         A card carried three lines about the same thing. The why said "Asked
+         to be called back yesterday". The quote under it said "Asked me to
+         call back next week" — the words that produced the why. And the AiMY
+         block under THAT read the record again and said what to do about it.
+         Three ranks of type for one fact, and the reader has to work out that
+         they are one fact.
+
+         The why was always an insight: it is not a field on the record, it is
+         this build deciding which of eleven things about a lead is the reason
+         they are on today's list. That is what the block below is for, so it
+         goes in it — as the opening clause on a caller's card, where
+         `aimySays` speaks about the company rather than about the person.
+
+         The manager's needs no fold. `dealSays` IS the why, already ranked,
+         already carrying its own date.
+
+         And the quote goes outright. A note is the evidence for a reading the
+         card is already giving in a sentence, and the record one press away
+         has it in full with who wrote it and when. */
       /* ══ ONE CARD, TWO DESKS ═══════════════════════════════════════════
          The board's `dealCard` was a second card for the same record, built
          because a kanban column is 310px and a queue card is not. With the
@@ -2620,7 +2628,13 @@
          Bare on the manager's, signed on the caller's — the same call the
          board made and for the same reason: a ranked sentence with its own
          verb underneath does not also need to name the table it read. */
-      (isMgr() ? aimyBlock(dealSays(c), true) : aimyBlock(aimySays(c))) +
+      (function () {
+        if (isMgr()) return aimyBlock(dealSays(c), true);
+        const said = aimySays(c);
+        const why = whyLine(c);
+        if (!said) return why ? aimyBlock({ text: why + '.', from: 'the record' }) : '';
+        return aimyBlock({ text: (why ? why + '. ' : '') + said.text, from: said.from });
+      })() +
       '<div class="tc-gov b-qcard-foot">' +
         /* What it is worth, where the number to call sits on the caller's
            card: the one figure a manager scans a list of deals for. */
@@ -3763,7 +3777,18 @@
              a label is a migration for a word. */
           one('deals', 'Accounts', queue().length, Object.assign(cleared(), { on: 'deals' })) +
           one('cal', 'Diary', diaryLeft(), Object.assign(cleared(), { on: 'cal' }))
-        : one('calls', 'Calls', queue().length, cleared())) +
+        /* ══ ONE WORD FOR ONE SET ══════════════════════════════════════
+           The caller's tab said Calls and the manager's said Deals, over the
+           same companies read from two ends of the same process. A product
+           that renames the thing when the reader changes is a product with
+           two vocabularies, and a caller handing a lead up has to translate
+           to say what she is handing.
+
+           Accounts on both. The URL key stays `calls` for the same reason
+           the manager's stayed `deals`: it is in `cleared()`, in `switcher`
+           and in every bookmark, and a key renamed to match a label is a
+           migration for a word. */
+        : one('calls', 'Accounts', queue().length, cleared())) +
       one('camps', 'Campaigns', myCampaigns().length, Object.assign(cleared(), { on: 'camps' })) +
       one('lists', 'Lists', DB.list.length, Object.assign(cleared(), { on: 'lists' })) +
       '<span class="b-switch-bar" aria-hidden="true"></span>' +
@@ -6909,8 +6934,7 @@
        than what page fifteen of the unsearched list happens to hold. */
     const pg = paged(queue(S.camp || null, S.q).filter((c) => matches(conHay(c))));
     const call = pg.rows.filter((c) => callable(c) && rowVerb(c) === 'Call');
-    return '<section class="s-block s-block-wide" aria-label="' +
-      (isMgr() ? 'Your accounts' : 'To call') + '">' +
+    return '<section class="s-block s-block-wide" aria-label="Your accounts">' +
       /* ══ TWO ROWS, AND THE SEARCH BOX IS IN THE STABLE ONE ═════════════
          The box sat in the same flex row as `Call these 15` and `Let AiMY
          call 15`, and those two are drawn from what the search matched —

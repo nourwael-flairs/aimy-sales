@@ -212,7 +212,10 @@
    line and the note ran flush to the card's left edge while the name and the
    company above them were indented — a ragged margin down the middle of every
    card. The 14px is the library's number, not a new one. */
-.b-qcard-why { padding: 8px 14px 0; }
+/* `.b-qcard-why` and `.b-qcard-note` stood here with the padding that put
+   them in the card's own text column. Both are off the card — the why was an
+   insight drawn outside the insight, and the note was the evidence for a
+   sentence the card already says. */
 
 /* ── AND THE QUOTE'S RULE WAS ON THE CARD'S BORDER ────────────────────────
    The fix above moved the note's TEXT off the edge and left its rule behind.
@@ -228,7 +231,7 @@
    indent, and an indent is what it was costing. Nothing else on this card is
    ruled; the italic and the drop to --d300 already say the words are somebody
    else's. So the note joins the one column every other line here keeps. */
-.b-qcard .b-qcard-note { padding: 6px 14px 0; border-left: 0; }
+
 
 /* ── THE RAMP, AND ALL THREE AXES MOVE THE SAME WAY ───────────────────────
    The first cut ranked by ink alone and everything was a different grey, with
@@ -294,15 +297,7 @@
 
    600 for the sentence, 800 for the two things in it that are the reason the
    card is here. */
-.b-qcard-why {
-  font-size: var(--fs-base); font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug); color: var(--ink-primary);
-}
-.b-qcard-why b { font-weight: var(--fw-extrabold); }
-.b-qcard .b-qcard-note {
-  margin: 0; font-size: var(--fs-xs); font-weight: var(--fw-regular);
-  line-height: var(--lh-snug); color: var(--ink-muted);
-}
+
 
 /* The number and the one action, pushed to the foot of the card so every card
    in a row ends on the same line.
