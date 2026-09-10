@@ -2337,11 +2337,15 @@
          `padding-top: 2px`, so stacking them gives back exactly the 2px
          the wrap's row-gap was giving, and no rule changes. */
       (a ? '<p class="b-qcard-where">' +
-        /* Inside the company fact rather than beside it: the measured
-           two-lines-of-two above is what four facts and four marks need to
-           hold their shape, and a fifth item breaks it at every width. */
-        fact('company', esc(a.name) + (isMgr() ? tierMark(a) : '')) +
-        fact('industry', esc(indLabel(a))) + '</p>' +
+        fact('company', esc(a.name)) +
+        fact('industry', esc(indLabel(a))) +
+        /* At the far end of the row the company is named on, not tucked
+           against the name. It is the one mark on the card that ranks rather
+           than describes, and a mark you scan a column for has to be in the
+           same place on every card — hard against the right edge, where the
+           eye can run down it. `margin-left: auto` takes the slack, so it
+           costs the four facts none of the width they were measured at. */
+        (isMgr() ? tierMark(a) : '') + '</p>' +
         '<p class="b-qcard-where">' +
         fact('where', esc(cityLabel(a))) +
         fact('staff', esc(headLabel(a))) + '</p>' : '') +
@@ -4566,11 +4570,18 @@
        accounts in gold, which is a key-account list rather than a tier, and
        left half the book benched — a ranking whose bottom is the majority
        has told a manager to ignore most of their own desk. */
+    /* 21, 42 and 91 rather than 21, 45 and 90. The window is now said out
+       loud on the account — three weeks, six weeks, a quarter — and a
+       number that does not survive being read back in words is a number
+       that will be rounded by whoever quotes it. */
     { k: 'gold', cls: 'is-gold', label: 'Gold', pips: 3, at: 4, days: 21,
+      every: 'three weeks',
       play: 'Worth the trip and a standing check-in. Ask what else is on their roadmap.' },
-    { k: 'silver', cls: 'is-silver', label: 'Silver', pips: 2, at: 2, days: 45,
+    { k: 'silver', cls: 'is-silver', label: 'Silver', pips: 2, at: 2, days: 42,
+      every: 'six weeks',
       play: 'Worth working, not worth a flight. Keep it on the calendar and let it earn more.' },
-    { k: 'bench', cls: 'is-bench', label: 'Bench', pips: 1, at: 0, days: 90,
+    { k: 'bench', cls: 'is-bench', label: 'Bench', pips: 1, at: 0, days: 91,
+      every: 'a quarter',
       play: 'Answer them well, but do not build the week around it.' },
   ];
   const TIER = Object.create(null);
@@ -4593,34 +4604,63 @@
   const tierRank = (c) => 3 - tierOf(accOf(c)).pips;
   const checkinDays = (c) => tierOf(accOf(c)).days;
 
-  /* ══ A RANK IS DRAWN AS A RANK, NOT AS A COLOUR AND NOT AS A WORD ══════
-     Gold and Silver are colour words and the obvious move is to spend the
-     colours on them. This build stopped colour naming categories — it has
-     two poles and nothing else — and gold against silver survives neither a
-     dark ground nor a reader who cannot separate them.
+  /* ══ A MEDAL, WHICH IS THE ONE PLACE COLOUR IS THE NAME ════════════════
+     This was a three-bar meter, on the argument that colour in this build
+     has two poles and does not name categories. The argument does not reach
+     here: `ok` and `err` are a verdict on a thing that happened, and gold
+     against silver is not a verdict on anything — it is a medal, and the
+     colour IS the name of it. A reader who is told an account is gold and
+     shown a grey bar has been given two facts to reconcile.
 
-     So it is a meter: three bars of rising height, lit up to the tier, with
-     the ink and the weight stepping alongside. Rising heights rather than
-     three of a size, because that is the one mark a person reads as a rank
-     without being taught it — nobody has to be told which end of a signal
-     bar is more.
+     So it is a shield, filled in the metal. The word rides along only where
+     there is room to teach it — the account and the brief — and on a card in
+     a list of fifteen the shield is the whole mark with the label on the
+     element for a hover.
 
-     The word rides along only where there is room to teach it: the account
-     itself and the brief. On a card in a list of fifteen the meter is the
-     whole mark, and the label is on the element for a hover — a name you
-     already know does not need repeating fifteen times, and a name you do
-     not know is on the page the pips lead to. */
+     Bench is the shield with no fill. It is not a metal and it is not a
+     third medal: it is the one that is not on the field, and hollow says
+     that in a way a duller colour cannot. It also means the three levels
+     differ in something besides hue, which is what keeps them apart for a
+     reader who cannot separate gold from silver. */
   function tierMark(a, word) {
     const t = tierOf(a);
     const say = esc(t.label) + ' account';
     return '<span class="b-tier ' + t.cls + '" title="' + say + '"' +
       (word ? '' : ' role="img" aria-label="' + say + '"') + '>' +
-      '<span class="b-tier-pips" aria-hidden="true">' +
-        [1, 2, 3].map((n) =>
-          '<i class="b-tier-pip' + (n <= t.pips ? ' is-on' : '') + '"></i>').join('') +
-      '</span>' + (word ? esc(t.label) : '') +
+      '<svg class="b-tier-shield" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path d="M12 2.4 20 5.2v6.1c0 4.7-3.2 8.4-8 10.3-4.8-1.9-8-5.6-8-10.3V5.2Z"/>' +
+      '</svg>' + (word ? esc(t.label) : '') +
     '</span>';
   }
+  /* ══ WHAT THE TIER ASKS OF YOU, ON A CLOCK YOU CAN SEE ════════════════
+     The window each tier buys was real and invisible. It decides when a
+     deal counts as quiet on the report, and nothing anywhere said what it
+     was or when this account's fell due — so the one part of the ranking
+     that is a standing instruction was the one part nobody could act on.
+     A cadence nobody can see is a cadence nobody keeps.
+
+     Counted from the last thing anybody did at the COMPANY rather than on
+     one lead. A manager checks in on an account: a call to somebody else in
+     the same building is this account having been touched, and a clock that
+     restarted per person would tell a company of nine that it is nine
+     different companies.
+
+     An account nobody has said anything to has no clock running, so it is
+     told the rule instead of a date — inventing a due date from a hand-over
+     nobody followed up would be the page making something up. */
+  function checkinSay(a, hist) {
+    const t = tierOf(a);
+    const last = hist.length ? hist[0].at.slice(0, 10) : null;
+    if (!last) {
+      return { late: false, text: 'Worth a check-in every ' + esc(t.every) +
+        ', and nothing has been said here yet' };
+    }
+    const left = t.days - daysBetween(last, TODAY_ISO);
+    if (left < 0) return { late: true, text: 'Check-in overdue by ' + esc(plural(-left, 'day')) };
+    return { late: false, text: left === 0 ? 'Check-in due today'
+      : 'Next check-in due in ' + esc(plural(left, 'day')) };
+  }
+
   /* The half of the reasoning the masthead's money figure does not already
      carry. Second person, because both facts are about what this desk holds
      rather than about the company. */
@@ -9146,6 +9186,7 @@
       if (mine(k) && camps.indexOf(k) < 0) camps.push(k);
     }));
     const free = myCampaigns().filter((k) => camps.indexOf(k) < 0).slice(0, 5);
+    const ci = isMgr() ? checkinSay(a, hist) : null;
 
     /* The furthest anyone here has got, as the chip beside the name. Below
        `answered` nobody has been reached, and that is the chip's whole
@@ -9187,6 +9228,11 @@
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(a.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(chip.tone) + '">' + esc(chip.label) + '</span>' +
+          /* The rank belongs to the company, so it rides on the company's
+             own line rather than down among the facts — and at the end of
+             it, so that opening one account after another puts it in the
+             same place every time. */
+          (isMgr() ? tierMark(a, 1) : '') +
         '</div>' +
         '<div class="s-rec-facts">' +
           /* Rank one: the size, then how many are here and how many you can
@@ -9197,15 +9243,12 @@
                says how big they are and who we hold; this says what that
                adds up to, which is the one figure that decides whether this
                company gets the afternoon. */
-            /* Not through `fact`. Every other fact on this line opens with a
-               glyph naming its kind, and the meter IS this one's glyph — a
-               money icon in front of it is two marks for one fact, and the
-               reader has to work out that only the second one is saying
-               something. */
+            /* The prize, without the shield in front of it. The shield is on
+               the name now; repeating it here would put the same mark twice
+               in one masthead, and this line's job is the figure. */
             (isMgr()
-              ? '<span class="b-fact">' + tierMark(a, 1) +
-                '<span>· <b>' + esc(euro(ceilingOf(a))) +
-                '</b> of our work could fit</span></span>'
+              ? fact('money', '<b>' + esc(euro(ceilingOf(a))) +
+                '</b> of our work could fit')
               : '') +
             fact('staff', '<b>' + esc(headLabel(a)) + '</b>') +
             fact('role', esc(plural(people.length, 'person')) + ' here') +
@@ -9220,6 +9263,12 @@
             (signalOf(a) ? fact('spark', '<b>' + esc(a.signal.text) + '</b> · seen ' +
               esc(sayWhen(a.signal.at))) : '') +
             (isMgr() ? '<span>' + tierWhy(a) + '</span>' : '') +
+            /* Beside the reasoning, because the two are one thought: this is
+               what the account is worth, and this is what that buys it. The
+               glyph is the clock the other facts on this line each have for
+               their own kind. */
+            (ci ? fact('clock', '<span class="b-due' + (ci.late ? ' is-late' : '') + '">' +
+              ci.text + '</span>') : '') +
             '<span>' + (camps.length
               ? 'on ' + camps.slice(0, 3).map((k) =>
                   '<button class="s-inline-btn" type="button" data-camp="' + esc(k.id) +

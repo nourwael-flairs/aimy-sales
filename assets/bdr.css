@@ -2616,36 +2616,56 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   color: var(--ink-faint); white-space: nowrap;
 }
 
-/* ══ WHAT AN ACCOUNT IS WORTH TO US ════════════════════════════════════════
-   Three of anything ranked wants three treatments, and the one this build
-   will not spend is colour: it has two poles and colour stopped naming
-   categories. So the rank is carried on the axes that are free — a mark that
-   counts, an ink that steps, a weight that steps with it — and every level
-   differs from its neighbour on all three.
+/* ══ WHAT AN ACCOUNT IS WORTH TO US ══════════════════════════
+   A medal, which is the one place in this build where colour is allowed to
+   be the name of something. `ok` and `err` are a verdict on a thing that
+   happened; gold against silver is a verdict on nothing — it is what the
+   team already calls these accounts out loud, and a reader told an account
+   is gold and shown a grey mark has two facts to reconcile.
 
-   Rising heights rather than three bars of a size. It is the one mark a
-   person reads as a rank without being taught it, which is what lets the
-   word come off the cards: nobody needs telling which end of a signal bar
-   is more, and a meter that has to be explained is a word with extra steps.
-
-   The unlit bars stay drawn in the rule ink. Three of three against one of
-   three is a comparison; three marks against one mark is a reader counting
-   nothing against nothing. */
+   Bench is the shield with no fill: not a third metal, but the one that is
+   not on the field. That also leaves the three differing in something other
+   than hue, which is what holds them apart for a reader who cannot separate
+   gold from silver. */
 .b-tier {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: var(--fs-2xs); white-space: nowrap;
 }
-.b-tier-pips { display: inline-flex; align-items: flex-end; gap: 2px; }
-.b-tier-pip { width: 3px; border-radius: 1px; background: var(--ink-rule); }
-.b-tier-pip:nth-child(1) { height: 5px; }
-.b-tier-pip:nth-child(2) { height: 7px; }
-.b-tier-pip:nth-child(3) { height: 9px; }
+.b-tier-shield { width: 14px; height: 14px; flex: none; }
+
+/* The metals, and the two grounds they have to sit on. A gold that reads on
+   a dark page is a pale one, and that same value on white is a yellow nobody
+   would call gold — so each is chosen against its own ground rather than
+   lightened from a single value. */
+:root { --tier-gold: #e3b341; --tier-silver: #b6c2ce; }
+:root[data-theme="light"] { --tier-gold: #a97a10; --tier-silver: #78848f; }
+
+.b-tier.is-gold .b-tier-shield { fill: var(--tier-gold); stroke: none; }
+.b-tier.is-silver .b-tier-shield { fill: var(--tier-silver); stroke: none; }
+/* Hollow, in the rule ink: an outline is quiet enough to stop a benched
+   account being the brightest thing in a column of fifteen. */
+.b-tier.is-bench .b-tier-shield {
+  fill: none; stroke: var(--ink-rule); stroke-width: 2.2; stroke-linejoin: round;
+}
+
+/* The word keeps the ink and weight steps it always had. Only the shield is
+   coloured: gold TEXT at twelve pixels is a contrast problem on both grounds,
+   and the hierarchy on the line it lands in is the page's, not the medal's. */
 .b-tier.is-gold { color: var(--ink-primary); font-weight: var(--fw-bold); }
 .b-tier.is-silver { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
 .b-tier.is-bench { color: var(--ink-quiet); font-weight: var(--fw-medium); }
-.b-tier.is-gold .b-tier-pip.is-on { background: var(--ink-primary); }
-.b-tier.is-silver .b-tier-pip.is-on { background: var(--ink-secondary); }
-.b-tier.is-bench .b-tier-pip.is-on { background: var(--ink-quiet); }
+/* Ordinary ink until the window runs out. A date that has not arrived is a
+   fact like any other on the line, and a page where every account's next
+   check-in wears the warning colour has told a manager nothing about which
+   one to ring. Warn rather than err: a check-in gone by is a nudge, which is
+   what `.b-prep-due.is-late` already says in the same words. */
+.b-due.is-late { color: var(--warn-text); font-weight: var(--fw-semibold); }
+
+/* Hard against the right edge of whichever row names the company, so a
+   column of cards can be scanned straight down the marks. */
+.b-qcard-where > .b-tier,
+.b-dc-co .b-tier,
+.s-rec-title .b-tier { margin-left: auto; }
 .b-cal-etime {
   flex: none; font-size: var(--t-small); font-weight: var(--fw-semibold);
   color: var(--d200); font-variant-numeric: tabular-nums;
