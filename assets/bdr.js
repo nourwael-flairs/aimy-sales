@@ -10425,7 +10425,7 @@
       /* Directly under the masthead, in the slot the deal block used to
          hold — the first thing after who this is, because it is the only
          thing on the page that is owed. */
-      askBlock(c) +
+      stateBlock(c) +
 
       storyBlock(storyOf(c)) +
 
@@ -10499,17 +10499,6 @@
     '</span>';
   }
 
-  /* The three ways a deal stops, in the one shape both desks draw it. The
-     verdict is bold and takes its pole; the date is the record and takes
-     neither, because when it happened is not a verdict on anything.
-     Rescheduled has no pole: it is not an outcome, it is a date. */
-  function endedSay(k, iso) {
-    const word = k === 'won' ? 'They signed'
-      : k === 'lost' ? 'They said no' : 'Rescheduled';
-    return { html: '<b>' + esc(word) + '</b> ' + esc(sayWhen(iso)) + '.',
-      tone: k === 'won' ? ' is-won' : k === 'lost' ? ' is-lost' : '' };
-  }
-
   function actionsRow(c) {
     const first = c.name.split(' ')[0];
     /* No call on somebody who opted out: the number is on the page, the
@@ -10552,8 +10541,6 @@
     let list;
     let quiet = [];
     let say = '';
-    let ended = '';
-    let endTone = '';
     if (c.checkpoint === 'handed-over') {
       const ph = phasesOf(c);
       const fin = ph.length ? ph[ph.length - 1] : null;
@@ -10567,32 +10554,16 @@
            before the phone can be — the same door the caller's desk offers. */
         list = dealLive(c) ? (call ? [call, prep] : find ? [find, prep] : [prep]) : [];
         quiet = dealLive(c) ? [] : call ? [call] : [];
-        /* ══ A DEAL THAT IS OVER IS NOT A FOOTNOTE TO THE ROW ══════════════
-           This was the quietest treatment in the build -- 12px, muted, wedged
-           between two buttons -- carrying the single most important fact
-           about the record. A settled deal is not an aside to the things you
-           can do with it; it is the reason there is almost nothing left in
-           that row. It takes the lead step and the pole its outcome sits on,
-           above the controls rather than inside them.
-
-           And three endings rather than two. `dealLive` is false for won,
-           lost AND rescheduled, so a two-way test on `won` told every
-           rescheduled deal on this desk that they had said no -- the one
-           sentence in the masthead, stating the opposite of what happened. */
-        const end = !dealLive(c) && fin ? endedSay(stageOf(c), fin.at.slice(0, 10)) : null;
-        ended = end ? end.html : '';
-        endTone = end ? end.tone : '';
+        /* Where a deal ended is a statement, and `stateBlock` makes it
+           one under the masthead. Nothing about it belongs in a row of
+           things you can press. */
       } else {
         list = [];
         quiet = call ? [call] : [];
-        /* the same tense as the ladder line: decided is past. Same three
-           endings, and the director's name in front of them, because at this
-           desk the news is that somebody else was running it. */
-        const end = fin && fin.decision
-          ? endedSay(fin.decision, fin.at.slice(0, 10)) : null;
-        ended = end ? esc(directorOf(c).name) + ' had it. ' + end.html : '';
-        endTone = end ? end.tone : '';
-        say = end ? '' : directorOf(c).name + ' has it now.';
+        /* Only the live case, and only as a note: who has it now. What
+           happened when it ended is the statement `stateBlock` draws, on
+           this desk as on the other. */
+        say = (fin && fin.decision) ? '' : directorOf(c).name + ' has it now.';
       }
     } else if (c.checkpoint === 'wrong-number') {
       /* the ladder says nothing is owed until somebody finds a number that
@@ -10626,8 +10597,7 @@
        was an order he was supposed to be following and named a stranger as
        the next step. */
     const next = isMgr() ? null : queue(null, 'all').filter((x) => x.id !== c.id)[0];
-    return (ended ? '<p class="b-ended' + endTone + '">' + ended + '</p>' : '') +
-    '<div class="s-rec-actions">' +
+    return '<div class="s-rec-actions">' +
       list.map((b, i) =>
         '<button class="' + (i === 0 ? 's-insight-lnk primary' : 's-inline-btn') + '" type="button" ' +
         b.attr + '>' + b.html + '</button>').join('') +
@@ -10676,30 +10646,76 @@
      outstanding thing, drawn the way this build draws an outstanding thing
      — `b-nm-do`'s mark, tint and border, the same shape as the task on a
      caller's record. */
-  function askBlock(c) {
-    if (!isMgr() || c.checkpoint !== 'handed-over') return '';
+  /* The tone arrives spelled out rather than built from the stage key. The
+     audit reads the source for the class names the CSS defines, and a name
+     assembled at runtime is a rule it can only report as unused — which it
+     did, the moment this was written. */
+  const stateWrap = (tone, mark, body, label) =>
+    '<section class="s-block s-block-wide" aria-label="' + esc(label) + '">' +
+      '<div class="b-state ' + tone + '">' +
+        '<span class="b-state-mark">' + mark + '</span>' +
+        '<div class="b-state-text">' + body + '</div>' +
+      '</div>' +
+    '</section>';
+
+  /* ══ WHERE THIS DEAL STANDS, IN ONE BLOCK ══════════════════════════════
+     The ended sentence was a line of bold text between the facts and the
+     Call button — loud enough to see and shaped like nothing. A statement
+     is a thing with edges: the same box the unwritten meeting gets, in the
+     same place, because the two answer one question between them. A deal
+     that is running and owes a write-up, or a deal that has stopped; never
+     both, and never neither once it has been handed over.
+
+     One drawing, four tones. Accent asks, ok signed, err said no, and the
+     rescheduled one takes the card's own ground because it is not a verdict
+     — nothing went well or badly, a date moved. */
+  function stateBlock(c) {
+    if (c.checkpoint !== 'handed-over') return '';
     const ph = phasesOf(c);
     const last = ph.length ? ph[ph.length - 1] : null;
+    if (!last) return '';
+    const mine = isMgr();
+    const k = mine ? stageOf(c) : (last.decision || '');
+    const when = esc(sayWhen(last.at.slice(0, 10)));
+
+    if (k === 'won' || k === 'lost' || k === 'later') {
+      /* At the caller's desk the news is that somebody else was running it,
+         so the sentence opens on their name. */
+      const who = mine ? '' : esc(directorOf(c).name) + ' had it. ';
+      const word = k === 'won' ? 'They signed' : k === 'lost' ? 'They said no' : 'Rescheduled';
+      /* The half a label cannot carry. A lost deal has a reason on the
+         record and it is the thing a manager reads next; a rescheduled one
+         has a date it comes back on, which is the whole point of parking
+         it; a signed one is done and has nothing owed. */
+      const w = k === 'lost' ? lostWhy(c) : null;
+      const tail = k === 'lost'
+        ? (w ? ' <b>' + esc(w.label) + '</b> — ' + esc(w.say) + '.' +
+            (w.back ? ' That is a no for now rather than a no.' : '')
+          : ' Nothing was written down when it closed.')
+        : k === 'later'
+          ? (c.next && c.next.due ? ' Back on the desk ' + esc(sayWhen(c.next.due)) + '.' : '')
+          : '';
+      return stateWrap(k === 'won' ? 'is-won' : k === 'lost' ? 'is-lost' : 'is-later',
+        chIcon(k === 'won' ? 'check' : k === 'lost' ? 'stop' : 'clock'),
+        '<p class="b-state-say">' + who + '<b>' + esc(word) + '</b> ' + when + '.' + tail + '</p>',
+        'How this deal ended');
+    }
+
     /* A resolution carries the decision rather than a reading of the room,
        so it is not a meeting waiting to be described. */
-    if (!last || last.out || last.phase === 'resolution') return '';
+    if (!mine || last.out || last.phase === 'resolution') return '';
     const moves = dealMoves(c);
     if (!moves.length) return '';
     const met = PHASE[last.phase];
-    return '<section class="s-block s-block-wide" aria-label="What happened at the meeting">' +
-      '<div class="b-unwrit">' +
-        '<span class="b-nm-mark">' + nmClock() + '</span>' +
-        '<div class="b-unwrit-text">' +
-          '<p class="b-unwrit-say">You had a <b>' +
-            esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
-            esc(sayDay(last.at.slice(0, 10))) + '</b>. What happened?</p>' +
-          '<div class="b-unwrit-moves">' +
-            moves.map((m) => '<button class="b-ghost" type="button" data-deal="' +
-              esc(c.id + ':' + m.k) + '">' + esc(m.label) + '</button>').join('') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</section>';
+    return stateWrap('is-ask', nmClock(),
+      '<p class="b-state-say">You had a <b>' +
+        esc((met ? met.label : 'meeting').toLowerCase()) + '</b> on <b>' +
+        esc(sayDay(last.at.slice(0, 10))) + '</b>. What happened?</p>' +
+      '<div class="b-state-moves">' +
+        moves.map((m) => '<button class="b-ghost" type="button" data-deal="' +
+          esc(c.id + ':' + m.k) + '">' + esc(m.label) + '</button>').join('') +
+      '</div>',
+      'What happened at the meeting');
   }
 
   const rg2 = (c) => (called[c.checkpoint] || {}).say || 'they have left the ladder';

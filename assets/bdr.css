@@ -1846,51 +1846,51 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-nm-by { font-size: var(--t-small); color: var(--ink-muted); }
 
-/* ══ 47. THE MEETING NOBODY WROTE UP ═══════════════════════════════════════
-   `b-nm-do`'s drawing, because it is the same kind of thing: one outstanding
-   item, a mark, and the sentence saying what it is — so the mark itself is
-   `b-nm-mark` rather than a second class that would draw the same square.
+/* ══ 47. WHERE A DEAL STANDS, IN ONE BLOCK ═════════════════════════════════
+   `b-nm-do`'s drawing, because it is the same kind of thing: one statement,
+   a mark, and the sentence that says what it is — so the mark keeps
+   `b-nm-mark`'s square rather than a second class that would draw it again.
 
-   In a section of its own rather than a line in the masthead, because it is
-   not always there. A prompt that is on every record all the time is
-   furniture, and furniture is not read. The four answers are ghosts, which
-   is the box this build gives a control that is not the primary. */
-.b-unwrit {
+   Two blocks used to sit in this slot. The unwritten meeting was a bordered
+   card and the ended deal was a bold line of text with nothing around it,
+   and they never appear together — a deal is either running and owes a
+   write-up, or it has stopped. One question, two drawings, which is the
+   duplicate this build keeps removing. One drawing now, four tones.
+
+   The tone is the pole where there is one: ok signed, err said no. Ask
+   takes the accent, because it is a thing to do rather than a thing that
+   happened. Rescheduled takes the card's own ground and no colour at all —
+   nothing went well or badly there, a date moved.
+
+   In a section rather than in the masthead, because it is not always there.
+   A prompt on every record all the time is furniture, and furniture is not
+   read. */
+.b-state {
   display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px;
   align-items: start; padding: 14px 16px; border-radius: 14px;
-  background: rgba(var(--accent-rgb), 0.08);
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
 }
-.b-unwrit-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.b-unwrit-say {
-  margin: 0; font-size: var(--t-lead); font-weight: var(--fw-semibold);
-  line-height: var(--lh-base); color: var(--d50); max-width: 60ch; text-wrap: pretty;
+.b-state-mark {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border-radius: 9px; margin-top: 1px; flex: none;
 }
-.b-unwrit-say b { font-weight: var(--fw-extrabold); }
-.b-unwrit-moves { display: flex; flex-wrap: wrap; gap: 8px; }
-
-/* ══ 47b. A DEAL THAT IS OVER SAYS SO ══════════════════════════════════════
-   "They said no 30 Jun." was an `s-block-sub` -- 12px, muted, the quietest
-   treatment this build has -- wedged between two buttons, carrying the most
-   important fact on the record. It sits above the row now at the lead step,
-   where the eye lands after the facts.
-
-   The verdict is bold and takes its pole; the date beside it takes neither,
-   because when a thing happened is not a verdict on it. A rescheduled deal
-   gets the same line with no colour at all: it is not an outcome, it is a
-   date.
-
-   `--t-deck`, not `--t-lead`. The scale names deck "the consequence
-   sentence", and a deal that is over is the consequence of everything on
-   the record above it. At lead it tied with the facts rank and outranked
-   nothing; a step up is the difference between visible and first. */
-.b-ended {
-  margin: 0 0 14px; font-size: var(--t-deck); font-weight: var(--fw-medium);
-  line-height: var(--lh-snug); color: var(--d100);
+.b-state-mark > svg { width: 15px; height: 15px; }
+.b-state-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.b-state-say {
+  margin: 0; font-size: var(--t-lead); font-weight: var(--fw-medium);
+  line-height: var(--lh-base); color: var(--d50); max-width: 62ch; text-wrap: pretty;
 }
-.b-ended b { font-weight: var(--fw-extrabold); color: var(--d50); }
-.b-ended.is-won b { color: var(--ok-text); }
-.b-ended.is-lost b { color: var(--err-text); }
+.b-state-say b { font-weight: var(--fw-extrabold); }
+.b-state-moves { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.b-state.is-ask { background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2); }
+.b-state.is-ask .b-state-mark { color: var(--accent-text); background: rgba(var(--accent-rgb), 0.18); }
+.b-state.is-won { background: var(--ok-bg); border: 1px solid color-mix(in srgb, var(--ok) 28%, transparent); }
+.b-state.is-won .b-state-mark { color: var(--ok-text); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.b-state.is-lost { background: var(--err-bg); border: 1px solid color-mix(in srgb, var(--err) 28%, transparent); }
+.b-state.is-lost .b-state-mark { color: var(--err-text); background: color-mix(in srgb, var(--err) 18%, transparent); }
+.b-state.is-later { background: var(--card-bg-raised); border: 1px solid var(--card-border); }
+.b-state.is-later .b-state-mark { color: var(--ink-quiet); background: var(--card-bg); }
+
 
 /* ══ 48. A DOCUMENT IS A DOOR ══════════════════════════════════════════════
    They were grey uppercase tags — a status treatment on a thing you open,
