@@ -1960,7 +1960,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    is a second place to put the wheel, and the whole point of this card is
    that it is a glance: what fits, a fade, and a door to the rest. */
 .b-peek {
-  position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+  position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
   display: flex; justify-content: center; pointer-events: none; z-index: 2;
 }
 /* `display: flex` above outranks the shell's `[hidden] { display: none }` --
@@ -1969,49 +1969,48 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    and styles with a display is one line away from the same bug. */
 .b-peek[hidden] { display: none; }
 .aimy-float-wrap.has-peek .filter-tray { display: none; }
-/* ══ THE EDGE, NOT THE GLOW ════════════════════════════════════════════════
-   A flat fill with a black drop shadow is what a card looks like before
-   anybody has decided what it is made of. Three changes and it is a surface:
+/* ══ THE COMPOSER'S OWN SKIN ═══════════════════════════════════════════════
+   The pass before this built it as a card: the raised card ground, a wash
+   down it, the card border, a card shadow tinted to the page. Every one of
+   those is right for a card and wrong for this, because this is not a card.
+   It is what the input said back, and dressed as a card it read as a
+   notification that had floated in over the page and happened to land there.
 
-   A vertical wash rather than one colour. Eight percent of white at the top
-   edge falling to the raised ground by 60% — the light in this shell comes
-   from above, and a panel lit from above is the difference between a shape
-   and an object.
+   Nothing says "connected" as directly as being made of the same material.
+   The bar is #1e2428 with a nine-percent edge, an inner top hairline at
+   five, and a two-part shadow — one wide and soft for the lift, one
+   hairline for the contact. This is that, exactly, so the two read as one
+   object with a seam across it rather than as two things at two heights.
+   The gap closes to six: near enough to be that seam, far enough to be two.
 
-   An inner top hairline at 6%, which is the refraction an edge has where it
-   catches that light. This is the honest version of the glow a card like
-   this usually gets: the light is ON the edge rather than leaking out of it.
-
-   And the shadow is tinted to the ground it falls on. Pure black over a blue
-   ground reads as a hole; #0a0e14 at two distances — a wide soft one for the
-   lift and a tight one for the contact — reads as a card above a page. */
+   TOKENISED BECAUSE TWO RULES NEED IT NOW. The shell hard-codes the literal
+   in `.aimy-float-bar`, which is why the value is written here rather than
+   read from a token that never existed. That rule still carries its own
+   copy: until the shell adopts these, the composer's material has to be
+   changed in both places. */
+:root { --composer-skin: #1e2428; --composer-edge: rgba(255, 255, 255, 0.09); }
+:root[data-theme="light"] { --composer-skin: #ffffff; --composer-edge: rgba(16, 24, 40, 0.14); }
 .b-peek-card {
   pointer-events: all; position: relative;
   width: 100%; max-width: 760px;
   display: flex; align-items: flex-start; gap: 4px;
-  padding: 5px; border-radius: 22px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--card-bg-raised) 92%, #ffffff) 0%,
-    var(--card-bg-raised) 60%);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(14px);
+  padding: 5px; border-radius: 24px;
+  background: var(--composer-skin);
+  border: 1px solid var(--composer-edge);
   box-shadow:
-    0 20px 48px -14px rgba(10, 14, 20, 0.7),
-    0 2px 6px rgba(10, 14, 20, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* Overshoot rather than ease-out. The card is arriving, not fading in, and
      a thing that arrives settles. */
   animation: b-peek-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-/* On white the wash has nowhere to go and the hairline is invisible, so the
-   surface is made by the shadow alone — lighter, and tinted to the same
-   ground rather than to black. */
+/* The shell's own light values for the same two shadows, and no inner
+   hairline: on white there is no light for an edge to catch. */
 :root[data-theme="light"] .b-peek-card {
-  background: var(--card-bg);
   box-shadow:
-    0 20px 44px -16px rgba(16, 24, 40, 0.18),
-    0 2px 6px rgba(16, 24, 40, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 8px 32px rgba(16, 24, 40, 0.14),
+    0 0 0 1px rgba(16, 24, 40, 0.03);
 }
 /* One authored moment, and it reaches past transform and opacity. The card
    resolves out of the blur the bar behind it is already carrying, which is
@@ -2034,8 +2033,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    same card moving one pixel reads as a key going down. */
 .b-peek-open {
   flex: 1 1 auto; min-width: 0; display: grid;
-  grid-template-columns: auto minmax(0, 1fr); gap: 12px;
-  padding: 14px 14px 14px 15px; border: 0; border-radius: 18px;
+  padding: 14px 16px; border: 0; border-radius: 20px;
   background: none; font-family: inherit; text-align: left; cursor: pointer;
   transition: background-color var(--t-fast), transform 120ms var(--ease-out);
 }
@@ -2043,22 +2041,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-peek-open:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: reduce) { .b-peek-open:active { transform: none; } }
 .b-peek-open:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-/* The same edge, one size down. A tinted square with a flat fill beside a
-   lit card reads as a sticker on it. */
-.b-peek-mark {
-  display: grid; place-items: center; width: 28px; height: 28px;
-  border-radius: 9px;
-  background: linear-gradient(180deg,
-    rgba(var(--accent-rgb), 0.22) 0%, rgba(var(--accent-rgb), 0.12) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 0 1px rgba(var(--accent-rgb), 0.16);
-  /* The sentence's own leading, so the mark sits on the first line however
-     many the answer runs to — the rule the facts and the state block use. */
-  font-size: var(--t-body); line-height: var(--lh-base);
-  margin-top: calc((var(--t-body) * var(--lh-base) - 28px) / 2);
-  margin-top: calc((1lh - 28px) / 2);
-}
-.b-peek-mark > svg { width: 13px; height: 15px; }
 .b-peek-body {
   position: relative; display: block; overflow: hidden;
   max-height: calc(var(--t-body) * var(--lh-base) * 4);
@@ -2076,11 +2058,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    rather than on the one the top of it started as. */
 .b-peek.is-clipped .b-peek-body::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2.4em;
-  background: linear-gradient(to bottom, transparent, var(--card-bg-raised));
+  background: linear-gradient(to bottom, transparent, var(--composer-skin));
   pointer-events: none;
-}
-:root[data-theme="light"] .b-peek.is-clipped .b-peek-body::after {
-  background: linear-gradient(to bottom, transparent, var(--card-bg));
 }
 /* 32px of button under a 14px mark, and a thumb wants 44. The target grows
    and the button does not: an invisible box centred on it takes the press,
@@ -2118,8 +2097,6 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    The clip comes off while it thinks. There is nothing to fade to when what
    is in the box is a mark and four words. */
 .b-peek.is-thinking .b-peek-body { max-height: none; }
-.b-peek.is-thinking .b-peek-mark { display: none; }
-.b-peek.is-thinking .b-peek-open { grid-template-columns: minmax(0, 1fr); }
 .think-mark {
   width: 1.625rem; height: 1.625rem;
   flex-shrink: 0;

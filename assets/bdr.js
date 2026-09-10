@@ -13626,6 +13626,63 @@
      already computed, so it lands in the thread and the canvas opens on it. */
   let PEEK_AT = null;
   let PEEK_DUE = null;
+  let PEEK_RAF = 0;
+
+  /* ══ THE ANSWER ARRIVES AS IT IS WRITTEN ═══════════════════════════════
+     A reply that appears whole is a lookup. One that arrives at reading
+     speed is a reading, which is what this is — and the wait before it can
+     be shorter because the card stops being empty the moment the first word
+     lands.
+
+     NOT A SLICED STRING. `answer()` returns markup: bold figures, and on
+     some replies a button that narrows the surface behind it. Slicing the
+     HTML would cut a tag in half and paint the rest of the sentence as
+     source. So the markup is written once, whole, and the TEXT NODES inside
+     it are emptied and refilled — every element, attribute and handler is
+     in place from the first frame and only the words are missing.
+
+     Budgeted per frame rather than timed per character: three characters a
+     frame is about a hundred and eighty a second on a display that keeps up
+     and degrades to fewer on one that does not, where a `setInterval` per
+     character would queue up behind a slow frame and finish in a burst. */
+  function peekStream(host, html, whenDone) {
+    peekStreamStop();
+    host.innerHTML = html;
+    if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (whenDone) whenDone();
+      return;
+    }
+    const walk = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+    const runs = [];
+    let n;
+    while ((n = walk.nextNode())) if (n.nodeValue) runs.push({ node: n, full: n.nodeValue });
+    if (!runs.length) { if (whenDone) whenDone(); return; }
+    /* The full text is parked on the node itself, so a press mid-stream can
+       finish every run without the closure that started them. */
+    runs.forEach((r) => { r.node.__full = r.full; r.node.nodeValue = ''; });
+    let at = 0, ch = 0;
+    const tick = () => {
+      let budget = 3;
+      while (budget > 0 && at < runs.length) {
+        const r = runs[at];
+        if (ch >= r.full.length) { at++; ch = 0; continue; }
+        ch++; budget--;
+        r.node.nodeValue = r.full.slice(0, ch);
+      }
+      if (at < runs.length) { PEEK_RAF = requestAnimationFrame(tick); return; }
+      PEEK_RAF = 0;
+      if (whenDone) whenDone();
+    };
+    tick();
+  }
+
+  /* Stopping fills the words in rather than leaving them half-written. The
+     card is a record of an answer, and half a sentence is not one. */
+  function peekStreamStop() {
+    if (!PEEK_RAF) return;
+    cancelAnimationFrame(PEEK_RAF);
+    PEEK_RAF = 0;
+  }
 
   function peekEl() { return byId('aimyPeek'); }
 
@@ -13637,6 +13694,7 @@
     box.hidden = false;
     box.classList.add('is-thinking');
     box.classList.remove('is-clipped');
+    byId('peekBody').style.maxHeight = '';
     byId('aimyFloatWrap').classList.add('has-peek');
     /* Knowledge's own placeholder, markup and all: the mark on the left,
        what it is doing on the right. `startThinking` finds the canvas by
@@ -13664,16 +13722,49 @@
     stopThinking();
     box.classList.remove('is-thinking');
     const body = byId('peekBody');
-    body.innerHTML = html;
-    /* Clipped is measured, not guessed. A fade drawn over an answer that
-       fits dims a line for no reason, and the hint under it would promise
-       more where there is none. */
-    box.classList.toggle('is-clipped', body.scrollHeight - body.clientHeight > 2);
+    /* Clipped is measured, not guessed — and measured on the FINISHED
+       answer, not on the two words that have arrived so far. A fade that
+       switches on halfway through a stream flickers; one decided at the end
+       is decided once.
+
+       And measured against a line, not against two pixels. Some answers end
+       in a control — "Show them", which narrows the surface behind the card
+       — and an inline button makes its line taller than the four this box
+       holds, so the cap fell six pixels short and the fade dimmed a whole
+       line to hide them. Under a line's worth, the box gives way instead:
+       showing it costs one line, where the fade was promising a canvas full
+       of something that was already on screen. */
+    peekStream(body, html, () => {
+      body.style.maxHeight = '';
+      const lh = parseFloat(getComputedStyle(body).lineHeight) || 20;
+      if (body.scrollHeight - body.clientHeight > lh) {
+        box.classList.add('is-clipped');
+      } else if (body.scrollHeight > body.clientHeight) {
+        body.style.maxHeight = 'none';
+      }
+    });
   }
 
   function peekStop() {
     if (PEEK_AT) { clearTimeout(PEEK_AT); PEEK_AT = null; }
     stopThinking();
+    peekStreamStop();
+  }
+
+  /* Whatever is owed, all of it: the answer that has not been written to
+     the thread yet, and the words of the one that has. */
+  function peekAll() {
+    peekFlush();
+    if (PEEK_RAF) {
+      const box = peekEl();
+      peekStreamStop();
+      if (box && !box.hidden) {
+        const body = byId('peekBody');
+        const walk = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+        let n;
+        while ((n = walk.nextNode())) if (n.__full) n.nodeValue = n.__full;
+      }
+    }
   }
 
   function peekHide() {
@@ -16270,11 +16361,14 @@
       return;
     }
 
-    if (t.closest('#peekClose')) { peekFlush(); peekHide(); return; }
+    /* Pressing mid-stream does not wait the rest of it out: the answer is
+       written whole and only its words are still arriving, so finishing them
+       is one assignment and then the canvas has it in full. */
+    if (t.closest('#peekClose')) { peekAll(); peekHide(); return; }
     /* The card is the door. Mid-thought it does not make you wait — the
        answer is already worked out, so it lands and the canvas opens on it. */
-    if (t.closest('#peekOpen')) { peekFlush(); peekHide(); openCanvas(); paintThread(); return; }
-    if (t.closest('#canvasOpen')) { peekFlush(); peekHide(); openCanvas(); paintThread(); return; }
+    if (t.closest('#peekOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
+    if (t.closest('#canvasOpen')) { peekAll(); peekHide(); openCanvas(); paintThread(); return; }
     const ask = t.closest('[data-ask]');
     if (ask) { taskGo(ask.getAttribute('data-ask')); return; }
 
