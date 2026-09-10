@@ -3599,40 +3599,62 @@
     '</section>';
   }
 
+  /* ══ WHAT A BRIEFING IS FOR ════════════════════════════════════════════
+     Today drew six cards off `queue()` under the sentence "10 of your 24
+     deals want something today". That was the board, one tab along, in a
+     smaller box — and the sentence was not true of it: on this corpus six of
+     the ten were five deals already late and one nobody had warm-called,
+     which is the board's job rather than the day's.
+
+     Giving the day to Today instead would have made the same mistake
+     against the diary, which already draws today's agenda and the meetings
+     nobody wrote down. Every kind of content Today could hold has a tab.
+
+     What no tab holds is the one thing a briefing IS: what is owed across
+     ALL of them, ranked together — a meeting that has been and gone, a deal
+     past its date, a lead sitting two days without a warm call, a customer
+     ninety days past what they bought, a price on the table nobody has
+     chased. `mgrTasks` derives exactly that and had fed only the bell. The
+     plan it was written for says one derivation feeds the bell, the digest
+     and the reminder; this is the digest it never got.
+
+     So Today is the only surface that spans the others, and every row is
+     the way into whichever one owns it. The bell keeps the same list for
+     when you are somewhere else. */
+  function owedBlock() {
+    const tasks = mgrTasks();
+    const live = queue(null, 'all').filter(dealLive);
+    return '<section class="s-block s-block-wide" aria-label="What wants you">' +
+      '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
+      (tasks.length
+        ? '<p class="b-tocall"><b>' + plural(tasks.length, 'thing') + '</b> ' +
+            (tasks.length === 1 ? 'wants' : 'want') + ' you, most urgent first</p>' +
+          '<div class="b-owed">' + tasks.map((t, i) =>
+            '<button class="b-owed-row" type="button" data-ask="' + esc(t.ask) + '" ' +
+            'style="--i:' + Math.min(i, 8) + '">' +
+              /* Two poles, and the order carries the rest — the same call
+                 `.ntf-sev` makes in the bell, for the same reason: one of
+                 these rows is about something that went wrong and the others
+                 are about things that have not happened yet. */
+              '<span class="b-owed-sev ' + esc(t.sev) + '" aria-hidden="true"></span>' +
+              '<span class="b-owed-main">' +
+                '<span class="b-owed-head">' +
+                  '<span class="b-owed-type">' + esc(t.type) + '</span>' +
+                  '<span class="b-owed-when">' + esc(t.when) + '</span>' +
+                '</span>' +
+                '<span class="b-owed-body">' + esc(t.body) + '</span>' +
+              '</span>' +
+              '<span class="b-owed-go">' + esc(t.cta) + '</span>' +
+            '</button>').join('') + '</div>'
+        : '<p class="s-block-sub">Nothing is waiting on you. The board has the ' +
+          plural(live.length, 'deal') + ' you are running.</p>') +
+    '</section>';
+  }
+
   function mgrHome() {
-    const all = queue(null, 'all');
-    const live = all.filter(dealLive);
-    /* Late, never warm-called, or owed something today. `dealRank` already
-       ranks exactly this, so the block and the board cannot disagree. */
-    const now = live.filter((c) => dealRank(c) <= 2);
-    const rows = now.slice(0, 6);
-    const more = now.length - rows.length;
     return '<div class="s-home">' +
       topBrief('today') +
-      /* ══ TWO THINGS THAT ARE NOT PLACES ═══════════════════════════════
-         The diary and the numbers are both things this desk looks AT rather
-         than works IN, so neither belongs in the switcher beside Today and
-         Deals — a tab says "this is one of the rooms you live in", and these
-         are two you glance into. They sit under the briefing as a pair of
-         gates, each carrying the one fact that says whether it is worth
-         opening: how much is in the diary today, and what the book is worth.
-         One opens where it stands; the other is a page, because a report is
-         something you read down. */
-      '<section class="s-block s-block-wide" aria-label="What wants you today">' +
-        '<div class="s-camp-list-head">' + switcher('today') + '</div>' +
-        (rows.length
-          ? '<p class="b-tocall"><b>' + commas(now.length) + '</b> of your ' +
-              commas(live.length) + ' deals want something today</p>' +
-            qgrid(rows) +
-            '<div class="b-acts b-acts-end">' +
-              '<button class="s-inline-btn" type="button" data-start="deals">' +
-                (more > 0
-                  ? 'The other ' + commas(more) + ', and the rest of the board'
-                  : 'Open the board') + '</button>' +
-            '</div>'
-          : '<p class="s-block-sub">Nothing is late and nothing is waiting on a first ' +
-            'call. The board has the ' + plural(live.length, 'deal') + ' you are running.</p>') +
-      '</section>' +
+      owedBlock() +
       notesBlock() +
     '</div>';
   }
@@ -12130,8 +12152,15 @@
     });
     const soon = meetingsOn(TODAY_ISO).filter((m) => !m.held && m.kind !== 'owed');
     if (soon.length) {
+      /* ══ TWO COUNTS OF TODAY ON ONE SCREEN ═══════════════════════════
+         This said "N things in the diary today" and so does the paragraph
+         above it — off two different sets. The paragraph counts the whole
+         day; this counts what is still ahead, because a meeting you have
+         already had is not something to prepare for. Both are right and
+         only one of them can be called "in the diary today", so this one
+         says what it actually counted. */
       tasks.push({ id: 'diary-today', sev: 'p2', type: 'Today', when: clockOf(soon[0]),
-        body: plural(soon.length, 'thing') + ' in the diary today, the first with ' +
+        body: plural(soon.length, 'thing') + ' still ahead of you today, the first with ' +
           soon[0].con.name + '.',
         cta: 'Prepare me', ask: 'prep:' + soon[0].con.id });
     }
@@ -12140,15 +12169,15 @@
     if (late.length) {
       tasks.push({ id: 'deals-late', sev: 'p1', type: 'Overdue', when: plural(late.length, 'deal'),
         body: plural(late.length, 'deal') + ' owed something before today: ' +
-          listSay(late.slice(0, 3).map((c) => c.name)) + (late.length > 3 ? ' and others' : '') + '.',
+          namesSay(late) + '.',
         cta: 'Show the board', ask: 'How do my deals stand?' });
     }
     const cold = live.filter((c) => stageOf(c) === 'qual' &&
       daysBetween((c.checkpointAt || '').slice(0, 10), TODAY_ISO) >= 2);
     if (cold.length) {
       tasks.push({ id: 'deals-cold', sev: 'p2', type: 'Waiting', when: plural(cold.length, 'lead'),
-        body: plural(cold.length, 'lead') + ' been on your desk two days or more without a ' +
-          'warm call: ' + listSay(cold.slice(0, 3).map((c) => c.name)) + '.',
+        body: plural(cold.length, 'lead') + (cold.length === 1 ? ' has' : ' have') +
+          ' been on your desk two days or more without a warm call: ' + namesSay(cold) + '.',
         cta: 'Show them', ask: 'How do my deals stand?' });
     }
     const ripe = expansionsOf(null).filter((x) => x.ripe);
@@ -12167,7 +12196,7 @@
     if (quiet.length) {
       tasks.push({ id: 'deals-quiet', sev: 'p3', type: 'Commercial', when: 'a week or more',
         body: plural(quiet.length, 'deal') + ' with the price on the table and nothing said ' +
-          'for a week: ' + listSay(quiet.slice(0, 3).map((c) => c.name)) + '.',
+          'for a week: ' + namesSay(quiet) + '.',
         cta: 'Show the board', ask: 'How do my deals stand?' });
     }
     return tasks;
@@ -12189,7 +12218,11 @@
     if (q.indexOf('fill:') === 0) { fillBar(q.slice(5)); return; }
     if (q.indexOf('prep:') === 0) {
       const c = DB.byCon[q.slice(5)];
-      if (c) callPrep(c);
+      /* Routed by role, the way `data-prep` already routes it. This handed a
+         manager the caller's brief — the openers and the rung — for a
+         meeting they are about to walk into, because the branch existed on
+         one of the two doors onto the same sheet and not on the other. */
+      if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
       return;
     }
     runInput(q);
@@ -13632,6 +13665,20 @@
      reader who disagrees with either has found the same mistake. */
   const listSay = (a) => (a.length < 2 ? (a[0] || '')
     : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+  /* ══ THREE NAMES AND THEN A COUNT ══════════════════════════════════════
+     `listSay` puts "and" before the last item, so a caller that took three
+     of five and appended " and others" printed "A, B and C and others" —
+     and the two callers that did not append anything listed three out of
+     five as though that were all of them. Both were invisible while these
+     sentences only ever ran inside a popover; on a page they are the first
+     thing read. Naming the overflow is the whole job. */
+  const namesSay = (xs, cap) => {
+    const n = cap || 3;
+    const names = xs.slice(0, n).map((x) => x.name);
+    return xs.length > n
+      ? names.join(', ') + ' and ' + plural(xs.length - n, 'other')
+      : listSay(names);
+  };
 
   function logSay(call) {
     const h = logHeard(call);

@@ -2778,6 +2778,46 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   margin: 0 0 10px; font-size: var(--t-body); color: var(--d100);
   line-height: var(--lh-base); text-wrap: pretty;
 }
+/* ══ WHAT IS OWED, ACROSS EVERY SURFACE ════════════════════════
+   The briefing's own list. A row is pressable end to end and carries no
+   edge of its own — the block is already a surface, and eight bordered
+   rows inside it is a table drawn by hand. The verb on the right is a
+   link: no fill, no edge, coloured, which is what colour is for here. */
+.b-owed { display: flex; flex-direction: column; }
+.b-owed-row {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 12px; border: 0; border-radius: var(--r-md);
+  background: none; cursor: pointer; font-family: inherit;
+  transition: background-color var(--t-fast);
+  animation: b-surface-in 220ms var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+.b-owed-row:hover { background: rgba(var(--accent-rgb), 0.10); }
+.b-owed-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .b-owed-row { animation: none; } }
+/* Two poles and nothing else, matching the bell exactly: p1 is a thing
+   that went wrong, p2 and p3 are things that have not happened yet, and
+   the order of the rows is what separates those two. */
+.b-owed-sev {
+  width: 6px; height: 6px; border-radius: 50%;
+  margin-top: 7px; flex: none; background: var(--d500);
+}
+.b-owed-sev.p1 { background: var(--err); }
+.b-owed-main { flex: 1; min-width: 0; }
+.b-owed-head { display: flex; align-items: baseline; gap: 8px; }
+.b-owed-type {
+  font-size: var(--fs-xs); font-weight: var(--fw-extrabold); color: var(--ink-primary);
+}
+.b-owed-when { font-size: var(--fs-2xs); color: var(--ink-quiet); }
+.b-owed-body {
+  display: block; margin-top: 2px;
+  font-size: var(--fs-xs); color: var(--ink-secondary); line-height: var(--lh-snug);
+}
+.b-owed-go {
+  flex: none; align-self: center; white-space: nowrap;
+  font-size: var(--fs-2xs); font-weight: var(--fw-semibold); color: var(--accent);
+}
+
 .b-loop-row {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
   padding: 9px 10px; border: 0; border-radius: var(--r-md);
