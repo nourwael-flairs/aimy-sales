@@ -13734,6 +13734,23 @@
 
   function peekEl() { return byId('aimyPeek'); }
 
+  /* ══ THE SAME CONTROL, AND ONLY ONE THING TO DO WITH IT ════════════════
+     While an answer is coming there is nothing to send, so the square is a
+     stop and it stops. During the wait nothing has been said yet, so nothing
+     is written and the card closes on a question that was called off. Once
+     the words are arriving the answer exists and is already in the thread,
+     so the press finishes them rather than throwing away what was asked for
+     — under whatever had already been said, never instead of it.
+
+     Reads the flag rather than a class on one bar, because there are two
+     bars and the answer belongs to neither of them. */
+  function genStop() {
+    if (!GEN_ON) return false;
+    if (PEEK_RAF) peekAll();
+    else { PEEK_DUE = null; peekHide(); }
+    return true;
+  }
+
   /* ══ THE BAR SAYS IT IS WORKING, AND OFFERS THE WAY OUT ════════════════
      The card above the bar showed the wait and the bar itself showed
      nothing — so the control you asked from, which is where the eye already
@@ -13751,32 +13768,53 @@
      `is-generating` turns the send button into a stop square in CSS alone.
      What is NOT css is the name it announces, and a button that has become
      Stop while still saying Send is worse than one that never changed. */
+  let GEN_ON = false;
+
   function generating(on) {
-    const bar = byId('aimyFloatBar');
-    if (!bar) return;
-    if (!bar.querySelector('.beam')) {
-      const b = document.createElement('span');
-      b.className = 'beam';
-      b.setAttribute('aria-hidden', 'true');
-      /* The bloom is a real element because the beam has three layers and a
-         pseudo-element only gives two. It carries no content and no class:
-         it is the third box, and `.beam > i` is all the stylesheet needs. */
-      b.appendChild(document.createElement('i'));
-      bar.insertBefore(b, bar.firstChild);
+    GEN_ON = !!on;
+    /* ══ EVERY COMPOSER, NOT THE ONE I HAPPENED TO BE LOOKING AT ═══════
+       This lit `#aimyFloatBar` by id, so asking from the canvas lit the bar
+       BEHIND the canvas — a beam nobody could see, while the composer the
+       question was actually typed into sat there offering Send. Knowledge's
+       own driver walks `.overlay-input-bar, .aimy-float-bar` for exactly
+       this reason: they are one control in three shells and an answer is
+       being produced for whichever of them is on screen. */
+    const bars = document.querySelectorAll('.overlay-input-bar, .aimy-float-bar');
+    for (let i = 0; i < bars.length; i++) {
+      const bar = bars[i];
+      if (!bar.querySelector('.beam')) {
+        const b = document.createElement('span');
+        b.className = 'beam';
+        b.setAttribute('aria-hidden', 'true');
+        /* The bloom is a real element because the beam has three layers and
+           a pseudo-element only gives two. It carries no content and no
+           class: it is the third box, and `.beam > i` is all the stylesheet
+           needs to know about it. */
+        b.appendChild(document.createElement('i'));
+        bar.insertBefore(b, bar.firstChild);
+      }
+      bar.classList.toggle('is-generating', GEN_ON);
     }
-    bar.classList.toggle('is-generating', !!on);
-    const send = byId('floatSend');
-    if (send) {
-      send.setAttribute('aria-label', on ? 'Stop generating' : 'Run');
-      send.title = on ? 'Stop generating' : '';
+    /* The one part of the swap that is not CSS, and the part a screen reader
+       is actually given. A button that has become Stop while still
+       announcing Send is worse than one that never changed. Each keeps its
+       own word: this shell's bar says Run and the canvas says Send, so the
+       original is parked on the element rather than written out here. */
+    const sends = document.querySelectorAll('.overlay-send, .aimy-float-send');
+    for (let i = 0; i < sends.length; i++) {
+      const s = sends[i];
+      if (s.dataset.lbl === undefined) s.dataset.lbl = s.getAttribute('aria-label') || '';
+      s.setAttribute('aria-label', GEN_ON ? 'Stop generating' : s.dataset.lbl);
+      s.title = GEN_ON ? 'Stop generating' : '';
     }
-    /* The empty bar says what it is doing, and the question it usually asks
-       is parked on the element the first time it is replaced rather than
-       written out here, where it would go stale the day it is reworded. */
-    const el = byId('floatInput');
-    if (el) {
+    /* And the empty field says what it is doing. The composers ask different
+       questions, so the original is parked the same way rather than written
+       into a table here that would go stale the day one is reworded. */
+    const ins = document.querySelectorAll('.overlay-input, .aimy-float-input');
+    for (let i = 0; i < ins.length; i++) {
+      const el = ins[i];
       if (el.dataset.ph === undefined) el.dataset.ph = el.placeholder || '';
-      el.placeholder = on ? 'Generating…' : el.dataset.ph;
+      el.placeholder = GEN_ON ? 'Generating…' : el.dataset.ph;
     }
   }
 
@@ -13786,6 +13824,19 @@
     peekStop();
     PEEK_DUE = html;
     generating(true);
+    /* ══ THE CANVAS IS ALREADY THE THREAD ══════════════════════════════
+       Asking from inside the canvas put this card up behind it — a peek at
+       an answer that is about to be written in full, four inches away, on
+       the surface you are looking at. The card exists because a question
+       used to cover the page it was asked about; inside the canvas there is
+       no page to cover. The wait still runs, and it runs on the canvas's own
+       composer, so the answer lands in the thread with the same pause in
+       front of it. */
+    const over = byId('aimyOverlay');
+    if (over && over.classList.contains('open')) {
+      PEEK_AT = setTimeout(peekFlush, 720);
+      return;
+    }
     box.hidden = false;
     box.classList.add('is-thinking');
     box.classList.remove('is-clipped');
@@ -13799,7 +13850,11 @@
     byId('peekBody').innerHTML =
       '<span class="ai-thinking">' +
         '<canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>' +
-        '<span class="ai-thinking-label">Reading the book…</span>' +
+        /* "The book" is the manager's word for his own deals; a caller has a
+           queue and no book. "The record" is what both desks call the thing
+           every answer here is read out of, and it is the word the readings
+           themselves use — "nothing on the record says how it went". */
+        '<span class="ai-thinking-label">Reading the record…</span>' +
       '</span>';
     startThinking();
     PEEK_AT = setTimeout(peekFlush, 1400);
@@ -13815,7 +13870,9 @@
     PEEK_DUE = null;
     say('aimy', html);
     const box = peekEl();
-    if (!box || box.hidden) return;
+    /* Written to the thread and nothing more: either the canvas is open and
+       has it, or the card was dismissed while the words were still owed. */
+    if (!box || box.hidden) { generating(false); return; }
     stopThinking();
     box.classList.remove('is-thinking');
     const body = byId('peekBody');
@@ -16700,12 +16757,12 @@
          already in the thread, so the press finishes them rather than
          throwing away what was asked for — under whatever had already been
          said, never instead of it. */
-      if (byId('aimyFloatBar').classList.contains('is-generating')) {
-        if (PEEK_RAF) peekAll(); else { PEEK_DUE = null; peekHide(); }
-        return;
-      }
+      if (genStop()) return;
       const el = byId('floatInput'); const v = el.value; el.value = ''; runInput(v);
     } else if (e.target.closest('#overlaySend')) {
+      /* The canvas's send is the same control in another shell, so it is the
+         same stop. It had none: pressing it mid-answer sent an empty string. */
+      if (genStop()) return;
       const el = byId('overlayInput'); const v = el.value; el.value = ''; runInput(v);
     }
   });
