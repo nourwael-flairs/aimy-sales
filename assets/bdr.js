@@ -10239,10 +10239,14 @@
            you about the plan instead of about the deal. */
         cmPart('What we sell them', '<p class="b-cmeta-p"><b>' + esc(sells) + '</b>' +
           '<span class="b-kind">' + esc(dealType(c)) + '</span></p>' +
-          (k ? '<p class="b-cmeta-p">' + (sellDrifted(c)
-            ? 'On <b>' + esc(k.name) + '</b>, which opened on ' +
-              esc((SELL[k.sells[0]] || {}).name || 'something else') + '.'
-            : 'On <b>' + esc(k.name) + '</b>.') + '</p>' : '')) +
+          /* Which campaign is a fact in the masthead now, so this says the
+             one thing the masthead cannot: that the deal has moved off what
+             the campaign opened with. When it has not, there is nothing here
+             to say. */
+          (k && sellDrifted(c)
+            ? '<p class="b-cmeta-p">The campaign opened on <b>' +
+              esc((SELL[k.sells[0]] || {}).name || 'something else') + '</b>.</p>'
+            : '')) +
         /* Only on the deals it is true of. A "Why we lost it" reading "not
            applicable" down every live record is the form showing you its
            own fields. */
@@ -10370,12 +10374,19 @@
       '<div class="b-topbar s-block-wide">' + backHere() + endGate(c) + '</div>' +
 
       '<section class="s-rec-head s-block-wide">' +
-        '<span class="s-rec-kind b-kinds">' +
-          fact('role', 'Person') +
-          fact('campaign', mineCamp
-            ? esc(mineCamp.name) + (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '')
-            : 'On no campaign') +
-        '</span>' +
+        /* ══ THE EYEBROW OVER THE NAME ═════════════════════════════════════
+           A twelve-pixel uppercase row sat here reading PERSON · LOGISTICS,
+           SOUTHERN EUROPE, five pixels above a twenty-six pixel name. Two
+           faults in one line.
+
+           "Person" is a label for what the line underneath it already is —
+           the same defect the rail carried until this week, on this record,
+           and the name has never needed telling apart from a company.
+
+           And the campaign is not an eyebrow, it is a fact: which campaign
+           this lead is on, the same rank as their job, their company and
+           where they are. It reads as one below, and the name opens the page
+           on its own. */
         '<div class="s-rec-title">' +
           '<h1 class="s-rec-name">' + esc(c.name) + '</h1>' +
           '<span class="s-meta-st tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</span>' +
@@ -10386,6 +10397,9 @@
         '</div>' +
         '<div class="s-rec-facts">' +
           '<div>' +
+            fact('campaign', mineCamp
+              ? esc(mineCamp.name) + (camps.length > 1 ? ' and ' + (camps.length - 1) + ' more' : '')
+              : 'On no campaign') +
             fact('role', esc(c.title)) +
             (a ? fact('company', '<button class="s-inline-btn" type="button" data-acc="' +
                 esc(a.id) + '">' + esc(a.name) + '</button>') +
@@ -10608,7 +10622,14 @@
     (moves.length
       ? '<div class="b-ask">' +
           '<span class="b-ask-cap">What happened?</span>' +
-          moves.map((b) => '<button class="s-inline-btn" type="button" ' + b.attr + '>' +
+          /* ══ A LABEL HAS A FILL. A CONTROL HAS AN EDGE. A LINK HAS NEITHER
+             These four write a touchpoint and move a deal, and they were
+             drawn as links — so the masthead carried twelve accent-coloured
+             runs against one filled primary, and the four that CHANGE the
+             record looked exactly like the six that only go somewhere.
+             Ghosts, which is the box this build gives a control that is not
+             the primary. Six accent runs left, all of them addresses. */
+          moves.map((b) => '<button class="b-ghost" type="button" ' + b.attr + '>' +
             b.html + '</button>').join('') +
         '</div>'
       : '');

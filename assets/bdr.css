@@ -920,7 +920,17 @@
 .s-home .s-rec-facts { gap: 0; }
 .s-home .s-rec-facts > div:first-child { font-size: var(--t-lead); font-weight: var(--fw-medium); }
 .s-home .s-rec-facts > div + div { font-size: var(--t-ui); margin-top: 6px; }
-.s-home .s-rec-actions { margin-top: 16px; }
+/* ══ TWO CONTROL ROWS ARE ONE GROUP ═══════════════════════════════════════
+   Measured with the eyebrow still in: 5px to the name, 8 to the facts, 14 to
+   the actions, 11 to the moves — four gaps with no order in them, so the two
+   rows that are both controls sat further apart than the facts and the first
+   of them. Tight groups, generous separation: 18 opens the controls after the
+   facts, 10 holds the second control row to the first. */
+.s-home .s-rec-actions { margin-top: 18px; }
+.s-home .b-ask { margin-top: 10px; }
+/* Four ghosts and a caption wrap on a phone, and a pill row wrapping on its
+   baseline leaves the caption stranded on the line above. Centre them. */
+.s-home .b-ask { align-items: center; }
 
 /* [3] INSIDE A SECTION. Heading → first row 12, action row → chips 12, chips
    → grid 16, grid → foot 12. The action row had been pulled up into the
