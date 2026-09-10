@@ -1684,13 +1684,29 @@
         { ind: 'banking',    band: '200 to 1,000',  who: 'Operations leads',   via: 'Apollo',        ago: 17, on: -1 },
         { ind: 'logistics',  band: '1,000+',        who: 'Support directors',  via: 'Exa / Serper',  ago: 6,  on: -1 },
       ];
+      const cursor = Object.create(null);
       SPEC.forEach((x, i) => {
         const pool = byInd[x.ind] || [];
         if (!pool.length) return;
         /* A slice rather than a filter over every axis: the criteria line
            says what was asked for, and the roster is what a supplier
            actually returned — which never matches the ask exactly. */
-        const take = pool.slice(i * 40, i * 40 + between(rng(SEED + 900 + i), 24, 60));
+        /* ══ FOUR LISTS WERE SPECIFIED AND ONE WAS EVER BUILT ═════════
+           `i` is the position in SPEC and `pool` is the contacts at one
+           INDUSTRY — about fifty-five of them — so the third spec sliced
+           from 80 and the fourth from 120 and both came back empty, fell
+           through the guard below, and were never mentioned again. The
+           block above says what it wanted: "Two are on a campaign and two
+           are not, because both states of the card have to be reachable."
+           It delivered one.
+
+           A cursor per industry instead. Two specs on one sector still take
+           different people, which is what the offset was for, and a spec on
+           its own sector starts at the beginning of it. */
+        const want = between(rng(SEED + 900 + i), 24, 60);
+        const at = cursor[x.ind] || 0;
+        const take = pool.slice(at, at + want);
+        cursor[x.ind] = at + want;
         if (take.length < 5) return;
         const k = x.on >= 0 ? mineCamps[x.on % mineCamps.length] : null;
         if (k) take.forEach((c) => { if (c.camps.indexOf(k.id) < 0) c.camps.push(k.id); });
@@ -1760,6 +1776,8 @@
     touchesOf: Object.create(null),
     membersOf: Object.create(null),
     byMgr: Object.create(null),
+    /* listId -> the campaigns it is on. Rebuilt by `reindex`. */
+    listOn: Object.create(null),
     call: null,
   };
 
@@ -1832,9 +1850,24 @@
        overrules what the seed says — the seed is where a list starts and this
        is somebody having moved it — and delta campaigns are concatenated
        after the seeded ones, so the later claim is the newer one. */
-    DB.camp.forEach((c) => (c.lists || []).forEach((id) => {
-      if (DB.byList[id]) DB.byList[id].for = c.id;
-    }));
+    /* ══ A LIST GOES ON AS MANY CAMPAIGNS AS YOU PUT IT ON ═══════════════
+       This wrote `l.for = c.id` — one campaign per list, last one wins — and
+       it was the only thing in the model saying so. Both sides of the
+       relation are already many: a person carries `camps[]` and a campaign
+       carries `lists[]`. The scalar was a cache of a one-to-many, and every
+       surface that read it inherited a limit nothing else had.
+
+       `DB.listOn` is that cache done properly. `l.for` stays as what the
+       seed and the builder write — the campaign a list was made FOR — and is
+       folded in here rather than read anywhere else. */
+    DB.listOn = Object.create(null);
+    const addOn = (lid, cid) => {
+      if (!DB.byList[lid] || !DB.byCamp[cid]) return;
+      const a = DB.listOn[lid] || (DB.listOn[lid] = []);
+      if (a.indexOf(cid) < 0) a.push(cid);
+    };
+    DB.list.forEach((l) => { if (l.for) addOn(l.id, l.for); });
+    DB.camp.forEach((c) => (c.lists || []).forEach((id) => addOn(id, c.id)));
     DB.con.forEach((c) => {
       DB.byCon[c.id] = c;
       (DB.consOf[c.acc] || (DB.consOf[c.acc] = [])).push(c.id);
@@ -1935,6 +1968,25 @@
     return out.sort((a, b) => (a.at > b.at ? -1 : 1));
   };
   const campsOf = (c) => c.camps.map((k) => DB.byCamp[k]).filter(Boolean);
+  /* The same three questions about a list that `campsOf` answers about a
+     person, so no surface has to reach into the index itself. */
+  const campsOn = (l) => (DB.listOn[l.id] || []).map((id) => DB.byCamp[id]).filter(Boolean);
+  /* ══ A DRAFT HAS NO NAME UNTIL SOMEBODY TYPES ONE ═════════════════════
+     Putting a list on a draft made the rail read "on Logistics, Southern
+     Europe and , 33 with a number" — an empty string joined into a
+     sentence. The campaign card has had the fallback since drafts existed;
+     it was a literal in one place, so nothing else could reach it. */
+  const campName = (k) => (k && k.name) || 'Unnamed campaign';
+  const listIsOn = (l, cid) => (DB.listOn[l.id] || []).indexOf(cid) >= 0;
+  const listLoose = (l) => !(DB.listOn[l.id] || []).length;
+  /* What a tag or a chip says about where a list is working. Named once,
+     because it is drawn on the card, in the rail and on the page itself and
+     three spellings of it would drift. */
+  function campsOnSay(l) {
+    const on = campsOn(l);
+    if (!on.length) return null;
+    return on.length === 1 ? 'On ' + campName(on[0]) : 'On ' + plural(on.length, 'campaign');
+  }
   /* A BDR is on a campaign; a manager owns it. The same word, because it is
      the same question — is this mine to work — and every surface that asks it
      (the switcher's count, the campaign list, the guard on a campaign page,
@@ -2561,7 +2613,7 @@
           '</span></span>' +
       '</div>' +
       '<button class="tc-title s-card-title" type="button" data-camp="' + esc(k.id) + '">' +
-        esc(k.name || 'Unnamed campaign') + '</button>' +
+        esc(campName(k)) + '</button>' +
       /* ══ A GOAL IS WHERE IT ENDS UP, NOT WHAT ONE CALL ASKS ════════════
          `.tc-summary` is the shell's description slot — 11.5px at --d400,
          the quietest thing on the card — and what sat in it was `k.goal`,
@@ -2668,7 +2720,7 @@
 
   /* ══ A LIST, AS THE SAME CARD ═══════════════════════════════════════════ */
   function lcard(l, i) {
-    const camp = l.for && DB.byCamp[l.for];
+    const camp = campsOnSay(l);
     const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
     const call = people.filter(callable).length;
     return '<article class="type-card s-card b-qcard" data-open="list:' + esc(l.id) + '">' +
@@ -2676,7 +2728,7 @@
         /* The tag says WHICH campaign. "On a campaign" told you the state
            and made you open the card to learn the one fact that matters. */
         '<span class="tag tag-' + (camp ? 'ok' : 'warn') + '">' +
-          (camp ? 'On ' + esc(camp.name) : 'Not on a campaign') + '</span>' +
+          esc(camp || 'Not on a campaign') + '</span>' +
         '<span class="tc-type b-fact">' + chIcon('web') +
           '<span>' + esc(l.via) + '</span></span>' +
       '</div>' +
@@ -2911,13 +2963,14 @@
     if (l) {
       const people = l.has.map((id) => DB.byCon[id]).filter(Boolean);
       const withNum = people.filter((c) => c.phone).length;
-      const on = l.for && DB.byCamp[l.for];
+      const on = campsOn(l);
       return {
         eyebrow: 'This list', subject: l.name,
         card: {
-          state: on ? 'reading' : 'staged',
-          text: on
-            ? '<b>' + commas(people.length) + '</b> people on ' + esc(on.name) + ', <b>' + commas(withNum) + '</b> with a number.'
+          state: on.length ? 'reading' : 'staged',
+          text: on.length
+            ? '<b>' + commas(people.length) + '</b> people on ' +
+              esc(listSay(on.map(campName))) + ', <b>' + commas(withNum) + '</b> with a number.'
             : (function () {
                 const inQ = people.filter((c) => campsOf(c).some(mine)).length;
                 return inQ
@@ -3159,10 +3212,15 @@
        night: a seeded list is rebuilt from the seed on every load, and only
        the campaign is in `DELTA.camp`. Without this the people stayed on the
        campaign and the list said it was still on the one the seed named. */
-    if (l && !l.for) {
-      l.for = ks[0].id;
-      if (dl) dl.for = ks[0].id;
-      campSet(ks[0], { lists: (ks[0].lists || []).concat([id]) });
+    /* EVERY campaign chosen, not the first. This wrote one and the people
+       went onto all of them, so the second campaign held the leads and did
+       not hold the list they came in on. */
+    if (l) {
+      ks.forEach((kk) => {
+        if ((kk.lists || []).indexOf(id) < 0) {
+          campSet(kk, { lists: (kk.lists || []).concat([id]) });
+        }
+      });
     }
     if (!touched.length) {
       toast('They are all on ' + listSay(ks.map((k) => k.name)) + ' already.');
@@ -3177,9 +3235,9 @@
         patchCon(c, { camps: c.camps.filter((y) => x.add.indexOf(y) < 0) });
       });
       if (l) {
-        l.for = before;
-        if (dl) dl.for = before;
-        campSet(ks[0], { lists: (ks[0].lists || []).filter((x) => x !== id) });
+        ks.forEach((kk) => campSet(kk, {
+          lists: (kk.lists || []).filter((x) => x !== id) }));
+        if (before) { l.for = before; if (dl) dl.for = before; }
       }
       reindex(); save(); paint();
     });
@@ -3196,18 +3254,30 @@
      `DELTA.list`, so a seeded list would be back to the seed's answer every
      morning while its people still carried the campaign in `camps`. The
      campaign is in `DELTA.camp` from the moment it exists, so it is the half
-     that remembers, and `reindex` tells the list again. */
+     that remembers, and `reindex` tells the list again.
+
+     ══ AND IT REFUSED A LIST THAT WAS ALREADY SOMEWHERE ═══════════════════
+     `if (l.for && l.for !== k.id) return;` — a hard no, with the picker
+     hiding those lists so the refusal never showed. The reason given was
+     that taking one would empty a campaign somebody else is working, and
+     that cannot happen: the write below ADDS `k.id` to each person's
+     `camps` and removes nothing. The only removal is un-ticking this same
+     campaign. A list on two campaigns puts its people in two queues, which
+     is what a shared market means and what both sides of the model always
+     allowed. */
   function listOnCamp(id, k) {
     const l = DB.byList[id];
-    if (!l || (l.for && l.for !== k.id)) return;
+    if (!l) return;
     const dl = DELTA.list.filter((x) => x.id === id)[0];
-    const off = l.for === k.id;
+    const off = listIsOn(l, k.id);
     l.has.map((x) => DB.byCon[x]).filter(Boolean).forEach((c) => {
       if (off) patchCon(c, { camps: c.camps.filter((y) => y !== k.id) });
       else if (c.camps.indexOf(k.id) < 0) patchCon(c, { camps: c.camps.concat([k.id]) });
     });
-    l.for = off ? null : k.id;
-    if (dl) dl.for = l.for;
+    /* `for` is the campaign the list was MADE for and the seed's only way of
+       saying where a list sits. Taking it off that campaign has to clear it,
+       or `reindex` folds it straight back in. */
+    if (off && l.for === k.id) { l.for = null; if (dl) dl.for = null; }
     campSet(k, { lists: (k.lists || []).filter((x) => x !== id).concat(off ? [] : [id]) });
   }
 
@@ -5555,7 +5625,7 @@
           'describe who to look for and what comes back is the list.';
       }
       const people = DB.list.reduce((n, l) => n + l.has.length, 0);
-      const loose = DB.list.filter((l) => !l.for);
+      const loose = DB.list.filter((l) => listLoose(l));
       const parked = loose.length;
       /* the people on a loose list who are on none of your campaigns — some
          of them are in your queue through another campaign, and the list's
@@ -5753,7 +5823,7 @@
         findLeads,
       ].filter(Boolean);
     } else if (here === 'lists') {
-      const parked = DB.list.filter((l) => !l.for)[0];
+      const parked = DB.list.filter(listLoose)[0];
       opens = [
         findLeads,
         parked ? { k: 'list:' + parked.id, label: 'Put a list to work',
@@ -6156,7 +6226,7 @@
      the people never-called first, where they all stand, and what has been
      said to them. */
   function listPage(l) {
-    const camp = l.for && DB.byCamp[l.for];
+    const camp = campsOn(l);
     /* NEVER-called FIRST. A list exists to bring new people in; the ones
        nobody has tried lead, the rest follow up the ladder, exits last. */
     const order = (c) => (isExit(c.checkpoint) ? 99 : rank(c.checkpoint));
@@ -6166,8 +6236,9 @@
     const hist = [];
     people.forEach((c) => (DB.touchesOf[c.id] || []).forEach((id) => { if (TOUCH[id]) hist.push(TOUCH[id]); }));
     hist.sort((a, b) => (a.at > b.at ? -1 : 1));
-    const chip = camp
-      ? { label: 'On ' + camp.name, tone: 'ok' }
+    /* A page has room to name them where a tag does not. */
+    const chip = camp.length
+      ? { label: 'On ' + listSay(camp.map(campName)), tone: 'ok' }
       : { label: 'Not on a campaign yet', tone: 'warn' };
     const first = call[0];
     const callFirst = first
@@ -7654,18 +7725,30 @@
 
              It ticks like the sells and the crew do, because a list you can
              put on and cannot take off is a decision you make once by
-             accident. Lists already on another campaign are not offered —
-             taking one would empty a campaign somebody else is working. */
+             accident.
+
+             EVERY LIST IS OFFERED. This hid the ones already on a campaign
+             and told you so — "Every list is on another campaign" over an
+             empty menu — on the assumption that a list belongs to one. It
+             does not: a market worth two campaigns is worth calling from
+             both, the people carry a campaign each rather than instead, and
+             nothing is taken off anything by putting it on. Where else a
+             list is working is said on its row, because that is a thing
+             worth knowing before you tick it, not a reason you cannot. */
           draftField('Add a list', (function () {
-            const free = DB.list.filter((l) => !l.for || l.for === k.id);
-            const on = DB.list.filter((l) => l.for === k.id);
+            const on = DB.list.filter((l) => listIsOn(l, k.id));
+            const where = (l) => {
+              const other = campsOn(l).filter((x) => x.id !== k.id);
+              return plural(l.has.length, 'person') + ' on it' +
+                (other.length ? ' · also on ' + listSay(other.map(campName)) : '');
+            };
             return draftMenu('dList',
               on.length ? esc(on.map((l) => l.name).join(', ')) : '',
-              free.length ? 'The lists you have' : 'Every list is on another campaign',
-              free.map((l) => draftItem('list', l.id, l.name, l.for === k.id,
-                plural(l.has.length, 'person') + ' on it')).join('') ||
-                '<span class="b-menu-sub b-draft-empty">Nothing is waiting to be put on ' +
-                'a campaign. Find leads and what comes back is a list.</span>');
+              DB.list.length ? 'The lists you have' : 'No lists yet',
+              DB.list.map((l) => draftItem('list', l.id, l.name, listIsOn(l, k.id),
+                where(l))).join('') ||
+                '<span class="b-menu-sub b-draft-empty">You have not built a list yet. ' +
+                'Find leads and what comes back is one.</span>');
           })()) +
           /* How long it runs, which is the only thing "the window" was ever
              saying. A number to pace against is what a campaign learns from
@@ -11532,7 +11615,7 @@
           'The rule is four before you let go.',
         cta: 'Show them', ask: 'Who went quiet before the fourth touch?' });
     }
-    const loose = DB.list.filter((l) => !l.for);
+    const loose = DB.list.filter((l) => listLoose(l));
     if (loose.length) {
       const n = looseOff(loose).n;
       tasks.push({ id: 'lists-loose', sev: 'p3', type: 'Lists', when: loose.length + ' not on one',
@@ -12600,7 +12683,7 @@
         '</div>';
     }
     if (/\blists?\b/.test(q)) {
-      const loose = DB.list.filter((l) => !l.for);
+      const loose = DB.list.filter((l) => listLoose(l));
       if (!loose.length) return 'Every list is on a campaign, so everybody on them is in your queue.';
       return '<b>' + plural(loose.length, 'list') + '</b> ' + (loose.length === 1 ? 'is' : 'are') +
         ' on no campaign, so their people are not in your queue.' +
