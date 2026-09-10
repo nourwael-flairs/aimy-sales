@@ -326,7 +326,7 @@
 
   /* ══ THE STAGES ARE THOSE MEETINGS, PLUS THE TWO ENDS ═══════════════════
      Not a second ladder — the same four meetings, named as the places a deal
-     stands between them, with Qualification for a lead that has been handed
+     stands between them, with Not met for a lead that has been handed
      over and not yet spoken to, and the resolution split into its two
      answers because an outcome is not a stage you pass through.
 
@@ -334,13 +334,32 @@
      hue, and five colours mean nothing until they have been learnt; the tone
      is spent on the two things that are already a good or a bad outcome
      everywhere else in this product. */
+  /* == A STAGE NAME HAS TO WORK WITHOUT THE PIPELINE AROUND IT ============
+     These were Qualification, Discovery, Proof, Commercial — the CRM this
+     desk came from names its pipeline exactly that, and in a CRM they work,
+     because they are column heads with the deals underneath and the sequence
+     left to right is what gives each one its meaning.
+
+     On a card they have none of that. A lone "Proof" on the Today queue,
+     beside a diary row tagged "Demo", is a word with no pipeline around it
+     — and a reader who works this desk every day asked what it meant. Worse,
+     "Proof" is also the name of a MEETING that happens: a deal is at Proof
+     because a Proof meeting was held, so one word is a state and an event
+     six pixels apart.
+
+     Six states now, each a thing that has happened to the deal, each
+     standing on its own: Not met, Scoped, Shown, Priced, Signed, Lost. They
+     read as a ladder in that order, they are what a person would say out
+     loud, and none of them collides with the name of a meeting. `PHASES`
+     keeps Discovery meeting, Proof meeting and Commercial meeting, because
+     those are the events — and now nothing else is called by their names. */
   const DEAL_STAGES = [
-    { k: 'qual',       label: 'Qualification', tone: 'neutral' },
-    { k: 'discovery',  label: 'Discovery',     tone: 'neutral' },
-    { k: 'proof',      label: 'Proof',         tone: 'neutral' },
-    { k: 'commercial', label: 'Commercial',    tone: 'neutral' },
-    { k: 'won',        label: 'Won',           tone: 'ok' },
-    { k: 'lost',       label: 'Lost',          tone: 'err' },
+    { k: 'qual',       label: 'Not met',  tone: 'neutral' },
+    { k: 'discovery',  label: 'Scoped',   tone: 'neutral' },
+    { k: 'proof',      label: 'Shown',    tone: 'neutral' },
+    { k: 'commercial', label: 'Priced',   tone: 'neutral' },
+    { k: 'won',        label: 'Signed',   tone: 'ok' },
+    { k: 'lost',       label: 'Lost',     tone: 'err' },
   ];
   const DEAL_STAGE = Object.create(null);
   DEAL_STAGES.forEach((x, i) => { DEAL_STAGE[x.k] = x; x.n = i; });
@@ -3600,7 +3619,7 @@
       /* No comma inside a clause: the join turns the last comma into 'and',
          and a clause carrying its own comma steals it. */
       bits.push('<b>' + esc(euro(sum(comm))) + '</b> of it sits in ' +
-        plural(comm.length, 'commercial deal') + ' with the price already on the table');
+        plural(comm.length, 'deal') + ' with the price already on the table');
     }
     if (late.length) {
       bits.push('<b>' + commas(late.length) + '</b> ' + (late.length === 1 ? 'is' : 'are') +
@@ -3628,7 +3647,7 @@
           : 'Nothing is late and nothing is waiting on a first call.') + '</p>' +
       '<div class="s-lead-acts">' +
         (cold.length ? door('Show the ' + commas(cold.length) + ' never called', 'qual') : '') +
-        (comm.length ? door('Show the ' + commas(comm.length) + ' in commercial', 'commercial') : '') +
+        (comm.length ? door('Show the ' + commas(comm.length) + ' already priced', 'commercial') : '') +
       '</div>' +
     '</section>';
   }
@@ -4530,7 +4549,7 @@
      book is what he is selling, the scope is everyone the book came out of. */
   const dealBook = () => (DB.byMgr[me().id] || []).map((id) => DB.byCon[id]).filter(Boolean);
   /* Before the hand-over a lead is the caller's and has no stage, so asking
-     `stageOf` about one answers Qualification for six hundred people who are
+     `stageOf` about one answers Not met for six hundred people who are
      not deals. This is the guard. */
   const isDeal = (c) => c.checkpoint === 'handed-over';
   const myCamps = () => DB.camp.filter(mine);
@@ -4761,7 +4780,7 @@
 
      The rungs are the deal stages, because on this side of the hand-over
      that IS what has happened to it: a deal at Commercial has had the price
-     put on the table and one at Qualification has not been spoken to. Every
+     put on the table and one at Not met has not been spoken to. Every
      open deal sits on exactly one, and the figure is how many of that group
      historically close.
 
@@ -4784,7 +4803,7 @@
   const ODDS_RUNGS = [
     { k: 'commercial', was: 'the price is on the table' },
     { k: 'proof',      was: 'they have seen it working' },
-    { k: 'discovery',  was: 'we know what they need' },
+    { k: 'discovery',  was: 'we have been through what they need' },
     { k: 'qual',       was: 'handed over, nobody has met them' },
   ];
   ODDS_RUNGS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
@@ -5223,19 +5242,45 @@
           '<span class="s-att-pc' + (a.pc >= 1 ? ' tone-ok' : '') + '">' +
             esc(Math.round(a.pc * 100)) + '% to target</span>' +
         '</div>' +
-        '<div class="s-att-track" role="img" aria-label="' +
+        /* ══ THE MARKS LIVED INSIDE THE THING THAT CLIPS THEM ═══════════
+            Both are drawn to overhang the track by four pixels top and
+            bottom — that overhang is what makes a mark read as crossing the
+            bar rather than sitting in it — and the track carries
+            `overflow: hidden` to keep its fills inside the rounded corners.
+            So the overhang was cut off, and the target, which sits at 100%
+            of a scale whose maximum IS the target, was cut off altogether.
+            The legend has promised two marks and drawn one since this bar
+            was built.
+
+            The fills keep their clip; the marks go over it. */
+        '<div class="s-att-bar" role="img" aria-label="' +
           esc(fmtMoney(a.booked) + ' signed of a ' + fmtMoney(a.target) + ' target. AiMY expects ' +
+            'another ' + fmtMoney(Math.max(0, a.forecast - a.booked)) + ' by the end, reaching ' +
             fmtMoney(a.forecast) + '.') + '">' +
-          '<span class="s-att-booked" style="width:' + bookedPc.toFixed(1) + '%"></span>' +
-          '<span class="s-att-fcast" style="width:' + fcastPc.toFixed(1) + '%"></span>' +
+          '<div class="s-att-track">' +
+            '<span class="s-att-booked" style="width:' + bookedPc.toFixed(1) + '%"></span>' +
+            '<span class="s-att-fcast" style="width:' + fcastPc.toFixed(1) + '%"></span>' +
+          '</div>' +
           '<span class="s-att-target" style="left:' + targetPc.toFixed(1) + '%"></span>' +
           (done || pacePc == null ? ''
             : '<span class="s-att-pace" style="left:' + pacePc.toFixed(1) + '%"></span>') +
         '</div>' +
         '<div class="s-att-keys">' +
           '<span class="s-att-key is-booked">' + (done ? 'Signed' : 'Signed so far') + '</span>' +
-          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'AiMY expects ' +
-            esc(fmtMoney(a.forecast)) + ' by the end</span>') +
+          /* ══ A KEY DESCRIBES THE BAND IT IS A KEY FOR ══════════════════
+             This read "AiMY expects €225k by the end" beside a hatched band
+             that is not €225k of anything — €225k is where the band ENDS,
+             booked and expected together, and the band itself is the €86k
+             between them. A reader asked what the hatch meant and what the
+             expectation was even of, which is the question a key exists to
+             have already answered.
+
+             So it says the band: another €86k arriving before the window
+             shuts. Where that leaves the total is then visible without
+             being stated — it is the right-hand end of the hatch, read
+             against the target mark. */
+          (done ? '' : '<span class="s-att-key is-fcast">' + aiMark() + 'AiMY expects another ' +
+            esc(fmtMoney(Math.max(0, a.forecast - a.booked))) + ' before it closes</span>') +
           '<span class="s-att-key is-target">The target</span>' +
           (done || pacePc == null ? ''
             : '<span class="s-att-key is-pace">Where you should be today</span>') +
@@ -5279,9 +5324,21 @@
         attFig('Expected from open deals', fmtMoney(pipe.weighted),
           done ? 'of ' + fmtMoney(pipe.all) + ' open today, after this window closed'
             : a.gap ? 'of ' + fmtMoney(pipe.all) + ' open' + (a.coverage == null ? ''
-              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed')
+              : ' · ' + a.coverage.toFixed(1) + '× the ' + fmtMoney(a.gap) + ' needed' +
+                (a.coverage >= 3 ? ', and three times is the bar' : ', against a bar of three'))
               : 'of ' + fmtMoney(pipe.all) + ' open, and the target is already met',
-          done || a.coverage == null ? null : a.coverage >= 3 ? 'ok' : 'warn') +
+          /* ══ COLOUR THE FIGURE ONLY WHEN THE FIGURE IS THE VERDICT ══════
+             This tinted the figure amber whenever coverage fell under three
+             times — so €395k, which is straightforwardly good news, wore
+             the identical #c0a47c as "€96k behind" two tiles along, which is
+             a shortfall. One colour, two opposite meanings, on one row, with
+             the row's other two figures plain white. Nobody can learn that.
+
+             The judgement was never about this figure, it is about the
+             RATIO, and the ratio is in the line underneath. So the line says
+             what the bar is instead, which also teaches the bar rather than
+             assuming the reader knows it. */
+          null) +
         /* ══ A CAPTION THAT ARGUES WITH ITS OWN FIGURE ══════════════════
            "Selling faster than the clock" over "31 points behind" is a claim
            and its own refutation stacked two lines apart, and the reader has
@@ -5299,7 +5356,18 @@
           done ? 'the window has closed'
             : Math.round(a.pc * 100) + '% of the target sold, ' +
               Math.round(a.elapsed * 100) + '% of the time used',
-          a.pace == null ? null : ahead ? 'ok' : 'warn') +
+          /* ══ THE TWO POLES, AND BEHIND IS THE NEGATIVE ONE ══════════════
+             "€96k behind" is a shortfall written as a positive number with
+             its sign in a word, and it was tinted `warn` — the amber this
+             product spends on something worth watching. A reader asked
+             whether the number was negative and why the colour read
+             positive, which is the question answered: the word was carrying
+             the sign alone and the colour was arguing with it.
+
+             Behind takes the negative pole and ahead the positive, so the
+             figure, the word and the colour say one thing. It is the only
+             coloured figure in the row now, which is what makes it read. */
+          a.paceMoney == null || done ? null : ahead ? 'ok' : 'err') +
         /* "PAID OFF" NEVER SAID WHAT WAS BEING PAID OFF. It is the cost of
            winning one customer, and how long that customer takes to earn it
            back — a different sentence from the one the two words were

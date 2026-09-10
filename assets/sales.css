@@ -7740,8 +7740,13 @@ body.is-figures .filter-tray { display: none; }
 .s-att-pc { font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--d200); font-variant-numeric: tabular-nums; }
 .s-att-pc.tone-ok { color: var(--ok-text); }
 
+/* The bar is two layers: a track that clips its fills to the rounded
+   corners, and the marks over it. They were one, and `overflow: hidden` —
+   which the fills need — cut off the four-pixel overhang that makes a mark
+   read as crossing the bar, then cut the target off the end entirely. */
+.s-att-bar { position: relative; }
 .s-att-track {
-  position: relative; display: flex; height: 20px;
+  display: flex; height: 20px;
   border-radius: var(--r-sm); overflow: hidden;
   background: var(--card-bg); border: 1px solid var(--card-border);
 }
@@ -7758,6 +7763,10 @@ body.is-figures .filter-tray { display: none; }
 .s-att-target, .s-att-pace {
   position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: var(--r-pill);
 }
+/* Centred on the position rather than starting at it: the target sits at
+   100% of a scale whose maximum is usually the target itself, so without
+   this it draws two pixels past the end of its own bar. */
+.s-att-target, .s-att-pace { transform: translateX(-1px); }
 .s-att-target { background: var(--d50); }
 .s-att-pace { background: var(--d300); }
 
@@ -7785,6 +7794,12 @@ body.is-figures .filter-tray { display: none; }
 }
 .s-af-val.tone-ok { color: var(--ok-text); }
 .s-af-val.tone-warn { color: var(--warn-text); }
+/* THE NEGATIVE POLE WAS NEVER DEFINED HERE. Two of the three tones had a
+   rule and the third fell through to plain ink, so a figure asking for the
+   alarm got the same white as the figures either side of it and lost the
+   one thing it was asking for. Nothing caught it: the audit reads class
+   attributes, and a tone applied by concatenation is not one it can see. */
+.s-af-val.tone-err { color: var(--err-text); }
 .s-af-sub { font-size: var(--fs-xs); color: var(--ink-quiet); line-height: var(--lh-base); text-wrap: pretty; }
 
 /* ── Where the projection comes from ── */
