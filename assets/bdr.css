@@ -624,6 +624,19 @@
    Dimming it said the second. The word carries the meaning, which is also
    the rule about never leaving colour to do it alone. */
 .s-pan-total.is-none { color: var(--d200); }
+
+/* ══ THE CAMPAIGN NAME OPENS THE CAMPAIGN ══════════════════════════════════
+   It inherits the name's type exactly — the panel heading is the door, not a
+   link dressed up beside it — and adds only what says it can be pressed. The
+   accent arrives on the cursor, the way every other quiet door in this build
+   announces itself, so a column of ten does not read as ten links. */
+.s-pan-go {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0;
+  text-align: left; cursor: pointer;
+  transition: color var(--t-fast);
+}
+.s-pan-go:hover { color: var(--accent-text); }
+.s-pan-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
 /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
    What we sell and what they push back on are the same shape — a name and a
    line about it — and they were drawn two different ways. The first ran bold

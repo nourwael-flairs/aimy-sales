@@ -5966,6 +5966,15 @@
      all. Ranked, and the loudest three are said. */
   function execBrief(now, a, camps, un, deals) {
     const bits = [];
+    /* ══ THE THINGS THIS PARAGRAPH NAMES ARE PLACES ═══════════════════════
+       It named five late deals and two campaigns by name, in bold, and none
+       of them went anywhere — on a page that had no door of any kind. The
+       caller's briefing has marked its own figures as doors since it was
+       built and uses `.slv-n` to do it, so this is the same control on the
+       other desk rather than a new one: the emphasis a bold was already
+       giving, plus the press it was missing. */
+    const door = (over, html) => '<button class="slv-n" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), over))) + '">' + html + '</button>';
     /* ══ THE FIRST CLAUSE IS THE ONE HE OPENED THIS FOR ═════════════════
        It led "You spent €56k and signed €139k", which is a CEO's ordering:
        cost first, because the question is whether the company is buying its
@@ -6012,7 +6021,11 @@
       return !at || daysBetween(at, TODAY_ISO) > checkinDays(c);
     });
     if (late.length) {
-      bits.push('<b>' + esc(plural(late.length, 'deal')) + '</b> ' +
+      /* The board ranks what is owed first — `dealRank` returns 0 for a
+         missed close date — so this opens on exactly the deals the clause
+         names, with no cut to invent. It is where the diary's own Overdue
+         task already sends him, under the same words. */
+      bits.push(door({ on: 'deals' }, esc(plural(late.length, 'deal'))) + ' ' +
         (late.length === 1 ? 'is' : 'are') + ' past the day ' +
         (late.length === 1 ? 'it' : 'they') + ' should have closed, worth <b>' +
         esc(worth(late)) + '</b>.');
@@ -6028,10 +6041,11 @@
     const paid = camps.filter((c) => c.total > 0);
     const best = paid.filter((c) => c.arr).sort((x, y) => (y.arr / y.total) - (x.arr / x.total))[0];
     const worst = paid.filter((c) => !c.arr && c.total > 200).sort((x, y) => y.total - x.total)[0];
-    if (best) bits.push('<b>' + esc(best.camp.name) + '</b> cost ' + esc(fmtMoney(best.total)) +
-      ' and returned <b>' + esc(fmtMoney(best.arr)) + '</b>.');
-    if (worst) bits.push('<b>' + esc(worst.camp.name) + '</b> has cost ' + esc(fmtMoney(worst.total)) +
-      ' across ' + esc(plural(Math.round(worst.hours), 'hour')) + ' and closed nothing.');
+    if (best) bits.push(door({ camp: best.camp.id }, esc(best.camp.name)) + ' cost ' +
+      esc(fmtMoney(best.total)) + ' and returned <b>' + esc(fmtMoney(best.arr)) + '</b>.');
+    if (worst) bits.push(door({ camp: worst.camp.id }, esc(worst.camp.name)) + ' has cost ' +
+      esc(fmtMoney(worst.total)) + ' across ' + esc(plural(Math.round(worst.hours), 'hour')) +
+      ' and closed nothing.');
 
     if (un.pc != null && un.pc < 0.5) {
       bits.push('Only <b>' + esc(Math.round(un.pc * 100)) + '%</b> of what you pay for lands ' +
@@ -6425,7 +6439,19 @@
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
-              '<span class="s-pan-name">' + esc(c.camp.name) +
+              /* ══ AND THE NAME IS THE WAY IN ═══════════════════════════════
+                 Ten campaigns named, ranked and costed, and not one of them
+                 could be opened. A manager reading that the Energy &
+                 utilities campaign has cost €451 and closed nothing has
+                 exactly one next question — who is on it — and had to go
+                 find it by name from another surface.
+
+                 The name, not the panel. A whole panel that navigates makes
+                 the disclosure inside it a trap: press the crew list to see
+                 the hours and you leave the page instead. */
+              '<span class="s-pan-name">' +
+                '<button class="s-pan-go" type="button" data-camp="' + esc(c.camp.id) + '">' +
+                  esc(c.camp.name) + '</button>' +
                 '<span class="s-pan-state">' + esc(campStateSay(c.camp)) + '</span></span>' +
               /* ══ ONE SLOT, ONE MEANING, ON BOTH SECTIONS ══════════════════
                  The panel in the section below holds a product line, and its
@@ -6461,12 +6487,15 @@
                  size of the team, so folding them would hide something that
                  was never in the way.
 
-                 A DISCLOSURE IS NOT A DRILL. This page refuses every control
-                 that opens a record, and this opens nothing — it shows more
-                 of what is already here. `<details>` is the design system's
-                 own accordion, so it is keyboard-operable and needs no
-                 state, no handler and no data attribute. Open at three
-                 people or fewer, because an accordion around two names costs
+                 A DISCLOSURE IS NOT A DRILL. This opens nothing — it shows
+                 more of what is already here, which is why it can be a
+                 `<details>`: the design system's own accordion, keyboard
+                 operable, needing no state, no handler and no data
+                 attribute. The page HAS doors now, on the campaign name
+                 above and on what the brief names, which is the reason this
+                 distinction matters more than it did when nothing here
+                 navigated. Open at three people or fewer, because an
+                 accordion around two names costs
                  more than it saves. */
               (c.crew.length ? '<details class="s-crew"' + (c.crew.length <= 3 ? ' open' : '') + '>' +
                 '<summary class="s-crew-sum">' +
