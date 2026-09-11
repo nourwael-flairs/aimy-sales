@@ -9243,11 +9243,32 @@
     const myCalls = DB.touch.filter((t) => t.camp === k.id && t.by === meId && OUTCOME[t.outcome]);
     const today = myCalls.filter((t) => t.at.slice(0, 10) === TODAY_ISO);
     const fresh0 = !myCalls.length;
+    /* ══ THREE FIGURES ON A ROW, NONE OF THEM MEASURED ═════════════════
+       "Today: 14 calls · 3 got through · 1 meetings set" — dot-separated,
+       so nothing said the three were a chain, and the second and third were
+       bare. Got through out of what? The answer was the figure sitting two
+       inches to its left, and the reader was asked to make the link.
+
+       They ARE a chain, and it is the same chain the ladder at the foot of
+       this page draws under the heading "of the one above": calls, of those
+       the ones that connected, of those the ones that booked. Written as a
+       sentence it says so without a column head to explain it.
+
+       The last one also read "1 meetings set", from a raw `.length` beside
+       a hard-coded plural. Every count on this line goes through `plural`
+       now, and a clause with nothing in it is not printed — the rule this
+       file states over `briefSentence` and then broke here. */
+    const todayGot = today.filter((t) => t.outcome === 'reached').length;
+    const todayMet = today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length;
     const todayLine = today.length
-      ? '<p class="b-lead-today">Today: <b>' + plural(today.length, 'call') + '</b>' +
-        ' · <b>' + today.filter((t) => t.outcome === 'reached').length + '</b> got through' +
-        ' · <b>' + today.filter((t) => t.moved && t.moved[1] === 'meeting-set').length +
-        '</b> meetings set.</p>'
+      ? '<p class="b-lead-today">Today: <b>' + esc(plural(today.length, 'call')) +
+        '</b> on this campaign' +
+        (todayGot
+          ? ', <b>' + commas(todayGot) + '</b> of ' + (today.length === 1 ? 'which' : 'them') +
+            ' got through'
+          : ', and nobody answered') +
+        (todayMet ? ' and <b>' + esc(plural(todayMet, 'meeting')) + '</b> set' : '') +
+        '.</p>'
       : '';
 
     const deck = fresh0
