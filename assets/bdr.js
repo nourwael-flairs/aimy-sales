@@ -154,7 +154,12 @@
      second word for the plural, and every place that says "person" has to
      remember to pass it — which is one place forgetting away from "105
      persons", and that is exactly what the first cut of the briefing said. */
-  const IRREGULAR = { person: 'people', is: 'are', has: 'have', it: 'they', this: 'these' };
+  /* `more` is here because it does not take an s and the default rule gives
+     it one. Three call sites were writing "2 mores" — the lead map's roster
+     footnote, the signals reminder, and the obstacles block — and each would
+     have had to remember on its own. A word that pluralises to itself is
+     exactly what this table is for. */
+  const IRREGULAR = { person: 'people', is: 'are', has: 'have', it: 'they', this: 'these', more: 'more' };
   const plural = (n, one, many) =>
     commas(n) + ' ' + (n === 1 ? one : (many || IRREGULAR[one] || one + 's'));
   /* The verb alone, for a sentence that already carries its own number. */
@@ -9720,6 +9725,10 @@
         sub: (OBJECTION[kk] || {}).blurb || '',
         beats: agreed[kk] ||
           'Say the same thing to it twice and tell ' + actor(k.owner).name + ' what worked.',
+        /* Whose sentence it is. An agreed answer is the campaign's own words
+           and AiMY is only handing it over; everything else on this block is
+           AiMY's read of the record, and the mark says that by itself. */
+        from: agreed[kk] ? 'the answer this campaign agreed' : '',
         gap: !agreed[kk],
         doc: doc,
       };
@@ -9772,10 +9781,18 @@
     stops.sort((a, b) => b.n - a.n);
     /* Under four reasons is a handful of anecdotes, and three rows each
        reading "1 of 3" is noise wearing the clothes of a finding. */
+    /* ══ WHAT IS NOT SHOWN IS PART OF THE FINDING ═════════════════════════
+       Both lists are cut to two and neither said so, which turns a broad
+       problem into a narrow one and sends the reader to fix the wrong thing.
+       The counts come out with the rows so the block can say what it left. */
+    const shown = gave >= 4 ? spoken.slice(0, 2) : [];
     return {
-      spoken: gave >= 4 ? spoken.slice(0, 2) : [],
+      spoken: shown,
+      spokenKinds: spoken.length,
+      spokenRest: gave - shown.reduce((n, x) => n + x.n, 0),
       thin: gave && gave < 4 ? gave : 0,
-      stops: stops.slice(0, 2), calls: here.length, gave: gave,
+      stops: stops.slice(0, 2), stopsAll: stops.length,
+      calls: here.length, gave: gave,
     };
   }
 
@@ -9796,35 +9813,119 @@
        said in words beside each name instead. */
     const worst = rows[0];
     const gap = b.spoken.filter((x) => x.gap)[0];
-    const lead = '<b>' + esc(worst.name) + '</b> is the most of it — ' +
-      commas(worst.n) + ' of ' + esc(plural(worst.of, worst.unit)) + '.' +
+    /* ══ THE CONCLUSION DOES NOT RESTATE THE ROW UNDER IT ═════════════════
+       This read "Stopped at reception is the most of it — 32 of 195 calls",
+       and the first row twelve pixels below was 32 · Stopped at reception ·
+       of 195 calls. The same three facts twice, and the second copy is the
+       one set at the size of a figure. The claim stays up here; the evidence
+       is the row. */
+    const lead = '<b>' + esc(worst.name) + '</b> is the most of it.' +
       (gap
         ? ' Of the ' + esc(plural(b.gave, 'reason')) + ' anybody gave here, <b class="tone-warn">' +
           esc(gap.name.toLowerCase()) + '</b> is the one nobody agreed an answer to.'
         : b.spoken.length
           ? ' Every reason they give has an answer this campaign already agreed.'
           : '');
+
+    /* ══ A ROW, WITH A FIGURE IN IT AND A HIERARCHY DOWN IT ═══════════════
+       Measured, before any of this was touched: the count rendered at 16px,
+       the beat at 16px, and the obstacle's NAME at 14px. Two sizes in the
+       whole block, and the smallest thing in a row was the name of the thing
+       the row is about. That is the whole of why it read as text — not the
+       word count, the type scale.
+
+       So the block borrows the anatomy this page already uses four inches
+       above it, in `.s-af`: a figure at 24px with its denominator beneath in
+       small faint caps, and rows DIVIDED, NEVER BOXED, which is the rule
+       sales.css states over that component. The name leads its row at 18px,
+       the `sub` — written months ago and never once drawn — says what the
+       obstacle means, and the beat sits behind a rule as an instruction
+       rather than running on as a third paragraph.
+
+       THE BEAT IS AiMY SPEAKING, SO IT IS DRAWN AS AiMY SPEAKING. It was
+       prose in the flow of the row, which is the product printing. Every
+       other place on these surfaces where AiMY says something uses one
+       component — `.b-aimy`: the mark, the sentence, and where the sentence
+       came from — and that is what this is. Reused whole rather than
+       restyled, so a beat here and a reading on a card are the same object.
+
+       Its ground carries the tone, which is the system's rule at
+       `.s-metric.tone-warn`: tone tints the ground, not the figure, because
+       a coloured number reads as an error in the number rather than as a
+       fact about the thing it counts. Accent where AiMY has something,
+       amber where nobody ever agreed an answer — and "Nothing agreed" says
+       it in words too, so the colour is never carrying it alone.
+
+       THE DENOMINATOR READS WITH THE NAME, NOT UNDER THE FIGURE. Stacking it
+       under the count is what forces a wide first column, and sales.css has
+       already measured that mistake on its own obstacle rows: forty pixels
+       of column and a sixteen pixel gap put fifty-six between a one-digit
+       figure and its own sentence, so half of every row was the space
+       between its two halves. This column is sized to the figure. */
+    const row = (x) =>
+      '<div class="b-way' + (x.gap ? ' is-gap' : '') + '">' +
+        '<span class="b-way-n">' + commas(x.n) + '</span>' +
+        '<span class="b-way-what">' +
+          '<span class="b-way-head">' +
+            '<span class="b-way-name">' + esc(x.name) + '</span>' +
+            '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
+          '</span>' +
+          (x.sub ? '<span class="b-way-sub">' + esc(x.sub) + '</span>' : '') +
+          '<div class="b-way-beat b-aimy">' +
+            '<svg class="b-aimy-mark" width="13" height="15" viewBox="0 0 18 20" ' +
+              'aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+            '<span class="b-aimy-say">' +
+              (x.gap ? '<b class="tone-warn">Nothing agreed.</b> ' : '') + esc(x.beats) +
+              (x.door
+                ? ' <button class="s-inline-btn" type="button" ' + x.door.attr + '>' +
+                  esc(x.door.say) + '</button>'
+                : '') +
+              (x.doc != null && x.doc >= 0 ? ' ' + docChip(k.id, x.doc, k.resources[x.doc]) : '') +
+              (x.from ? '<span class="b-aimy-from">' + esc(x.from) + '</span>' : '') +
+            '</span>' +
+          '</div>' +
+        '</span>' +
+      '</div>';
+
+    /* ══ TWO POPULATIONS ARE NOT ONE RANKED LIST ══════════════════════════
+       `blockersOf` builds these in two passes and says so in its own comment:
+       stops are counted against the roster or the calls, spoken objections
+       against the reasons anybody gave. Concatenated into one column they
+       read as a single ranking, and the denominators — of 195 calls, of 70
+       people, of 8 reasons — arrive as noise under each figure because
+       nothing has said the ground moved. It is the same mismatch that took
+       the bars off this block; the bars went and the mixing stayed.
+
+       Two groups, each captioned with the population its figures are of. The
+       caption is where "of 8 reasons" stops being a surprise. */
+    /* ══ AND WHAT THE GROUP LEFT OUT ══════════════════════════════════════
+       Both lists are cut to their top two. Showing two of five without
+       saying so narrows a broad problem and sends the caller to fix the
+       wrong thing, so the remainder is a rendered line rather than a fact
+       nobody was told. */
+    const group = (cap, xs, rest) => (xs.length
+      ? '<div class="b-way-group">' +
+          '<h3 class="b-way-cap">' + esc(cap) + '</h3>' +
+          '<div class="b-ways">' + xs.map(row).join('') + '</div>' +
+          (rest ? '<p class="b-way-rest">' + esc(rest) + '</p>' : '') +
+        '</div>'
+      : '');
+    const stopN = b.stopsAll - b.stops.length;
+    const stopRest = stopN > 0
+      ? plural(stopN, 'more') + ', ' + (stopN === 1 ? 'smaller than these' : 'each smaller than these')
+      : '';
+    const spokeRest = b.spokenRest > 0
+      ? 'The other ' + commas(b.spokenRest) + ' of the ' + esc(plural(b.gave, 'reason')) +
+        ' came up less often'
+      : '';
+
     return '<section class="s-block s-block-wide" aria-label="What is in the way">' +
       '<div class="s-camp-list-head"><h2 class="s-block-h">What is in the way</h2>' +
         '<span class="s-block-say">read off ' + esc(plural(b.calls, 'call')) +
         ' on this campaign</span></div>' +
       '<p class="b-way-lead">' + lead + '</p>' +
-      '<div class="b-ways">' + rows.map((x) =>
-        '<div class="b-way">' +
-          '<span class="b-way-n' + (x.gap ? ' tone-warn' : '') + '">' + commas(x.n) + '</span>' +
-          '<span class="b-way-what">' +
-            '<span class="b-way-name">' + esc(x.name) + '</span>' +
-            '<span class="b-way-of">of ' + esc(plural(x.of, x.unit)) + '</span>' +
-          '</span>' +
-          '<span class="b-way-beat">' +
-            (x.gap ? '<b class="tone-warn">Nothing agreed.</b> ' : '') + esc(x.beats) +
-            (x.door
-              ? ' <button class="s-inline-btn" type="button" ' + x.door.attr + '>' +
-                esc(x.door.say) + '</button>'
-              : '') +
-            (x.doc != null && x.doc >= 0 ? ' ' + docChip(k.id, x.doc, k.resources[x.doc]) : '') +
-          '</span>' +
-        '</div>').join('') + '</div>' +
+      group('Before you reach them', b.stops, stopRest) +
+      group('Once you do', b.spoken, spokeRest) +
       (!b.spoken.length && b.thin
         ? '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
           esc(verbFor(b.thin, 'has')) + ' given a reason so far — too few to call it a ' +
