@@ -34,11 +34,11 @@ are on. The rail carries the AiMY reading and nothing else.
 Under those sit the three records: one campaign (`?camp=`), one person
 (`?con=`), one list (`?list=`).
 
-**A cut is a rung.** The queue is cut four ways and every one of them is a
+**A cut is a step.** The queue is cut four ways and every one of them is a
 place on the ladder, so there is no second vocabulary to learn. They sum to the
-whole, because a person stands on exactly one rung.
+whole, because a person stands on exactly one step.
 
-| cut | the rung it is |
+| cut | the step it is |
 |---|---|
 | Callbacks | they asked to be called back, and the date has come |
 | New | nobody has called them |
@@ -51,9 +51,9 @@ closed in it.
 
 **The queue is cards, three across.** A row held a name, a line and a button —
 enough to be ranked by and not enough to prepare with, so every call began by
-opening the record to find out who this was. A card carries the rung and the
+opening the record to find out who this was. A card carries the step and the
 campaign, who they are and where they sit, how big the company is, why they are
-on this rung, what was said last time in the words it was written in, and the
+on this step, what was said last time in the words it was written in, and the
 number. Every card does the same thing, because on this surface there is only
 one thing to do, and it says **Call**. It briefly said "Say what happened" on people whose
 meeting had passed: a second verb, for a second job, in the middle of a list you
@@ -117,14 +117,14 @@ not-called → no-answer → callback → answered → meeting-set → showed-up
 The V3 build derived every status from the touchpoints, which made status
 uncontradictable and unsettable. A BDR ladder cannot work that way: *showed up*
 and *interested* are things a person observed, and no call record implies them.
-Those four rungs are one press each on the record, always visible, and every one
+Those four steps are one press each on the record, always visible, and every one
 is undoable.
 
 A call never moves a lead **backwards**, and never climbs out of an exit — only
 Undo does that. Past `handed-over` it stops being a BDR lead, which is why the
 ladder ends there.
 
-**One write, two places it shows.** A touchpoint and a rung are the whole of it;
+**One write, two places it shows.** A touchpoint and a step are the whole of it;
 everything a campaign reports — how many are left to call, callbacks due,
 meetings set, its called tally, its feed — is derived from those two, so a person's
 record and the campaign they are on cannot disagree about what just happened.

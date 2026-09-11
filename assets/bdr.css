@@ -23,7 +23,7 @@
      windowing is a positioning wrapper, not a second row design.
 
      THE CHECKPOINT LADDER. Where one lead stands with a BDR, which the V3
-     build did not have because it derived status rather than storing a rung.
+     build did not have because it derived status rather than storing a step.
 
    Everything else here is a small variant of something in sales.css and says
    which one.
@@ -65,7 +65,7 @@
    eight things to read to answer one question, and at this width each would
    be four characters.
 
-   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per rung would
+   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per step would
    be eight colours to learn, and the product already spends its semantic
    colours on status. */
 
@@ -110,7 +110,7 @@
    with it — a run's rail and a single call's rail are now the same column. */
 
 /* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
-   A row of counts, stated rather than linked. These are RUNGS, and the queue
+   A row of counts, stated rather than linked. These are STEPS, and the queue
    under them cuts by what is owed — so a door here would open a filter that
    does not exist, which is worse than no door. */
 
@@ -187,7 +187,7 @@
    A row had space for a name, a line and a button — enough to be ranked by
    and not enough to prepare with, so every call began by opening the record
    to find out who this was. A card carries what a caller wants before the
-   phone rings, and three of them fit across the page.
+   call, and three of them fit across the page.
 
    `repeat(3, …)` with a floor, not `auto-fill`: the shell's own `.s-grid`
    fills by width and would give two columns here and four on a wide monitor.
@@ -988,7 +988,7 @@
 
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
-   the call went, a larger accent call where a rung was climbed, and the rung
+   the call went, a larger accent call where a step was climbed, and the step
    it reached on the line. The cards are the same cards; the rail is drawn
    in the column the section already reserves for it. Metrics set once:
    10px dot, 14px milestone call, 26px gutter, rail at 7px. */
@@ -1022,7 +1022,7 @@
 .b-tl-dot.tone-warn { background: var(--warn-text); }
 .b-tl-dot.tone-err { background: var(--err-text); }
 .b-tl-dot.tone-neutral { background: var(--d400); }
-/* A rung climbed: the call is the milestone, in accent, and the node sits
+/* A step climbed: the call is the milestone, in accent, and the node sits
    on the rail a shade larger so the eye catches it scanning down. */
 .b-tl-item.is-milestone .b-tl-dot {
   width: 14px; height: 14px; left: -26px; top: 15px;
@@ -1665,7 +1665,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    it holds.
 
    What has passed is filled and joined by a line you can see. The tip is
-   open — a call in the rung's own tone with the page showing through, which
+   open — a call in the step's own tone with the page showing through, which
    is the shape everything from a Stepper to a git log uses for the point
    still moving. And an elided stretch is dashed on both sides, because "3
    steps more" is a piece of the walk nobody is claiming to draw. */
@@ -1716,8 +1716,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-story-step.is-gap .b-story-k { color: var(--ink-muted); letter-spacing: 0.08em; }
 
 /* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
-   Four columns on one grid: the rung, the bar, how many ever got that far,
-   and what share of the rung above that is. The last column is the reason
+   Four columns on one grid: the step, the bar, how many ever got that far,
+   and what share of the step above that is. The last column is the reason
    the block exists, so it is set in the mono face and reads down its own
    edge. */
 .b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
@@ -2213,7 +2213,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 @media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
 
 /* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
-   The rung sat in the roster's right column as a bordered pill, directly
+   The step sat in the roster's right column as a bordered pill, directly
    above the Call pill, and the two read as a pair of buttons. A dot in the
    called's own tone and the word beside it: a state you read, over the one
    thing on the row you press. */
@@ -2233,7 +2233,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
 .b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
 
-/* A menu row that names a person: the rung as a dot, the name, what they do. */
+/* A menu row that names a person: the step as a dot, the name, what they do. */
 .b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-menu-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: inherit; }
 .b-menu-sub { font-size: var(--t-small); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2275,7 +2275,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-map-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* A node is a door with one fact on it: for a person, the rung as a dot. */
+/* A node is a door with one fact on it: for a person, the step as a dot. */
 .b-node {
   display: flex; flex-direction: column; gap: 3px; align-items: flex-start; cursor: pointer;
   font-family: inherit; text-align: left; min-width: 172px; max-width: 260px;
@@ -2374,7 +2374,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
 
 /* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
-   The people ringing the same two hundred numbers as you. A face, a name and
+   The people calling the same two hundred numbers as you. A face, a name and
    what they are on it for — the knowledge graph's node, at the size a person
    is drawn rather than the size a company is. */
 /* No card around each of them. A pill with a border and a ground made three
@@ -2741,7 +2741,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-end-word { display: inline-block; line-height: 1; }
 
 /* ══ 67. WHAT HAPPENED IS A QUESTION, NOT A VERB ═══════════════════════════
-   The rungs stood in the row of verbs at the same weight as Call, and which
+   The steps stood in the row of verbs at the same weight as Call, and which
    of them led swapped the moment a meeting date passed. They are a different
    kind of thing — a fact to record rather than an action to take — so they
    sit under the row on a line of their own, behind the question they answer.
