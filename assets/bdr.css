@@ -598,6 +598,32 @@
 /* The way back is a navigation control, not a footnote. At --d400 it was the
    dimmest thing on a record page, under a masthead at full ink. */
 .s-back { color: var(--d200); }
+
+/* ══ AND THE SAME SWEEP OVER FINANCIALS ════════════════════════════════════
+   The section above did this for the surfaces a caller reads and stopped at
+   the manager's. Counted on the money page: 160 text runs at `--d300` or
+   `--d400` across 21 classes — the unit under every figure, the state on
+   every campaign, the hours and rates on every crew row, the legend under
+   the attainment bar, every section's eyebrow and every note under one. The
+   densest page in the build was also the dimmest.
+
+   Every one of them is content. "11.1 hours at €58.23 an hour" is the
+   resourcing decision; "of €300k" is the denominator of the biggest figure
+   on the page; "Where you should be today" is what a mark on the bar means.
+   None of it is chrome and none of it should be read at chrome's ink.
+
+   NOT ONE SIZE CHANGES. The ranks on this page are already carried by size,
+   weight and case — 24px figures over 18px names over 14px meta over 12px
+   caps — which is where a rank belongs. Dimness was doing the job a second
+   time, badly, and it is the axis that costs the reader their eyes. */
+.s-pan-facts span, .s-pan-meta, .s-pan-unit, .s-pan-state,
+.s-exec-eyebrow, .s-exec-note, .s-af-cap, .s-af-sub,
+.s-cost-note, .s-cost-pc, .s-odds-cap, .s-odds-n, .s-odds-note,
+.s-att-of, .s-att-key, .s-asks-cap { color: var(--d200); }
+/* "Nothing" is a state a campaign is IN, not a value that failed to arrive.
+   Dimming it said the second. The word carries the meaning, which is also
+   the rule about never leaving colour to do it alone. */
+.s-pan-total.is-none { color: var(--d200); }
 /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
    What we sell and what they push back on are the same shape — a name and a
    line about it — and they were drawn two different ways. The first ran bold
