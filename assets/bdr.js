@@ -9359,7 +9359,7 @@
       out.push({
         text: 'It gets through most around <b>' + h.hour + ':00</b> — ' + h.pct +
           '% of the ' + commas(h.n) + ' calls made in that hour.',
-        from: 'every call on this campaign',
+        from: 'the hour and the outcome of every call here',
       });
     }
 
@@ -9382,7 +9382,7 @@
         text: '<b>' + commas(cold.length) + '</b> of the ' +
           esc(plural(members.length, 'person')) + ' here were being worked and have not ' +
           'been called in a fortnight. They are spread across the cuts below.',
-        from: 'the last call on each of their records',
+        from: 'how long since the last call on each record',
       });
     }
 
@@ -9442,12 +9442,32 @@
          block somebody can put right this afternoon, and the campaign's own
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
-      rs.push({ text: exits, from: 'where each of them stopped',
+      /* ══ A BASIS NAMES THE FIELD, NOT ONLY THE SET ════════════════════
+         These lines answer "how do you know that", and each of them named
+         the pile it looked at without saying what it read off it. "Every
+         call on this campaign" sits under a claim about the time of day;
+         "the last call on each of their records" sits under a claim about
+         how long ago. The set was never the question — a reader can see
+         which set from the sentence — so each one names the field the
+         reading is actually made of. */
+      rs.push({ text: exits, from: 'the step each of them stopped at',
         door: wrong ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
-    const deals = dealsSay(k);
-    if (deals) rs.push({ text: deals, from: 'the leads you handed over' });
+    /* ══ THE MANAGER'S COLUMN IS NOT A READING FOR THIS DESK ══════════════
+       "With Lina Haddad: 9 of the 70 people here — 1 waiting for discovery,
+       2 past discovery, 3 past proof, 2 past commercial, 1 signed" was the
+       longest line in the block and the one a caller can do least with.
+       Every other reading here is about work she still has: who left, when
+       the phone gets answered, who is going stale. This one is a status
+       report on leads that are no longer hers — her part ended at the
+       hand-over, which is what the ladder on this page says in as many
+       words — and it named a colleague's pipeline stages, a second
+       vocabulary for a desk that does not work them.
+
+       The bar directly above it already says nine were handed over. Where
+       those nine have got to is the manager's board, and the manager has
+       one. Removed with `dealsSay`, which had no other caller. */
     campReadings(k).forEach((r) => rs.push(r));
     if (!rs.length) return '';
     /* ══ THE LABEL WAS TRUE OF ONE READING IN FOUR ════════════════════════
@@ -9612,41 +9632,11 @@
         ? '<p class="b-tally-out">' + exitsSay(members) + '</p>' : ''));
   }
 
-  /* ══ WITH THE MANAGERS ═════════════════════════════════════════════════
-     The handed-over leads, by whoever is managing each one and how far the
-     director has taken it. Named per person now that a hand-over chooses a
-     manager, so two managers on one campaign read as two. */
-  function dealsSay(k) {
-    const roster = membersOf(k.id);
-    const handed = roster.filter((c) => c.checkpoint === 'handed-over');
-    if (!handed.length) return '';
-    const by = Object.create(null);
-    handed.forEach((c) => {
-      const m = directorOf(c);
-      const g = by[m.id] || (by[m.id] = { name: m.name, at: Object.create(null), won: 0, lost: 0, waiting: 0, n: 0 });
-      g.n++;
-      const ph = phasesOf(c);
-      const last = ph[ph.length - 1];
-      if (!last) { g.waiting++; return; }
-      if (last.decision === 'won') { g.won++; return; }
-      if (last.decision === 'lost') { g.lost++; return; }
-      g.at[last.phase] = (g.at[last.phase] || 0) + 1;
-    });
-    const say = Object.keys(by).map((id) => {
-      const g = by[id];
-      const bits = [];
-      if (g.waiting) bits.push(commas(g.waiting) + ' waiting for discovery');
-      PHASES.forEach((x) => { if (g.at[x.k]) bits.push(commas(g.at[x.k]) + ' past ' + x.label.toLowerCase().replace(' meeting', '')); });
-      if (g.won) bits.push('<b>' + commas(g.won) + ' signed</b>');
-      if (g.lost) bits.push(commas(g.lost) + ' said no at resolution');
-      /* The parts add up to the manager's count; the count itself had no
-         whole. It is a share of the roster this campaign is working, which
-         is what every other figure in this block is measured against. */
-      return esc(g.name) + ': <b>' + commas(g.n) + '</b> of the ' +
-        esc(plural(roster.length, 'person')) + ' here — ' + bits.join(', ');
-    });
-    return 'With ' + say.join('; with ') + '.';
-  }
+  /* `dealsSay` stood here and drew "With Lina Haddad: 9 of the 70 people
+     here — 1 waiting for discovery, 2 past discovery…" into the readings
+     block. It is gone, with its only caller: a caller's part ends at the
+     hand-over, the bar above already counts the nine, and where those nine
+     have got to is a board the manager has and this desk does not. */
 
   function campStands(k) {
     const st = campStand(k);
