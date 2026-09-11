@@ -221,7 +221,7 @@
   EXITS.forEach((x) => (called[x.k] = Object.assign({ n: -1 }, x)));
   const rank = (k) => (called[k] ? called[k].n : 0);
   const isExit = (k) => rank(k) < 0;
-  const rungLabel = (k) => (called[k] ? called[k].label : k);
+  const stepLabel = (k) => (called[k] ? called[k].label : k);
 
   /* ══ WHAT HAPPENED ON A CALL ═══════════════════════════════════════════
      Seven, and the keys are the V3 build's so every ported lexicon still
@@ -426,7 +426,7 @@
     : n >= 1000 ? Math.round(n / 1000) + 'k' : String(n));
   const kindLabel = (t) => (OUTCOME[t.outcome] ? OUTCOME[t.outcome].label
     : t.outcome === 'phase' ? ((PHASE[t.phase] || {}).label || t.phase)
-    : KINDS[t.outcome] || (t.moved ? rungLabel(t.moved[1]) : t.outcome));
+    : KINDS[t.outcome] || (t.moved ? stepLabel(t.moved[1]) : t.outcome));
 
   const OPENING = Object.create(null);
   OPENINGS.forEach((o) => (OPENING[o.k] = o));
@@ -1403,7 +1403,7 @@
        thing driving it. A weight list that silently donates its remainder to
        one row is a list where editing any row edits that one too. */
     const TOTAL = START.reduce((s, x) => s + x[1], 0);
-    const rollRung = () => {
+    const rollStep = () => {
       let x = r() * TOTAL;
       for (let i = 0; i < START.length; i++) {
         x -= START[i][1];
@@ -1432,7 +1432,7 @@
       c.fate = FATES[Math.abs(hash(c.id)) % FATES.length];
       if (!c.camps.length) return;              // not on a campaign, never called
       if (!c.phone && chance(r, 0.8)) return;   // no number, mostly untouched
-      const called = rollRung();
+      const called = rollStep();
       if (called === 'not-called') return;
 
       c.checkpoint = called;
@@ -1525,11 +1525,11 @@
         idx.push(Math.max(lo, Math.min(hi, base)));
       }
       idx.push(n - 1);
-      let prevRung = 'not-called';
+      let prevStep = 'not-called';
       use.forEach((k, si) => {
         const t = mineT[idx[si]];
-        t.moved = [prevRung, k];
-        prevRung = k;
+        t.moved = [prevStep, k];
+        prevStep = k;
         if (k === 'no-answer') {
           t.outcome = 'no-answer'; t.proposals = []; t.objections = []; t.openings = [];
           t.note = NOTE['no-answer'][(hc + si) % NOTE['no-answer'].length];
@@ -1561,8 +1561,8 @@
         }
       });
       /* the rung each touchpoint left them on, for "stays at" */
-      prevRung = 'not-called';
-      mineT.forEach((t) => { if (t.moved) prevRung = t.moved[1]; t.called = prevRung; });
+      prevStep = 'not-called';
+      mineT.forEach((t) => { if (t.moved) prevStep = t.moved[1]; t.called = prevStep; });
       const calls = mineT.filter((t) => t.outcome !== 'checkpoint');
       c.attempts = calls.length;
       c.lastCallAt = calls.length ? calls[calls.length - 1].at : last;
@@ -3320,10 +3320,10 @@
              with itself. */
           text: c.attempts
             ? 'called <b>' + plural(c.attempts, 'time') + '</b> and standing at <b>' + esc(r.label) +
-              '</b> — ' + esc(rungSay(c)) + '.'
+              '</b> — ' + esc(stepSay(c)) + '.'
             : n
               ? '<b>' + plural(n, 'touchpoint') + '</b> and no call yet, standing at <b>' + esc(r.label) +
-                '</b> — ' + esc(rungSay(c)) + '.'
+                '</b> — ' + esc(stepSay(c)) + '.'
               : 'Nobody has called them yet. The campaign is the only thing that knows anything about them.',
           evidence: [{ val: c.attempts, cap: c.attempts === 1 ? 'call' : 'calls' },
             { val: n !== c.attempts ? n : 0, cap: n === 1 ? 'touchpoint' : 'touchpoints' }].filter((e) => e.val),
@@ -5736,20 +5736,20 @@
      literal, and the phrase that says what the stage MEANS follows it — the
      rate needs both: the name to find the column, the fact to trust the
      number. Rename a stage and this renames with it. */
-  const ODDS_RUNGS = [
+  const ODDS_STEPS = [
     { k: 'commercial', was: 'the price is on the table' },
     { k: 'proof',      was: 'they have seen it working' },
     { k: 'discovery',  was: 'we have been through what they need' },
     { k: 'qual',       was: 'handed over, nobody has met them' },
   ];
-  ODDS_RUNGS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
+  ODDS_STEPS.forEach((r) => { r.say = DEAL_STAGE[r.k].label + ' — ' + r.was; });
   const ODDS_PRIOR = { commercial: 0.55, proof: 0.32, discovery: 0.16, qual: 0.06 };
   const SMOOTH = 2;
   let ODDS_CACHE = null;
   function oddsLadder() {
     if (ODDS_CACHE) return ODDS_CACHE;
     const by = Object.create(null);
-    ODDS_RUNGS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, n: 0, won: 0 }));
+    ODDS_STEPS.forEach((r) => (by[r.k] = { k: r.k, say: r.say, n: 0, won: 0 }));
     /* Learned off every deal that has finished, at the furthest stage it
        reached before it did — a deal that closed from Commercial is
        evidence about Commercial, and it is no longer standing there. */
@@ -5763,7 +5763,7 @@
       row.n += 1;
       if (st === 'won') row.won += 1;
     });
-    ODDS_RUNGS.forEach((r) => {
+    ODDS_STEPS.forEach((r) => {
       const row = by[r.k];
       row.p = (row.won + SMOOTH) / (row.n + SMOOTH / ODDS_PRIOR[r.k]);
     });
@@ -5779,7 +5779,7 @@
   function pipelineOf(deals) {
     const open = deals.filter(dealLive);
     const tier = { comparable: 0, modelled: 0 };
-    const rung = Object.create(null);
+    const step = Object.create(null);
     let all = 0, weighted = 0;
     open.forEach((c) => {
       const v = acvOf(c);
@@ -5787,11 +5787,11 @@
       tier[v.basis] = (tier[v.basis] || 0) + v.value;
       all += v.value;
       weighted += v.value * o.p;
-      const r = rung[o.k] || (rung[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
+      const r = step[o.k] || (step[o.k] = { k: o.k, say: o.say, p: o.p, n: 0, value: 0 });
       r.n += 1; r.value += v.value;
     });
     return { open: open.length, all: all, weighted: weighted, tier: tier,
-      rungs: ODDS_RUNGS.map((o) => rung[o.k]).filter(Boolean) };
+      steps: ODDS_STEPS.map((o) => step[o.k]).filter(Boolean) };
   }
 
   /* ══ THE TARGET — MOCK, AND THE YARDSTICK EVERYTHING ELSE NEEDED ═══════
@@ -6524,7 +6524,7 @@
       '<div class="s-odds">' +
         '<span class="s-odds-cap">' + aiMark() + 'How many close, by how far they have got</span>' +
         '<div class="s-odds-rows">' +
-          pipe.rungs.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
+          pipe.steps.slice().sort((x, y) => y.p - x.p).map((r) => '<div class="s-odds-row">' +
             '<span class="s-odds-p">' + esc((r.p * 100).toFixed(1)) + '%</span>' +
             '<span class="s-odds-say">' + esc(r.say) + '</span>' +
             '<span class="s-odds-n">' + esc(plural(r.n, 'deal')) + ' &middot; ' +
@@ -9170,7 +9170,7 @@
 
   function campStand(k) {
     const members = membersOf(k.id);
-    const n = rungCounts(members);
+    const n = stepCounts(members);
     /* Read off the field. This ran a regular expression over the goal
        sentence to find its own target, which made the number a consequence
        of the wording — "Replace 5 manual support desks in Belgium" measured
@@ -9511,7 +9511,7 @@
      printed underneath it, which is why the campaign page had two loose
      paragraphs sitting between the bars and the block that reads them. */
   function exitsSay(members) {
-    const n2 = rungCounts(members);
+    const n2 = stepCounts(members);
     const gone = EXITS.filter((x) => n2[x.k]);
     const goneN = gone.reduce((t, x) => t + n2[x.k], 0);
     if (!goneN) return '';
@@ -9611,8 +9611,8 @@
        The cold queue is the caller's job, so the claim about it is only made
        on the caller's desk. The manager gets what the other two tiles give
        him — the count against the roster it came out of. */
-    const ringNew = isMgr() ? 0 : queue(k.id, 'not-called').length;
-    const ringNo = isMgr() ? 0 : queue(k.id, 'no-answer').length;
+    const callNew = isMgr() ? 0 : queue(k.id, 'not-called').length;
+    const callNo = isMgr() ? 0 : queue(k.id, 'no-answer').length;
     /* ══ TWO OF THESE NEST, AND THE ROW NEVER SAID SO ════════════
        "29 people on this campaign" sits directly above four figures reading
        15, 3, 10 and 8, which add to 36. Two of them are exclusive — a
@@ -9646,12 +9646,12 @@
            once and every surface reads that definition. */
         fig('Never called', n['not-called'] || 0,
           isMgr() ? called['not-called'].say
-            : ringNew ? commas(ringNew) + ' of them you can call now →' : 'none of them callable now',
-          null, ringNew ? 'not-called' : null) +
+            : callNew ? commas(callNew) + ' of them you can call now →' : 'none of them callable now',
+          null, callNew ? 'not-called' : null) +
         fig('Called, no answer', n['no-answer'] || 0,
           isMgr() ? called['no-answer'].say
-            : ringNo ? commas(ringNo) + ' of them you can call now →' : 'none of them callable now',
-          null, ringNo ? 'no-answer' : null) +
+            : callNo ? commas(callNo) + ' of them you can call now →' : 'none of them callable now',
+          null, callNo ? 'no-answer' : null) +
         /* NAMED THE WAY THE LADDER NAMES IT. This said "Reached" over the
            same set the funnel two inches below calls Answered and the queue
            calls Answered — one number, two words, and a reader checking one
@@ -10026,7 +10026,7 @@
     SAID_SIGNAL = signalOf(a) ? a.id : null;
     const everReached = hist.some((t) => t.outcome === 'reached');
     const chip = top && rank(top.checkpoint) >= rank('answered')
-      ? { label: rungLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
+      ? { label: stepLabel(top.checkpoint) + ' here', tone: (called[top.checkpoint] || {}).tone || 'ok' }
       : everReached
         ? { label: 'Reached before', tone: 'ok' }
         : { label: 'Nobody reached yet', tone: 'neutral' };
@@ -10842,7 +10842,7 @@
      says "with the director" — which is the news at that desk and nonsense
      at the director's own, where it tells her a lead is with somebody else
      when the somebody else is her. */
-  const rungSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
+  const stepSay = (c) => ((isMgr() && c.checkpoint === 'handed-over')
     ? (addedByHand(c) ? 'you added them yourself' : 'yours to close')
     : (called[c.checkpoint] || {}).say || 'they have left the ladder');
 
@@ -10969,8 +10969,8 @@
             : '') +
           /* the chip names the rung reached; when the outcome already says it
              ("Callback → Callback") the call on the dot is the milestone */
-          (t.moved && rungLabel(t.moved[1]) !== kindLabel(t)
-            ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(rungLabel(t.moved[1])) + '</span>'
+          (t.moved && stepLabel(t.moved[1]) !== kindLabel(t)
+            ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(stepLabel(t.moved[1])) + '</span>'
             : ph && t.decision
               ? '<span class="b-tl-move' + (t.decision === 'lost' ? ' is-out' : '') + '">→ ' +
                 (t.decision === 'won' ? 'Signed'
@@ -11574,9 +11574,9 @@
       : { k: 'In the book', t: list ? 'listed ' + sayDay(list.at) : 'from the start', tone: 'neutral' });
     if (calls.length) steps.push({ k: 'First called', t: sayDay(calls[0].at) + ' · ' + whoDid(calls[0]).name.split(' ')[0], tone: 'neutral' });
     all.filter((t) => t.moved && rank(t.moved[1]) > rank(t.moved[0])).forEach((t) =>
-      steps.push({ k: rungLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
+      steps.push({ k: stepLabel(t.moved[1]), t: sayDay(t.at), tone: (called[t.moved[1]] || {}).tone || 'ok' }));
     const out = all.filter((t) => t.moved && isExit(t.moved[1]))[0];
-    if (out) steps.push({ k: rungLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
+    if (out) steps.push({ k: stepLabel(out.moved[1]), t: sayDay(out.at), tone: (called[out.moved[1]] || {}).tone || 'warn' });
     phasesOf(c).forEach((t) => steps.push({
       k: t.decision ? (t.decision === 'won' ? 'Signed'
         : t.decision === 'later' ? 'Rescheduled' : 'They said no') : (PHASE[t.phase] || {}).label,
@@ -11591,7 +11591,7 @@
     const due = c.next
       ? { what: c.next.what, when: (late ? 'was due ' : 'due ') + sayWhen(c.next.due), late: late }
       : null;
-    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(rungSay(c)) +
+    const now = '<b class="tone-' + esc(rg.tone) + '">' + esc(rg.label) + '</b> — ' + esc(stepSay(c)) +
       (c.checkpointAt ? ', ' + esc(sayWhen(c.checkpointAt.slice(0, 10))) : '') + '.';
     const quiet = quietUnderFour(c);
     /* the caption says "Next", so the sentence does not have to */
@@ -11623,7 +11623,7 @@
     const got = calls.filter((t) => t.outcome === 'reached')[0];
     if (got) steps.push({ k: 'Got through', t: sayDay(got.at) + ' · ' + esc((DB.byCon[got.con] || {}).name || '').split(' ')[0], tone: 'ok' });
     if (top && rank(top.checkpoint) >= rank('answered')) {
-      steps.push({ k: rungLabel(top.checkpoint), t: top.name.split(' ')[0] +
+      steps.push({ k: stepLabel(top.checkpoint), t: top.name.split(' ')[0] +
         (top.checkpointAt ? ' · ' + sayDay(top.checkpointAt) : ''), tone: (called[top.checkpoint] || {}).tone || 'ok' });
       phasesOf(top).slice(-1).forEach((t) => steps.push({
         k: t.decision ? (t.decision === 'won' ? 'Signed'
@@ -11699,7 +11699,7 @@
      which rung was which anyway. The chain stays; the bars go with the
      function that drew them. */
 
-  function rungCounts(list) {
+  function stepCounts(list) {
     const out = Object.create(null);
     list.forEach((c) => (out[c.checkpoint] = (out[c.checkpoint] || 0) + 1));
     return out;
@@ -12208,7 +12208,7 @@
     { k: 'gatekeeper-msg',    disp: 'gatekeeper',     props: [],           objs: [],          opps: [] },
     { k: 'gatekeeper-mobile', disp: 'gatekeeper',     props: [],           objs: [],          opps: [] },
     { k: 'no-answer-vm',      disp: 'no-answer',      props: [],           objs: [],          opps: [] },
-    { k: 'no-answer-rang',    disp: 'no-answer',      props: [],           objs: [],          opps: [] },
+    { k: 'no-answer-called',    disp: 'no-answer',      props: [],           objs: [],          opps: [] },
     { k: 'declined-signed',   disp: 'not-interested', props: [],           objs: [],          opps: [] },
     { k: 'declined-nofit',    disp: 'not-interested', props: [],           objs: [],          opps: [] },
     { k: 'wrong-number',      disp: 'wrong-number',   props: [],           objs: [],          opps: [] },
@@ -12328,7 +12328,7 @@
       ['them', 'You have reached the voicemail of {first}.'],
       ['you', 'Left a voicemail asking for ten minutes.'],
     ],
-    'no-answer-rang': [
+    'no-answer-called': [
       ['you', 'Dialling…'],
       ['them', 'Nobody picks up.'],
       ['you', 'Nobody picked up on the second call either.'],
@@ -12708,7 +12708,7 @@
 
     const camp = DB.byCamp[call.camp];
     const said = OUTCOME[outcome] ? OUTCOME[outcome].label.toLowerCase() : outcome;
-    const moved = mv.to ? ' · moved to ' + rungLabel(mv.to) : '';
+    const moved = mv.to ? ' · moved to ' + stepLabel(mv.to) : '';
     const where = camp ? ' · ' + camp.name + ' now has ' +
       plural(queue(camp.id).length, 'person') + ' to call' : '';
     const again = mv.next && (outcome === 'no-answer' || outcome === 'gatekeeper')
@@ -12995,7 +12995,7 @@
   /* The next step each rung owes, if any. A rung that owes nothing clears
      the field rather than leaving a stale one: a handed-over lead with a
      callback still on it is a queue entry for work nobody should do. */
-  function nextForRung(to) {
+  function nextForStep(to) {
     if (to === 'showed-up') return { what: 'Say whether they are interested', due: dayAdd(1) };
     if (to === 'interested') return { what: 'Hand to the director', due: dayAdd(2) };
     if (to === 'answered') return { what: 'Call them back', due: dayAdd(2) };
@@ -13023,10 +13023,10 @@
     /* A NO-SHOW OWES A CALL WITH A REASON. "Call them back" said nothing
        about why; the flowchart's step is reach them to reschedule. */
     patchCon(c, { checkpoint: to, checkpointAt: now,
-      next: mv === 'no-show' ? { what: 'call to reschedule the meeting', due: dayAdd(1) } : nextForRung(to) });
+      next: mv === 'no-show' ? { what: 'call to reschedule the meeting', due: dayAdd(1) } : nextForStep(to) });
     addTouch(t);
     const camp = DB.byCamp[t.camp];
-    toast(c.name.split(' ')[0] + ' → ' + rungLabel(to) +
+    toast(c.name.split(' ')[0] + ' → ' + stepLabel(to) +
       (to === 'handed-over' ? ' · ' + directorOf(c).name + ' has it' : camp ? ' · ' + camp.name : ''), () => {
       dropTouch(t.id);
       patchCon(c, before);
@@ -15462,13 +15462,13 @@
        one. On a proposal there is a checkpoint it would leave from, so the
        row says where it stays when the answer is nowhere. */
     if (f.to) {
-      rows.push(['Checkpoint', (f.from ? rungLabel(f.from) + ' → ' : '') + rungLabel(f.to), 'ok']);
+      rows.push(['Checkpoint', (f.from ? stepLabel(f.from) + ' → ' : '') + stepLabel(f.to), 'ok']);
     } else if (c && f.outcome !== 'phase') {
       /* the rung they were on when it happened, not the rung today: a
          callback from July does not "stay at" a meeting set in August.
          A phase is the director's ladder, not this one, so it says
          nothing about a rung it was never going to move. */
-      rows.push(['Checkpoint', 'stays at ' + rungLabel(f.from || f.called || c.checkpoint), 'neutral']);
+      rows.push(['Checkpoint', 'stays at ' + stepLabel(f.from || f.called || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
     return rows;
@@ -17288,7 +17288,7 @@
         queue: q.length,
         due: DB.con.filter((c) => callable(c) && dueToday(c)).length,
         untouched: DB.con.filter((c) => callable(c) && untouched(c)).length,
-        rungs: rungCounts(DB.con),
+        steps: stepCounts(DB.con),
         deltaBytes: (function () { try { return (localStorage.getItem(KEY_DB) || '').length; } catch (e) { return 0; } })(),
       };
     },
