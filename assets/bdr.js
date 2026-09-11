@@ -6976,9 +6976,31 @@
        It had a row of its own above them, which read as a second heading. */
     return '<div class="b-cuts b-cuts-row">' + chip('all', 'All', all.length) +
       (isMgr() ? MGR_BUCKETS : BUCKETS).map((b) => chip(b.k, b.label, counts[b.k] || 0)).join('') +
+      /* ══ THE VERB THAT STARTS A RUN IS A BUTTON ═══════════════════════════
+         It was `.s-inline-btn` — accent words with no ground, no border and
+         no box — sitting at the end of a row of filter chips that all have
+         one. So the one control on that row that DOES something looked less
+         like a control than the six that only narrow a list, and it read as
+         a caption on the search field beside it.
+
+         `.b-ghost`, this build's own ghost. An insight link was no better
+         than the link it replaced: sales.css forces that class to a pill,
+         and it carries the chips' fill and the chips' hairline, so it was a
+         chip in every measurable way sitting in a row of chips, with only
+         the words saying otherwise. The ghost has NO FILL AT REST — its own
+         comment says the border is all that is left saying press me — which
+         is exactly the difference between the one control here that acts and
+         the six that narrow a list. Not the height — measured, the ghost is
+         32 layout pixels against a chip's 30, which is nothing. The fill is
+         the whole of it.
+
+         Not the primary: the queue spends its one filled control on the top
+         card, on the argument written over that card that fifteen identical
+         primaries is fifteen recommendations and therefore none. */
       ((call && call.length)
-        ? '<button class="s-inline-btn b-cuts-go" type="button" data-callall="' +
-          esc(call.map((c) => c.id).join(',')) + '">Call them</button>'
+        ? '<button class="b-ghost b-cuts-go" type="button" data-callall="' +
+          esc(call.map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+          'Call them</button>'
         : '') + '</div>';
   }
 
@@ -7347,9 +7369,12 @@
       ? (first
           ? '<button class="s-insight-lnk primary" type="button" data-call="' + esc(first.id) +
               '">Call the next one on this list</button>' +
+            /* The same verb as the queue's, so the same control: one label
+               drawn two ways on two surfaces is two controls to learn. */
             (call.length > 1
-              ? '<button class="s-inline-btn" type="button" data-callall="' +
-                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">Call them</button>'
+              ? '<button class="b-ghost" type="button" data-callall="' +
+                esc(call.slice(0, PAGE).map((c) => c.id).join(',')) + '">' + chIcon('phone') +
+                'Call them</button>'
               : '')
           : '<span class="s-block-sub">Nobody on it has a number you can call now.</span>') +
         camp.map((x) => '<button class="s-inline-btn" type="button" data-camp="' + esc(x.id) +

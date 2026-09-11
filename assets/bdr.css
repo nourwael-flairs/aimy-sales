@@ -1582,6 +1582,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
     border-color var(--t-fast), transform 160ms var(--ease-out);
 }
 .b-ghost:hover { color: var(--d50); border-color: var(--card-border-hover); }
+/* A MARK ON A GHOST IS SIZED HERE, NOT BY WHOEVER DRAWS ONE. The two that
+   existed carried width and height attributes in their own markup, so a
+   ghost built with `chIcon` — which emits neither — grew a mark to the
+   height of the button and then some, the failure `aimyBlock` documents.
+   Stated once for the class, with `.b-end-mark`'s own `flex: none`, so the
+   next ghost to take an icon does not have to know. */
+.b-ghost > svg { width: 14px; height: 14px; flex: none; }
 
 /* ── AND EVERY QUIET ACTION IS ONE ────────────────────────────────────────
    The actions row renders its first verb as the filled primary and the rest
