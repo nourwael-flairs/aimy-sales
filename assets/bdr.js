@@ -2717,7 +2717,7 @@
       return S.find
         ? '<p class="b-vfoot">Nobody here matches “' + esc(S.find) + '”. ' +
           '<button class="s-inline-btn" type="button" data-findclear>Clear it</button></p>'
-        : '<p class="b-vfoot">Nobody on this rung.' +
+        : '<p class="b-vfoot">Nobody on this step.' +
           /* A cut with nobody in it is one press from the cut with
              everybody. An empty state that only says it is empty leaves
              the caller to work out that the chip row above is the way out. */
@@ -10231,7 +10231,7 @@
     const noNum = live.filter((c) => !c.phone).length;
     const gone = people.length - live.length;
     const bits = [];
-    if (past) bits.push(plural(past, 'person') + ' past the rungs you call');
+    if (past) bits.push(plural(past, 'person') + ' past the steps you call');
     if (parked) bits.push(plural(parked, 'callback') + ' parked until its day');
     if (noNum) bits.push(plural(noNum, 'person') + ' with no number');
     if (gone) bits.push(plural(gone, 'person') + ' who left the ladder');
@@ -11003,7 +11003,7 @@
       (pg.p === pg.pages - 1
         ? '<div class="b-tl-end"><span class="b-tl-dot is-end" aria-hidden="true"></span>' +
           'First called ' + esc(sayDay(oldest.at)) +
-          (climbed ? ' · ' + esc(plural(climbed, 'rung')) + ' climbed' : ' · no rung climbed yet') +
+          (climbed ? ' · ' + esc(plural(climbed, 'step')) + ' climbed' : ' · no step climbed yet') +
         '</div>'
         : '') +
     '</div>' + pager(pg, 'touchpoint');
@@ -11676,7 +11676,7 @@
       case 'callback':    return 'Next: call them back when they said.';
       case 'answered':    return 'Next: ask for the meeting, or send them something and call again.';
       case 'meeting-set': return 'Next: the meeting happens, then say here whether they turned up.';
-      case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this rung is waiting on.';
+      case 'showed-up':   return 'Next: say whether they are interested. That is the last thing this step is waiting on.';
       case 'interested':  return 'Next: hand them to the director. Past that it is discovery, proof, commercial and resolution — and none of those are yours.';
       case 'handed-over': return dealLine(c);
       case 'declined':    return 'Nothing is owed. Send the company profile if it has not gone, and call again only if something has changed.';
