@@ -6472,37 +6472,41 @@
                 '<summary class="s-crew-sum">' +
                   '<span class="s-crew-who">' +
                     '<b>' + esc(plural(c.crew.length, 'person')) + '</b>' +
-                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours</span>' +
+                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours at ' +
+                      esc(fmtMoney(c.hours ? c.people / c.hours : 0)) + ' an hour on average</span>' +
                   '</span>' +
                   '<span class="s-pan-cost">' + esc(fmtMoney(c.people)) + '</span>' +
                 '</summary>' +
                 '<div class="s-crew-list">' +
-                  /* ══ HOURS, NOT WAGES ════════════════════════════════════
-                     Each name carried its own rate and its own money: "Engy
-                     Saleh · BDR · 9.9 hours at €55 an hour · €546", ten
-                     panels down the page. That is a payroll ledger, and the
-                     argument against it is already in this file, forty lines
-                     up, where the same rate card was taken off the role rows:
-                     a sales manager does not set pay and cannot act on it;
-                     what he owns is where the hours went.
+                  /* A NAME AND ITS TERMS ARE TWO FACTS, NOT ONE STRING. The
+                     name and what it cost are what a reader scans; the role,
+                     the hours and the rate are what they check afterwards. */
+                  /* ══ AND IT IS ALLOCATION, NOT PAYROLL ═══════════════════
+                     I took the rate and the per-person money off this list
+                     once, citing the note forty lines up that pulled the same
+                     rate card off the payroll section's role rows: a sales
+                     manager does not set pay and cannot act on it.
 
-                     It was left standing here — with the names on it, which
-                     is worse than the anonymised version that was removed.
-                     So the rate goes and the per-person money with it, both
-                     being the same fact twice, and the hours stay, because
-                     the hours are the thing he moves.
+                     That note is about anonymised role totals on a page of
+                     company cost, and it does not carry here. THIS list is
+                     the resourcing decision: whose hours went on which
+                     campaign. A manager choosing between 1.2 of his own
+                     hours and 9.9 of a BDR's is making a cost trade-off he
+                     owns entirely, and the rate is the only thing on the row
+                     that tells him the two are not interchangeable. Strip it
+                     and €546 beside 9.9 hours is arithmetic left for the
+                     reader, which is the one thing this page is for.
 
-                     The money does not leave the panel. It stays on the
-                     summary and on the two rows beside it, where it answers
-                     the question this section is about — whether this
-                     campaign's cost went on people, on AiMY or on the
-                     suppliers — rather than what any one person is paid. */
+                     It stays. Restored at Nour's direction, and the reason is
+                     written here so it does not get cut a second time. */
                   c.crew.map((m) => '<span class="s-pan-p">' +
                     '<span class="s-pan-who">' +
                       '<b>' + esc((REP[m.id] || {}).name || m.id) + '</b>' +
                       '<span class="s-pan-meta">' + esc(JOB[(REP[m.id] || {}).fn] || '') +
-                        ' &middot; ' + esc(m.hours.toFixed(1)) + ' hours</span>' +
+                        ' &middot; ' + esc(m.hours.toFixed(1)) + ' hours at ' +
+                        esc(fmtMoney(m.rate)) + ' an hour</span>' +
                     '</span>' +
+                    '<span class="s-pan-cost">' + esc(fmtMoney(m.cost)) + '</span>' +
                   '</span>').join('') +
                 '</div>' +
               '</details>' : '') +
