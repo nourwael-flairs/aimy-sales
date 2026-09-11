@@ -5667,10 +5667,22 @@
 
   /* Every campaign the reader runs, dearest first. Ranked by what it costs,
      not by when it was made: the ordering is the finding. */
+  /* ══ RANKED BY THE AXIS THAT HAS A SPREAD ═══════════════════════════════
+     This sorted by cost, descending, under a heading that asks which
+     campaign to stop. Measured on this book: cost runs €181 to €695, a
+     factor of under four, while return runs nothing to €139k. Ranking by the
+     axis with almost no spread put DACH telecom — €181 spent, €109k signed,
+     the best campaign on the desk by a distance — in tenth place, and a
+     campaign that has returned nothing for €451 in fourth.
+
+     Return first, and the ones that have returned nothing ordered by what
+     they cost. The top of the list is then what is working and the tail is
+     what to question, worst value first — which is the question the section
+     asks in its own eyebrow. */
   const campaignCosts = (p) => myCamps()
     .map((c) => campaignCost(c, p))
     .filter((r) => r.total || r.met || r.wins)
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => ((b.arr || 0) - (a.arr || 0)) || (b.total - a.total));
 
   /* ══ HOW MUCH OF THE PAYROLL LANDS ON A CAMPAIGN AT ALL ════════════════
      Hours logged against a campaign are a fraction of hours paid for, and
@@ -6402,40 +6414,42 @@
 
       '<section class="s-exec-sec">' +
         '<div class="s-sec-head">' +
-          '<div class="s-exec-eyebrow">Campaigns, by what they cost</div>' +
+          '<div class="s-exec-eyebrow">Campaigns, by what they returned</div>' +
           secAsk('Which campaign should I stop', 'Rank my campaigns by what they have cost ' +
             'against what they have returned, and tell me which one I should stop and what I ' +
             'would lose by stopping it.') +
         '</div>' +
-        '<p class="s-exec-note">Every minute logged against the campaign at the rate of whoever ' +
-          'spent it, plus the calls AiMY made itself and what the suppliers charged to find and ' +
-          'fill in the people on it.</p>' +
+        '<p class="s-exec-note">What each one has signed, against what it cost — every minute ' +
+          'logged against it, the calls AiMY made itself, and what the suppliers charged to find ' +
+          'and fill in the people on it.</p>' +
         (camps.length ? '<div class="s-pans">' +
           camps.map((c, i) => '<div class="s-pan" style="--i:' + i + '">' +
             '<div class="s-pan-head">' +
               '<span class="s-pan-name">' + esc(c.camp.name) +
                 '<span class="s-pan-state">' + esc(campStateSay(c.camp)) + '</span></span>' +
-              /* == ONE SLOT, TWO OPPOSITE MEANINGS ========================
+              /* ══ ONE SLOT, ONE MEANING, ON BOTH SECTIONS ══════════════════
                  The panel in the section below holds a product line, and its
                  figure in this exact position, size and ink is what the line
-                 SIGNED. This one is what the campaign COST. A reader who has
-                 learnt the first reads the second backwards, and neither said
-                 which it was -- while six lines down this same panel labels
-                 its smaller figure "EUR98k signed".
+                 SIGNED. This one held what the campaign COST — so a reader
+                 who had learnt the first read the second backwards, and the
+                 fix at the time was to label the unit and leave the collision
+                 standing.
 
-                 `.s-pan-unit` was built for this and rendered nowhere: "the
-                 unit under the count, so 6 reads as six of something without
-                 the word competing with the figure for the same line". */
-              '<span class="s-pan-total">' + esc(fmtMoney(c.total)) +
-                '<span class="s-pan-unit">cost</span></span>' +
+                 Both say what was signed now. The slot means one thing on
+                 this page, and the label under it is a confirmation rather
+                 than the only thing keeping the reader right. Cost drops to
+                 the facts line, where it is one of the four things you check
+                 a campaign against rather than the headline it is ranked by. */
+              '<span class="s-pan-total' + (c.arr ? '' : ' is-none') + '">' +
+                esc(c.arr ? fmtMoney(c.arr) : 'Nothing') +
+                '<span class="s-pan-unit">signed</span></span>' +
             '</div>' +
             '<div class="s-pan-facts">' +
               '<span><b>' + c.members + '</b> ' + (c.members === 1 ? 'person' : 'people') + '</span>' +
               '<span><b>' + Math.round(c.hours) + '</b> ' +
                 (Math.round(c.hours) === 1 ? 'hour' : 'hours') + '</span>' +
               '<span><b>' + c.met + '</b> met</span>' +
-              '<span class="' + (c.arr ? 'is-good' : '') + '"><b>' +
-                esc(c.arr ? fmtMoney(c.arr) : 'nothing') + '</b> signed</span>' +
+              '<span><b>' + esc(fmtMoney(c.total)) + '</b> cost</span>' +
             '</div>' +
             (c.crew.length || c.aimy || c.suppliers ? '<div class="s-pan-crew">' +
               /* ══ THE PEOPLE FOLD; THE OTHER TWO NEVER GROW ═══════════════
