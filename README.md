@@ -188,12 +188,27 @@ move through the list and open a row.
 
 ---
 
-## What is cut
+## What is cut, and what came back
 
-Manager, exec, client and stakeholder surfaces; financials; funnel analytics;
-the campaign builder; sequences; the meetings calendar; the odds ladder; the
-role switcher (`?as=` survives as a prototype control only). All of it is at
-`/old/` and none of it was deleted.
+Cut and still cut: exec, client and stakeholder surfaces; sequences. Those
+are at `/old/` and none of it was deleted.
+
+**The manager's desk is not cut, and this section used to say it was.**
+`?as=` is still described below as a prototype control, and it is the switch
+between two desks that both render in full:
+
+| desk | `?as=` | what it opens |
+|---|---|---|
+| Engy Saleh, BDR | default | the queue, campaigns, lists — the surfaces above |
+| Lina Haddad, sales manager | `?as=lina` | Today and the diary, the deals board, Financials |
+
+Financials, the odds ladder, funnel analytics, the campaign builder and the
+meetings calendar are all live behind `isMgr()`. A caller reaching one of
+them gets an honest answer rather than the manager's figures: Financials
+says a caller has no book and points back, and `?on=deals` resolves to the
+caller's own reading of the same tab.
+
+Two desks means every question about a figure has two answers. Check both.
 
 ## Known, and not this build's
 
