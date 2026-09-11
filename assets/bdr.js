@@ -6736,36 +6736,68 @@
      words. The alternative was to underline whole clauses, and half a
      paragraph under a rule is not a paragraph any more, which is the
      constraint the shell's comment sets on this exact line. */
+  /* ══ WHAT IS OWED, THEN WHAT THERE IS ═══════════════════════════════════
+     This opened on inventory — "You are on 9 campaigns and 134 people on
+     them can be called" — and then ran all four cuts of the queue together
+     as one string of clauses. Two things were wrong with it.
+
+     THE ORDER. A caller opening this at nine in the morning is not asking
+     how big her book is. She is asking what she has already promised and
+     not done, and seven callbacks past the day they asked for and three
+     meetings nobody wrote up are exactly that — they were the third and
+     fourth clauses of a sentence that led with a tally. `briefSentence`
+     already gets this right on the manager's desk: the diary first, then
+     the meetings nobody wrote up, then the book. Both desks read that way
+     now, which is one paragraph shape for one product rather than two.
+
+     THE DUPLICATION. The four cuts were already on the page. The chip row
+     directly beneath this paragraph reads All 134 · Callbacks 8 · New 83 ·
+     No answer 28 · Answered 15 · After meeting 3 — so naming every one of
+     them here printed the same figures twice, four inches apart, and the
+     copy in the paragraph is not the one you press to work them. What the
+     chips cannot say is that a callback is LATE, because late is not a cut;
+     that is what a paragraph is for, and the breakdown goes back to the row
+     built to carry it. Six marked figures became three.
+
+     "Been and gone with nothing said about them" is the manager's sentence
+     for this fact, word for word. Here it read "passed without a word on
+     whether they turned up" — one fact, two phrasings, one product. */
   function openerText(counts, all, camps) {
-    const bits = [];
     const door = (q, html) => '<button class="slv-n" type="button" data-q="' + esc(q) + '">' +
       html + '</button>';
-    const of = (n) => commas(n) + ' of them';
+    const campDoor = '<button class="slv-n" type="button" data-go="' +
+      esc(JSON.stringify(Object.assign(cleared(), { on: 'camps' }))) + '">' +
+      commas(camps.length) + ' ' + esc(verbFor(camps.length, 'campaign')) + '</button>';
+
+    /* A promise with a date on it outranks one without, so the count is the
+       late ones wherever there are any and the whole cut where there are
+       not. The door behind both is the same cut either way — there is no
+       chip for "late", which is the reason this clause exists. */
+    const owed = [];
     if (counts.callback) {
-      bits.push(door('callback', commas(counts.callback) + ' ' +
-        esc(verbFor(counts.callback, 'person'))) + ' asked to be called back');
-    }
-    if (counts['not-called']) {
-      bits.push(door('not-called', of(counts['not-called'])) +
-        (counts['not-called'] === 1 ? ' has' : ' have') + ' never been called');
-    }
-    if (counts['no-answer']) {
-      bits.push(door('no-answer', of(counts['no-answer'])) + ' did not pick up last time');
+      const late = queue(null, 'callback')
+        .filter((c) => c.next && daysBetween(TODAY_ISO, c.next.due) < 0);
+      owed.push(late.length
+        ? door('callback', esc(plural(late.length, 'callback'))) + ' ' +
+          esc(verbFor(late.length, 'is')) + ' past the day they asked for'
+        : door('callback', esc(plural(counts.callback, 'person'))) + ' asked to be called back');
     }
     if (counts.after) {
-      bits.push(door('after', commas(counts.after) + ' ' +
-        esc(verbFor(counts.after, 'meeting'))) + ' ' +
-        (counts.after === 1 ? 'has' : 'have') + ' passed without a word on whether they turned up');
+      owed.push(door('after', esc(plural(counts.after, 'meeting'))) + ' ' +
+        esc(verbFor(counts.after, 'has')) + ' been and gone with nothing said about ' +
+        (counts.after === 1 ? 'it' : 'them'));
     }
-    if (!bits.length) bits.push('there is nobody left to call');
+
+    const book = !camps.length
+      ? 'You are on no campaign yet.'
+      : all.length
+        ? door('all', commas(all.length) + ' people') + ' across ' + campDoor +
+          ' can be called.'
+        : 'Nobody on your ' + campDoor + ' can be called today.';
+
     const decided = decidedLately();
-    return 'You are on ' +
-      '<button class="slv-n" type="button" data-go="' +
-        esc(JSON.stringify(Object.assign(cleared(), { on: 'camps' }))) + '">' +
-        commas(camps.length) + ' ' + esc(verbFor(camps.length, 'campaign')) + '</button>' +
-      ' and ' + door('all', commas(all.length) + ' people') + ' on them can be called. ' +
-      bits.join(', ').replace(/, ([^,]*)$/, ' and $1') + '.' +
-      (decided ? ' ' + decided : '');
+    return (owed.length ? owed.join(', ').replace(/, ([^,]*)$/, ' and $1') + '. ' : '') +
+      book + (decided ? ' ' + decided : '');
   }
 
   /* ══ THE LOOP CLOSES WHERE THE FLOWCHART CLOSES ═══════════════════════
