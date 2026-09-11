@@ -9911,7 +9911,26 @@
             : ' have no answer anybody agreed.')
         : b.spoken.length
           ? ' Every reason they give has an answer this campaign already agreed.'
-          : '');
+          /* ══ A NOTE ABOUT THE BLOCK BELONGS IN THE BLOCK'S OWN SENTENCE ═══
+             This was a paragraph of its own at the foot, then — worse — a
+             paragraph under the second group's caption, where a heading
+             promising the things that come back at you delivered a remark
+             about sample size. Those are two different kinds of statement,
+             and a caption cannot introduce both.
+
+             It is information about this block, and the lead is where this
+             block states things about itself: the worst obstacle, and what
+             the reasons amount to. "Too few to call a pattern" is what the
+             reasons amount to when there are three of them, so it is the
+             third answer to the question the other two branches answer.
+
+             The second group then simply does not render, which is the
+             truth — there is no second group — rather than an empty one
+             explaining its own emptiness. */
+          : b.thin
+            ? ' Only ' + esc(plural(b.thin, 'person')) + ' here ' +
+              esc(verbFor(b.thin, 'has')) + ' given a reason so far, too few to call a pattern.'
+            : '');
 
     /* ══ A ROW, WITH A FIGURE IN IT AND A HIERARCHY DOWN IT ═══════════════
        Measured, before any of this was touched: the count rendered at 16px,
@@ -10026,34 +10045,10 @@
         ' on this campaign</span></div>' +
       '<p class="b-way-lead">' + lead + '</p>' +
       group('Before you reach them', b.stops, stopRest) +
-      /* ══ THE EMPTY GROUP SAYS WHY IT IS EMPTY, IN THE GROUP ═══════════════
-         This was a bare paragraph after both groups, which is why it read as
-         text somebody forgot to delete: it is about the second group, and it
-         sat outside it. What it says is worth keeping — without it a thin
-         campaign shows one group and no reasons, and a caller reads that as
-         nobody objecting rather than as nobody having been asked yet. That
-         is the difference between no problem and no data, and it is exactly
-         the absence the guide says has to be labelled.
-
-         So it fills the slot the group would have taken, under the group's
-         own caption. The question it answers is "where is the second half",
-         and it is now standing where the second half would be.
-
-         ITS SECOND SENTENCE WAS A DEAD POINTER. "The answers this campaign
-         agreed are in What to say below" — that block is not below. It was
-         moved to the prep sheet, where the answers are actually said, and
-         this sentence went on sending the reader down a page that has four
-         blocks and none of them by that name. */
-      (b.spoken.length
-        ? group('Once you do', b.spoken, spokeRest)
-        : b.thin
-          ? '<div class="b-way-group">' +
-              '<h3 class="b-way-cap">Once you do</h3>' +
-              '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
-              esc(verbFor(b.thin, 'has')) + ' given a reason so far — too few to call it a ' +
-              'pattern.</p>' +
-            '</div>'
-          : '') +
+      /* The thin case is in the lead now, where a statement about this block
+         belongs. Nothing stands in for the group; it is absent because it is
+         absent. */
+      group('Once you do', b.spoken, spokeRest) +
     '</section>';
   }
 

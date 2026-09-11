@@ -2531,13 +2531,10 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
   .b-way-n { font-size: var(--fs-xl); }
 }
-/* It stands where a row would, under its group's caption, so it takes the
-   first row's gap rather than the larger one it needed when it was a loose
-   paragraph hanging off the end of the block. */
-.b-way-thin {
-  margin: 6px 0 0; font-size: var(--t-body); color: var(--d200);
-  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
-}
+/* `.b-way-thin` stood here. The sentence it styled — "too few to call a
+   pattern" — is a statement about the block rather than a row in it, so it
+   moved into the lead where this block's other statements about itself are
+   made, and the rule had nothing left to style. */
 
 /* ══ 56. THE BRIEF, IN THREE STEPS ═════════════════════════════════════════
    Nine label-and-value pairs at one size, one weight and one colour. A brief
