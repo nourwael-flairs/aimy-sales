@@ -181,17 +181,17 @@
   /* ══ 2. VOCABULARY ══════════════════════════════════════════════════════ */
 
   /* ══ THE LADDER — where one lead stands with this BDR ══════════════════
-     Eight rungs and three exits, taken straight off the BDR process diagram:
+     Eight steps and three exits, taken straight off the BDR process diagram:
      you call, they answer or they do not, a meeting gets set, they show up,
      they are interested, and you hand them to the director. Past the handover
      it is not a BDR's lead any more, which is why the ladder stops there.
 
      ORDER IS MEANING. `rank` is the index, and everything that decides
-     whether a call moves a lead compares indices. Insert a rung in the middle
+     whether a call moves a lead compares indices. Insert a step in the middle
      and every stored checkpoint below it keeps its NAME and changes its
      POSITION — so add at the end, or renumber deliberately. */
   const LADDER = [
-    /* ══ A RUNG IS NOT A VERDICT ══════════════════════════════════════
+    /* ══ A STEP IS NOT A VERDICT ══════════════════════════════════════
        Five of these eight were green and one was amber, so green meant
        five different things and the ladder read as a scoreboard. They are
        positions on a track: the track says which is further along, and the
@@ -200,8 +200,8 @@
        on this list that has actually been decided. */
     { k: 'not-called',  label: 'Not called',   tone: 'neutral', say: 'nobody has called them yet' },
     { k: 'no-answer',   label: 'No answer',    tone: 'neutral', say: 'called, nobody picked up' },
-    /* The one rung that is not only a position: somebody named a time and
-       is expecting the phone to ring. It is also the cut this desk works
+    /* The one step that is not only a position: somebody named a time and
+       is expecting a call. It is also the cut this desk works
        first, so it earns the one hue on the ladder. */
     { k: 'callback',    label: 'Callback',     tone: 'warn',    say: 'they asked to be called back' },
     { k: 'answered',    label: 'Answered',     tone: 'neutral', say: 'you got them on the phone' },
@@ -210,7 +210,7 @@
     { k: 'interested',  label: 'Interested',   tone: 'neutral', say: 'they want to go further' },
     { k: 'handed-over', label: 'Handed over',  tone: 'ok',      say: 'with the director' },
   ];
-  /* The ways out. Not rungs: a lead does not climb to "declined", it leaves. */
+  /* The ways out. Not steps: a lead does not climb to "declined", it leaves. */
   const EXITS = [
     { k: 'declined',     label: 'Declined',      tone: 'neutral', say: 'they said no' },
     { k: 'wrong-number', label: 'Wrong number',  tone: 'neutral', say: 'the number is not theirs' },
@@ -225,13 +225,13 @@
 
   /* ══ WHAT HAPPENED ON A CALL ═══════════════════════════════════════════
      Seven, and the keys are the V3 build's so every ported lexicon still
-     reads. `writes` says whether it counts as having reached them: ringing
-     out is not contact, and counting it would move a lead for a call nobody
+     reads. `writes` says whether it counts as having reached them: an unanswered
+     call is not contact, and counting it would move a lead for a call nobody
      answered. Voicemail is deliberately absent — the reader folds voicemail,
-     answerphone and rang-out into no-answer, so writing "left a voicemail"
+     answerphone and no-reply into no-answer, so writing "left a voicemail"
      ticks Not connected without anybody choosing an eighth button. */
   const OUTCOMES = [
-    /* Seven ways a call can end, and they are kinds rather than rungs —
+    /* Seven ways a call can end, and they are kinds rather than steps —
        you press one of these, you do not climb them. The three where
        somebody actually spoke get a hue; the three where nobody did stay
        out of the way; the one that shuts the door for good is the verdict. */
@@ -282,7 +282,7 @@
     { k: 'other',        label: 'Something opened' },
   ];
   /* ══ NOT EVERY TOUCHPOINT IS A CALL ════════════════════════════════════
-     Two of them are not: a rung somebody settled by hand, and the company
+     Two of them are not: a step somebody settled by hand, and the company
      profile going out after a call that went nowhere. Both are written to
      the record as touchpoints because that is what they are, and both need
      a name — without one the history printed the raw key, `sent`, in the
@@ -1091,7 +1091,7 @@
     hospitality: ['Runs eleven hotels across three countries.', 'Restaurant group with a central kitchen.'],
   };
 
-  /* Who a BDR selling operations services actually rings. */
+  /* Who a BDR selling operations services actually calls. */
   const TITLES = [
     'Head of Customer Support', 'Support Operations Manager', 'Customer Service Director',
     'Head of Quality', 'QA Manager', 'Head of Contact Centre', 'Service Delivery Manager',
@@ -1487,13 +1487,13 @@
       }
       /* ══ THE HISTORY RECORDS THE CLIMB ═════════════════════════════════
          Every touchpoint was written with moved: null, so a person at
-         Meeting set had a history that ended "no rung climbed yet" and a
-         callback that said "stays at Meeting set". The rungs somebody
+         Meeting set had a history that ended "no step climbed yet" and a
+         callback that said "stays at Meeting set". The steps somebody
          stands on were reached by particular calls, and those calls say so
          now, wearing an outcome that could have done it: a meeting is set
          on a connected call that asked for one; showed up, interested and
          handed over are settled by hand. Which calls: the last one reaches
-         the rung they stand on, the earlier rungs are spread back through
+         the step they stand on, the earlier steps are spread back through
          the history in order. Positions come off the id's hash, not the
          generator, so nothing else in the corpus moves. */
       const mineT = touch.slice(-n).sort((x, y) => (x.at < y.at ? -1 : 1));
@@ -1560,7 +1560,7 @@
           t.secs = 8 + (hc + i) % 38; t.proposals = []; t.objections = []; t.openings = [];
         }
       });
-      /* the rung each touchpoint left them on, for "stays at" */
+      /* the step each touchpoint left them on, for "stays at" */
       prevStep = 'not-called';
       mineT.forEach((t) => { if (t.moved) prevStep = t.moved[1]; t.called = prevStep; });
       const calls = mineT.filter((t) => t.outcome !== 'checkpoint');
@@ -1632,7 +1632,7 @@
         }
       }
 
-      /* What is owed next, and when. Only the rungs that owe something. */
+      /* What is owed next, and when. Only the steps that owe something. */
       if (called === 'callback') {
         c.next = { what: 'Call them back', due: dayAdd(between(r, -9, 6)) };
       } else if (called === 'meeting-set') {
@@ -1667,7 +1667,7 @@
       if (!c.phone && chance(r, 0.1)) { c.phone = '+31 6 ' + between(r, 1000000, 9999999); c.enrichedAt = dayAdd(-1); }
     });
 
-    /* ══ SIGNALS: WHAT CHANGED AT A COMPANY WHILE YOU WERE RINGING IT ═════
+    /* ══ SIGNALS: WHAT CHANGED AT A COMPANY WHILE YOU WERE CALLING IT ═════
        The notes' two examples: budget came up and then they raised a round;
        they were not hiring and then a role went up. A signal sits on the
        account, dated, with where it was seen. About one company in twelve
@@ -2217,7 +2217,7 @@
   /* EVERYBODY AT ONE COMPANY, which is the fact the queue can never show
      you: it ranks people, so four ways into one account arrive on four
      different pages days apart, and the second caller has no idea the
-     first one rang. */
+     first one called. */
   const consAt = (accId) => (DB.consOf[accId] || []).map((id) => DB.byCon[id]).filter(Boolean);
   /* And every call anybody has made into it, newest first. */
   const touchesAt = (accId) => {
@@ -2543,7 +2543,7 @@
      A row had space for a name, a line and a button, which is enough to be
      ranked by and not enough to prepare with — so every call started by
      opening the record to find out who this was. A card holds what a caller
-     wants before the phone rings: who and where they sit, how big the
+     wants before the call: who and where they sit, how big the
      company is, which campaign this is, what happened last time in the
      words it was written in, and the number itself.
 
@@ -2554,8 +2554,8 @@
   function qcard(c, i) {
     const a = accOf(c);
     const camp = DB.byCamp[c.camps.filter((k) => DB.byCamp[k] && mine(DB.byCamp[k]))[0] || c.camps[0]];
-    /* At the caller's desk the tag is the rung; at the manager's it is the
-       stage, because the rung stopped moving at the hand-over. */
+    /* At the caller's desk the tag is the step; at the manager's it is the
+       stage, because the step stopped moving at the hand-over. */
     const r = isMgr() ? DEAL_STAGE[stageOf(c)] : (called[c.checkpoint] || called['not-called']);
     /* THE CARD CARRIES ITS PLACE. Only the arrival reads it — cards settle
        in order, 30ms apart, capped at the eighth so the last of fifteen is
@@ -2655,7 +2655,7 @@
            card: the one figure a manager scans a list of deals for. */
         /* The amount takes no mark: on the manager's cards it is the only
            figure and it is already the boldest thing in the row. A number
-           to ring is one of several kinds of fact a foot can hold. */
+           to call is one of several kinds of fact a foot can hold. */
         /* ══ WHAT IT IS WORTH IS NOT WHAT TO DO ABOUT IT ══════════════════
            The manager's foot carried the amount. It is the one figure that
            never changes what the next press is: a deal worth €120k and one
@@ -2707,7 +2707,7 @@
   /* The queue's own renderer. Not `vlist`: that positions rows by arithmetic
      down one column, and a grid's geometry is the browser's job. A page is
      fifteen cards, so there is nothing to window. */
-  /* AN EMPTY GRID HAS TO SAY WHICH EMPTINESS IT IS. "Nobody on this rung"
+  /* AN EMPTY GRID HAS TO SAY WHICH EMPTINESS IT IS. "Nobody on this step"
      is true of a cut with nobody in it and false of a search that found
      nothing — and the second is the one you reach by typing, where the
      answer you need is your own words back and a way out of them. */
@@ -2866,7 +2866,7 @@
     }
     if (last) {
       /* `kindLabel`, not `OUTCOME[...]`. The newest touchpoint stopped being
-         guaranteed to be a call the moment a rung could be settled by hand
+         guaranteed to be a call the moment a step could be settled by hand
          and a profile could be sent, and this read `undefined.label` on both
          — a throw inside the page's own string, so the whole record failed to
          render and the surface simply kept showing the version before the
@@ -3315,7 +3315,7 @@
         card: {
           state: 'reading',
           /* CALLS ARE CALLS. A hand-over settled by hand and the director's
-             meetings are touchpoints, not rings; "called 19 times" over a
+             meetings are touchpoints, not calls; "called 19 times" over a
              ladder that said 12 attempts was the same record disagreeing
              with itself. */
           text: c.attempts
@@ -4244,7 +4244,7 @@
      card that lists three observations has ranked none of them, and the
      board is twelve cards wide.
 
-     Every rung carries the verb that answers it, so the reading and the
+     Every step carries the verb that answers it, so the reading and the
      doing are the same row rather than a note and a hunt. `from` is the
      provenance every AiMY sentence in this build carries — what it read to
      say that — because a card that asserts without sourcing is the one
@@ -5419,7 +5419,7 @@
      count the CRM this desk came from puts on its masthead. */
   /* How long a deal may go untouched before it is worth naming. NOT
      `QUIET_DAYS`, which is seven and belongs to the caller's four-touch rule
-     — a cold lead nobody has rung in a week is behind, and a deal between
+     — a cold lead nobody has step in a week is behind, and a deal between
      two meetings booked a fortnight apart is not. Same word, two desks, two
      rhythms, so two numbers with the desk in the name of each.
 
@@ -5530,7 +5530,7 @@
       const met = metIn(c, p);
       const at = wonAt(c);
       const won = !!at && inPeriod(at, p);
-      /* A person you cannot ring is a person you cannot work, whatever else
+      /* A person you cannot call is a person you cannot work, whatever else
          is known about them. */
       const reachable = !!(c.phone || c.email);
 
@@ -5714,15 +5714,15 @@
      makes a pipeline figure usable is odds, and the odds have to come from
      evidence on the record rather than from a stage somebody set by hand.
 
-     The rungs are the deal stages, because on this side of the hand-over
+     The steps are the deal stages, because on this side of the hand-over
      that IS what has happened to it: a deal at Commercial has had the price
      put on the table and one at Not met has not been spoken to. Every
      open deal sits on exactly one, and the figure is how many of that group
      historically close.
 
      LAPLACE-SMOOTHED, BECAUSE FOUR WINS IS NOT A SAMPLE. `(won + a) / (n +
-     a/prior)` pulls a thin rung toward its prior instead of letting one
-     lucky deal read as a 50% close rate, and pulls an empty rung to the
+     a/prior)` pulls a thin step toward its prior instead of letting one
+     lucky deal read as a 50% close rate, and pulls an empty step to the
      prior exactly rather than to zero. The page says the sample is thin
      rather than hiding it. */
   /* ══ NAMED THE WAY THE BOARD NAMES THEM ═══════════════════════════
@@ -7435,7 +7435,7 @@
      AiMY's one line about this person; right: the company's size at the
      largest step because it is the figure you compare DOWN the page, what
      they would be bought for, and the status tag. Mine had the name, a
-     line, the rung and a number. The whole right column was missing, and
+     line, the step and a number. The whole right column was missing, and
      the right column is the reason a roster beats a grid: figures align.
 
      AiMY's line is drawn only where AiMY has something specific — a note
@@ -8949,7 +8949,7 @@
         '</div>' +
       '</section>' +
 
-      /* WHETHER THE RINGING IS WORKING, BEFORE WHO TO call. A caller who
+      /* WHETHER THE CALLING IS WORKING, BEFORE WHO TO CALL. A caller who
          opens straight onto a worklist never learns how the campaign is
          doing, because nobody scrolls past their own queue to find out. */
       campLead(k) +
@@ -8997,7 +8997,7 @@
      Three parts carry it, because a caller asks three questions in this
      order and no other: what am I trying to get out of this, what am I
      selling, and whose is it. Then who to ask reception for, and who else
-     is ringing these people. */
+     is calling these people. */
   const cmPart = (cap, body) =>
     '<div class="b-cmeta-part">' +
       '<h2 class="b-cmeta-cap">' + esc(cap) + '</h2>' +
@@ -9008,7 +9008,7 @@
   /* ══ THE TEAM, AS PEOPLE ═══════════════════════════════════════════════
      "owned by Karim Fouad · with Sally Tarek and Omar Fathy" was a list of
      names in the kind line, above the campaign's own name, in the slot that
-     says what KIND of record this is. They are the people ringing the same
+     says what KIND of record this is. They are the people calling the same
      two hundred numbers as you, which is worth a face each.
 
      A face, a name, a job. It said what each of them is FOR on this
@@ -9070,10 +9070,10 @@
      Read once and used by the lead block, the figures and the readings, so
      three parts of one page cannot report three different positions.
 
-     The goal's own verb picks the rung: a campaign to book meetings is
+     The goal's own verb picks the step: a campaign to book meetings is
      measured at `meeting-set`, one to open conversations at `answered`.
      Counting everyone ever reached against a meetings goal is how this
-     page once reported 35 of 22 with 111 people still unrung. */
+     page once reported 35 of 22 with 111 people still never called. */
   /* ══ WHAT THE CAMPAIGN IS TRYING TO WIN ════════════════════════════════
      A campaign's goal is not a number of meetings. Meetings are how it is
      worked; the goal is what it is worth having worked — two more clients
@@ -9210,7 +9210,7 @@
 
   /* ══ THE ONE THING THE PAGE IS ABOUT, BEFORE THE WORK ══════════════════
      A campaign page opened straight onto a queue, which tells a caller who
-     to call and nothing about whether the ringing is working. The numbers
+     to call and nothing about whether the calling is working. The numbers
      that answer that were below the queue, in a flat run of ten counts, and
      nobody scrolls past their own worklist to find out how they are doing.
 
@@ -9226,7 +9226,7 @@
     const st = campStand(k);
     const all = queue(k.id, 'all');
     /* ══ A BUTTON COUNTS WHAT IT OPENS ═════════════════════════════════════
-       These read the rung tally at first — 14 callbacks, 102 never called — and
+       These read the step tally at first — 14 callbacks, 102 never called — and
        the cuts they open show 9 and 58, because the queue drops anyone whose
        follow-up is still in the future and anyone without a number. A door
        labelled with a different number from the room behind it is worse than
@@ -9348,7 +9348,7 @@
        when there is no agreed answer at all — which this could not. */
 
     /* The hour this campaign gets through, which is not the book's hour:
-       a campaign into one region rings a different clock. */
+       a campaign into one region works a different clock. */
     const h = hourOf(here);
     if (h) {
       out.push({
@@ -9366,10 +9366,10 @@
       daysBetween(c.lastCallAt.slice(0, 10), TODAY_ISO) >= 14);
     if (cold.length) {
       out.push({
-        /* STATED, NOT LINKED. The stale ones sit across three rungs, and the
-           cuts on this page are the rungs — every callable person is in
+        /* STATED, NOT LINKED. The stale ones sit across three steps, and the
+           cuts on this page are the steps — every callable person is in
            exactly one, which is what makes the chips add up to All. A door
-           here would have to point at one rung and quietly lose the rest, or
+           here would have to point at one step and quietly lose the rest, or
            add an overlapping cut and break the arithmetic under it. */
         text: '<b>' + commas(cold.length) + '</b> were being worked and have not been ' +
           'called in a fortnight. They are spread across the cuts below.',
@@ -9435,7 +9435,7 @@
     '</div>';
   }
 
-  /* Where the campaign's people stand. Informational: these are rungs, and
+  /* Where the campaign's people stand. Informational: these are steps, and
      the queue below cuts by what is OWED, not by called — so a door here would
      open a filter that does not exist. Stated, not linked, rather than
      pretending to be pressable. */
@@ -9471,27 +9471,27 @@
     err: 'tone-warn' };
 
   /* ══ A FUNNEL SHOWS WHAT IT COSTS TO GET TO THE NEXT called ═════════════
-     It drew how many people STAND on each rung today, scaled to the
+     It drew how many people STAND on each step today, scaled to the
      biggest — which says where the book is piled up and nothing about
-     whether the ringing works. A funnel answers the other question: of the
+     whether the calling works. A funnel answers the other question: of the
      people who got this far, how many got one further. So each row counts
-     everybody who ever reached that rung (their history says so, whatever
+     everybody who ever reached that step (their history says so, whatever
      happened after), the bar is that share of the campaign, and the figure
      beside it is the share of the row above — the drop, which is the whole
      reason to look. Pipedrive and Zoho both draw it this way. */
   const FUNNEL_STEPS = ['not-called', 'no-answer', 'answered', 'meeting-set', 'showed-up', 'interested', 'handed-over'];
-  /* ══ A CUMULATIVE ROW IS NAMED FOR THE ACHIEVEMENT, NOT THE RUNG ══
+  /* ══ A CUMULATIVE ROW IS NAMED FOR THE ACHIEVEMENT, NOT THE STEP ══
      Every row here counts who got AT LEAST this far — the column head says
-     so — and six of the seven rung names survive that reading unchanged:
+     so — and six of the seven step names survive that reading unchanged:
      ten Answered means ten got at least to answered. `no-answer` does not,
-     because it is the only rung named after a failure. "Got this far: No
+     because it is the only step named after a failure. "Got this far: No
      answer 14" reads as fourteen got no answer, and it means fourteen were
      called, most of whom went further.
 
      It also collided with the tile eight inches above it, which counts the
-     people STANDING at that rung and says 3. Two figures, one word, and
-     nothing to tell them apart by. The rung keeps its name everywhere it
-     names a rung; this is the render site, and here the step is what was
+     people STANDING at that step and says 3. Two figures, one word, and
+     nothing to tell them apart by. The step keeps its name everywhere it
+     names a step; this is the render site, and here the step is what was
      achieved rather than where somebody stopped. */
   const FUNNEL_SAY = { 'no-answer': 'Called' };
   function everAt(members) {
@@ -9600,8 +9600,8 @@
     };
     /* ══ A CALLER'S CUT, ASKED OF A DESK THAT HAS NO QUEUE ═══════════════
        `queue` answers for whoever is looking, and at the manager's desk it
-       answers with DEALS — so asking it for the leads at a ladder rung asks
-       the deal board for a rung it does not have, and the answer is nought
+       answers with DEALS — so asking it for the leads at a ladder step asks
+       the deal board for a step it does not have, and the answer is nought
        every time. Both tiles therefore read "none of them callable now" on
        his screen whatever the campaign held, and the rail card six inches to
        the left said "6 people here are waiting to be called". A figure that
@@ -9616,7 +9616,7 @@
     /* ══ TWO OF THESE NEST, AND THE ROW NEVER SAID SO ════════════
        "29 people on this campaign" sits directly above four figures reading
        15, 3, 10 and 8, which add to 36. Two of them are exclusive — a
-       person stands on exactly one rung, and those two are doors into that
+       person stands on exactly one step, and those two are doors into that
        cut of the queue — and two are cumulative: Answered is everybody who
        ever got that far, and Meetings set is a subset of Answered.
 
@@ -9639,10 +9639,10 @@
         ' on this campaign</span></div>' +
 
       '<div class="s-afs">' +
-        /* The manager gets the rung's own words rather than a denominator:
+        /* The manager gets the step's own words rather than a denominator:
            these two are exclusive counts against the roster the heading
            already states, so repeating "of the 29" under three tiles in a
-           row would say one thing three times. The ladder defines each rung
+           row would say one thing three times. The ladder defines each step
            once and every surface reads that definition. */
         fig('Never called', n['not-called'] || 0,
           isMgr() ? called['not-called'].say
@@ -9658,7 +9658,7 @@
            against the other has to work out they are the same people. */
         fig('Answered', st.reached, reachedOf, 'ok') +
         /* ══ THE SAME TWO WORDS CANNOT CARRY TWO COUNTS ═══════════════
-           This added up the four rungs at and above meeting-set as people
+           This added up the four steps at and above meeting-set as people
            are standing TODAY, and the ladder immediately below counted
            everybody who ever got there. Both are true and they are not the
            same number: a meeting held with somebody who has since said no
@@ -9841,14 +9841,14 @@
      page you leave to make the call.
 
      It is in the brief now — `callPrep`, the thing that opens as the phone
-     starts ringing — and the campaign page keeps what a campaign page is
+     starts calling — and the campaign page keeps what a campaign page is
      for, which is how this one is going and what is stopping it. */
   /* ══ ONE COMPANY ════════════════════════════════════════════════════════
      The surface this build did not have. An account was a phrase on
      somebody's record — `QA Manager at Zenport Engineering · Manufacturing
      · 260 staff` — and nothing you could open, so the four people at
      Zenport were four unrelated rows in a queue that ranks individuals.
-     Ringing one of them told you nothing about the other three, and two
+     Calling one of them told you nothing about the other three, and two
      BDRs could work the same company for a fortnight without either
      surface saying so.
 
@@ -10019,7 +10019,7 @@
        message: a company where nobody has picked up is a different call. */
     const top = people.filter((c) => !isExit(c.checkpoint))
       .sort((x, y) => rank(y.checkpoint) - rank(x.checkpoint))[0];
-    /* AND IT MUST AGREE WITH THE LEAD. The chip read the rung people stand
+    /* AND IT MUST AGREE WITH THE LEAD. The chip read the step people stand
        at NOW; the lead reads the calls. Somebody reached in July who has
        since slipped back to callback made the chip say "Nobody reached yet"
        under a reading that named who got through. The call is the fact. */
@@ -10149,7 +10149,7 @@
       '</section>' +
 
       /* Every call into the company, whoever made it and whoever they
-         rang. On an account the person is the thing that tells two calls
+         called. On an account the person is the thing that tells two calls
          apart, so the row leads with the name — and it is the same feed
          the campaign uses, under the day it happened. */
       '<section class="s-block s-block-wide" aria-label="What has been said here">' +
@@ -10190,7 +10190,7 @@
     let door = '';
     /* THE DOOR FOLLOWS THE SENTENCE. The reading names who picked up; when
        that person cannot be called now — a meeting set, a hand-over — the
-       door opens their record rather than ringing somebody else under
+       door opens their record rather than calling somebody else under
        their name. */
     if (who && callable(who)) {
       door = '<button class="s-insight-lnk" type="button" data-call="' + esc(who.id) + '">' +
@@ -10222,7 +10222,7 @@
   /* What AiMY makes of a company, read off the corpus and never composed.
      The order is the order the facts change your next move in. */
   /* Why nobody at a company can be called now. It said "no number" over two
-     people who had numbers and had simply gone past the rungs you call. */
+     people who had numbers and had simply gone past the steps you call. */
   function accIdle(people) {
     if (!people.length) return 'Nobody is on the record here.';
     const live = people.filter((c) => !c.dnc && !isExit(c.checkpoint));
@@ -10305,8 +10305,8 @@
      across three of them, and where they stand said three separate ways.
 
      Now it reads top to bottom in the order the question is asked: who (the
-     masthead, with the rung as a chip beside the name), what AiMY makes of
-     them with a door, what to do (one row, the primary decided by the rung),
+     masthead, with the step as a chip beside the name), what AiMY makes of
+     them with a door, what to do (one row, the primary decided by the step),
      where they stand (the ladder, what is owed, what to remember — once),
      and what has been said, grouped by month. The last thing on the action
      row is the next person in the queue, because a finished record is one
@@ -10418,7 +10418,7 @@
     const a = accOf(c);
     const camps = campsOf(c);
     const mineCamp = camps.filter(mine)[0] || camps[0];
-    /* Past the hand-over the rung has stopped moving — every deal reads
+    /* Past the hand-over the step has stopped moving — every deal reads
        "Handed over" for ever — so at the manager's desk the status is the
        stage, which is the thing that is actually still moving. */
     const others = a ? consAt(a.id).filter((x) => x.id !== c.id) : [];
@@ -10505,8 +10505,8 @@
               ? '<a class="s-inline-btn" href="tel:' + esc(c.phone.replace(/\s/g, '')) +
                 '">' + esc(c.phone) + '</a>'
               : 'No number on file') +
-            /* [7] A REASON TO OPEN THE COMPANY. A caller whose number rings
-               out needs a colleague, not a company profile — so the fact that
+            /* [7] A REASON TO OPEN THE COMPANY. A caller whose number does not
+               answer needs a colleague, not a company profile — so the fact that
                there are colleagues is on the record, with the door. */
             /* ══ THE ADDRESS AND THE PROFILE LIVE HERE NOW ══════════════
                Both of these existed in exactly one place in the product —
@@ -10564,7 +10564,7 @@
   /* ══ ONE ROW, AND THE called DECIDES WHICH IS FIRST ══════════════════════
      Call was always the primary, even on a lead with a meeting in a diary
      — where the one thing this page is waiting for is whether they turned
-     up. The rung says what the next press is; the row puts it first and
+     up. The step says what the next press is; the row puts it first and
      everything else after it in the order it is likely to be needed. */
   /* ══ THE WAY OUT IS A CONTROL, AT THE FAR END OF THE MASTHEAD ══════════
      "They said no" was an .s-inline-btn — a text link — with its accent
@@ -10575,7 +10575,7 @@
 
      A mark and a bordered pill, at the top right of the record beside its
      name: a press that ends a lead should not live a thumb's width from the
-     press that rings them, and the corner opposite the primary is where an
+     press that calls them, and the corner opposite the primary is where an
      interface puts the thing you do once and rarely.
 
      The question is a popover, on the same machinery as every other menu
@@ -10635,11 +10635,11 @@
     /* "They said no" is not one of these: it ends the lead, so it is out
        of the row of ordinary verbs and behind a gate of its own. */
     /* The same row, asking the question this desk answers: a caller records
-       what a rung did, a manager records what a meeting did. */
+       what a step did, a manager records what a meeting did. */
     /* The manager's half of this row left the masthead: what a MEETING did
        is a question worth asking only when a meeting has been and gone with
        nothing written up, and then it is worth a block of its own rather
-       than a line under the verbs. `askBlock` draws it. What a RUNG did
+       than a line under the verbs. `askBlock` draws it. What a STEP did
        stays here: a caller records one on every call, so it is part of the
        row rather than news. */
     const moves = (isMgr() && c.checkpoint === 'handed-over')
@@ -10694,7 +10694,7 @@
       quiet = call ? [call] : [];
       say = rg2(c) + ', so there is nothing to press. Undo on the toast is the way back.';
     } else {
-      /* ══ THE PHONE IS THE ROW; THE RUNGS ARE THE QUESTION ══════════════
+      /* ══ THE PHONE IS THE ROW; THE STEPS ARE THE QUESTION ══════════════
          Four verbs stood in one line at two weights, and which of them led
          swapped as soon as a meeting date passed — so the button under the
          cursor changed from Call to They showed up without the page moving.
@@ -10838,7 +10838,7 @@
 
   const rg2 = (c) => (called[c.checkpoint] || {}).say || 'they have left the ladder';
   /* ══ THE called'S OWN WORDS ARE THE CALLER'S ═════════════════════════════
-     Every rung says what it means TO THE PERSON RINGING, and the last one
+     Every step says what it means TO THE PERSON CALLING, and the last one
      says "with the director" — which is the news at that desk and nonsense
      at the director's own, where it tells her a lead is with somebody else
      when the somebody else is her. */
@@ -10872,7 +10872,7 @@
       door = coMenu(a, others, 'Try one of the ' + others.length + ' others at ' + a.name);
     } else if (c.attempts >= 3 && c.checkpoint === 'no-answer' && c.phone) {
       /* NO COLLEAGUE TO TRY, so the door is the supplier. The reading says
-         this number may not be theirs, and "Call Ava" under it rang it
+         this number may not be theirs, and "Call Ava" under it called it
          again. */
       door = '<button class="s-insight-lnk" type="button" data-enrichcon="' + esc(c.id) + '">' +
         'Ask ' + esc(finderOf().name) + ' for a better number</button>';
@@ -10897,7 +10897,7 @@
   /* ══ EVERY TOUCHPOINT, WITH THE WHOLE OF IT INSIDE ═════════════════════
      It was a one-line row: outcome, who, when, and the note squeezed beside
      them. Everything a call actually produced — what was asked for, what
-     pushed back, what opened, which rung it moved, what it left owing, the
+     pushed back, what opened, which step it moved, what it left owing, the
      transcript — was written to the record and shown nowhere on it.
 
      So it is the record's card, drawn by the renderer the read-back uses.
@@ -10910,11 +10910,11 @@
   /* ══ THE JOURNEY, ON A RAIL ═════════════════════════════════════════════
      Eight cards in a column read as a list. The same eight on a rail read
      as what they are: one person's history, newest at the top, with the
-     rungs they climbed marked on the way down. Every touchpoint is a node
-     in the tone of how it went; a touchpoint that MOVED a rung is a
-     milestone — a larger accent call and the rung it reached on the line —
+     steps they climbed marked on the way down. Every touchpoint is a node
+     in the tone of how it went; a touchpoint that MOVED a step is a
+     milestone — a larger accent call and the step it reached on the line —
      so the ladder is readable down the rail without opening anything. The
-     rail ends where the journey began: the first rung, and the count.
+     rail ends where the journey began: the first step, and the count.
 
      The card underneath each node is unchanged, and so are its handlers.
      Written out per tone rather than composed, for the audit. */
@@ -10967,7 +10967,7 @@
           (ph && t.out
             ? '<span class="b-kind">' + esc(MEET_OUT_BY[t.out].label.toLowerCase()) + '</span>'
             : '') +
-          /* the chip names the rung reached; when the outcome already says it
+          /* the chip names the step reached; when the outcome already says it
              ("Callback → Callback") the call on the dot is the milestone */
           (t.moved && stepLabel(t.moved[1]) !== kindLabel(t)
             ? '<span class="b-tl-move' + (out ? ' is-out' : '') + '">→ ' + esc(stepLabel(t.moved[1])) + '</span>'
@@ -10990,12 +10990,12 @@
       /* Where it began, on the page where it began: the cap is the end of
          the rail, and on page one of three the rail has not ended. */
       /* ══ THE FOOT SAYS WHERE IT BEGAN, NOT HOW MUCH THERE IS ═══════════
-         Two repairs in one line. It read "First rung 24 Jun · 7 touchpoints
+         Two repairs in one line. It read "First step 24 Jun · 7 touchpoints
          · 2 calleds climbed": the count is already the section's own caption
          six hundred pixels above it, and "calleds" is a word nobody wrote —
-         a global rename walked through `plural(climbed, 'rung')` and left
+         a global rename walked through `plural(climbed, 'step')` and left
          the plural to be taken of the wrong noun. Its own else-branch two
-         characters later still says "no rung climbed yet".
+         characters later still says "no step climbed yet".
 
          So the count goes to the caption that already had it and the foot
          keeps the two facts only it can give: the day this started, and how
@@ -11013,7 +11013,7 @@
 
   /* ══ WHAT HAPPENS NEXT, AND WHOSE JOB IT IS ════════════════════════════
      The ladder says where they stand. It does not say what standing there
-     means you do — and for the last two rungs it means somebody else does
+     means you do — and for the last two steps it means somebody else does
      it. A BDR's part of this process ends at the handover: discovery, the
      proof meeting, the commercial one and the resolution belong to the
      director, and a page that stops naming them at the handover leaves the
@@ -11155,7 +11155,7 @@
   }
 
   /* ══ MOVING A DEAL IS WRITING WHAT HAPPENED ═════════════════════════════
-     The same act as a rung move and the same shape: one touchpoint, one
+     The same act as a step move and the same shape: one touchpoint, one
      patch, a toast that undoes both. The words are what a manager would say
      about the meeting, not the name of a column they dragged it into. */
   const DEAL_MOVES = [
@@ -11687,16 +11687,16 @@
   }
 
   /* The ladder: eight bars and one sentence. The bars carry the position, the
-     sentence carries the meaning. An exit is not a rung — it lights the whole
+     sentence carries the meaning. An exit is not a step — it lights the whole
      track in the exit's colour, because a lead that said no is not standing
      partway up anything. */
   /* ══ ONE DRAWING OF ONE CLIMB ══════════════════════════════════════════
-     Eight coloured bars sat above the chain that names the same eight rungs,
+     Eight coloured bars sat above the chain that names the same eight steps,
      dates three of them and says who did it — two drawings of one climb, and
      the one on top could only say how far along it was. It said that with
      colour alone, so a reader had to know the ladder by heart before the
      bars meant anything, and then read the chain underneath to find out
-     which rung was which anyway. The chain stays; the bars go with the
+     which step was which anyway. The chain stays; the bars go with the
      function that drew them. */
 
   function stepCounts(list) {
@@ -11716,11 +11716,11 @@
      reads the same function, so the chips and the ranking cannot drift. */
   /* ══ THE CUTS ARE THE LADDER, AND NOTHING ELSE ═════════════════════════
      They were After a meeting · Due · Try again · Open · Never called — five
-     invented words for a cold caller to learn on top of the eight rungs the
+     invented words for a cold caller to learn on top of the eight steps the
      product already has. "Due" and "Open" are a CRM's vocabulary; the person
      dialling has one question, which is where this lead stands with me.
 
-     So a cut IS a rung. Four of them, because four rungs are callable: you
+     So a cut IS a step. Four of them, because four steps are callable: you
      have not called them, you called and nobody answered, they asked to be called
      back, or you got them and there is no meeting yet. Past that a meeting
      is booked and they leave the queue — the BDR's part is done until it
@@ -11730,12 +11730,12 @@
     { k: 'not-called', label: 'New' },
     { k: 'no-answer',  label: 'No answer' },
     { k: 'answered',   label: 'Answered' },
-    /* Not a rung: the meeting-set people whose day has passed. They are
+    /* Not a step: the meeting-set people whose day has passed. They are
        not dialled from here, they are answered for. */
     { k: 'after',      label: 'After meeting' },
   ];
   const bucketOf = (c) => (afterMeeting(c) ? 'after' : c.checkpoint);
-  /* A cut is a rung at one desk and a stage at the other, and it is exactly
+  /* A cut is a step at one desk and a stage at the other, and it is exactly
      one per person either way — which is what lets the chips add up to All. */
   const MGR_BUCKETS = DEAL_STAGES.map((x) => ({ k: x.k, label: x.label }));
   const cutOf = (c) => (isMgr() ? stageOf(c) : bucketOf(c));
@@ -11760,7 +11760,7 @@
       case 'not-called': {
         /* ══ THE LINE UNDER THE TAG IS NOT THE TAG ═══════════════════════
            This said "Never called" six pixels under a chip reading NOT
-           CALLED. Every other rung's line earns its place by saying what
+           CALLED. Every other step's line earns its place by saying what
            the chip cannot — a date, a count, the name of whoever has it,
            what is owed and when — and this one restated it.
 
@@ -11778,7 +11778,7 @@
         return afterMeeting(c)
           ? esc(c.next.what) + ' was <b>' + esc(sayWhen(c.next.due)) + '</b> — did they turn up?'
           : c.next ? esc(c.next.what) + ' <b>' + esc(sayWhen(c.next.due)) + '</b>' : 'Meeting set';
-      /* ══ THE RUNGS PAST THE PHONE, AND THE WAYS OUT ═════════════════════
+      /* ══ THE STEPS PAST THE PHONE, AND THE WAYS OUT ═════════════════════
          A handed-over person's card said "Spoke to them 8 Aug, no meeting
          yet"; so did a do-not-call's. The line says where they are. */
       case 'showed-up':
@@ -12152,7 +12152,7 @@
 
      FOUR STATES, AND THE MIDDLE ONE IS REACHED BY A PERSON. `ready` shows
      the brief and waits; pressing Start begins `connecting`; the clock only
-     starts at `live`, because a timer running through the ringing lies about
+     starts at `live`, because a timer running through the connecting lies about
      the one thing it measures; `logging` is after you hang up.
 
      THE TELEPHONY IS FIXTURE. No Twilio, no WebRTC, no network of any kind:
@@ -12523,7 +12523,7 @@
   /* WHO SAID IT, ON EVERY LINE. A transcript without speakers is a wall of
      sentences, and the one thing a caller scans it for afterwards is what
      THEY said. `Them` rather than their name, because the person who picks
-     up a switchboard is not the person you rang. */
+     up a switchboard is not the person you called. */
   function transcriptHtml(c) {
     if (!c.recording) {
       return '<p class="call-none">Not recording. Nothing is being written down.</p>';
@@ -12600,8 +12600,8 @@
      false record of a conversation. */
 
   /* ══ WHAT A CALL DOES TO A LEAD ═════════════════════════════════════════
-     Pure, and the only thing that moves a rung on a call. A checkpoint never
-     goes BACKWARDS on a call — ringing somebody you have already met does
+     Pure, and the only thing that moves a step on a call. A checkpoint never
+     goes BACKWARDS on a call — calling somebody you have already met does
      not un-meet them — and an exit is never climbed out of by a call, only
      by Undo. */
   /* ══ THE FOLLOW-UP DELAY IS AN ARGUMENT ═══════════════════════════════
@@ -12635,7 +12635,7 @@
     if (isExit(c.checkpoint)) return { to: null, next: null };
     if (outcome === 'no-answer' || outcome === 'gatekeeper') {
       /* ══ A NO-ANSWER ON A CALLBACK MOVES THE DATE ═════════════════════
-         Ringing an overdue callback and getting nobody left the date where
+         Calling an overdue callback and getting nobody left the date where
          it was, so the same person sat first in the queue again the moment
          the call was logged. The day moves to tomorrow: still a callback,
          still owed, behind today's. */
@@ -12932,7 +12932,7 @@
 
 
   /* ══ 7c. WHAT A CALL CANNOT SAY ═════════════════════════════════════════
-     Four rungs are things a person OBSERVED, not things a call record
+     Four steps are things a person OBSERVED, not things a call record
      implies: whether they turned up, whether they are actually interested,
      whether the director has it now. No transcript can settle any of them,
      which is the whole reason this build stores a checkpoint instead of
@@ -12949,7 +12949,7 @@
      with nowhere to press, so it was either not done or done outside the
      product and never written down. It is a touchpoint like any other. */
   /* ══ A BETTER NUMBER FOR ONE PERSON ════════════════════════════════════
-     The list has "Fill in what is missing"; a person whose number rang out
+     The list has "Fill in what is missing"; a person whose number went unanswered
      six times had nothing. The supplier's own hit rate decides, off the id,
      so the answer is the same every time it is asked. A new number starts
      its own count of attempts; the history keeps the old calls. */
@@ -12992,7 +12992,7 @@
     return MOVES.filter((m) => m.from.indexOf(c.checkpoint) >= 0);
   }
 
-  /* The next step each rung owes, if any. A rung that owes nothing clears
+  /* The next step each step owes, if any. A step that owes nothing clears
      the field rather than leaving a stale one: a handed-over lead with a
      callback still on it is a queue entry for work nobody should do. */
   function nextForStep(to) {
@@ -13102,7 +13102,7 @@
     }
     /* ══ SIGNALS AND THE FOUR-TOUCH RULE, AS REMINDERS ══════════════════
        The notes' "remind and notify": what changed at the companies you
-       are ringing, and who went quiet before the fourth touch. */
+       are calling, and who went quiet before the fourth touch. */
     /* this week's, for a reminder; the cards and the canvas carry three weeks */
     const sigs = signalHits(7);
     if (sigs.length) {
@@ -13231,7 +13231,7 @@
     if (q.indexOf('prep:') === 0) {
       const c = DB.byCon[q.slice(5)];
       /* Routed by role, the way `data-prep` already routes it. This handed a
-         manager the caller's brief — the openers and the rung — for a
+         manager the caller's brief — the openers and the step — for a
          meeting they are about to walk into, because the branch existed on
          one of the two doors onto the same sheet and not on the other. */
       if (c) { if (isMgr() && c.checkpoint === 'handed-over') meetPrep(c); else callPrep(c); }
@@ -14747,7 +14747,7 @@
       /* At the manager's desk a sentence about a room outranks a sentence
          about a phone: "had a demo with Kate, they want pricing" is a
          meeting, and reading it as a call would write a touchpoint that
-         says a phone rang. */
+         says a phone call happened. */
       if (isMgr()) {
         /* Booking first: "add to calendar" is unambiguous and `readMeet`
            would otherwise take the same sentence and guess a stage from it. */
@@ -15021,13 +15021,13 @@
     '</div>';
   }
 
-  /* Everything worth knowing before the phone rings, in the order you would
+  /* Everything worth knowing before the call, in the order you would
      ask it. Nine lines at most, and every one of them off the record. */
   /* ══ THE BRIEF IS DIFFERENT AT EVERY called ══════════════════════════════
      It said the same thing to a stranger and to somebody who booked a
      meeting last Tuesday: who they are, what we sell, open on the pitch.
-     That is the wrong sentence for six of the eight rungs. What you say
-     to a lead who asked to be called back is that you are ringing when they
+     That is the wrong sentence for six of the eight steps. What you say
+     to a lead who asked to be called back is that you are calling when they
      said; to one with a meeting in the diary it is a confirmation, not a
      pitch; to one who has never picked up it is a reason to keep trying.
 
@@ -15098,7 +15098,7 @@
      What they push back on sits between the second and the third, because
      it is the only part of the campaign's material that arrives mid-call. */
   /* ══ BEFORE A ROOM, NOT BEFORE A DIAL ══════════════════════════════════
-     The caller's brief opens with the rung and the phone, because that is
+     The caller's brief opens with the step and the phone, because that is
      what the next sixty seconds are. A manager's opens with proof: they
      walk in cold to somebody who wants to know we have done this before,
      and the sentence they say first is the one that decides whether the
@@ -15436,7 +15436,7 @@
     const o = OUTCOME[f.outcome];
     const rows = [];
     if (o) rows.push(['Outcome', o.label, o.tone]);
-    /* A rung somebody settled by hand and a profile going out are not
+    /* A step somebody settled by hand and a profile going out are not
        calls, and the card says what they were rather than filing them
        under an outcome they never had. */
     else if (KINDS[f.outcome]) rows.push(['What happened', KINDS[f.outcome], 'neutral']);
@@ -15464,10 +15464,10 @@
     if (f.to) {
       rows.push(['Checkpoint', (f.from ? stepLabel(f.from) + ' → ' : '') + stepLabel(f.to), 'ok']);
     } else if (c && f.outcome !== 'phase') {
-      /* the rung they were on when it happened, not the rung today: a
+      /* the step they were on when it happened, not the step today: a
          callback from July does not "stay at" a meeting set in August.
          A phase is the director's ladder, not this one, so it says
-         nothing about a rung it was never going to move. */
+         nothing about a step it was never going to move. */
       rows.push(['Checkpoint', 'stays at ' + stepLabel(f.from || f.called || c.checkpoint), 'neutral']);
     }
     if (f.next) rows.push(['Next', f.next.what + ', ' + sayWhen(f.next.due), 'neutral']);
@@ -15597,7 +15597,7 @@
     made.forEach((t) => (by[t.outcome] = (by[t.outcome] || 0) + 1));
     const got = made.filter((t) => t.outcome === 'reached').length;
     /* ONLY THE CALLS THAT CONNECTED. Summing every call's seconds counts the
-       ringing, so a run where nobody picked up reported two minutes on the
+       waiting, so a run where nobody picked up reported two minutes on the
        phone and nought got through in the same sentence. */
     const talk = made.filter((t) => t.outcome === 'reached')
       .reduce((n, t) => n + (t.secs || 0), 0);
@@ -16011,7 +16011,7 @@
       ].concat(ind ? [{ name: ind.label + ' case study', kind: 'case' }] : []),
       from: TODAY_ISO, to: dayAdd(b.weeks * 7),
       owner: me().id,
-      /* Somebody has to work it, and there is one desk that rings. */
+      /* Somebody has to work it, and there is one desk that calls. */
       crew: BDRS.map((r) => r.id),
       state: 'running',
       /* Both are asked for now, so neither falls back to the top of a list
@@ -17048,7 +17048,7 @@
       if ((e.key === 's' || e.key === 'S') && DB.call) { e.preventDefault(); skipCall(); return; }
     }
 
-    /* Moving through the cards, and opening or ringing the one you are on.
+    /* Moving through the cards, and opening or calling the one you are on.
        The queue is a grid rather than a windowed column now, so the cursor
        lives on the cards themselves — j and k walk them in reading order,
        which across three columns is left to right and then down. */
