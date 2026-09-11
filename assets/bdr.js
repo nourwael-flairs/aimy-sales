@@ -12844,6 +12844,28 @@
         '<p class="call-name">' + esc(c.name) + '</p>' +
         '<p class="call-sub">' + esc(c.title) + ' · ' + esc(a ? a.name : '') + '</p>' +
         (c.phone ? '<p class="call-num">' + esc(c.phone) + '</p>' : '') +
+        /* ══ A WORKED EXAMPLE HAS TO SAY THAT IT IS ONE ════════════════════
+           Nothing here dials. The transcript grows a line at a time from a
+           script chosen by the person's own hidden `fate`, and it grows at
+           the speed a real one would — which is the point of it and also the
+           problem: on screen it is indistinguishable from a transcription of
+           a conversation that happened, and AiMY then reads it and lights an
+           outcome off it. A reader who takes that for a recording is being
+           misled by the one part of this build that is not derived from the
+           record.
+
+           Said ONCE, in `ready`, under the number that is not going to be
+           dialled: it is the state every call passes through, it is the
+           screen where Start is pressed, and it is the only one with room.
+           A chip repeating it over every line of a running call would be
+           noise on the surface this build exists to keep quiet.
+
+           And it ends where the real call is, because the `tel:` link on the
+           record is not a fixture — it is the one genuine handoff in here. */
+        (ready
+          ? '<p class="call-none call-fixture">Nothing is dialled here — this call and its ' +
+            'transcript are a worked example. The number on the record dials for real.</p>'
+          : '') +
       '</div>' +
 
       /* ALWAYS RENDERED, in every state. `.call-lines` is `flex: 1 1 0` —

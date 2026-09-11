@@ -2719,6 +2719,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .call-none { color: var(--ink-muted); }
 .call-who { color: var(--ink-muted); }
 
+/* The notice that this call is a worked example. It is a `.call-none` — the
+   panel's own quiet voice, already defined above — and all this adds is the
+   gap that separates it from the phone number it is about. A second colour
+   or a border would make a disclaimer of it; it is a caption. */
+.call-fixture { margin-top: 10px; }
+
 /* The way back and the way out at opposite edges of one line. The back
    button carries its own bottom margin for the pages that use it bare; in
    here the row owns the spacing. */
