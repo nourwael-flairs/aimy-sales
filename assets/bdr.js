@@ -9326,11 +9326,18 @@
      the card cannot give you, and only ones that are read off the corpus
      with the count in them.
 
-     Every one states its basis and most carry a door, because a reading
-     you cannot act on from where you are reading it is a reading you have
-     to remember. Capped at three: a page of insights is a page nobody
+     Where a reading can be acted on from here it carries a door, because a
+     reading you cannot act on from where you are reading it is a reading you
+     have to remember. Capped at three: a page of insights is a page nobody
      finishes, and the fourth-best thing AiMY noticed is not worth the
      reader deciding which three of five to trust.
+
+     THE BASIS IS NOT PER READING ANY MORE. Each of these used to carry a
+     second, quieter line under it saying what it was read off, and four
+     stacked made eight lines of type for four findings. The mark and the
+     heading over the block say whose these are and what they are read off,
+     once. A card's reading keeps its own, because there it is one line
+     under one sentence rather than a column of footnotes.
 
      AGAINST THE QUOTA, FIRST. `target` is countable — a number and a noun —
      and where the desk stands against it is the question this block answers.
@@ -9359,7 +9366,6 @@
       out.push({
         text: 'It gets through most around <b>' + h.hour + ':00</b> — ' + h.pct +
           '% of the ' + commas(h.n) + ' calls made in that hour.',
-        from: 'the hour and the outcome of every call here',
       });
     }
 
@@ -9382,7 +9388,6 @@
         text: '<b>' + commas(cold.length) + '</b> of the ' +
           esc(plural(members.length, 'person')) + ' here were being worked and have not ' +
           'been called in a fortnight. They are spread across the cuts below.',
-        from: 'how long since the last call on each record',
       });
     }
 
@@ -9442,15 +9447,7 @@
          block somebody can put right this afternoon, and the campaign's own
          finder is what puts it right. */
       const wrong = stepCounts(st.members)['wrong-number'] || 0;
-      /* ══ A BASIS NAMES THE FIELD, NOT ONLY THE SET ════════════════════
-         These lines answer "how do you know that", and each of them named
-         the pile it looked at without saying what it read off it. "Every
-         call on this campaign" sits under a claim about the time of day;
-         "the last call on each of their records" sits under a claim about
-         how long ago. The set was never the question — a reader can see
-         which set from the sentence — so each one names the field the
-         reading is actually made of. */
-      rs.push({ text: exits, from: 'the step each of them stopped at',
+      rs.push({ text: exits,
         door: wrong ? { attr: 'data-bopen="' + esc(k.id) + '"',
           say: 'Find more for this campaign' } : null });
     }
@@ -9500,9 +9497,18 @@
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
           '<use href="#aimy-logo-small"/></svg>Read off this campaign' +
       '</div>' +
+      /* ══ THE BASIS IS STATED ONCE, OVER THE BLOCK ═════════════════════
+         Every reading carried its own line saying what it was read off, and
+         four of them stacked put a second, quieter sentence under every
+         sentence — eight lines of type where there are four findings, and
+         the quiet half is the half nobody came for. The mark and the
+         heading above already say whose these are and what they are read
+         off; that is the claim, made once, for all of them.
+
+         The `from` on a card's reading stays. There it is the only thing
+         saying where a single sentence came from, and there is one of it. */
       '<ul class="b-reading-list">' + rs.slice(0, 4).map((r) =>
         '<li class="b-reading' + (r.door ? ' has-door' : '') + '">' + r.text +
-          '<span class="b-aimy-from">' + esc(r.from) + '</span>' +
           (r.door
             ? '<button class="s-inline-btn b-reading-go" type="button" ' + r.door.attr + '>' +
               esc(r.door.say) + '</button>'
@@ -10020,12 +10026,34 @@
         ' on this campaign</span></div>' +
       '<p class="b-way-lead">' + lead + '</p>' +
       group('Before you reach them', b.stops, stopRest) +
-      group('Once you do', b.spoken, spokeRest) +
-      (!b.spoken.length && b.thin
-        ? '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
-          esc(verbFor(b.thin, 'has')) + ' given a reason so far — too few to call it a ' +
-          'pattern. The answers this campaign agreed are in What to say below.</p>'
-        : '') +
+      /* ══ THE EMPTY GROUP SAYS WHY IT IS EMPTY, IN THE GROUP ═══════════════
+         This was a bare paragraph after both groups, which is why it read as
+         text somebody forgot to delete: it is about the second group, and it
+         sat outside it. What it says is worth keeping — without it a thin
+         campaign shows one group and no reasons, and a caller reads that as
+         nobody objecting rather than as nobody having been asked yet. That
+         is the difference between no problem and no data, and it is exactly
+         the absence the guide says has to be labelled.
+
+         So it fills the slot the group would have taken, under the group's
+         own caption. The question it answers is "where is the second half",
+         and it is now standing where the second half would be.
+
+         ITS SECOND SENTENCE WAS A DEAD POINTER. "The answers this campaign
+         agreed are in What to say below" — that block is not below. It was
+         moved to the prep sheet, where the answers are actually said, and
+         this sentence went on sending the reader down a page that has four
+         blocks and none of them by that name. */
+      (b.spoken.length
+        ? group('Once you do', b.spoken, spokeRest)
+        : b.thin
+          ? '<div class="b-way-group">' +
+              '<h3 class="b-way-cap">Once you do</h3>' +
+              '<p class="b-way-thin">Only ' + esc(plural(b.thin, 'person')) + ' here ' +
+              esc(verbFor(b.thin, 'has')) + ' given a reason so far — too few to call it a ' +
+              'pattern.</p>' +
+            '</div>'
+          : '') +
     '</section>';
   }
 

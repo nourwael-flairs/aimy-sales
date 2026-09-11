@@ -847,12 +847,15 @@
   max-width: 70ch; text-wrap: pretty;
 }
 .b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
-.b-reading .b-aimy-from { display: block; margin-top: 2px; }
-/* The one reading here that has something you can do about it. Sentence, then
-   what it was read off, then the door — the shell's own order for an insight,
-   and the reason a reading with a door reads as a different thing from the
-   three around it without being given a second treatment to say so. */
-.b-reading-go { display: inline-block; margin-top: 6px; }
+/* The one reading here that has something you can do about it: the sentence,
+   then the door under it — the shell's own order for an insight.
+
+   `display: block` with a content width, not `inline-block`. The basis line
+   that used to sit between them was a block and was doing the breaking; with
+   it gone an inline-block door ran straight on from the full stop —
+   "…1 wrong number.Find more for this campaign" — and a link welded to the
+   end of a sentence reads as a word in it. */
+.b-reading-go { display: block; width: fit-content; margin-top: 6px; }
 
 /* The folded opener sits after the title and wraps under it on a narrow
    row, at the small step so the title stays the loud thing. */
@@ -2528,8 +2531,11 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
   .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
   .b-way-n { font-size: var(--fs-xl); }
 }
+/* It stands where a row would, under its group's caption, so it takes the
+   first row's gap rather than the larger one it needed when it was a loose
+   paragraph hanging off the end of the block. */
 .b-way-thin {
-  margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
+  margin: 6px 0 0; font-size: var(--t-body); color: var(--d200);
   line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
 }
 
