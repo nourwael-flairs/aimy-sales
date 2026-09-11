@@ -822,13 +822,24 @@
   .b-af-door:hover { border-top-color: var(--accent); }
 }
 
-/* The readings as a list on the quote surface: one mark, then lines, each
-   with its basis at the end in the small step. Full width under the funnel
-   rather than the quote's 62ch — the bars above it are full width and a
-   narrower block under them reads as a different column. */
-/* Two classes, because the shell's `.s-insight.is-quote` is two classes and
-   one would lose to it — measured as a 62ch block under full-width bars. */
-.s-insight.is-quote.b-readings { max-width: none; margin: 16px 0 0; }
+/* ══ THE READINGS, ON THE INSIGHT SURFACE ═════════════════════════════════
+   One mark, then a line each with its basis under it. This was `.is-quote` —
+   the raised grey step — and the argument for it was crowding: three accent
+   panels under one funnel all claiming to matter most. What it cost is the
+   doctrine's own rule, written into sales.css: AiMY's work is never rendered
+   as the product's plain output. Four derived readings on a grey card is the
+   product printing.
+
+   Base `.s-insight` carries the accent ground and border; all that is needed
+   here is the layout `.is-quote` used to supply — a block rather than a flex
+   row — and full width, because the bars directly above are full width and a
+   62ch block under them reads as a different column. */
+.s-insight.b-readings {
+  display: block; max-width: none;
+  margin: 16px 0 0; padding: 16px;
+  border-radius: var(--r-lg);
+}
+.s-insight.b-readings .s-insight-mark { width: 14px; height: 14px; }
 .b-readings .s-lead-mark { color: var(--ink-muted); }
 .b-reading-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .b-reading {
@@ -837,6 +848,11 @@
 }
 .b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
 .b-reading .b-aimy-from { display: block; margin-top: 2px; }
+/* The one reading here that has something you can do about it. Sentence, then
+   what it was read off, then the door — the shell's own order for an insight,
+   and the reason a reading with a door reads as a different thing from the
+   three around it without being given a second treatment to say so. */
+.b-reading-go { display: inline-block; margin-top: 6px; }
 
 /* The folded opener sits after the title and wraps under it on a narrow
    row, at the small step so the title stays the loud thing. */

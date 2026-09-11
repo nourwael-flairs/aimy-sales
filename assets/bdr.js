@@ -9376,8 +9376,12 @@
            exactly one, which is what makes the chips add up to All. A door
            here would have to point at one step and quietly lose the rest, or
            add an overlapping cut and break the arithmetic under it. */
-        text: '<b>' + commas(cold.length) + '</b> were being worked and have not been ' +
-          'called in a fortnight. They are spread across the cuts below.',
+        /* It said "20 were being worked" — twenty of what, and twenty WHAT.
+           The noun and the whole both belong to the figure, and the whole is
+           the roster, same as every other reading in this block. */
+        text: '<b>' + commas(cold.length) + '</b> of the ' +
+          esc(plural(members.length, 'person')) + ' here were being worked and have not ' +
+          'been called in a fortnight. They are spread across the cuts below.',
         from: 'the last call on each of their records',
       });
     }
@@ -9423,19 +9427,67 @@
     const st = campStand(k);
     const rs = [];
     const exits = exitsSay(st.members);
-    if (exits) rs.push({ text: exits, from: 'where each of them stopped' });
+    if (exits) {
+      /* ══ AND ONE OF THEM IS A THING YOU CAN DO ════════════════════════
+         The comment over `campReadings` says every reading states its basis
+         and most carry a door, "because a reading you cannot act on from
+         where you are reading it is a reading you have to remember". Not one
+         of the four carried a door: the field was never read here, so the
+         block was four observations and no next step anywhere in it.
+
+         Two of them honestly have none, and both say so in the sentence or
+         in the code — the stale ones sit across three cuts and a door would
+         have to lose two of them, and an hour of the day is not a place. A
+         number that is not theirs is different: it is the one thing in this
+         block somebody can put right this afternoon, and the campaign's own
+         finder is what puts it right. */
+      const wrong = stepCounts(st.members)['wrong-number'] || 0;
+      rs.push({ text: exits, from: 'where each of them stopped',
+        door: wrong ? { attr: 'data-bopen="' + esc(k.id) + '"',
+          say: 'Find more for this campaign' } : null });
+    }
     const deals = dealsSay(k);
     if (deals) rs.push({ text: deals, from: 'the leads you handed over' });
     campReadings(k).forEach((r) => rs.push(r));
     if (!rs.length) return '';
-    return '<div class="s-insight is-quote b-readings">' +
+    /* ══ THE LABEL WAS TRUE OF ONE READING IN FOUR ════════════════════════
+       "Read off the bars above" is where the block sits, not where its
+       sentences come from. The exits are read off those bars; the hour is
+       read off the time on every call, the stale ones off the last call on
+       each record, and the managers' line off the deal board — none of which
+       is on this page at all. Each reading already names its own basis
+       correctly underneath itself, which is what made the heading over them
+       a claim contradicted four lines down.
+
+       So it names the block's scope, which is true of all four, and the
+       `from` under each goes on saying precisely which part it read. */
+    /* ══ AiMY'S WORK IS DRAWN AS AiMY'S WORK ══════════════════════════════
+       This was the quote register — a raised grey surface, no accent — put
+       there to stop three full-width accent panels under the funnel all
+       announcing "this matters most" at once. That reasoning was about how
+       many panels shouted, and it paid for quiet with the one thing the
+       doctrine does not let you trade: sales.css states it four hundred
+       lines up, that AiMY's work is never rendered as the product's plain
+       output. A grey panel of four derived readings is exactly that.
+
+       It is `.s-insight` now, the register every other AiMY finding on these
+       surfaces uses, and the crowding the old note worried about is not what
+       is on this page: the lead block above and this, with the obstacles
+       below carrying their readings as bands inside their rows rather than
+       as a third panel. */
+    return '<div class="s-insight b-readings">' +
       '<div class="s-lead-mark">' +
         '<svg class="s-insight-mark" viewBox="0 0 18 20" width="14" height="14" aria-hidden="true">' +
-          '<use href="#aimy-logo-small"/></svg>Read off the bars above' +
+          '<use href="#aimy-logo-small"/></svg>Read off this campaign' +
       '</div>' +
       '<ul class="b-reading-list">' + rs.slice(0, 4).map((r) =>
-        '<li class="b-reading">' + r.text +
-          '<span class="b-aimy-from">' + esc(r.from) + '</span></li>').join('') +
+        '<li class="b-reading' + (r.door ? ' has-door' : '') + '">' + r.text +
+          '<span class="b-aimy-from">' + esc(r.from) + '</span>' +
+          (r.door
+            ? '<button class="s-inline-btn b-reading-go" type="button" ' + r.door.attr + '>' +
+              esc(r.door.say) + '</button>'
+            : '') +
+        '</li>').join('') +
       '</ul>' +
     '</div>';
   }
@@ -9520,7 +9572,12 @@
     const gone = EXITS.filter((x) => n2[x.k]);
     const goneN = gone.reduce((t, x) => t + n2[x.k], 0);
     if (!goneN) return '';
-    return '<b>' + commas(goneN) + '</b> ' + esc(verbFor(goneN, 'person')) +
+    /* ══ OF THE SET IT CAME OUT OF ═══════════════════════════════════════
+       "6 people left the ladder" is a number with no whole. Six of a hundred
+       and six of nine are different findings and this said the same words
+       for both. The roster is the denominator here, the same one every bar
+       above this sentence is drawn against. */
+    return '<b>' + commas(goneN) + '</b> of ' + esc(plural(members.length, 'person')) +
       ' left the ladder — ' + gone.map((x) =>
         commas(n2[x.k]) + ' ' + esc(x.label.toLowerCase())).join(', ') + '.';
   }
@@ -9560,7 +9617,8 @@
      director has taken it. Named per person now that a hand-over chooses a
      manager, so two managers on one campaign read as two. */
   function dealsSay(k) {
-    const handed = membersOf(k.id).filter((c) => c.checkpoint === 'handed-over');
+    const roster = membersOf(k.id);
+    const handed = roster.filter((c) => c.checkpoint === 'handed-over');
     if (!handed.length) return '';
     const by = Object.create(null);
     handed.forEach((c) => {
@@ -9581,7 +9639,11 @@
       PHASES.forEach((x) => { if (g.at[x.k]) bits.push(commas(g.at[x.k]) + ' past ' + x.label.toLowerCase().replace(' meeting', '')); });
       if (g.won) bits.push('<b>' + commas(g.won) + ' signed</b>');
       if (g.lost) bits.push(commas(g.lost) + ' said no at resolution');
-      return esc(g.name) + ': ' + esc(plural(g.n, 'person')) + ' — ' + bits.join(', ');
+      /* The parts add up to the manager's count; the count itself had no
+         whole. It is a share of the roster this campaign is working, which
+         is what every other figure in this block is measured against. */
+      return esc(g.name) + ': <b>' + commas(g.n) + '</b> of the ' +
+        esc(plural(roster.length, 'person')) + ' here — ' + bits.join(', ');
     });
     return 'With ' + say.join('; with ') + '.';
   }
