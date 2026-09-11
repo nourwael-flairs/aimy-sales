@@ -9130,7 +9130,21 @@
     const target = k.target ? k.target.n : 0;
     const wantsMeeting = !k.target || k.target.noun === 'meeting';
     const at = wantsMeeting ? 'meeting-set' : 'answered';
-    const done = members.filter((c) => rank(c.checkpoint) >= rank(at)).length;
+    /* ══ WHAT THE CAMPAIGN ACHIEVED, NOT WHERE PEOPLE ARE STANDING ═══════
+       This counted everybody sitting at or above the step NOW, which quietly
+       un-books a meeting the moment the person it was with says no: they
+       drop to an exit, their rank goes negative, and a meeting that happened
+       in June stops having happened. The campaign's own scoreboard then
+       disagreed with the ladder printed four inches below it — 16 against
+       19 on the same page, under the same two words.
+
+       A meeting set is a thing that occurred. It is read off the record's
+       history, the way the ladder reads it, so one word means one number
+       everywhere on this page. Where people are standing now is still asked
+       and answered — by the two queue doors in `campStand`'s own tiles,
+       which is the question a worklist exists to answer. */
+    const ever = everAt(members);
+    const done = ever[at] || 0;
     const left = daysBetween(TODAY_ISO, k.to);
     const need = Math.max(0, target - done);
     return {
@@ -9139,7 +9153,10 @@
       /* Whole weeks, rounded up, because half a meeting a week is not a
          rate anybody can work to. */
       perWeek: left > 0 ? Math.ceil(need / Math.max(1, left / 7)) : 0,
-      reached: members.filter((c) => rank(c.checkpoint) >= rank('answered')).length,
+      /* Same rule as `done`: everybody this campaign ever got on the phone,
+         whatever they decided afterwards. */
+      reached: ever.answered || 0,
+      ever: ever,
     };
   }
 
@@ -9571,8 +9588,18 @@
            calls Answered — one number, two words, and a reader checking one
            against the other has to work out they are the same people. */
         fig('Answered', st.reached, reachedOf, 'ok') +
-        fig('Meetings set', (n['meeting-set'] || 0) + (n['showed-up'] || 0) +
-          (n.interested || 0) + (n['handed-over'] || 0), metOf, 'ok') +
+        /* ══ THE SAME TWO WORDS CANNOT CARRY TWO COUNTS ═══════════════
+           This added up the four rungs at and above meeting-set as people
+           are standing TODAY, and the ladder immediately below counted
+           everybody who ever got there. Both are true and they are not the
+           same number: a meeting held with somebody who has since said no
+           is in one and not the other. So the page printed "Meetings set
+           16" above a bar labelled "Meeting set 19" and gave the reader no
+           way to tell which it was being asked to believe.
+
+           Both cumulative tiles now read `campStand`'s own history count —
+           the one the ladder reads. */
+        fig('Meetings set', st.ever['meeting-set'] || 0, metOf, 'ok') +
       '</div>' +
 
       funnelOf(st.members, null, true) +
