@@ -348,7 +348,7 @@ const BANNED = [
 /* ── 8 · A TOUCHPOINT IS NOT ALWAYS A CALL ────────────────────────────────
 
    `OUTCOME[t.outcome].label` was written when every touchpoint was a call.
-   Then a rung could be settled by hand and a company profile could be sent —
+   Then a step could be settled by hand and a company profile could be sent —
    both touchpoints, neither with an entry in that lexicon — and two surfaces
    read `.label` off `undefined`.
 

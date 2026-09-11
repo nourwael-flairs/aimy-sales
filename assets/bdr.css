@@ -23,7 +23,7 @@
      windowing is a positioning wrapper, not a second row design.
 
      THE CHECKPOINT LADDER. Where one lead stands with a BDR, which the V3
-     build did not have because it derived status rather than storing a rung.
+     build did not have because it derived status rather than storing a step.
 
    Everything else here is a small variant of something in sales.css and says
    which one.
@@ -65,7 +65,7 @@
    eight things to read to answer one question, and at this width each would
    be four characters.
 
-   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per rung would
+   ONE ACCENT FOR WHERE IT IS NOW, neutral otherwise. A colour per step would
    be eight colours to learn, and the product already spends its semantic
    colours on status. */
 
@@ -110,7 +110,7 @@
    with it — a run's rail and a single call's rail are now the same column. */
 
 /* ══ 7. WHERE A CAMPAIGN'S PEOPLE STAND ════════════════════════════════════
-   A row of counts, stated rather than linked. These are RUNGS, and the queue
+   A row of counts, stated rather than linked. These are STEPS, and the queue
    under them cuts by what is owed — so a door here would open a filter that
    does not exist, which is worse than no door. */
 
@@ -187,7 +187,7 @@
    A row had space for a name, a line and a button — enough to be ranked by
    and not enough to prepare with, so every call began by opening the record
    to find out who this was. A card carries what a caller wants before the
-   phone rings, and three of them fit across the page.
+   call, and three of them fit across the page.
 
    `repeat(3, …)` with a floor, not `auto-fill`: the shell's own `.s-grid`
    fills by width and would give two columns here and four on a wide monitor.
@@ -822,13 +822,24 @@
   .b-af-door:hover { border-top-color: var(--accent); }
 }
 
-/* The readings as a list on the quote surface: one mark, then lines, each
-   with its basis at the end in the small step. Full width under the funnel
-   rather than the quote's 62ch — the bars above it are full width and a
-   narrower block under them reads as a different column. */
-/* Two classes, because the shell's `.s-insight.is-quote` is two classes and
-   one would lose to it — measured as a 62ch block under full-width bars. */
-.s-insight.is-quote.b-readings { max-width: none; margin: 16px 0 0; }
+/* ══ THE READINGS, ON THE INSIGHT SURFACE ═════════════════════════════════
+   One mark, then a line each with its basis under it. This was `.is-quote` —
+   the raised grey step — and the argument for it was crowding: three accent
+   panels under one funnel all claiming to matter most. What it cost is the
+   doctrine's own rule, written into sales.css: AiMY's work is never rendered
+   as the product's plain output. Four derived readings on a grey card is the
+   product printing.
+
+   Base `.s-insight` carries the accent ground and border; all that is needed
+   here is the layout `.is-quote` used to supply — a block rather than a flex
+   row — and full width, because the bars directly above are full width and a
+   62ch block under them reads as a different column. */
+.s-insight.b-readings {
+  display: block; max-width: none;
+  margin: 16px 0 0; padding: 16px;
+  border-radius: var(--r-lg);
+}
+.s-insight.b-readings .s-insight-mark { width: 14px; height: 14px; }
 .b-readings .s-lead-mark { color: var(--ink-muted); }
 .b-reading-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .b-reading {
@@ -836,7 +847,15 @@
   max-width: 70ch; text-wrap: pretty;
 }
 .b-reading b { color: var(--d50); font-weight: var(--fw-bold); }
-.b-reading .b-aimy-from { display: block; margin-top: 2px; }
+/* The one reading here that has something you can do about it: the sentence,
+   then the door under it — the shell's own order for an insight.
+
+   `display: block` with a content width, not `inline-block`. The basis line
+   that used to sit between them was a block and was doing the breaking; with
+   it gone an inline-block door ran straight on from the full stop —
+   "…1 wrong number.Find more for this campaign" — and a link welded to the
+   end of a sentence reads as a word in it. */
+.b-reading-go { display: block; width: fit-content; margin-top: 6px; }
 
 /* The folded opener sits after the title and wraps under it on a narrow
    row, at the small step so the title stays the loud thing. */
@@ -988,7 +1007,7 @@
 
 /* ══ 27. THE JOURNEY ON A RAIL ═════════════════════════════════════════════
    A 2px rail down the left, a node per touchpoint on it in the tone of how
-   the call went, a larger accent call where a rung was climbed, and the rung
+   the call went, a larger accent call where a step was climbed, and the step
    it reached on the line. The cards are the same cards; the rail is drawn
    in the column the section already reserves for it. Metrics set once:
    10px dot, 14px milestone call, 26px gutter, rail at 7px. */
@@ -1022,7 +1041,7 @@
 .b-tl-dot.tone-warn { background: var(--warn-text); }
 .b-tl-dot.tone-err { background: var(--err-text); }
 .b-tl-dot.tone-neutral { background: var(--d400); }
-/* A rung climbed: the call is the milestone, in accent, and the node sits
+/* A step climbed: the call is the milestone, in accent, and the node sits
    on the rail a shade larger so the eye catches it scanning down. */
 .b-tl-item.is-milestone .b-tl-dot {
   width: 14px; height: 14px; left: -26px; top: 15px;
@@ -1665,7 +1684,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    it holds.
 
    What has passed is filled and joined by a line you can see. The tip is
-   open — a call in the rung's own tone with the page showing through, which
+   open — a call in the step's own tone with the page showing through, which
    is the shape everything from a Stepper to a git log uses for the point
    still moving. And an elided stretch is dashed on both sides, because "3
    steps more" is a piece of the walk nobody is claiming to draw. */
@@ -1716,8 +1735,8 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-story-step.is-gap .b-story-k { color: var(--ink-muted); letter-spacing: 0.08em; }
 
 /* ══ 43. THE FUNNEL SHOWS THE DROP ═════════════════════════════════════════
-   Four columns on one grid: the rung, the bar, how many ever got that far,
-   and what share of the rung above that is. The last column is the reason
+   Four columns on one grid: the step, the bar, how many ever got that far,
+   and what share of the step above that is. The last column is the reason
    the block exists, so it is set in the mono face and reads down its own
    edge. */
 .b-funnel { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto auto; gap: 8px 14px; align-items: center; }
@@ -2213,7 +2232,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 @media (prefers-reduced-motion: reduce) { .b-doc { transition: none; } .b-doc:active { transform: none; } }
 
 /* ══ 50. A ROW'S STATE IS NOT A BUTTON ═════════════════════════════════════
-   The rung sat in the roster's right column as a bordered pill, directly
+   The step sat in the roster's right column as a bordered pill, directly
    above the Call pill, and the two read as a pair of buttons. A dot in the
    called's own tone and the word beside it: a state you read, over the one
    thing on the row you press. */
@@ -2233,7 +2252,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-tocall { margin: 0 0 12px; font-size: var(--t-ui); color: var(--d200); }
 .b-tocall b { color: var(--d50); font-weight: var(--fw-bold); }
 
-/* A menu row that names a person: the rung as a dot, the name, what they do. */
+/* A menu row that names a person: the step as a dot, the name, what they do. */
 .b-menu-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .b-menu-name { font-size: var(--t-ui); font-weight: var(--fw-semibold); color: inherit; }
 .b-menu-sub { font-size: var(--t-small); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2275,7 +2294,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 }
 .b-map-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* A node is a door with one fact on it: for a person, the rung as a dot. */
+/* A node is a door with one fact on it: for a person, the step as a dot. */
 .b-node {
   display: flex; flex-direction: column; gap: 3px; align-items: flex-start; cursor: pointer;
   font-family: inherit; text-align: left; min-width: 172px; max-width: 260px;
@@ -2374,7 +2393,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-cmeta-p .tag { vertical-align: 1px; margin-left: 6px; }
 
 /* ══ 54. THE TEAM ══════════════════════════════════════════════════════════
-   The people ringing the same two hundred numbers as you. A face, a name and
+   The people calling the same two hundred numbers as you. A face, a name and
    what they are on it for — the knowledge graph's node, at the size a person
    is drawn rather than the size a company is. */
 /* No card around each of them. A pill with a border and a ground made three
@@ -2397,36 +2416,125 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
    which is the one thing a bar cannot do — the proportion is in words beside
    the name now. Amber marks the obstacle nobody has written an answer to,
    and nothing else, so it means one thing on this block. */
+/* ══ MEASURED BEFORE IT WAS TOUCHED ════════════════════════════════════════
+   `.b-way-n` was `--t-lead`, `.b-way-beat` was `--t-body`, and both of those
+   tokens are 16px. `.b-way-name` was `--t-ui`, which is 14. So the count was
+   the same size as the prose about it, and the NAME of each obstacle was the
+   smallest thing in its own row. Two sizes across the whole block, the larger
+   one spent on the paragraph. No amount of cutting words fixes that; the
+   scale is what was missing.
+
+   The scale below is not invented. It is `.s-af` — the figure strip forty
+   pixels up this same page — read off sales.css and applied here: a 24px
+   tabular figure with negative tracking, its denominator small and faint
+   beneath it, and rows DIVIDED, NEVER BOXED, which is that component's own
+   stated rule. */
 .b-way-lead {
-  margin: 0 0 18px; font-size: var(--t-lead); color: var(--d100);
-  line-height: var(--lh-base); max-width: 78ch; text-wrap: pretty;
+  margin: 0 0 22px; font-size: var(--fs-lg); color: var(--d100);
+  line-height: var(--lh-snug, 1.35); max-width: 62ch; text-wrap: pretty;
 }
 .b-way-lead b { color: var(--d50); font-weight: var(--fw-bold); }
-.b-ways { display: flex; flex-direction: column; gap: 14px; }
+
+/* Two populations, two groups. The caption carries the ground its figures
+   are counted against, so "of 8 reasons" under a number has been explained
+   before it is read. */
+/* ══ THE SMALLER STEP IS NOT ALSO THE DIMMER ONE ═══════════════════════════
+   §11 of this file already lifted `.s-block-sub`, `.b-vfoot` and `.s-back`
+   off the faint inks for this reason, and every class added here went
+   straight back to them: the caption, the denominator and the footnote were
+   all `--ink-faint`, which is `--d400`. Nothing in this block is below
+   `--d200` now. The ranks are carried by size, weight and case, which is
+   where they should have been carried in the first place — a rank made out
+   of dimness is a rank that costs the reader their eyes. */
+.b-way-group + .b-way-group { margin-top: 26px; }
+.b-way-cap {
+  margin: 0 0 2px; font-family: var(--font-sans); font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold); text-transform: uppercase;
+  letter-spacing: var(--ls-wide); color: var(--d200);
+}
+
+/* ══ THE FIGURE COLUMN IS SIZED TO THE FIGURE ══════════════════════════════
+   sales.css measured this on its own obstacle rows: 40px of column and a
+   16px gap put 56px between a one-digit figure and its own sentence, so half
+   of every row was the space between its two halves. These counts run 32,
+   11, 2, 2 — two digits at most. 34 and 14. */
+.b-ways { display: flex; flex-direction: column; }
+/* ONE RIGHT EDGE FOR THE ROW. The measure is capped on the row, the way
+   `.s-reason` and `.s-straight` cap theirs, rather than on the paragraph
+   inside it — a filled band that stops half way across a column reads as a
+   box somebody cut short, where the same width shared by the name, the line
+   under it and the band reads as a column. */
 .b-way {
-  display: grid; grid-template-columns: 46px minmax(140px, 190px) minmax(0, 1fr);
-  column-gap: 20px; row-gap: 2px; align-items: baseline;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 14px; align-items: start; max-width: 72ch;
+  padding-top: 14px; margin-top: 14px;
+  border-top: 1px solid var(--hairline);
 }
+/* The first row sits under its caption, which is already a separator. */
+.b-way:first-child { margin-top: 6px; }
+
 .b-way-n {
-  font-size: var(--t-lead); font-weight: var(--fw-bold); color: var(--d50);
-  text-align: right; font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans); font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold); letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums; line-height: var(--lh-none);
+  color: var(--d50); padding-top: 2px;
 }
-.b-way-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.b-way-name { font-size: var(--t-ui); font-weight: var(--fw-bold); color: var(--d50); }
-.b-way-of { font-size: var(--t-small); color: var(--ink-muted); }
-.b-way-beat {
-  font-size: var(--t-body); color: var(--d200);
-  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+
+.b-way-what { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* The name and what it is counted of, on one line. The denominator is not
+   the figure: it reads with the name, in a quieter ink, so the count to the
+   left stays the thing the eye lands on. */
+.b-way-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+/* ══ A RANK DIFFERS FROM ITS NEIGHBOUR ON TWO AXES, NOT ONE ═══════════════
+   At 18/600 this was one weight step from the block's own `<h2>` at 18/800
+   in the same ink — a row name claiming the size of the section heading over
+   it. 16/700 against the heading is size and weight, against the beat at
+   16/400 is weight and ink, and against the 24px figure beside it is the
+   pairing `.s-reason` already uses: 24 over 16, 700 over 400, two inks. */
+.b-way-name {
+  font-size: var(--fs-base); font-weight: var(--fw-bold); color: var(--d50);
+  line-height: var(--lh-snug);
 }
+.b-way-of {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--d100); line-height: var(--lh-snug);
+}
+.b-way-sub {
+  font-size: var(--fs-xs); color: var(--d200);
+  line-height: var(--lh-base); max-width: 58ch; text-wrap: pretty;
+}
+/* ══ THE BEAT IS AiMY, SO IT IS `.b-aimy` ══════════════════════════════════
+   A rule down the left of every beat would have been a stripe carrying
+   nothing on three rows out of four, which is the decoration the doctrine
+   names; a neutral card ground would have been a second way of drawing what
+   `.b-aimy` already draws. These sentences are AiMY's read of the record —
+   the same thing it says on a card, on the rail and on a lead block — so
+   they are the same component, reused whole. All that is declared here is
+   where it sits: `.b-aimy` carries a card's margins and a card's `flex`,
+   and inside a row it wants neither. */
+.b-way-beat.b-aimy { flex: 0 1 auto; margin: 8px 0 0; }
+/* Tone tints the ground, never the figure. Amber where nobody ever agreed an
+   answer, which is the one thing amber means on this block. */
+.b-way.is-gap .b-way-beat.b-aimy { background: var(--warn-bg); }
 .b-way-beat .b-doc, .b-way-beat .s-inline-btn { vertical-align: 1px; margin-left: 2px; }
-@media (max-width: 900px) {
-  .b-way { grid-template-columns: 46px minmax(0, 1fr); }
-  .b-way-beat { grid-column: 2; }
+
+/* What the group left out, and the way to the rest of it. `.s-sec-ask` is the
+   whole control — the accent pill, the mark, the hover — so all this adds is
+   where it sits and an ink at the type floor rather than the pill's default
+   muted one. It is a door, so it does not read as a fifth row: a pill under a
+   column of rows is plainly not another row. */
+.b-way-rest.s-sec-ask {
+  margin: 12px 0 0; font-weight: var(--fw-semibold); color: var(--d200);
 }
-.b-way-thin {
-  margin: 12px 0 0; font-size: var(--t-body); color: var(--d200);
-  line-height: var(--lh-base); max-width: 62ch; text-wrap: pretty;
+
+@media (max-width: 720px) {
+  .b-way { grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
+  .b-way-n { font-size: var(--fs-xl); }
 }
+/* `.b-way-thin` stood here. The sentence it styled — "too few to call a
+   pattern" — is a statement about the block rather than a row in it, so it
+   moved into the lead where this block's other statements about itself are
+   made, and the rule had nothing left to style. */
 
 /* ══ 56. THE BRIEF, IN THREE STEPS ═════════════════════════════════════════
    Nine label-and-value pairs at one size, one weight and one colour. A brief
@@ -2719,6 +2827,12 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .call-none { color: var(--ink-muted); }
 .call-who { color: var(--ink-muted); }
 
+/* The notice that this call is a worked example. It is a `.call-none` — the
+   panel's own quiet voice, already defined above — and all this adds is the
+   gap that separates it from the phone number it is about. A second colour
+   or a border would make a disclaimer of it; it is a caption. */
+.call-fixture { margin-top: 10px; }
+
 /* The way back and the way out at opposite edges of one line. The back
    button carries its own bottom margin for the pages that use it bare; in
    here the row owns the spacing. */
@@ -2735,7 +2849,7 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-end-word { display: inline-block; line-height: 1; }
 
 /* ══ 67. WHAT HAPPENED IS A QUESTION, NOT A VERB ═══════════════════════════
-   The rungs stood in the row of verbs at the same weight as Call, and which
+   The steps stood in the row of verbs at the same weight as Call, and which
    of them led swapped the moment a meeting date passed. They are a different
    kind of thing — a fact to record rather than an action to take — so they
    sit under the row on a line of their own, behind the question they answer.
