@@ -2313,6 +2313,22 @@
   function parse() {
     const p = new URLSearchParams(location.search);
     SCALAR.forEach((k) => (S[k] = p.get(k) || DEFAULTS[k] || ''));
+    /* ══ ONE TAB, TWO READINGS, AND THE URL KEY IS THE MANAGER'S ═════════
+       `calls` and `deals` are not two surfaces. They are the Accounts tab
+       rendered from the two ends of one process — the switcher says so, and
+       says why each kept the key it was born with rather than migrating a
+       word. Nothing on a caller's screen emits `on=deals`; a bookmark, a
+       shared link or a manager's URL opened at the wrong desk does.
+
+       Rendered anyway it came up WRONG, the way Financials did before it
+       was guarded: `dealsTake` priced Engy's cold call queue as a book and
+       told her €6.8m was open across 134 deals she was running. They are
+       the people she has not phoned yet.
+
+       Financials earns a refusal because a caller has no book. This tab she
+       has — it is the first thing on her screen — so the key resolves to her
+       reading of it instead of explaining that it cannot. */
+    if (S.on === 'deals' && !isMgr()) S.on = 'calls';
   }
   function qs(over) {
     const next = Object.assign(Object.create(null), S, over || {});
