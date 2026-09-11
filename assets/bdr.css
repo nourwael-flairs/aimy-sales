@@ -637,6 +637,32 @@
 }
 .s-pan-go:hover { color: var(--accent-text); }
 .s-pan-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+
+/* ══ THE MARKS WERE UNDER THE FILLS, NOT BEHIND THEM ═══════════════════════
+   "Where you should be today" is in the legend and is not on the bar. It
+   renders — measured at 61.1%, two pixels wide, twelve tall, in the right
+   place — and `document.elementFromPoint` at its own centre returns
+   `.s-att-booked`. The fill is on top of it.
+
+   `.s-att-booked` and `.s-att-fcast` carry `z-index: 1`. `.s-att-track`
+   holds them and is `position: relative` with `z-index: auto`, so it does
+   not open a stacking context of its own — the fills' z-index competes at
+   the level of the bar, against two marks sitting at `auto`. The fills win
+   and paint over both.
+
+   The target survives only because it overhangs: `top: -4px; bottom: -4px`
+   puts eight pixels of it outside the track, and those two stubs are the
+   entire mark anybody has ever seen. The pace mark is inset — `top: 3px;
+   bottom: 3px`, wholly inside — so none of it is left.
+
+   This is the second half of a bug the sheet already has a paragraph about.
+   That note moved the marks OUT of the track so `overflow: hidden` would
+   stop clipping them, and clipping was never the whole of it; the fills were
+   painting over the part that was not clipped. Raising the marks over the
+   fills is the rest of that fix, and it is what makes the shape difference
+   the note describes — a line that crosses, a tick that sits inside —
+   readable for the first time. */
+.s-att-target, .s-att-pace { z-index: 2; }
 /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
    What we sell and what they push back on are the same shape — a name and a
    line about it — and they were drawn two different ways. The first ran bold
