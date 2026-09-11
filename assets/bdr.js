@@ -6472,23 +6472,37 @@
                 '<summary class="s-crew-sum">' +
                   '<span class="s-crew-who">' +
                     '<b>' + esc(plural(c.crew.length, 'person')) + '</b>' +
-                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours at ' +
-                      esc(fmtMoney(c.hours ? c.people / c.hours : 0)) + ' an hour on average</span>' +
+                    '<span class="s-pan-meta">' + esc(c.hours.toFixed(1)) + ' hours</span>' +
                   '</span>' +
                   '<span class="s-pan-cost">' + esc(fmtMoney(c.people)) + '</span>' +
                 '</summary>' +
                 '<div class="s-crew-list">' +
-                  /* A NAME AND ITS TERMS ARE TWO FACTS, NOT ONE STRING. The
-                     name and what it cost are what a reader scans; the role,
-                     the hours and the rate are what they check afterwards. */
+                  /* ══ HOURS, NOT WAGES ════════════════════════════════════
+                     Each name carried its own rate and its own money: "Engy
+                     Saleh · BDR · 9.9 hours at €55 an hour · €546", ten
+                     panels down the page. That is a payroll ledger, and the
+                     argument against it is already in this file, forty lines
+                     up, where the same rate card was taken off the role rows:
+                     a sales manager does not set pay and cannot act on it;
+                     what he owns is where the hours went.
+
+                     It was left standing here — with the names on it, which
+                     is worse than the anonymised version that was removed.
+                     So the rate goes and the per-person money with it, both
+                     being the same fact twice, and the hours stay, because
+                     the hours are the thing he moves.
+
+                     The money does not leave the panel. It stays on the
+                     summary and on the two rows beside it, where it answers
+                     the question this section is about — whether this
+                     campaign's cost went on people, on AiMY or on the
+                     suppliers — rather than what any one person is paid. */
                   c.crew.map((m) => '<span class="s-pan-p">' +
                     '<span class="s-pan-who">' +
                       '<b>' + esc((REP[m.id] || {}).name || m.id) + '</b>' +
                       '<span class="s-pan-meta">' + esc(JOB[(REP[m.id] || {}).fn] || '') +
-                        ' &middot; ' + esc(m.hours.toFixed(1)) + ' hours at ' +
-                        esc(fmtMoney(m.rate)) + ' an hour</span>' +
+                        ' &middot; ' + esc(m.hours.toFixed(1)) + ' hours</span>' +
                     '</span>' +
-                    '<span class="s-pan-cost">' + esc(fmtMoney(m.cost)) + '</span>' +
                   '</span>').join('') +
                 '</div>' +
               '</details>' : '') +
