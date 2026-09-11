@@ -9793,6 +9793,10 @@
       thin: gave && gave < 4 ? gave : 0,
       stops: stops.slice(0, 2), stopsAll: stops.length,
       calls: here.length, gave: gave,
+      /* The untruncated lists, for the drill-down. The block shows two of
+         each because four findings is what somebody reads between calls;
+         asking for the rest has to be able to produce the rest. */
+      allStops: stops, allSpoken: spoken,
     };
   }
 
@@ -9812,7 +9816,25 @@
        totals, which is the one thing a bar cannot do; the proportion is
        said in words beside each name instead. */
     const worst = rows[0];
-    const gap = b.spoken.filter((x) => x.gap)[0];
+    /* ══ "THE ONE" HAS TO BE THE ONLY ONE ═════════════════════════════════
+       This looked for the gap among the two spoken rows the block draws, and
+       then said "is the one nobody agreed an answer to" — a claim about the
+       whole campaign made from the top of a truncated list. On a campaign
+       with five reasons and two of them unanswered it named one and called
+       it the one, and the drill-down this block now offers says two. Read
+       off the full list, and the sentence names them rather than singling
+       one out when there is more than one.
+
+       GATED THE WAY THE ROWS ARE GATED. `blockersOf` withholds the spoken
+       list entirely under four reasons, because three rows each reading "1
+       of 3" is noise wearing the clothes of a finding — and the block says
+       so underneath, in as many words. Reading the gaps off the ungated list
+       walked straight past that: on a campaign with one reason on the record
+       the lead named it and called it unanswered, one inch above a paragraph
+       saying the sample is too small to call a pattern. The claim now holds
+       to the same threshold as the rows it is about. */
+    const gaps = b.spoken.length ? b.allSpoken.filter((x) => x.gap) : [];
+    const gap = gaps[0];
     /* ══ THE CONCLUSION DOES NOT RESTATE THE ROW UNDER IT ═════════════════
        This read "Stopped at reception is the most of it — 32 of 195 calls",
        and the first row twelve pixels below was 32 · Stopped at reception ·
@@ -9821,8 +9843,14 @@
        is the row. */
     const lead = '<b>' + esc(worst.name) + '</b> is the most of it.' +
       (gap
-        ? ' Of the ' + esc(plural(b.gave, 'reason')) + ' anybody gave here, <b class="tone-warn">' +
-          esc(gap.name.toLowerCase()) + '</b> is the one nobody agreed an answer to.'
+        ? ' Of the ' + esc(plural(b.gave, 'reason')) + ' anybody gave here, ' +
+          /* Named, not counted. "2 of the 8" would be read as two of those
+             eight mentions when it is two of the five kinds they fall into,
+             and which ones is the thing a caller can act on anyway. */
+          gaps.map((x) => '<b class="tone-warn">' + esc(x.name.toLowerCase()) + '</b>')
+            .join(', ').replace(/, ([^,]*)$/, ' and $1') +
+          (gaps.length === 1 ? ' is the one nobody agreed an answer to.'
+            : ' have no answer anybody agreed.')
         : b.spoken.length
           ? ' Every reason they give has an answer this campaign already agreed.'
           : '');
@@ -9898,16 +9926,31 @@
 
        Two groups, each captioned with the population its figures are of. The
        caption is where "of 8 reasons" stops being a surprise. */
-    /* ══ AND WHAT THE GROUP LEFT OUT ══════════════════════════════════════
-       Both lists are cut to their top two. Showing two of five without
+    /* ══ WHAT THE GROUP LEFT OUT IS A DOOR, NOT A FOOTNOTE ════════════════
+       Both lists are cut to their top two, and showing two of five without
        saying so narrows a broad problem and sends the caller to fix the
-       wrong thing, so the remainder is a rendered line rather than a fact
-       nobody was told. */
+       wrong thing. So the remainder is stated — but stating it and stopping
+       leaves the reader told about something they cannot reach, which is the
+       dead end the doctrine names.
+
+       It is `.s-sec-ask`, the pill this product already uses for a question
+       about the thing directly above it: the mark, so it is clear who
+       answers, and `data-ask`, so the press submits the question rather than
+       only writing it into the bar. The answer lands in the card over the
+       composer with the canvas one more press away, which is this build's
+       own rule — the answer comes to the bar, not the bar to the answer.
+
+       The label keeps the count. A door that drops it would have traded the
+       fact for the way to it, and the point was to have both. */
+    const askWay = 'What else is in the way on this campaign?';
     const group = (cap, xs, rest) => (xs.length
       ? '<div class="b-way-group">' +
           '<h3 class="b-way-cap">' + esc(cap) + '</h3>' +
           '<div class="b-ways">' + xs.map(row).join('') + '</div>' +
-          (rest ? '<p class="b-way-rest">' + esc(rest) + '</p>' : '') +
+          (rest
+            ? '<button class="s-sec-ask b-way-rest" type="button" data-ask="' +
+              esc(askWay) + '">' + aiMark() + esc(rest) + '</button>'
+            : '') +
         '</div>'
       : '');
     const stopN = b.stopsAll - b.stops.length;
@@ -14901,6 +14944,50 @@
 
        One row, and every answer that has chips uses it. */
     const doors = (html) => '<div class="b-cuts">' + html + '</div>';
+
+    /* ══ THE REST OF WHAT IS IN THE WAY ═══════════════════════════════════
+       The obstacles block shows the top two of each of its two lists and
+       offers this question for the rest. It has to be able to produce the
+       rest, or the door it offers opens on the capability paragraph — which
+       is the empty room `execAsks` warns about, drawn by the one control on
+       the page that promised otherwise.
+
+       Scoped to the campaign you asked it from, because that is the only
+       place the question is asked and `blockersOf` counts per campaign.
+       Asked from anywhere else it says so and hands over the door, rather
+       than aggregating four campaigns into a figure nothing else reports. */
+    if (/in the way|obstacle|blocker|getting in the way|stopping the call/.test(q)) {
+      const k = S.camp && DB.byCamp[S.camp];
+      if (!k) {
+        return 'I read what is in the way per campaign, off the calls made on it. Open one and ' +
+          'ask again.' + doors(door('Your campaigns', Object.assign(cleared(), { on: 'camps' })));
+      }
+      const b = blockersOf(k);
+      const rows = b.allStops.concat(b.allSpoken);
+      if (!rows.length) {
+        return 'Nothing is in the way on <b>' + esc(k.name) + '</b> yet — ' +
+          plural(b.calls, 'call') + ' on it and nobody has given a reason.';
+      }
+      const say = (x) => esc(x.name) + ' <b>' + commas(x.n) + ' of ' +
+        esc(plural(x.of, x.unit)) + '</b>';
+      const gapRow = b.allSpoken.filter((x) => x.gap);
+      return '<b>' + plural(rows.length, 'thing') + '</b> in the way on <b>' + esc(k.name) +
+        '</b>, read off ' + plural(b.calls, 'call') + '. ' +
+        rows.map(say).join('; ') + '.' +
+        /* The block withholds the spoken list under four reasons and says
+           why. The drill-down shows them — you asked for everything — and
+           carries the same caveat rather than letting a sample of one arrive
+           looking like a finding. */
+        (b.thin
+          ? ' Only ' + plural(b.thin, 'reason') + ' on the record, which is too few to call a ' +
+            'pattern.'
+          : gapRow.length
+            ? ' <b class="tone-warn">' + esc(plural(gapRow.length, 'reason')) + '</b> ' +
+              esc(verbFor(gapRow.length, 'has')) + ' no answer this campaign ever agreed: ' +
+              gapRow.map((x) => esc(x.name.toLowerCase())).join(', ') + '.'
+            : ' Every reason they give has an answer this campaign agreed.') +
+        doors(door('Back to the campaign', Object.assign(cleared(), { camp: k.id })));
+    }
 
     if (/\b(decision|decided|signed|handed)\b/.test(q)) {
       const hits = decidedHits();

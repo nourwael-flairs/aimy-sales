@@ -2499,11 +2499,13 @@ button.b-chat-item:focus-visible { outline: 2px solid var(--brand); outline-offs
 .b-way.is-gap .b-way-beat.b-aimy { background: var(--warn-bg); }
 .b-way-beat .b-doc, .b-way-beat .s-inline-btn { vertical-align: 1px; margin-left: 2px; }
 
-/* What the group left out, in the caption's ink so it reads as a footnote to
-   the list rather than a fifth row of it. */
-.b-way-rest {
-  margin: 10px 0 0; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
-  color: var(--d200); line-height: var(--lh-base);
+/* What the group left out, and the way to the rest of it. `.s-sec-ask` is the
+   whole control — the accent pill, the mark, the hover — so all this adds is
+   where it sits and an ink at the type floor rather than the pill's default
+   muted one. It is a door, so it does not read as a fifth row: a pill under a
+   column of rows is plainly not another row. */
+.b-way-rest.s-sec-ask {
+  margin: 12px 0 0; font-weight: var(--fw-semibold); color: var(--d200);
 }
 
 @media (max-width: 720px) {
