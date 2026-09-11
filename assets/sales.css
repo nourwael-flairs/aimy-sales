@@ -657,23 +657,24 @@ button {
      the one thing a pill cannot — living inside running text.
 
      These are the family's values, so a coloured word and a coloured tag
-     are the same colour. `--accent-text` is not a status: it is the ink
-     every text action in this product wears, and an affordance is not a
-     verdict, so it keeps its own brighter value. */
-  --ok-text:     #7fae94;   /* 6.92:1 on card */
-  --warn-text:   #c0a47c;   /* 7.30:1 */
-  --err-text:    #d2827b;   /* 5.96:1 */
+     are the same colour. That is the entire point of them, so they are
+     aliases now rather than copies: the status hues moved to full
+     saturation in the design system, and a copy would have left a muted
+     word sitting beside a vivid pill. `--accent-text` is not a status: it
+     is the ink every text action in this product wears, and an affordance
+     is not a verdict, so it keeps its own brighter value. */
+  --ok-text:     var(--ok);
+  --warn-text:   var(--warn);
+  --err-text:    var(--err);
   --accent-text: #a06ff7;   /* 5.04:1 — an action, not a status */
 }
 :root[data-theme="light"] {
-  /* Darkened a step from the first solve. Those values cleared 4.5 on the
-     plain card, but the status pill put them on a 12% tint of their own
-     hue — a lighter ground — and they landed at 4.52, 4.56, 5.12. Passing
-     by four hundredths is not passing, it is the next small change away
-     from failing silently. These clear on both grounds with room. */
-  --ok-text:     #3f6b52;
-  --warn-text:   #7a613c;
-  --err-text:    #8a473f;
+  /* The three status inks have no light entry any more. They alias --ok /
+     --warn / --err, and those are re-derived against white upstream —
+     including the exact check this comment was written for: a tag sits on a
+     tint of its own hue, which composites to a darker ground than the card,
+     so the ink was re-measured there and not just on the card. An override
+     here would only pin them back to the old family. */
   --accent-text: #6d3bd4;   /* 6.51 / 6.01 */
 }
 
@@ -2708,7 +2709,7 @@ body.is-calling { --fb-reserve: var(--call-width); }
    press. The border goes; the ground stays and does the work.
 
    These three also still carried the saturated borders the tokens above
-   left behind — 28% of #f04438 around text that is now #d2827b, which is
+   left behind — 28% of #f04438 around text that was #d2827b then and is
    the migration finishing here. */
 .s-meta-st.tone-err   { color: var(--err-text);  background: var(--err-bg); }
 .s-meta-st.tone-warn  { color: var(--warn-text); background: var(--warn-bg); }
@@ -6066,7 +6067,7 @@ body.is-calling .overlay-chats { display: none; }
    hiding who acted.
 
    THE MARK CARRIES THE GRADIENT; THE LABEL DOES NOT. `--ai` runs from
-   #0066ff to #6fdfe2, and clipped to text the label starts at the dark end —
+   #0066ff to #45d3e6, and clipped to text the label starts at the dark end —
    measured 3.58:1 against the card, under the 4.5 that small text needs.
    `--ai-text` is the library's own token for AI-blue TYPE and measures
    7.22:1. The gradient was the wrong token for the job, not the wrong idea:

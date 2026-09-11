@@ -598,6 +598,71 @@
 /* The way back is a navigation control, not a footnote. At --d400 it was the
    dimmest thing on a record page, under a masthead at full ink. */
 .s-back { color: var(--d200); }
+
+/* ══ AND THE SAME SWEEP OVER FINANCIALS ════════════════════════════════════
+   The section above did this for the surfaces a caller reads and stopped at
+   the manager's. Counted on the money page: 160 text runs at `--d300` or
+   `--d400` across 21 classes — the unit under every figure, the state on
+   every campaign, the hours and rates on every crew row, the legend under
+   the attainment bar, every section's eyebrow and every note under one. The
+   densest page in the build was also the dimmest.
+
+   Every one of them is content. "11.1 hours at €58.23 an hour" is the
+   resourcing decision; "of €300k" is the denominator of the biggest figure
+   on the page; "Where you should be today" is what a mark on the bar means.
+   None of it is chrome and none of it should be read at chrome's ink.
+
+   NOT ONE SIZE CHANGES. The ranks on this page are already carried by size,
+   weight and case — 24px figures over 18px names over 14px meta over 12px
+   caps — which is where a rank belongs. Dimness was doing the job a second
+   time, badly, and it is the axis that costs the reader their eyes. */
+.s-pan-facts span, .s-pan-meta, .s-pan-unit, .s-pan-state,
+.s-exec-eyebrow, .s-exec-note, .s-af-cap, .s-af-sub,
+.s-cost-note, .s-cost-pc, .s-odds-cap, .s-odds-n, .s-odds-note,
+.s-att-of, .s-att-key, .s-asks-cap { color: var(--d200); }
+/* "Nothing" is a state a campaign is IN, not a value that failed to arrive.
+   Dimming it said the second. The word carries the meaning, which is also
+   the rule about never leaving colour to do it alone. */
+.s-pan-total.is-none { color: var(--d200); }
+
+/* ══ THE CAMPAIGN NAME OPENS THE CAMPAIGN ══════════════════════════════════
+   It inherits the name's type exactly — the panel heading is the door, not a
+   link dressed up beside it — and adds only what says it can be pressed. The
+   accent arrives on the cursor, the way every other quiet door in this build
+   announces itself, so a column of ten does not read as ten links. */
+.s-pan-go {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0;
+  text-align: left; cursor: pointer;
+  transition: color var(--t-fast);
+}
+.s-pan-go:hover { color: var(--accent-text); }
+.s-pan-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+
+/* ══ THE MARKS WERE UNDER THE FILLS, NOT BEHIND THEM ═══════════════════════
+   "Where you should be today" is in the legend and is not on the bar. It
+   renders — measured at 61.1%, two pixels wide, twelve tall, in the right
+   place — and `document.elementFromPoint` at its own centre returns
+   `.s-att-booked`. The fill is on top of it.
+
+   `.s-att-booked` and `.s-att-fcast` carry `z-index: 1`. `.s-att-track`
+   holds them and is `position: relative` with `z-index: auto`, so it does
+   not open a stacking context of its own — the fills' z-index competes at
+   the level of the bar, against two marks sitting at `auto`. The fills win
+   and paint over both.
+
+   The target survives only because it overhangs: `top: -4px; bottom: -4px`
+   puts eight pixels of it outside the track, and those two stubs are the
+   entire mark anybody has ever seen. The pace mark is inset — `top: 3px;
+   bottom: 3px`, wholly inside — so none of it is left.
+
+   This is the second half of a bug the sheet already has a paragraph about.
+   That note moved the marks OUT of the track so `overflow: hidden` would
+   stop clipping them, and clipping was never the whole of it; the fills were
+   painting over the part that was not clipped. Raising the marks over the
+   fills is the rest of that fix, and it is what makes the shape difference
+   the note describes — a line that crosses, a tick that sits inside —
+   readable for the first time. */
+.s-att-target, .s-att-pace { z-index: 2; }
 /* ══ ONE SHAPE FOR BOTH LISTS ══════════════════════════════════════════════
    What we sell and what they push back on are the same shape — a name and a
    line about it — and they were drawn two different ways. The first ran bold

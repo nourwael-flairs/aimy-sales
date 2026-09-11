@@ -35,7 +35,7 @@
     ═══════════════════════════════════════════════ */
     :root {
       /* ── AI Brand Gradient ── */
-      --ai: linear-gradient(104deg, #0066ff 0%, #61adf1 47%, #6fdfe2 100%);
+      --ai: linear-gradient(104deg, #0066ff 0%, #61adf1 47%, #45d3e6 100%);
 
       /* ── Dark Scale (navy-tinted) ── */
       --d950: #080b10;
@@ -64,87 +64,92 @@
       --accent-glow:rgba(139,79,244,0.25);
 
       /* ── Secondary Accents ── */
-      --teal:   #6fdfe2;
-      --teal-dim: rgba(111,223,226,0.12);
+      /* Cyan is the canonical name in the design system; --teal is kept as
+         an alias because this library and the product both still ask for it
+         by that name, and an alias costs nothing where a rename costs a
+         sweep. Aliasing rather than duplicating also means the light theme
+         re-points one token and the other two follow. */
+      --cyan:        #45d3e6;
+      --cyan-rgb:    69,211,230;
+      --cyan-bg:     rgba(69,211,230,0.12);
+      --cyan-border: rgba(69,211,230,0.30);
+      --teal:        var(--cyan);
+      --teal-dim:    var(--cyan-bg);
       --purple: #8b4ff4;
 
-      /* ══ SEMANTIC STATUS — TWO POLES, AND A RULE ══════════════════
-         Colour marks an OUTCOME: something decided, or something wrong.
-         It never names a category, a stage, a severity band or a kind of
-         thing — those are read by their words and their position, which is
-         what words and positions are for.
+      /* ══ SEMANTIC STATUS — THE HUE CARRIES THE VERDICT ════════════
+         This file spent a long time arguing the opposite: that four hues at
+         full strength were four alarms, and that a quiet family of six would
+         let a screen of labels read as one voice. That argument is correct
+         about a screen where everything is tagged. It is the wrong argument
+         for a screen where a tag is rare — and here it is rare: seven tones
+         across the whole product, most of them neutral.
 
-         Four hues became two. Amber sitting between green and red IS the
-         traffic light, and the suite spent it on "owed", "late" and
-         "gatekeeper", none of which is a verdict; cyan named "information",
-         which is what every pixel on the screen already is. Both resolve to
-         the neutral ink now, so a label that used to be amber keeps its
-         words and loses its alarm.
+         At that density the failure inverts. A muted green and a muted clay
+         at one chroma are two flavours of the same beige, and the reader has
+         to READ the pill to learn the verdict, which is the one job the pill
+         exists to save them. The design system settled it for the ecosystem:
+         status is full saturation, used directly, so the verdict lands
+         before the word does.
 
-         The two that survive are pulled to one chroma and one lightness so
-         they read as a pair rather than as two signals — measured at 7.4:1
-         and 6.9:1 on the card, 8.1 and 7.6 on the rail. */
-      --ok:      #7fae94;
-      --ok-bg:   rgba(127,174,148,0.10);
-      --ok-glow: rgba(127,174,148,0.18);
-      /* Amber was the traffic light because it was #f79009 sitting between
-         a green and a red at full strength. At a quarter of that chroma it
-         is not a warning any more, it is a flavour — which is what "needs
-         attention" always was. */
-      --warn:    #c0a47c;
-      --warn-bg: rgba(192,164,124,0.10);
-      /* ══ THE NEGATIVE POLE IS RED, NOT CLAY ═══════════════════════
-         #c98b84 was already at 6° — the hue was red all along. What made
-         it read as terracotta was the chroma: 39% is a colour that has
-         been washed rather than one that has been chosen. Ten points of
-         saturation, the same lightness, and the hue a degree closer to
-         zero: it is unmistakably red now and still nowhere near the
-         #f04438 it replaced.
-
-         It carries more chroma than the positive pole does, and that is
-         deliberate rather than an oversight in the pairing. The two are
-         not used equally often — a lost deal and a do-not-call are rarer
-         and cost more than a handover — so the one you need to catch
-         across a page gets the louder half of a quiet pair. */
-      --err:     #d2827b;   /* H5 S49 L65 — 5.96:1 on card, 6.01 on the rail */
-      --err-bg:  rgba(210,130,123,0.10);
-      --err-glow:rgba(210,130,123,0.18);
-      /* ══ AND ONE THAT IS NOT IN THE FAMILY ═══════════════════════════
-         The family is for LABELS — words that describe something. A filled
-         control that stops something already in flight is not describing
-         anything, it is an alarm, and an alarm is the one place a full
-         chroma is correct. Hanging up on a person mid-call is the case
-         this exists for; a mispress costs you the call.
-
-         It is never a background for a badge, never a border, never text.
-         If a red is being used to say what something IS, it is --err. */
-      --err-strong: #f04438;
-      /* ══ AND A THIRD, FOR PROVENANCE ═════════════════════════════════
-         The two poles say how something ended. This one says who it came
-         from: AiMY noticed it, AiMY has an opinion about it, AiMY wrote it.
-         That is a claim worth a colour of its own — it is the thing a
-         reader most needs to know before trusting a line — and it never
-         sits on the same object as a verdict, so the three cannot collide.
-
-         Pulled to the poles' chroma so it joins the family rather than
-         starting a second one. `--ai` and `--ai-text` are untouched above:
-         the gradient is the AI SURFACE — the canvas, the cursor, the model
-         dot — which is identity, and identity was never in question. */
-      --info:    #8aa6bd;
-      --info-bg: rgba(138,166,189,0.10);
-      /* ══ THE LABEL FAMILY ═══════════════════════════════════════════
-         Six hues that share one chroma and one lightness, so a screen of
-         labels reads as one voice rather than as six signals. --ok, --err,
-         --info and --warn above are four of them; the accent and the teal
-         are identity tokens a product re-themes, so their label renderings
-         live here rather than overwriting the identity. A product that
-         re-themes --accent should revisit --accent-label with it.
-
-         Measured on the card: 5.96 to 7.47:1, and 5.59 to 7.22 on white.
-         The red carries about twenty points more chroma than the rest,
-         deliberately — a verdict should still reach you first. */
-      --accent-label: #a892bf;
-      --teal-label:   #84b3b0;
+         Four hues, each with an -rgb companion for tinting, a -bg ground, a
+         -border line in the same hue, and a -glow where a halo needs one.
+         Always tint through the companion — rgba(var(--ok-rgb),.1) — never
+         the literal, or the tint stays pinned to the dark value when the
+         theme flips. */
+      --ok:          #4ed6a1;
+      --ok-rgb:      78,214,161;
+      --ok-bg:       rgba(78,214,161,0.12);
+      --ok-border:   rgba(78,214,161,0.30);
+      --ok-glow:     rgba(78,214,161,0.20);
+      --warn:        #f7c95c;
+      --warn-rgb:    247,201,92;
+      --warn-bg:     rgba(247,201,92,0.13);
+      --warn-border: rgba(247,201,92,0.32);
+      --err:         #ff7282;
+      --err-rgb:     255,114,130;
+      --err-bg:      rgba(255,114,130,0.12);
+      --err-border:  rgba(255,114,130,0.30);
+      --err-glow:    rgba(255,114,130,0.20);
+      /* ══ AND ONE THAT IS NOT A LABEL ════════════════════════
+         --err-strong stops something already IN FLIGHT — hanging up on a
+         call mid-progress is the case it exists for. Never a badge ground,
+         never a border, never status text. Where a red says what something
+         IS, that is --err. Now that --err is itself a full red the gap
+         between the two is deliberately small: what separates them is what
+         the colour is DOING, not how loud it is. */
+      --err-strong:  #ff5268;
+      /* Provenance rather than verdict — informational, and the readable
+         member of the AI ramp. Never on the same object as a verdict, so
+         the two cannot collide. */
+      --info:        #7ea7ff;
+      --info-rgb:    126,167,255;
+      --info-bg:     rgba(126,167,255,0.12);
+      --info-border: rgba(126,167,255,0.28);
+      /* Ink on a SOLID status fill. It inverts with the theme because a
+         solid chip is bright in dark and deep in light. --heat-ink is the
+         separate one for heat-scale cells, which are saturated tints in
+         BOTH themes and want near-black in both — --text-on-status is wrong
+         there and would go white on a light heat cell. */
+      --text-on-status: #0d1117;
+      --heat-ink:       #0d1117;
+      /* The readable members of the AI ramp. --ai above is the gradient and
+         it is decoration; these two carry text. */
+      --ai-ink:      #61adf1;
+      --ai-ink-soft: #a8ccff;
+      --ai-rgb:      0,102,255;
+      /* The label renderings of the two identity hues. They used to be
+         separately desaturated values so they could join the quiet family;
+         with the family gone they are the hues themselves, kept as tokens so
+         the call sites do not have to change. */
+      /* --teal-label can be the hue itself; --accent-label cannot. #8b4ff4
+         on a 15% tint of itself over the card is 3.23:1, which is a purple
+         nobody can read at 12px. This is the same hue carried up to where
+         it holds a word: 5.11:1 on the card, 5.60 on the rail, which sits
+         with --err at 5.55 and --info at 5.94 rather than above them. The
+         accent names a KIND of thing, so it should not outrank a verdict. */
+      --accent-label: #ab7ffb;
+      --teal-label:   var(--cyan);
 
       /* ── Surface Tokens ── */
       --body-bg:          #0f1215;
@@ -168,7 +173,7 @@
       /* ── Gradients ── */
       --grad-avatar: linear-gradient(135deg,#7c3aed,#3369ff);
       --grad-ellipse-1: radial-gradient(ellipse at 30% 50%, rgba(0,102,255,0.18) 0%, rgba(97,173,241,0.1) 28%, transparent 60%);
-      --grad-ellipse-2: radial-gradient(ellipse at 75% 70%, rgba(111,223,226,0.1) 0%, rgba(139,79,244,0.07) 38%, transparent 60%);
+      --grad-ellipse-2: radial-gradient(ellipse at 75% 70%, rgba(69,211,230,0.1) 0%, rgba(139,79,244,0.07) 38%, transparent 60%);
 
       /* ── Layout ── */
       --topbar-height: 60px;
@@ -311,26 +316,60 @@
       /* Brand tint slightly denser for contrast on white */
       --brand-dim:  rgba(51,105,255,0.12);
       --brand-glow: rgba(51,105,255,0.20);
-      --accent-dim: rgba(139,79,244,0.12);
-      --accent-glow:rgba(139,79,244,0.20);
-      /* --teal is very light (cyan) — darken it for legible text on white.
-         Tints (--teal-dim) and the AI gradient use their own values, so this only affects teal text. */
-      --teal:       #0d8f95;
-      --teal-dim:   rgba(111,223,226,0.20);
+      /* The accent itself has to darken on white. #8b4ff4 is 4.2:1 there,
+         which fails the 12px label that wears it via --accent-label; the
+         deeper purple clears with room and carries nav active, chip
+         selection and the caret with it. */
+      --accent:     #6725cc;
+      --accent-rgb: 103,37,204;
+      --accent-dim: rgba(103,37,204,0.10);
+      --accent-glow:rgba(103,37,204,0.18);
+      /* On white the accent is already deep enough to carry the label, so
+         this one goes back to being the hue itself. */
+      --accent-label: var(--accent);
+      /* --cyan is very light in dark mode; on white it has to become a deep
+         teal before it can carry text. --teal and --teal-dim alias --cyan,
+         so re-pointing this one token moves all three. */
+      --cyan:        #096673;
+      --cyan-rgb:    9,102,115;
+      --cyan-bg:     rgba(9,102,115,0.10);
+      --cyan-border: rgba(9,102,115,0.28);
 
-      /* Semantic hues darkened one step — the dark-mode mid-tones fail
-         contrast when used as text/icons on white. Tint backgrounds stay pale. */
-      --ok:   #4a7a5e;
-      --warn: #7a613c;
-      --err:  #903b37;
-      --err-strong: #d92d20;
-      --info: #4d6b85;
-      --accent-label: #5f5079;
-      --teal-label:   #3f6b68;
-      --ok-bg:   rgba(74,122,94,0.12);
-      --warn-bg: rgba(122,97,60,0.12);
-      --err-bg:  rgba(144,59,55,0.12);
-      --info-bg: rgba(77,107,133,0.12);
+      /* Semantic hues RE-DERIVED, not darkened by a step. The dark hues sit
+         at 1.6–2.6:1 on white and cannot carry text at all, so each was
+         re-picked against a contrast target and then re-checked inside a
+         nested tint — a tag on a tinted card composites onto a darker ground
+         than the card alone. Grounds and borders drop roughly a fifth of
+         their alpha, because dark-on-light reads heavier than the reverse. */
+      --ok:          #066640;
+      --ok-rgb:      6,102,64;
+      --ok-bg:       rgba(6,102,64,0.10);
+      --ok-border:   rgba(6,102,64,0.26);
+      --ok-glow:     rgba(6,102,64,0.16);
+      --warn:        #6b4500;
+      --warn-rgb:    107,69,0;
+      --warn-bg:     rgba(107,69,0,0.10);
+      --warn-border: rgba(107,69,0,0.26);
+      --err:         #a81029;
+      --err-rgb:     168,16,41;
+      --err-bg:      rgba(168,16,41,0.09);
+      --err-border:  rgba(168,16,41,0.26);
+      --err-glow:    rgba(168,16,41,0.16);
+      --err-strong:  #8a0b20;
+      --info:        #1a54bd;
+      --info-rgb:    26,84,189;
+      --info-bg:     rgba(26,84,189,0.09);
+      --info-border: rgba(26,84,189,0.26);
+      /* A solid chip is deep on white, so its ink flips to white. A heat
+         cell is a saturated tint in both themes and keeps its near-black. */
+      --text-on-status: #ffffff;
+      --heat-ink:       #0f172a;
+      /* The gradient's mid blue is 2.4:1 on white and cannot carry text, so
+         the gradient darkens for background-clip:text and the inks with it. */
+      --ai:          linear-gradient(104deg, #0047c7 0%, #1f6fc4 47%, #0a7a8c 100%);
+      --ai-rgb:      0,82,212;
+      --ai-ink:      #0a57ac;
+      --ai-ink-soft: #37618f;
 
       /* Surfaces */
       --body-bg:          #f4f6f9;
@@ -384,13 +423,18 @@
     :root[data-theme="light"] .btn-ghost:hover,
     :root[data-theme="light"] .btn-ghost.is-hover { background: rgba(16,24,40,0.09); border-color: rgba(16,24,40,0.18); }
     :root[data-theme="light"] .copy-btn,
-    :root[data-theme="light"] .copy-btn:hover,
-    /* Tags */
-    :root[data-theme="light"] .tag-ok, :root[data-theme="light"] .tag-warn,
-    :root[data-theme="light"] .tag-err, :root[data-theme="light"] .tag-ai,
-    :root[data-theme="light"] .tag-accent, :root[data-theme="light"] .tag-neutral,
-    :root[data-theme="light"] .tag-info, :root[data-theme="light"] .tag-teal {
-      background: rgba(16,24,40,0.06); border-color: transparent; color: var(--d200);
+    :root[data-theme="light"] .copy-btn:hover { background: rgba(16,24,40,0.06); border-color: transparent; color: var(--d200); }
+    /* Tags used to be flattened to this same grey pill on white, because the
+       old family only darkened two of its hues and the rest could not carry
+       text here. All four re-derive against white now, so every tone resolves
+       through its own tokens and the flattening rule is gone.
+
+       The neutral tone is the one that still needs an entry: its ground and
+       its edge are a WHITE wash, and a white wash on a white card is nothing
+       at all. It flips to a navy wash at the same two weights — navy rather
+       than black, because a neutral black wash reads grey and dirty. */
+    :root[data-theme="light"] .tag-neutral {
+      background: rgba(15,23,42,0.038); border-color: rgba(15,23,42,0.105);
     }
     /* Chips & filters */
     :root[data-theme="light"] .chip.default { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.12); color: var(--ink-muted); }
@@ -407,19 +451,16 @@
     /* Callouts — pale text → darker semantic hue */
     /* Semantic text on pale tints — mid-tone hues fail contrast on white,
        so tags / badges / chips use the darker shade of each hue in light mode. */
-    /* The two poles darken a step on white, as every hue in this system
-       does; the tones that are no longer hues need no entry at all. */
-    :root[data-theme="light"] .tag-ok,
+    /* The tag needs no entry here any more. Every semantic hue and every
+       -bg / -border companion is re-derived against white in the light block
+       above, so .tag-ok and .tag-err resolve correctly on their own; the
+       literals that used to sit here were a patch for a palette that
+       darkened only two of its four hues. .signal-badge and .chip do not
+       render in this product, so their light inks are left as found. */
     :root[data-theme="light"] .signal-badge.ok,
     :root[data-theme="light"] .chip.ok   { color: #3f6b52; }
-    :root[data-theme="light"] .tag-err,
     :root[data-theme="light"] .signal-badge.err,
     :root[data-theme="light"] .chip.err   { color: #903b37; }
-    /* On white a tint of the same fraction reads louder than it does on the
-       card, because it is lifting off a ground with nowhere to go. Down a
-       third, and the border does more of the work. */
-    :root[data-theme="light"] .tag-ok  { background: color-mix(in srgb, #3f6b52 11%, transparent); }
-    :root[data-theme="light"] .tag-err { background: color-mix(in srgb, #903b37 11%, transparent); }
     /* The other four resolve through tokens that already darken on white,
        so they need no entry — these two are the light-mode inks the poles
        use, which are literals for the same reason. */
@@ -566,61 +607,51 @@
       line-height: 16px;
       vertical-align: middle; white-space: nowrap;
     }
-    /* ══ ONE PILL, AND THE WORD CARRIES THE VERDICT ═══════════════════
-       Every tone used to bring its own tinted ground AND its own coloured
-       border, so eight tags on a screen were eight coloured objects and
-       none of them could recede. One ground now, one border, for all of
-       them — the pill is furniture. What changes between tones is the ink
-       on the word, and only the two poles change it at all. */
-    /* ══ A LABEL HAS A FILL. A CONTROL HAS AN EDGE. ═══════════════════
-       Once every tone shared one pill, a tag and a ghost button became the
-       same object: both a hairline-bordered capsule on the same ground,
-       one of them pressable and one of them not, and nothing on either
-       saying which. The tag was the thing in the wrong, because a hairline
-       border is this build's signature for something you can hit — the
-       ghost, the chip, the menu item, the search box all wear it.
+    /* ══ THE TAG CARRIES ITS HUE ══════════════════════════════
+       An earlier pass gave every tone one grey ground and no border, on the
+       argument that eight tinted pills were eight coloured objects and none
+       of them could recede. That holds where everything is tagged. This
+       product tags rarely, and at that density a recessive pill is simply a
+       pill you have to read.
 
-       So the border comes off the tag and the ground gets a little
-       stronger to carry the shape on its own. Filled and edgeless is a
-       word about a thing; edged and unfilled is a thing you press. */
-    .tag-ok, .tag-warn, .tag-err, .tag-ai, .tag-accent,
-    .tag-neutral, .tag-info, .tag-teal {
-      background: rgba(255,255,255,0.07); color: var(--ink-muted);
-      border: 1px solid transparent;
+       So the tag takes its tint as a ground, the full hue on the word, and a
+       border in the same hue. The border had been argued away on the grounds
+       that a hairline edge is this build's signature for something you can
+       press — but that signature is a NEUTRAL hairline. An edge in a
+       saturated hue at a third alpha is not mistakable for a ghost button,
+       and it is what holds the pill's shape where a 12%-alpha ground on its
+       own dissolves into the card behind it.
+
+       Case and size are unchanged: a tag is still a name in sentence case at
+       --fs-2xs, not a shout in capitals. What changed here is colour. */
+    .tag-neutral {
+      background: rgba(255,255,255,0.05); color: var(--ink-muted);
+      border: 1px solid rgba(255,255,255,0.11);
     }
-    /* ══ AND THE TWO POLES GET A GROUND BACK — BARELY ═════════════════
-       Colour on the word alone is ten pixels of ink on a pill that looks
-       like every other pill, which is subtle to the point of not being
-       there: good and bad were readable but not findable. So the pole tags
-       take a tint of their own hue and a border in it, at a ninth and a
-       fifth — the old ones were the same fractions of a SATURATED hue, and
-       a ninth of #17b26a is a green rectangle where a ninth of #7fae94 is
-       a card that has gone very slightly warm. The difference you are
-       meant to catch is at the edge of your eye, not in the middle of it.
+    .tag-ok     { background: var(--ok-bg);      color: var(--ok);           border: 1px solid var(--ok-border); }
+    .tag-warn   { background: var(--warn-bg);    color: var(--warn);         border: 1px solid var(--warn-border); }
+    .tag-err    { background: var(--err-bg);     color: var(--err);          border: 1px solid var(--err-border); }
+    .tag-info   { background: var(--info-bg);    color: var(--info);         border: 1px solid var(--info-border); }
+    /* Provenance: this came from AiMY. Cyan is the AI identity hue, so the
+       provenance tag and the AI surface are the same colour. */
+    .tag-teal,
+    .tag-ai     { background: var(--cyan-bg);    color: var(--cyan);         border: 1px solid var(--cyan-border); }
+    /* .tag-qa is the design system's name for this same object. */
+    .tag-accent,
+    .tag-qa     { background: var(--accent-dim); color: var(--accent-label); border: 1px solid rgba(var(--accent-rgb),0.22); }
 
-       Nothing else on the screen has a tint of any kind now, so a ninth is
-       enough to find. That is the whole argument for spending the licence
-       on two things instead of eight. */
-    /* The poles were findable on a tint AND a border; with the border gone
-       the tint takes the whole job, so it comes up from a ninth to a
-       seventh. Still the only tinted thing on the screen. */
-    /* ══ AND THE TAG WEARS ALL SIX ════════════════════════════════════
-       A wall of grey pills is not calm, it is undifferentiated — the first
-       cut of this licence took every hue off every label and the screen
-       lost its bearings along with its noise. The fix was never fewer
-       colours, it was quieter ones: at this chroma a tone is a flavour, so
-       a tag can say what KIND of thing it is without any of them shouting.
-
-       What the licence still forbids is a hue on a SEQUENCE. A rung on a
-       ladder and a stage in a pipeline are positions, and positions are
-       read by order — colouring them is how five steps ended up green. */
-    .tag-ok     { color: var(--ok);     background: color-mix(in srgb, var(--ok) 15%, transparent); }
-    .tag-err    { color: var(--err);    background: color-mix(in srgb, var(--err) 15%, transparent); }
-    .tag-warn   { color: var(--warn);   background: color-mix(in srgb, var(--warn) 15%, transparent); }
-    .tag-accent { color: var(--accent-label); background: color-mix(in srgb, var(--accent-label) 15%, transparent); }
-    .tag-teal   { color: var(--teal-label);   background: color-mix(in srgb, var(--teal-label) 15%, transparent); }
-    /* Provenance: this came from AiMY. */
-    .tag-ai, .tag-info { color: var(--info); background: color-mix(in srgb, var(--info) 15%, transparent); }
+    /* ══ SOLID — FOR A STATE, NOT A NAME ═══════════════════════
+       The hue fills and the word inverts to --text-on-status. Reserved for
+       short, high-priority states; the tinted tag stays the default for
+       status and metadata, and a screen carrying two solid pills has one of
+       them too many. */
+    .tag-solid            { border-color: transparent; color: var(--text-on-status); }
+    .tag-solid.tag-ok     { background: var(--ok); }
+    .tag-solid.tag-warn   { background: var(--warn); }
+    .tag-solid.tag-err    { background: var(--err); }
+    .tag-solid.tag-info   { background: var(--info); }
+    .tag-solid.tag-teal,
+    .tag-solid.tag-ai     { background: var(--cyan); }
 
     /* ── Signal / Live Badge ── */
     .signal-badge {
@@ -1060,7 +1091,7 @@
     .progress-bar-fill.err  { background: var(--err); }
     .progress-bar-fill.brand{ background: var(--brand); }
     .progress-bar-fill.ai   {
-      background: linear-gradient(90deg, #0066ff, #6fdfe2);
+      background: linear-gradient(90deg, #0066ff, #45d3e6);
     }
 
     /* thick variant for KPI category breakdown */
@@ -1327,9 +1358,9 @@
       position: absolute; top: -3px; right: -3px;
       min-width: 16px; height: 16px; border-radius: var(--r-pill);
       /* NOT --err, which is a label hue: this is the one mark whose whole
-         job is "now". It rendered at #f04438 until --err moved to the muted
-         family under it, taking white-on-red from 3.76:1 to 2.91:1 without
-         anyone touching the rule. --err-strong holds it where it was. */
+         job is "now". --err is a full red again, but a label hue is still
+         the wrong token here and still cannot carry white — #fff on #ff7282
+         is 2.5:1. --err-strong is the deeper red this badge has to have. */
       background: var(--err-strong); border: 1.5px solid var(--body-bg);
       font-size: 9px; font-weight: 800; color: #fff;
       display: flex; align-items: center; justify-content: center;
@@ -1677,7 +1708,7 @@
         radial-gradient(ellipse  30px 42px at   1%  60%, rgb( 97,173,241), transparent),
         radial-gradient(ellipse  28px 40px at 100%  32%, rgb( 76,203,224), transparent),
         radial-gradient(ellipse 168px 28px at  68% 104%, rgb(  0,102,255), transparent),
-        radial-gradient(ellipse  96px 24px at  31% 104%, rgb(111,223,226), transparent);
+        radial-gradient(ellipse  96px 24px at  31% 104%, rgb( 69,211,230), transparent);
     }
 
     .beam::before,
@@ -1854,7 +1885,7 @@
       display: inline-flex; align-items: center; gap: 5px;
       font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
       text-transform: uppercase; padding: 3px 9px; border-radius: var(--r-pill);
-      background: linear-gradient(104deg, rgba(0,102,255,0.15), rgba(111,223,226,0.12));
+      background: linear-gradient(104deg, rgba(0,102,255,0.15), rgba(69,211,230,0.12));
       border: 1px solid rgba(97,173,241,0.25); color: #61adf1;
     }
     .aimy-badge svg { width: 11px; height: 11px; }
